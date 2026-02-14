@@ -1,7 +1,12 @@
-import { invoices } from "@/data/mockData";
+import { useState } from "react";
+import { getInitialInvoices, getInitialCustomers, type Invoice } from "@/data/mockData";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Download, Eye } from "lucide-react";
+import { Plus, Download, Eye, Trash2, Edit } from "lucide-react";
+import { InvoiceForm } from "@/components/InvoiceForm";
+import { InvoicePreview } from "@/components/InvoicePreview";
+import { toast } from "sonner";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
@@ -14,6 +19,52 @@ const statusStyles: Record<string, string> = {
 };
 
 export default function Invoices() {
+  const [invoices, setInvoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
+  const [customers] = useLocalStorage("cb-customers", getInitialCustomers());
+  const [view, setView] = useState<"list" | "form" | "preview">("list");
+  const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+
+  const nextNumber = `INV-${String(invoices.length + 1).padStart(3, "0")}`;
+
+  const handleSave = (invoice: Invoice) => {
+    setInvoices((prev) => {
+      const exists = prev.find((i) => i.id === invoice.id);
+      if (exists) return prev.map((i) => (i.id === invoice.id ? invoice : i));
+      return [...prev, invoice];
+    });
+    setView("list");
+    setEditInvoice(null);
+    toast.success(editInvoice ? "Invoice updated" : "Invoice created");
+  };
+
+  const handleDelete = (id: string) => {
+    setInvoices((prev) => prev.filter((i) => i.id !== id));
+    toast.success("Invoice deleted");
+  };
+
+  if (view === "form") {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <InvoiceForm
+          customers={customers}
+          onSave={handleSave}
+          onCancel={() => { setView("list"); setEditInvoice(null); }}
+          editInvoice={editInvoice}
+          nextNumber={nextNumber}
+        />
+      </div>
+    );
+  }
+
+  if (view === "preview" && previewInvoice) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <InvoicePreview invoice={previewInvoice} onClose={() => { setView("list"); setPreviewInvoice(null); }} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -21,7 +72,7 @@ export default function Invoices() {
           <h1 className="text-2xl font-bold">Invoices</h1>
           <p className="text-muted-foreground text-sm">Manage your invoices and billing</p>
         </div>
-        <Button>
+        <Button onClick={() => { setEditInvoice(null); setView("form"); }}>
           <Plus className="w-4 h-4 mr-2" />
           New Invoice
         </Button>
@@ -54,16 +105,25 @@ export default function Invoices() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View">
+                      <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}>
                         <Eye className="w-4 h-4 text-muted-foreground" />
                       </button>
-                      <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Download PDF">
+                      <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditInvoice(inv); setView("form"); }}>
+                        <Edit className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Download PDF" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}>
                         <Download className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDelete(inv.id)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {invoices.length === 0 && (
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No invoices yet. Create your first invoice!</td></tr>
+              )}
             </tbody>
           </table>
         </div>
