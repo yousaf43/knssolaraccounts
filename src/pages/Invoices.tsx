@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown } from "lucide-react";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
@@ -58,6 +59,9 @@ export default function Invoices() {
   const [filterCustomer, setFilterCustomer] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterDateRange, setFilterDateRange] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [customDateFrom, setCustomDateFrom] = useState("");
+  const [customDateTo, setCustomDateTo] = useState("");
 
   const invoiceFileRef = useRef<HTMLInputElement>(null);
   const soFileRef = useRef<HTMLInputElement>(null);
@@ -159,17 +163,56 @@ export default function Invoices() {
     if (filterDateRange === "30days") return d >= new Date(now.getTime() - 30 * 86400000);
     if (filterDateRange === "90days") return d >= new Date(now.getTime() - 90 * 86400000);
     if (filterDateRange === "thisyear") return d.getFullYear() === now.getFullYear();
+    if (filterDateRange === "custom") {
+      if (customDateFrom && d < new Date(customDateFrom)) return false;
+      if (customDateTo && d > new Date(customDateTo + "T23:59:59")) return false;
+      return true;
+    }
     return true;
   };
   const matchCustomer = (customer: string) => filterCustomer === "all" || customer === filterCustomer;
+  const matchStatus = (status: string) => filterStatus === "all" || status === filterStatus;
+
+  // Unique statuses
+  const uniqueStatuses = Array.from(new Set([
+    ...invoices.map((i) => i.status),
+    ...salesOrders.map((s) => s.status),
+    ...receipts.map((r) => r.paymentMethod),
+  ])).sort();
 
   // --- Filtered data ---
-  const filteredInvoices = invoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date));
-  const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date));
-  const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date));
+  const filteredInvoices = invoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status));
+  const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status));
+  const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod));
 
-  const clearFilters = () => { setFilterCustomer("all"); setFilterType("all"); setFilterDateRange("all"); };
-  const hasActiveFilters = filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all";
+  const clearFilters = () => { setFilterCustomer("all"); setFilterType("all"); setFilterDateRange("all"); setFilterStatus("all"); setCustomDateFrom(""); setCustomDateTo(""); };
+  const hasActiveFilters = filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all" || filterStatus !== "all";
+
+  // --- Export CSV ---
+  const exportCSV = (headers: string[], rows: string[][], filename: string) => {
+    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} row(s)`);
+  };
+
+  const handleExport = () => {
+    if (activeTab === "invoices") {
+      exportCSV(["Number", "Customer", "Date", "Due Date", "Amount", "Status"],
+        filteredInvoices.map((i) => [i.number, i.customer, i.date, i.dueDate, String(i.amount), i.status]), "invoices.csv");
+    } else if (activeTab === "sales-orders") {
+      exportCSV(["Number", "Customer", "Date", "Delivery Date", "Amount", "Status"],
+        filteredSO.map((s) => [s.number, s.customer, s.date, s.deliveryDate, String(s.amount), s.status]), "sales-orders.csv");
+    } else if (activeTab === "receipts") {
+      exportCSV(["Number", "Customer", "Date", "Invoice", "Amount", "Payment Method"],
+        filteredReceipts.map((r) => [r.number, r.customer, r.date, r.invoiceNumber, String(r.amount), r.paymentMethod]), "receipts.csv");
+    } else {
+      exportCSV(["Type", "Number", "Customer", "Date", "Amount", "Status"],
+        allSalesData.map((i) => [i.type, i.number, i.customer, i.date, String(i.amount), i.status]), "sales-all.csv");
+    }
+  };
 
   // --- Form views ---
   if (view === "form") {
@@ -209,7 +252,7 @@ export default function Invoices() {
     ...receipts.map((r) => ({ id: r.id, number: r.number, customer: r.customer, date: r.date, dueDate: r.invoiceNumber, amount: r.amount, status: r.paymentMethod, type: "Receipt" as const, statusStyle: "bg-primary/10 text-primary hover:bg-primary/20 border-0" })),
   ];
   const allSalesData = allSalesDataRaw
-    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date))
+    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status))
     .filter((item) => filterType === "all" || item.type === filterType)
     .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -226,7 +269,7 @@ export default function Invoices() {
 
   // Filter bar component matching reference design
   const FilterBar = ({ showType }: { showType?: boolean }) => (
-    <div className="flex items-center gap-3 py-3 px-4 border-b bg-muted/30">
+    <div className="flex flex-wrap items-end gap-3 py-3 px-4 border-b bg-muted/30">
       {showType && (
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">Type</span>
@@ -246,7 +289,7 @@ export default function Invoices() {
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground">Customers</span>
         <Select value={filterCustomer} onValueChange={setFilterCustomer}>
-          <SelectTrigger className="w-[180px] h-8 text-sm">
+          <SelectTrigger className="w-[160px] h-8 text-sm">
             <SelectValue placeholder="Select" />
           </SelectTrigger>
           <SelectContent>
@@ -258,9 +301,23 @@ export default function Invoices() {
         </Select>
       </div>
       <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Status</span>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[130px] h-8 text-sm">
+            <SelectValue placeholder="All" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            {uniqueStatuses.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1">
         <span className="text-xs font-medium text-muted-foreground">Date Range</span>
         <Select value={filterDateRange} onValueChange={setFilterDateRange}>
-          <SelectTrigger className="w-[140px] h-8 text-sm">
+          <SelectTrigger className="w-[130px] h-8 text-sm">
             <SelectValue placeholder="All Dates" />
           </SelectTrigger>
           <SelectContent>
@@ -270,18 +327,32 @@ export default function Invoices() {
             <SelectItem value="30days">Last 30 Days</SelectItem>
             <SelectItem value="90days">Last 90 Days</SelectItem>
             <SelectItem value="thisyear">This Year</SelectItem>
+            <SelectItem value="custom">Custom Range</SelectItem>
           </SelectContent>
         </Select>
       </div>
-      <div className="flex items-end gap-2 ml-1">
-        <button className="p-1.5 rounded hover:bg-muted transition-colors mt-4" title="Expand"><Maximize2 className="w-4 h-4 text-muted-foreground" /></button>
-        {hasActiveFilters && (
-          <Button variant="outline" size="sm" className="mt-4 h-8" onClick={clearFilters}>
-            <X className="w-3 h-3 mr-1" />
-            Clear
-          </Button>
-        )}
-      </div>
+      {filterDateRange === "custom" && (
+        <>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">From</span>
+            <Input type="date" className="w-[140px] h-8 text-sm" value={customDateFrom} onChange={(e) => setCustomDateFrom(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">To</span>
+            <Input type="date" className="w-[140px] h-8 text-sm" value={customDateTo} onChange={(e) => setCustomDateTo(e.target.value)} />
+          </div>
+        </>
+      )}
+      <Button variant="outline" size="sm" className="h-8" onClick={handleExport}>
+        <FileDown className="w-3.5 h-3.5 mr-1" />
+        Export
+      </Button>
+      {hasActiveFilters && (
+        <Button variant="outline" size="sm" className="h-8" onClick={clearFilters}>
+          <X className="w-3 h-3 mr-1" />
+          Clear
+        </Button>
+      )}
     </div>
   );
 
