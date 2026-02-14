@@ -42,6 +42,31 @@ export type Invoice = {
   tax?: number;
 };
 
+export type SalesOrder = {
+  id: string;
+  number: string;
+  customer: string;
+  date: string;
+  deliveryDate: string;
+  amount: number;
+  status: "confirmed" | "pending" | "shipped" | "cancelled";
+  items: InvoiceItem[];
+  notes?: string;
+  tax?: number;
+};
+
+export type Receipt = {
+  id: string;
+  number: string;
+  customer: string;
+  date: string;
+  invoiceNumber: string;
+  amount: number;
+  paymentMethod: string;
+  reference?: string;
+  notes?: string;
+};
+
 export type Customer = {
   id: string;
   name: string;
@@ -133,6 +158,23 @@ export function getInitialInventory(): InventoryItem[] {
     { id: "4", name: "Monitor - LG 27\"", sku: "MON-001", qty: 8, reorderLevel: 5, price: 449, category: "Electronics" },
     { id: "5", name: "Keyboard Mechanical", sku: "ACC-004", qty: 2, reorderLevel: 10, price: 89, category: "Accessories" },
     { id: "6", name: "Office Chair", sku: "FUR-001", qty: 15, reorderLevel: 5, price: 350, category: "Furniture" },
+  ];
+}
+
+export function getInitialSalesOrders(): SalesOrder[] {
+  return [
+    { id: "1", number: "SO-001", customer: "Acme Corp", date: "2025-01-10", deliveryDate: "2025-01-25", amount: 15000, status: "shipped", items: [{ description: "Laptop - Dell XPS 15", qty: 5, rate: 3000, amount: 15000 }], tax: 10 },
+    { id: "2", number: "SO-002", customer: "TechStart Inc", date: "2025-01-18", deliveryDate: "2025-02-01", amount: 8900, status: "confirmed", items: [{ description: "USB-C Hub", qty: 100, rate: 89, amount: 8900 }], tax: 10 },
+    { id: "3", number: "SO-003", customer: "Global Solutions", date: "2025-02-01", deliveryDate: "2025-02-15", amount: 22500, status: "pending", items: [{ description: "Monitor - LG 27\"", qty: 50, rate: 450, amount: 22500 }], tax: 10 },
+    { id: "4", number: "SO-004", customer: "BlueSky Ltd", date: "2025-02-05", deliveryDate: "2025-02-20", amount: 3500, status: "cancelled", items: [{ description: "Office Chair", qty: 10, rate: 350, amount: 3500 }], tax: 10 },
+  ];
+}
+
+export function getInitialReceipts(): Receipt[] {
+  return [
+    { id: "1", number: "RCP-001", customer: "Acme Corp", date: "2025-02-10", invoiceNumber: "INV-001", amount: 12500, paymentMethod: "Bank Transfer", reference: "TXN-98765" },
+    { id: "2", number: "RCP-002", customer: "BlueSky Ltd", date: "2025-02-12", invoiceNumber: "INV-004", amount: 6300, paymentMethod: "Credit Card", reference: "CC-45321" },
+    { id: "3", number: "RCP-003", customer: "Pinnacle Group", date: "2025-02-14", invoiceNumber: "INV-005", amount: 11000, paymentMethod: "Bank Transfer", reference: "TXN-11234", notes: "Partial payment - 50%" },
   ];
 }
 
