@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X } from "lucide-react";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
@@ -54,11 +54,10 @@ export default function Invoices() {
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
 
-  // Customer filters per tab
-  const [filterInvoiceCustomer, setFilterInvoiceCustomer] = useState("all");
-  const [filterSOCustomer, setFilterSOCustomer] = useState("all");
-  const [filterReceiptCustomer, setFilterReceiptCustomer] = useState("all");
-  const [filterAllCustomer, setFilterAllCustomer] = useState("all");
+  // Filters
+  const [filterCustomer, setFilterCustomer] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [filterDateRange, setFilterDateRange] = useState("all");
 
   const invoiceFileRef = useRef<HTMLInputElement>(null);
   const soFileRef = useRef<HTMLInputElement>(null);
@@ -143,17 +142,34 @@ export default function Invoices() {
     e.target.value = "";
   };
 
-  // --- Filtered data ---
-  const filteredInvoices = filterInvoiceCustomer === "all" ? invoices : invoices.filter((i) => i.customer === filterInvoiceCustomer);
-  const filteredSO = filterSOCustomer === "all" ? salesOrders : salesOrders.filter((s) => s.customer === filterSOCustomer);
-  const filteredReceipts = filterReceiptCustomer === "all" ? receipts : receipts.filter((r) => r.customer === filterReceiptCustomer);
-
   // Unique customer names for filter dropdowns
   const uniqueCustomers = Array.from(new Set([
     ...invoices.map((i) => i.customer),
     ...salesOrders.map((s) => s.customer),
     ...receipts.map((r) => r.customer),
   ])).sort();
+
+  // Date range filter helper
+  const isInDateRange = (dateStr: string) => {
+    if (filterDateRange === "all") return true;
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (filterDateRange === "today") return d.toDateString() === now.toDateString();
+    if (filterDateRange === "7days") return d >= new Date(now.getTime() - 7 * 86400000);
+    if (filterDateRange === "30days") return d >= new Date(now.getTime() - 30 * 86400000);
+    if (filterDateRange === "90days") return d >= new Date(now.getTime() - 90 * 86400000);
+    if (filterDateRange === "thisyear") return d.getFullYear() === now.getFullYear();
+    return true;
+  };
+  const matchCustomer = (customer: string) => filterCustomer === "all" || customer === filterCustomer;
+
+  // --- Filtered data ---
+  const filteredInvoices = invoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date));
+  const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date));
+  const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date));
+
+  const clearFilters = () => { setFilterCustomer("all"); setFilterType("all"); setFilterDateRange("all"); };
+  const hasActiveFilters = filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all";
 
   // --- Form views ---
   if (view === "form") {
@@ -187,12 +203,15 @@ export default function Invoices() {
   }
 
   // --- All Sales data combined ---
-  const allSalesData = [
+  const allSalesDataRaw = [
     ...invoices.map((inv) => ({ ...inv, type: "Invoice" as const, statusStyle: invoiceStatusStyles[inv.status] })),
     ...salesOrders.map((so) => ({ id: so.id, number: so.number, customer: so.customer, date: so.date, dueDate: so.deliveryDate, amount: so.amount, status: so.status, type: "Sales Order" as const, statusStyle: soStatusStyles[so.status] })),
     ...receipts.map((r) => ({ id: r.id, number: r.number, customer: r.customer, date: r.date, dueDate: r.invoiceNumber, amount: r.amount, status: r.paymentMethod, type: "Receipt" as const, statusStyle: "bg-primary/10 text-primary hover:bg-primary/20 border-0" })),
-  ].filter((item) => filterAllCustomer === "all" || item.customer === filterAllCustomer)
-   .sort((a, b) => b.date.localeCompare(a.date));
+  ];
+  const allSalesData = allSalesDataRaw
+    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date))
+    .filter((item) => filterType === "all" || item.type === filterType)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : "New Invoice";
   const handleNewClick = () => { setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setView("form"); };
@@ -205,19 +224,65 @@ export default function Invoices() {
     </>
   );
 
-  // Customer filter component
-  const CustomerFilter = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[180px] h-9 text-sm">
-        <SelectValue placeholder="All Customers" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">All Customers</SelectItem>
-        {uniqueCustomers.map((c) => (
-          <SelectItem key={c} value={c}>{c}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+  // Filter bar component matching reference design
+  const FilterBar = ({ showType }: { showType?: boolean }) => (
+    <div className="flex items-center gap-3 py-3 px-4 border-b bg-muted/30">
+      {showType && (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted-foreground">Type</span>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[120px] h-8 text-sm">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Invoice">Invoice</SelectItem>
+              <SelectItem value="Sales Order">Sales Order</SelectItem>
+              <SelectItem value="Receipt">Receipt</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Customers</span>
+        <Select value={filterCustomer} onValueChange={setFilterCustomer}>
+          <SelectTrigger className="w-[180px] h-8 text-sm">
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Customers</SelectItem>
+            {uniqueCustomers.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Date Range</span>
+        <Select value={filterDateRange} onValueChange={setFilterDateRange}>
+          <SelectTrigger className="w-[140px] h-8 text-sm">
+            <SelectValue placeholder="All Dates" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Dates</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="7days">Last 7 Days</SelectItem>
+            <SelectItem value="30days">Last 30 Days</SelectItem>
+            <SelectItem value="90days">Last 90 Days</SelectItem>
+            <SelectItem value="thisyear">This Year</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-end gap-2 ml-1">
+        <button className="p-1.5 rounded hover:bg-muted transition-colors mt-4" title="Expand"><Maximize2 className="w-4 h-4 text-muted-foreground" /></button>
+        {hasActiveFilters && (
+          <Button variant="outline" size="sm" className="mt-4 h-8" onClick={clearFilters}>
+            <X className="w-3 h-3 mr-1" />
+            Clear
+          </Button>
+        )}
+      </div>
+    </div>
   );
 
   return (
@@ -254,8 +319,8 @@ export default function Invoices() {
 
         {/* Sales Orders Tab */}
         <TabsContent value="sales-orders">
-          <div className="flex items-center justify-between mb-3">
-            <CustomerFilter value={filterSOCustomer} onChange={setFilterSOCustomer} />
+          <FilterBar />
+          <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
           </div>
           <div className="bg-card rounded-lg border overflow-hidden">
@@ -298,8 +363,8 @@ export default function Invoices() {
 
         {/* Invoices Tab */}
         <TabsContent value="invoices">
-          <div className="flex items-center justify-between mb-3">
-            <CustomerFilter value={filterInvoiceCustomer} onChange={setFilterInvoiceCustomer} />
+          <FilterBar />
+          <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredInvoices.length} invoice(s)</span>
           </div>
           <div className="bg-card rounded-lg border overflow-hidden">
@@ -344,8 +409,8 @@ export default function Invoices() {
 
         {/* Receipts Tab */}
         <TabsContent value="receipts">
-          <div className="flex items-center justify-between mb-3">
-            <CustomerFilter value={filterReceiptCustomer} onChange={setFilterReceiptCustomer} />
+          <FilterBar />
+          <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
           </div>
           <div className="bg-card rounded-lg border overflow-hidden">
@@ -388,8 +453,8 @@ export default function Invoices() {
 
         {/* Sales All Tab */}
         <TabsContent value="all">
-          <div className="flex items-center justify-between mb-3">
-            <CustomerFilter value={filterAllCustomer} onChange={setFilterAllCustomer} />
+          <FilterBar showType />
+          <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
           </div>
           <div className="bg-card rounded-lg border overflow-hidden">
