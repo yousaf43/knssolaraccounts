@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, type Invoice, type SalesOrder, type Receipt } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload } from "lucide-react";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
@@ -28,6 +29,18 @@ const soStatusStyles: Record<string, string> = {
   cancelled: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
 };
 
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.trim().split("\n");
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  return lines.slice(1).map((line) => {
+    const values = line.split(",").map((v) => v.trim());
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => { obj[h] = values[i] || ""; });
+    return obj;
+  });
+}
+
 export default function Invoices() {
   const [invoices, setInvoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
   const [salesOrders, setSalesOrders] = useLocalStorage<SalesOrder[]>("cb-sales-orders", getInitialSalesOrders());
@@ -40,6 +53,15 @@ export default function Invoices() {
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+
+  // Customer filters per tab
+  const [filterInvoiceCustomer, setFilterInvoiceCustomer] = useState("all");
+  const [filterSOCustomer, setFilterSOCustomer] = useState("all");
+  const [filterReceiptCustomer, setFilterReceiptCustomer] = useState("all");
+  const [filterAllCustomer, setFilterAllCustomer] = useState("all");
+
+  const invoiceFileRef = useRef<HTMLInputElement>(null);
+  const soFileRef = useRef<HTMLInputElement>(null);
 
   const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); };
 
@@ -66,6 +88,72 @@ export default function Invoices() {
     toast.success(editReceipt ? "Receipt updated" : "Receipt created");
   };
   const handleDeleteReceipt = (id: string) => { setReceipts((prev) => prev.filter((i) => i.id !== id)); toast.success("Receipt deleted"); };
+
+  // --- Import handlers ---
+  const handleImportInvoices = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const rows = parseCSV(ev.target?.result as string);
+        const newInvoices: Invoice[] = rows.map((r, i) => ({
+          id: `imp-inv-${Date.now()}-${i}`,
+          number: r.number || `INV-IMP-${i + 1}`,
+          customer: r.customer || "Unknown",
+          date: r.date || new Date().toISOString().slice(0, 10),
+          dueDate: r.duedate || r["due date"] || r.due_date || new Date().toISOString().slice(0, 10),
+          amount: parseFloat(r.amount) || 0,
+          status: (r.status as Invoice["status"]) || "pending",
+          items: [{ description: r.description || "Imported item", qty: parseFloat(r.quantity) || 1, rate: parseFloat(r.price || r.amount) || 0, amount: parseFloat(r.amount) || 0 }],
+          tax: parseFloat(r.tax) || 0,
+          notes: r.notes || "Imported via CSV",
+        }));
+        setInvoices((prev) => [...prev, ...newInvoices]);
+        toast.success(`${newInvoices.length} invoice(s) imported`);
+      } catch { toast.error("Failed to parse CSV file"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleImportSalesOrders = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const rows = parseCSV(ev.target?.result as string);
+        const newOrders: SalesOrder[] = rows.map((r, i) => ({
+          id: `imp-so-${Date.now()}-${i}`,
+          number: r.number || `SO-IMP-${i + 1}`,
+          customer: r.customer || "Unknown",
+          date: r.date || new Date().toISOString().slice(0, 10),
+          deliveryDate: r.deliverydate || r["delivery date"] || r.delivery_date || new Date().toISOString().slice(0, 10),
+          amount: parseFloat(r.amount) || 0,
+          status: (r.status as SalesOrder["status"]) || "pending",
+          items: [{ description: r.description || "Imported item", qty: parseFloat(r.quantity) || 1, rate: parseFloat(r.price || r.amount) || 0, amount: parseFloat(r.amount) || 0 }],
+          notes: r.notes || "Imported via CSV",
+        }));
+        setSalesOrders((prev) => [...prev, ...newOrders]);
+        toast.success(`${newOrders.length} sales order(s) imported`);
+      } catch { toast.error("Failed to parse CSV file"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  // --- Filtered data ---
+  const filteredInvoices = filterInvoiceCustomer === "all" ? invoices : invoices.filter((i) => i.customer === filterInvoiceCustomer);
+  const filteredSO = filterSOCustomer === "all" ? salesOrders : salesOrders.filter((s) => s.customer === filterSOCustomer);
+  const filteredReceipts = filterReceiptCustomer === "all" ? receipts : receipts.filter((r) => r.customer === filterReceiptCustomer);
+
+  // Unique customer names for filter dropdowns
+  const uniqueCustomers = Array.from(new Set([
+    ...invoices.map((i) => i.customer),
+    ...salesOrders.map((s) => s.customer),
+    ...receipts.map((r) => r.customer),
+  ])).sort();
 
   // --- Form views ---
   if (view === "form") {
@@ -103,24 +191,57 @@ export default function Invoices() {
     ...invoices.map((inv) => ({ ...inv, type: "Invoice" as const, statusStyle: invoiceStatusStyles[inv.status] })),
     ...salesOrders.map((so) => ({ id: so.id, number: so.number, customer: so.customer, date: so.date, dueDate: so.deliveryDate, amount: so.amount, status: so.status, type: "Sales Order" as const, statusStyle: soStatusStyles[so.status] })),
     ...receipts.map((r) => ({ id: r.id, number: r.number, customer: r.customer, date: r.date, dueDate: r.invoiceNumber, amount: r.amount, status: r.paymentMethod, type: "Receipt" as const, statusStyle: "bg-primary/10 text-primary hover:bg-primary/20 border-0" })),
-  ].sort((a, b) => b.date.localeCompare(a.date));
+  ].filter((item) => filterAllCustomer === "all" || item.customer === filterAllCustomer)
+   .sort((a, b) => b.date.localeCompare(a.date));
 
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : "New Invoice";
   const handleNewClick = () => { setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setView("form"); };
 
+  // Hidden file inputs
+  const hiddenInputs = (
+    <>
+      <input type="file" accept=".csv" ref={invoiceFileRef} className="hidden" onChange={handleImportInvoices} />
+      <input type="file" accept=".csv" ref={soFileRef} className="hidden" onChange={handleImportSalesOrders} />
+    </>
+  );
+
+  // Customer filter component
+  const CustomerFilter = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className="w-[180px] h-9 text-sm">
+        <SelectValue placeholder="All Customers" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Customers</SelectItem>
+        {uniqueCustomers.map((c) => (
+          <SelectItem key={c} value={c}>{c}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   return (
     <div className="space-y-6">
+      {hiddenInputs}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Sales</h1>
           <p className="text-muted-foreground text-sm">Manage sales orders, invoices, receipts and more</p>
         </div>
-        {activeTab !== "all" && (
-          <Button onClick={handleNewClick}>
-            <Plus className="w-4 h-4 mr-2" />
-            {newButtonLabel}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {(activeTab === "invoices" || activeTab === "sales-orders") && (
+            <Button variant="outline" size="sm" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
+            </Button>
+          )}
+          {activeTab !== "all" && (
+            <Button onClick={handleNewClick}>
+              <Plus className="w-4 h-4 mr-2" />
+              {newButtonLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
@@ -133,6 +254,10 @@ export default function Invoices() {
 
         {/* Sales Orders Tab */}
         <TabsContent value="sales-orders">
+          <div className="flex items-center justify-between mb-3">
+            <CustomerFilter value={filterSOCustomer} onChange={setFilterSOCustomer} />
+            <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
+          </div>
           <div className="bg-card rounded-lg border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -148,7 +273,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {salesOrders.map((so) => (
+                  {filteredSO.map((so) => (
                     <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{so.number}</td>
                       <td className="px-4 py-3">{so.customer}</td>
@@ -164,7 +289,7 @@ export default function Invoices() {
                       </td>
                     </tr>
                   ))}
-                  {salesOrders.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No sales orders yet.</td></tr>}
+                  {filteredSO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No sales orders found.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -173,6 +298,10 @@ export default function Invoices() {
 
         {/* Invoices Tab */}
         <TabsContent value="invoices">
+          <div className="flex items-center justify-between mb-3">
+            <CustomerFilter value={filterInvoiceCustomer} onChange={setFilterInvoiceCustomer} />
+            <span className="text-xs text-muted-foreground">{filteredInvoices.length} invoice(s)</span>
+          </div>
           <div className="bg-card rounded-lg border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -188,7 +317,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map((inv) => (
+                  {filteredInvoices.map((inv) => (
                     <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{inv.number}</td>
                       <td className="px-4 py-3">{inv.customer}</td>
@@ -206,7 +335,7 @@ export default function Invoices() {
                       </td>
                     </tr>
                   ))}
-                  {invoices.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No invoices yet.</td></tr>}
+                  {filteredInvoices.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No invoices found.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -215,6 +344,10 @@ export default function Invoices() {
 
         {/* Receipts Tab */}
         <TabsContent value="receipts">
+          <div className="flex items-center justify-between mb-3">
+            <CustomerFilter value={filterReceiptCustomer} onChange={setFilterReceiptCustomer} />
+            <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
+          </div>
           <div className="bg-card rounded-lg border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -230,7 +363,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {receipts.map((r) => (
+                  {filteredReceipts.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{r.number}</td>
                       <td className="px-4 py-3">{r.customer}</td>
@@ -246,7 +379,7 @@ export default function Invoices() {
                       </td>
                     </tr>
                   ))}
-                  {receipts.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No receipts yet.</td></tr>}
+                  {filteredReceipts.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No receipts found.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -255,6 +388,10 @@ export default function Invoices() {
 
         {/* Sales All Tab */}
         <TabsContent value="all">
+          <div className="flex items-center justify-between mb-3">
+            <CustomerFilter value={filterAllCustomer} onChange={setFilterAllCustomer} />
+            <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
+          </div>
           <div className="bg-card rounded-lg border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -281,7 +418,7 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center"><Badge className={item.statusStyle}>{item.status}</Badge></td>
                     </tr>
                   ))}
-                  {allSalesData.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No sales data yet.</td></tr>}
+                  {allSalesData.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No sales data found.</td></tr>}
                 </tbody>
               </table>
             </div>
