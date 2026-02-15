@@ -143,6 +143,14 @@ export type InventoryItem = {
   reorderLevel: number;
   price: number;
   category: string;
+  date: string;
+  costPrice: number;
+  salePrice: number;
+  unit: string;
+  weight: number;
+  stockAssetAccount: string;
+  saleDiscount: number;
+  purchaseDiscount: number;
 };
 
 // Initial data generators
@@ -191,12 +199,12 @@ export function getInitialExpenses(): Expense[] {
 
 export function getInitialInventory(): InventoryItem[] {
   return [
-    { id: "1", name: "Laptop - Dell XPS 15", sku: "LAP-001", qty: 12, reorderLevel: 5, price: 1299, category: "Electronics" },
-    { id: "2", name: "Wireless Mouse", sku: "ACC-002", qty: 45, reorderLevel: 20, price: 29, category: "Accessories" },
-    { id: "3", name: "USB-C Hub", sku: "ACC-003", qty: 3, reorderLevel: 10, price: 59, category: "Accessories" },
-    { id: "4", name: "Monitor - LG 27\"", sku: "MON-001", qty: 8, reorderLevel: 5, price: 449, category: "Electronics" },
-    { id: "5", name: "Keyboard Mechanical", sku: "ACC-004", qty: 2, reorderLevel: 10, price: 89, category: "Accessories" },
-    { id: "6", name: "Office Chair", sku: "FUR-001", qty: 15, reorderLevel: 5, price: 350, category: "Furniture" },
+    { id: "1", name: "Laptop - Dell XPS 15", sku: "LAP-001", qty: 12, reorderLevel: 5, price: 1299, category: "Electronics", date: "2025-01-10", costPrice: 1100, salePrice: 1299, unit: "pcs", weight: 1.8, stockAssetAccount: "Inventory Asset", saleDiscount: 5, purchaseDiscount: 3 },
+    { id: "2", name: "Wireless Mouse", sku: "ACC-002", qty: 45, reorderLevel: 20, price: 29, category: "Accessories", date: "2025-01-12", costPrice: 18, salePrice: 29, unit: "pcs", weight: 0.1, stockAssetAccount: "Inventory Asset", saleDiscount: 0, purchaseDiscount: 5 },
+    { id: "3", name: "USB-C Hub", sku: "ACC-003", qty: 3, reorderLevel: 10, price: 59, category: "Accessories", date: "2025-01-15", costPrice: 35, salePrice: 59, unit: "pcs", weight: 0.15, stockAssetAccount: "Inventory Asset", saleDiscount: 10, purchaseDiscount: 8 },
+    { id: "4", name: "Monitor - LG 27\"", sku: "MON-001", qty: 8, reorderLevel: 5, price: 449, category: "Electronics", date: "2025-01-20", costPrice: 350, salePrice: 449, unit: "pcs", weight: 5.2, stockAssetAccount: "Inventory Asset", saleDiscount: 3, purchaseDiscount: 5 },
+    { id: "5", name: "Keyboard Mechanical", sku: "ACC-004", qty: 2, reorderLevel: 10, price: 89, category: "Accessories", date: "2025-02-01", costPrice: 55, salePrice: 89, unit: "pcs", weight: 0.8, stockAssetAccount: "Inventory Asset", saleDiscount: 0, purchaseDiscount: 10 },
+    { id: "6", name: "Office Chair", sku: "FUR-001", qty: 15, reorderLevel: 5, price: 350, category: "Furniture", date: "2025-02-05", costPrice: 250, salePrice: 350, unit: "pcs", weight: 12, stockAssetAccount: "Inventory Asset", saleDiscount: 5, purchaseDiscount: 7 },
   ];
 }
 
