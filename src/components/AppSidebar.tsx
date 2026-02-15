@@ -19,7 +19,7 @@ const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Invoices", url: "/invoices", icon: FileText },
   { title: "Customers", url: "/customers", icon: Users },
-  { title: "Suppliers", url: "/suppliers", icon: Truck },
+  { title: "Purchases", url: "/purchases", icon: Truck },
   { title: "Expenses", url: "/expenses", icon: Receipt },
   { title: "Inventory", url: "/inventory", icon: Package },
   { title: "Banking", url: "/banking", icon: Landmark },
