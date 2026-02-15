@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import StockAdjustmentSection from "@/components/StockAdjustmentSection";
 import { getInitialInventory, type InventoryItem } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon } from "lucide-react";
@@ -355,6 +356,9 @@ export default function Inventory() {
           </tbody>
         </table>
       </div>
+
+      {/* Stock Adjustment Section */}
+      <StockAdjustmentSection inventory={inventory} onUpdateInventory={setInventory} />
     </div>
   );
 }
