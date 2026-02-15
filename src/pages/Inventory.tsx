@@ -6,11 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
 }
+
+const DEFAULT_UNITS = ["pcs", "kg", "ltr", "box", "dozen", "meter", "feet"];
+const DEFAULT_ACCOUNTS = ["Inventory Asset", "Stock on Hand", "Raw Materials", "Finished Goods"];
 
 const emptyItem = (): Partial<InventoryItem> => ({
   name: "", sku: "", qty: 0, reorderLevel: 5, price: 0, category: "",
@@ -21,9 +25,18 @@ const emptyItem = (): Partial<InventoryItem> => ({
 
 export default function Inventory() {
   const [inventory, setInventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
+  const [customUnits, setCustomUnits] = useLocalStorage<string[]>("cb-custom-units", []);
+  const [customAccounts, setCustomAccounts] = useLocalStorage<string[]>("cb-custom-accounts", []);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<Partial<InventoryItem>>(emptyItem());
+  const [newUnit, setNewUnit] = useState("");
+  const [addingUnit, setAddingUnit] = useState(false);
+  const [newAccount, setNewAccount] = useState("");
+  const [addingAccount, setAddingAccount] = useState(false);
+
+  const allUnits = [...DEFAULT_UNITS, ...customUnits];
+  const allAccounts = [...DEFAULT_ACCOUNTS, ...customAccounts];
 
   const lowStock = inventory.filter((i) => i.qty <= i.reorderLevel);
 
@@ -46,6 +59,26 @@ export default function Inventory() {
   const handleDelete = (id: string) => {
     setInventory((prev) => prev.filter((i) => i.id !== id));
     toast.success("Item deleted");
+  };
+
+  const addNewUnit = () => {
+    const v = newUnit.trim();
+    if (!v || allUnits.includes(v)) return;
+    setCustomUnits((prev) => [...prev, v]);
+    setForm({ ...form, unit: v });
+    setNewUnit("");
+    setAddingUnit(false);
+    toast.success(`Unit "${v}" added`);
+  };
+
+  const addNewAccount = () => {
+    const v = newAccount.trim();
+    if (!v || allAccounts.includes(v)) return;
+    setCustomAccounts((prev) => [...prev, v]);
+    setForm({ ...form, stockAssetAccount: v });
+    setNewAccount("");
+    setAddingAccount(false);
+    toast.success(`Account "${v}" added`);
   };
 
   return (
@@ -75,9 +108,49 @@ export default function Inventory() {
             <div><Label>Sale Price</Label><Input type="number" min={0} step={0.01} value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Quantity</Label><Input type="number" min={0} value={form.qty} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Reorder Level</Label><Input type="number" min={0} value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
-            <div><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="mt-1" placeholder="pcs, kg, ltr..." maxLength={20} /></div>
+
+            {/* Unit dropdown with Add New */}
+            <div>
+              <Label>Unit</Label>
+              {addingUnit ? (
+                <div className="flex gap-1 mt-1">
+                  <Input value={newUnit} onChange={(e) => setNewUnit(e.target.value)} placeholder="New unit..." className="flex-1" maxLength={20} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewUnit())} />
+                  <Button type="button" size="sm" onClick={addNewUnit} className="shrink-0">Add</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setAddingUnit(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                </div>
+              ) : (
+                <Select value={form.unit || "pcs"} onValueChange={(v) => v === "__add_new__" ? setAddingUnit(true) : setForm({ ...form, unit: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {allUnits.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    <SelectItem value="__add_new__">+ Add New Unit</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             <div><Label>Weight</Label><Input type="number" min={0} step={0.01} value={form.weight} onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })} className="mt-1" /></div>
-            <div><Label>Stock Asset Account</Label><Input value={form.stockAssetAccount} onChange={(e) => setForm({ ...form, stockAssetAccount: e.target.value })} className="mt-1" maxLength={50} /></div>
+
+            {/* Stock Asset Account dropdown with Add New */}
+            <div>
+              <Label>Stock Asset Account</Label>
+              {addingAccount ? (
+                <div className="flex gap-1 mt-1">
+                  <Input value={newAccount} onChange={(e) => setNewAccount(e.target.value)} placeholder="New account..." className="flex-1" maxLength={50} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewAccount())} />
+                  <Button type="button" size="sm" onClick={addNewAccount} className="shrink-0">Add</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setAddingAccount(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                </div>
+              ) : (
+                <Select value={form.stockAssetAccount || "Inventory Asset"} onValueChange={(v) => v === "__add_new__" ? setAddingAccount(true) : setForm({ ...form, stockAssetAccount: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {allAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    <SelectItem value="__add_new__">+ Add New Account</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
             <div><Label>Sale Discount (%)</Label><Input type="number" min={0} max={100} step={0.1} value={form.saleDiscount} onChange={(e) => setForm({ ...form, saleDiscount: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Purchase Discount (%)</Label><Input type="number" min={0} max={100} step={0.1} value={form.purchaseDiscount} onChange={(e) => setForm({ ...form, purchaseDiscount: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Price (Display)</Label><Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="mt-1" /></div>
