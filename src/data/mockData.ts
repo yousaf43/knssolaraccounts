@@ -153,6 +153,17 @@ export type InventoryItem = {
   purchaseDiscount: number;
 };
 
+export type StockAdjustment = {
+  id: string;
+  itemId: string;
+  itemName: string;
+  type: "increase" | "decrease";
+  qty: number;
+  reason: string;
+  date: string;
+  note?: string;
+};
+
 // Initial data generators
 export function getInitialInvoices(): Invoice[] {
   return [
