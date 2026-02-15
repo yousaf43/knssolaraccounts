@@ -87,6 +87,44 @@ export type Supplier = {
   outstanding: number;
 };
 
+export type PurchaseOrder = {
+  id: string;
+  number: string;
+  supplier: string;
+  date: string;
+  deliveryDate: string;
+  amount: number;
+  status: "confirmed" | "pending" | "received" | "cancelled";
+  items: InvoiceItem[];
+  notes?: string;
+  tax?: number;
+};
+
+export type Bill = {
+  id: string;
+  number: string;
+  supplier: string;
+  date: string;
+  dueDate: string;
+  amount: number;
+  status: "paid" | "pending" | "overdue";
+  items: InvoiceItem[];
+  notes?: string;
+  tax?: number;
+};
+
+export type PurchasePayment = {
+  id: string;
+  number: string;
+  supplier: string;
+  date: string;
+  billNumber: string;
+  amount: number;
+  paymentMethod: string;
+  reference?: string;
+  notes?: string;
+};
+
 export type Expense = {
   id: string;
   date: string;
@@ -175,6 +213,30 @@ export function getInitialReceipts(): Receipt[] {
     { id: "1", number: "RCP-001", customer: "Acme Corp", date: "2025-02-10", invoiceNumber: "INV-001", amount: 12500, paymentMethod: "Bank Transfer", reference: "TXN-98765" },
     { id: "2", number: "RCP-002", customer: "BlueSky Ltd", date: "2025-02-12", invoiceNumber: "INV-004", amount: 6300, paymentMethod: "Credit Card", reference: "CC-45321" },
     { id: "3", number: "RCP-003", customer: "Pinnacle Group", date: "2025-02-14", invoiceNumber: "INV-005", amount: 11000, paymentMethod: "Bank Transfer", reference: "TXN-11234", notes: "Partial payment - 50%" },
+  ];
+}
+
+export function getInitialPurchaseOrders(): PurchaseOrder[] {
+  return [
+    { id: "1", number: "PO-001", supplier: "Amazon Web Services", date: "2025-01-12", deliveryDate: "2025-01-20", amount: 8000, status: "received", items: [{ description: "Cloud Hosting - Annual", qty: 1, rate: 8000, amount: 8000 }], tax: 10 },
+    { id: "2", number: "PO-002", supplier: "Office Supplies Co", date: "2025-01-20", deliveryDate: "2025-02-01", amount: 2400, status: "confirmed", items: [{ description: "Office Stationery Bulk", qty: 1, rate: 2400, amount: 2400 }], tax: 5 },
+    { id: "3", number: "PO-003", supplier: "DM Pro Agency", date: "2025-02-01", deliveryDate: "2025-02-15", amount: 6000, status: "pending", items: [{ description: "Marketing Campaign Q1", qty: 1, rate: 6000, amount: 6000 }], tax: 10 },
+    { id: "4", number: "PO-004", supplier: "CloudHost Inc", date: "2025-02-05", deliveryDate: "2025-02-10", amount: 1600, status: "cancelled", items: [{ description: "Backup Storage", qty: 1, rate: 1600, amount: 1600 }], tax: 0 },
+  ];
+}
+
+export function getInitialBills(): Bill[] {
+  return [
+    { id: "1", number: "BILL-001", supplier: "Amazon Web Services", date: "2025-01-20", dueDate: "2025-02-20", amount: 8000, status: "paid", items: [{ description: "Cloud Hosting - Annual", qty: 1, rate: 8000, amount: 8000 }], tax: 10 },
+    { id: "2", number: "BILL-002", supplier: "DM Pro Agency", date: "2025-02-01", dueDate: "2025-03-01", amount: 6000, status: "pending", items: [{ description: "Marketing Campaign Q1", qty: 1, rate: 6000, amount: 6000 }], tax: 10 },
+    { id: "3", number: "BILL-003", supplier: "CloudHost Inc", date: "2025-02-05", dueDate: "2025-02-20", amount: 1600, status: "overdue", items: [{ description: "Backup Storage", qty: 1, rate: 1600, amount: 1600 }], tax: 0 },
+  ];
+}
+
+export function getInitialPurchasePayments(): PurchasePayment[] {
+  return [
+    { id: "1", number: "PP-001", supplier: "Amazon Web Services", date: "2025-02-10", billNumber: "BILL-001", amount: 8000, paymentMethod: "Bank Transfer", reference: "TXN-PUR-001" },
+    { id: "2", number: "PP-002", supplier: "Office Supplies Co", date: "2025-02-12", billNumber: "BILL-002", amount: 2400, paymentMethod: "Credit Card", reference: "CC-PUR-002" },
   ];
 }
 

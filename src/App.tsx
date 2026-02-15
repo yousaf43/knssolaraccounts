@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Invoices from "@/pages/Invoices";
 import Customers from "@/pages/Customers";
-import Suppliers from "@/pages/Suppliers";
+import Purchases from "@/pages/Purchases";
 import Expenses from "@/pages/Expenses";
 import Inventory from "@/pages/Inventory";
 import Banking from "@/pages/Banking";
@@ -27,7 +27,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/customers" element={<Customers />} />
-            <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/purchases" element={<Purchases />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/banking" element={<Banking />} />
