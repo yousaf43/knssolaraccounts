@@ -15,6 +15,7 @@ function formatCurrency(amount: number) {
 
 const DEFAULT_UNITS = ["pcs", "kg", "ltr", "box", "dozen", "meter", "feet"];
 const DEFAULT_ACCOUNTS = ["Inventory Asset", "Stock on Hand", "Raw Materials", "Finished Goods"];
+const DEFAULT_CATEGORIES = ["Electronics", "Office Supplies", "Raw Materials", "Packaging", "Tools"];
 
 const emptyItem = (): Partial<InventoryItem> => ({
   name: "", sku: "", qty: 0, reorderLevel: 5, price: 0, category: "",
@@ -27,16 +28,20 @@ export default function Inventory() {
   const [inventory, setInventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
   const [customUnits, setCustomUnits] = useLocalStorage<string[]>("cb-custom-units", []);
   const [customAccounts, setCustomAccounts] = useLocalStorage<string[]>("cb-custom-accounts", []);
+  const [customCategories, setCustomCategories] = useLocalStorage<string[]>("cb-custom-categories", []);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<Partial<InventoryItem>>(emptyItem());
   const [newUnit, setNewUnit] = useState("");
   const [addingUnit, setAddingUnit] = useState(false);
   const [newAccount, setNewAccount] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
   const [addingAccount, setAddingAccount] = useState(false);
 
   const allUnits = [...DEFAULT_UNITS, ...customUnits];
   const allAccounts = [...DEFAULT_ACCOUNTS, ...customAccounts];
+  const allCategories = [...DEFAULT_CATEGORIES, ...customCategories];
 
   const lowStock = inventory.filter((i) => i.qty <= i.reorderLevel);
 
@@ -81,6 +86,16 @@ export default function Inventory() {
     toast.success(`Account "${v}" added`);
   };
 
+  const addNewCategory = () => {
+    const v = newCategory.trim();
+    if (!v || allCategories.includes(v)) return;
+    setCustomCategories((prev) => [...prev, v]);
+    setForm({ ...form, category: v });
+    setNewCategory("");
+    setAddingCategory(false);
+    toast.success(`Category "${v}" added`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -102,7 +117,24 @@ export default function Inventory() {
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <div><Label>Item Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" maxLength={100} required /></div>
             <div><Label>SKU *</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" maxLength={20} required /></div>
-            <div><Label>Category</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="mt-1" maxLength={50} /></div>
+            <div>
+              <Label>Category</Label>
+              {addingCategory ? (
+                <div className="flex gap-1 mt-1">
+                  <Input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="New category..." className="flex-1" maxLength={50} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewCategory())} />
+                  <Button type="button" size="sm" onClick={addNewCategory} className="shrink-0">Add</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setAddingCategory(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                </div>
+              ) : (
+                <Select value={form.category || ""} onValueChange={(v) => v === "__add_new__" ? setAddingCategory(true) : setForm({ ...form, category: v })}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {allCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    <SelectItem value="__add_new__">+ Add New Category</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
             <div><Label>Date</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1" /></div>
             <div><Label>Cost Price</Label><Input type="number" min={0} step={0.01} value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Sale Price</Label><Input type="number" min={0} step={0.01} value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })} className="mt-1" /></div>
