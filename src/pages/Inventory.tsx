@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { getInitialInventory, type InventoryItem } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { AlertTriangle, Plus, Edit, Trash2, X } from "lucide-react";
+import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 function formatCurrency(amount: number) {
@@ -39,9 +43,41 @@ export default function Inventory() {
   const [addingCategory, setAddingCategory] = useState(false);
   const [addingAccount, setAddingAccount] = useState(false);
 
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("__all__");
+  const [filterStatus, setFilterStatus] = useState("__all__");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+
   const allUnits = [...DEFAULT_UNITS, ...customUnits];
   const allAccounts = [...DEFAULT_ACCOUNTS, ...customAccounts];
   const allCategories = [...DEFAULT_CATEGORIES, ...customCategories];
+
+  const usedCategories = useMemo(() => {
+    const cats = new Set(inventory.map((i) => i.category).filter(Boolean));
+    allCategories.forEach((c) => cats.add(c));
+    return Array.from(cats).sort();
+  }, [inventory, allCategories]);
+
+  const filteredInventory = useMemo(() => {
+    return inventory.filter((item) => {
+      // Text search
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q)) return false;
+      }
+      // Category
+      if (filterCategory !== "__all__" && item.category !== filterCategory) return false;
+      // Status
+      if (filterStatus === "low" && item.qty > item.reorderLevel) return false;
+      if (filterStatus === "in_stock" && item.qty <= item.reorderLevel) return false;
+      // Date range
+      if (dateFrom && item.date && new Date(item.date) < dateFrom) return false;
+      if (dateTo && item.date && new Date(item.date) > dateTo) return false;
+      return true;
+    });
+  }, [inventory, searchQuery, filterCategory, filterStatus, dateFrom, dateTo]);
 
   const lowStock = inventory.filter((i) => i.qty <= i.reorderLevel);
 
@@ -106,6 +142,70 @@ export default function Inventory() {
         <Button onClick={openAdd}>
           <Plus className="w-4 h-4 mr-2" /> Add Item
         </Button>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="bg-card rounded-lg border p-4 flex flex-wrap items-end gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Search by name or SKU..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+          </div>
+        </div>
+        <div className="min-w-[150px]">
+          <Label className="text-xs text-muted-foreground mb-1 block">Category</Label>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All Categories</SelectItem>
+              {usedCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-[130px]">
+          <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All Status</SelectItem>
+              <SelectItem value="in_stock">In Stock</SelectItem>
+              <SelectItem value="low">Low Stock</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-[140px]">
+          <Label className="text-xs text-muted-foreground mb-1 block">Date From</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateFrom ? format(dateFrom, "PP") : "Start"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="min-w-[140px]">
+          <Label className="text-xs text-muted-foreground mb-1 block">Date To</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateTo ? format(dateTo, "PP") : "End"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+        </div>
+        {(searchQuery || filterCategory !== "__all__" || filterStatus !== "__all__" || dateFrom || dateTo) && (
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterCategory("__all__"); setFilterStatus("__all__"); setDateFrom(undefined); setDateTo(undefined); }}>
+            <X className="w-4 h-4 mr-1" /> Clear
+          </Button>
+        )}
       </div>
 
       {showForm && (
@@ -223,7 +323,7 @@ export default function Inventory() {
             </tr>
           </thead>
           <tbody>
-            {inventory.map((item) => (
+            {filteredInventory.map((item) => (
               <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="px-3 py-3 font-medium">{item.name}</td>
                 <td className="px-3 py-3 text-muted-foreground">{item.sku}</td>
@@ -251,7 +351,7 @@ export default function Inventory() {
                 </td>
               </tr>
             ))}
-            {inventory.length === 0 && <tr><td colSpan={13} className="text-center py-8 text-muted-foreground">No inventory items.</td></tr>}
+            {filteredInventory.length === 0 && <tr><td colSpan={13} className="text-center py-8 text-muted-foreground">{inventory.length === 0 ? "No inventory items." : "No items match your filters."}</td></tr>}
           </tbody>
         </table>
       </div>
