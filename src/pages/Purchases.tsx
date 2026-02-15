@@ -1,12 +1,13 @@
 import { useState, useRef } from "react";
 import {
   getInitialPurchaseOrders, getInitialBills, getInitialPurchasePayments, getInitialSuppliers,
-  type PurchaseOrder, type Bill, type PurchasePayment, type Supplier,
+  type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem,
 } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, X, Upload, Download } from "lucide-react";
@@ -43,6 +44,9 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-muted text-muted-foreground",
 };
 
+const emptyItem = (): InvoiceItem => ({ description: "", qty: 1, rate: 0, amount: 0 });
+const today = () => new Date().toISOString().split("T")[0];
+
 export default function Purchases() {
   const [tab, setTab] = useState("purchase-orders");
 
@@ -59,10 +63,24 @@ export default function Purchases() {
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
 
+  // PO Form
+  const [showPOForm, setShowPOForm] = useState(false);
+  const [poForm, setPOForm] = useState({ supplier: "", date: today(), deliveryDate: "", status: "pending" as PurchaseOrder["status"], notes: "", tax: 10 });
+  const [poItems, setPOItems] = useState<InvoiceItem[]>([emptyItem()]);
+
+  // Bill Form
+  const [showBillForm, setShowBillForm] = useState(false);
+  const [billForm, setBillForm] = useState({ supplier: "", date: today(), dueDate: "", status: "pending" as Bill["status"], notes: "", tax: 10 });
+  const [billItems, setBillItems] = useState<InvoiceItem[]>([emptyItem()]);
+
+  // Payment Form
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({ supplier: "", date: today(), billNumber: "", amount: 0, paymentMethod: "Bank Transfer", reference: "", notes: "" });
+
   // Supplier form
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-  const [supplierForm, setSupplierForm] = useState<Partial<Supplier>>({ name: "", email: "", phone: "", company: "", totalPaid: 0, outstanding: 0 });
+  const [supplierForm, setSupplierForm] = useState<Partial<Supplier>>({ name: "", email: "", phone: "", company: "", address: "", totalPaid: 0, outstanding: 0 });
 
   // Import refs
   const poFileRef = useRef<HTMLInputElement>(null);
@@ -73,9 +91,9 @@ export default function Purchases() {
     ...purchaseOrders.map(p => p.supplier),
     ...bills.map(b => b.supplier),
     ...payments.map(p => p.supplier),
+    ...suppliers.map(s => s.company),
   ]));
 
-  // All statuses
   const allStatuses = Array.from(new Set([
     ...purchaseOrders.map(p => p.status),
     ...bills.map(b => b.status),
@@ -85,7 +103,6 @@ export default function Purchases() {
     setFilterSupplier("all"); setFilterStatus("all"); setFilterDateRange("all");
     setCustomDateFrom(""); setCustomDateTo("");
   };
-
   const hasFilters = filterSupplier !== "all" || filterStatus !== "all" || filterDateRange !== "all";
 
   // Filtered data
@@ -104,7 +121,6 @@ export default function Purchases() {
     isInDateRange(p.date, filterDateRange, customDateFrom, customDateTo)
   );
 
-  // Purchases All
   const allPurchasesData = [
     ...filteredPO.map(p => ({ ...p, type: "Purchase Order" as const })),
     ...filteredBills.map(b => ({ ...b, type: "Bill" as const })),
@@ -153,7 +169,7 @@ export default function Purchases() {
       const rows = parseCSV(ev.target?.result as string);
       const newItems: PurchaseOrder[] = rows.map((r, i) => ({
         id: crypto.randomUUID(), number: r.number || `PO-IMP-${i + 1}`, supplier: r.supplier || "",
-        date: r.date || new Date().toISOString().split("T")[0], deliveryDate: r["delivery date"] || r.deliverydate || "",
+        date: r.date || today(), deliveryDate: r["delivery date"] || r.deliverydate || "",
         amount: parseFloat(r.amount) || 0, status: (r.status as PurchaseOrder["status"]) || "pending",
         items: [{ description: "Imported item", qty: parseFloat(r.quantity || r.qty || "1"), rate: parseFloat(r.price || r.rate || "0"), amount: parseFloat(r.amount) || 0 }],
       }));
@@ -172,7 +188,7 @@ export default function Purchases() {
       const rows = parseCSV(ev.target?.result as string);
       const newItems: Bill[] = rows.map((r, i) => ({
         id: crypto.randomUUID(), number: r.number || `BILL-IMP-${i + 1}`, supplier: r.supplier || "",
-        date: r.date || new Date().toISOString().split("T")[0], dueDate: r["due date"] || r.duedate || "",
+        date: r.date || today(), dueDate: r["due date"] || r.duedate || "",
         amount: parseFloat(r.amount) || 0, status: (r.status as Bill["status"]) || "pending",
         items: [{ description: "Imported item", qty: parseFloat(r.quantity || r.qty || "1"), rate: parseFloat(r.price || r.rate || "0"), amount: parseFloat(r.amount) || 0 }],
       }));
@@ -183,8 +199,61 @@ export default function Purchases() {
     e.target.value = "";
   };
 
+  // ---- Line items helpers ----
+  const updateItem = (items: InvoiceItem[], setItems: (v: InvoiceItem[]) => void, idx: number, field: keyof InvoiceItem, val: string) => {
+    const updated = [...items];
+    if (field === "description") updated[idx].description = val;
+    else {
+      (updated[idx] as any)[field] = parseFloat(val) || 0;
+      updated[idx].amount = updated[idx].qty * updated[idx].rate;
+    }
+    setItems(updated);
+  };
+
+  const calcTotal = (items: InvoiceItem[], tax: number) => {
+    const sub = items.reduce((s, i) => s + i.amount, 0);
+    return sub + sub * (tax / 100);
+  };
+
+  // ---- PO CRUD ----
+  const handleSavePO = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!poForm.supplier) return;
+    const total = calcTotal(poItems, poForm.tax);
+    const num = `PO-${String(purchaseOrders.length + 1).padStart(3, "0")}`;
+    setPurchaseOrders(prev => [...prev, { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax }]);
+    setShowPOForm(false);
+    setPOItems([emptyItem()]);
+    setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
+    toast.success("Purchase Order created");
+  };
+
+  // ---- Bill CRUD ----
+  const handleSaveBill = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!billForm.supplier) return;
+    const total = calcTotal(billItems, billForm.tax);
+    const num = `BILL-${String(bills.length + 1).padStart(3, "0")}`;
+    setBills(prev => [...prev, { id: crypto.randomUUID(), number: num, supplier: billForm.supplier, date: billForm.date, dueDate: billForm.dueDate, amount: total, status: billForm.status, items: billItems, notes: billForm.notes, tax: billForm.tax }]);
+    setShowBillForm(false);
+    setBillItems([emptyItem()]);
+    setBillForm({ supplier: "", date: today(), dueDate: "", status: "pending", notes: "", tax: 10 });
+    toast.success("Bill created");
+  };
+
+  // ---- Payment CRUD ----
+  const handleSavePayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentForm.supplier || !paymentForm.amount) return;
+    const num = `PP-${String(payments.length + 1).padStart(3, "0")}`;
+    setPayments(prev => [...prev, { id: crypto.randomUUID(), number: num, supplier: paymentForm.supplier, date: paymentForm.date, billNumber: paymentForm.billNumber, amount: paymentForm.amount, paymentMethod: paymentForm.paymentMethod, reference: paymentForm.reference, notes: paymentForm.notes }]);
+    setShowPaymentForm(false);
+    setPaymentForm({ supplier: "", date: today(), billNumber: "", amount: 0, paymentMethod: "Bank Transfer", reference: "", notes: "" });
+    toast.success("Payment recorded");
+  };
+
   // Supplier CRUD
-  const openAddSupplier = () => { setEditingSupplier(null); setSupplierForm({ name: "", email: "", phone: "", company: "", totalPaid: 0, outstanding: 0 }); setShowSupplierForm(true); };
+  const openAddSupplier = () => { setEditingSupplier(null); setSupplierForm({ name: "", email: "", phone: "", company: "", address: "", totalPaid: 0, outstanding: 0 }); setShowSupplierForm(true); };
   const openEditSupplier = (s: Supplier) => { setEditingSupplier(s); setSupplierForm(s); setShowSupplierForm(true); };
   const handleSaveSupplier = (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,6 +273,30 @@ export default function Purchases() {
   const handleDeletePO = (id: string) => { setPurchaseOrders(prev => prev.filter(p => p.id !== id)); toast.success("Purchase order deleted"); };
   const handleDeleteBill = (id: string) => { setBills(prev => prev.filter(b => b.id !== id)); toast.success("Bill deleted"); };
   const handleDeletePayment = (id: string) => { setPayments(prev => prev.filter(p => p.id !== id)); toast.success("Payment deleted"); };
+
+  // Reusable Line Items Editor
+  const LineItemsEditor = ({ items, setItems }: { items: InvoiceItem[]; setItems: (v: InvoiceItem[]) => void }) => (
+    <div className="space-y-2">
+      <Label className="font-semibold">Line Items</Label>
+      <div className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2 text-xs font-medium text-muted-foreground">
+        <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span />
+      </div>
+      {items.map((item, i) => (
+        <div key={i} className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2">
+          <Input value={item.description} onChange={e => updateItem(items, setItems, i, "description", e.target.value)} placeholder="Item description" className="h-8 text-sm" />
+          <Input type="number" value={item.qty} onChange={e => updateItem(items, setItems, i, "qty", e.target.value)} className="h-8 text-sm" min={1} />
+          <Input type="number" value={item.rate} onChange={e => updateItem(items, setItems, i, "rate", e.target.value)} className="h-8 text-sm" min={0} />
+          <Input value={formatCurrency(item.amount)} className="h-8 text-sm bg-muted" readOnly />
+          <button type="button" onClick={() => setItems(items.filter((_, j) => j !== i))} className="p-1 rounded hover:bg-destructive/10" disabled={items.length === 1}>
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          </button>
+        </div>
+      ))}
+      <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, emptyItem()])}>
+        <Plus className="w-3.5 h-3.5 mr-1" /> Add Item
+      </Button>
+    </div>
+  );
 
   // Filter bar
   const FilterBar = () => (
@@ -259,6 +352,14 @@ export default function Purchases() {
     </div>
   );
 
+  // Add button per tab
+  const getAddButton = () => {
+    if (tab === "purchase-orders") return <Button size="sm" onClick={() => setShowPOForm(true)}><Plus className="w-4 h-4 mr-1" /> New PO</Button>;
+    if (tab === "bills") return <Button size="sm" onClick={() => setShowBillForm(true)}><Plus className="w-4 h-4 mr-1" /> New Bill</Button>;
+    if (tab === "payments") return <Button size="sm" onClick={() => setShowPaymentForm(true)}><Plus className="w-4 h-4 mr-1" /> New Payment</Button>;
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -267,11 +368,12 @@ export default function Purchases() {
           <p className="text-muted-foreground text-sm">Manage purchase orders, bills, payments & suppliers</p>
         </div>
         <div className="flex gap-2">
+          {getAddButton()}
           {(tab === "purchase-orders" || tab === "bills") && (
             <>
               <input type="file" accept=".csv" ref={tab === "purchase-orders" ? poFileRef : billFileRef} className="hidden" onChange={tab === "purchase-orders" ? handleImportPO : handleImportBills} />
               <Button variant="outline" size="sm" onClick={() => (tab === "purchase-orders" ? poFileRef : billFileRef).current?.click()}>
-                <Upload className="w-4 h-4 mr-1" /> Import CSV
+                <Upload className="w-4 h-4 mr-1" /> Import
               </Button>
             </>
           )}
@@ -294,6 +396,53 @@ export default function Purchases() {
 
         {/* Purchase Orders */}
         <TabsContent value="purchase-orders">
+          {showPOForm && (
+            <div className="bg-card rounded-lg border p-6 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold">Create Purchase Order</h2>
+                <Button variant="ghost" size="icon" onClick={() => setShowPOForm(false)}><X className="w-4 h-4" /></Button>
+              </div>
+              <form onSubmit={handleSavePO} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Supplier *</Label>
+                    <Select value={poForm.supplier} onValueChange={v => setPOForm({ ...poForm, supplier: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map(s => <SelectItem key={s.id} value={s.company}>{s.company}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Date</Label><Input type="date" value={poForm.date} onChange={e => setPOForm({ ...poForm, date: e.target.value })} className="mt-1" /></div>
+                  <div><Label>Delivery Date</Label><Input type="date" value={poForm.deliveryDate} onChange={e => setPOForm({ ...poForm, deliveryDate: e.target.value })} className="mt-1" /></div>
+                  <div>
+                    <Label>Status</Label>
+                    <Select value={poForm.status} onValueChange={v => setPOForm({ ...poForm, status: v as PurchaseOrder["status"] })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="received">Received</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Tax %</Label><Input type="number" value={poForm.tax} onChange={e => setPOForm({ ...poForm, tax: parseFloat(e.target.value) || 0 })} className="mt-1" min={0} /></div>
+                </div>
+                <LineItemsEditor items={poItems} setItems={setPOItems} />
+                <div className="flex justify-between items-center">
+                  <div className="text-sm font-semibold">Total: {formatCurrency(calcTotal(poItems, poForm.tax))}</div>
+                  <div className="flex gap-3">
+                    <Textarea placeholder="Notes (optional)" value={poForm.notes} onChange={e => setPOForm({ ...poForm, notes: e.target.value })} className="w-64 h-16 text-sm" />
+                    <div className="flex gap-2 items-end">
+                      <Button type="button" variant="outline" onClick={() => setShowPOForm(false)}>Cancel</Button>
+                      <Button type="submit">Create PO</Button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
           <FilterBar />
           <p className="text-xs text-muted-foreground mb-2">{filteredPO.length} purchase order(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
@@ -327,6 +476,52 @@ export default function Purchases() {
 
         {/* Bills */}
         <TabsContent value="bills">
+          {showBillForm && (
+            <div className="bg-card rounded-lg border p-6 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold">Create Bill</h2>
+                <Button variant="ghost" size="icon" onClick={() => setShowBillForm(false)}><X className="w-4 h-4" /></Button>
+              </div>
+              <form onSubmit={handleSaveBill} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Supplier *</Label>
+                    <Select value={billForm.supplier} onValueChange={v => setBillForm({ ...billForm, supplier: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map(s => <SelectItem key={s.id} value={s.company}>{s.company}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Bill Date</Label><Input type="date" value={billForm.date} onChange={e => setBillForm({ ...billForm, date: e.target.value })} className="mt-1" /></div>
+                  <div><Label>Due Date</Label><Input type="date" value={billForm.dueDate} onChange={e => setBillForm({ ...billForm, dueDate: e.target.value })} className="mt-1" /></div>
+                  <div>
+                    <Label>Status</Label>
+                    <Select value={billForm.status} onValueChange={v => setBillForm({ ...billForm, status: v as Bill["status"] })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="overdue">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Tax %</Label><Input type="number" value={billForm.tax} onChange={e => setBillForm({ ...billForm, tax: parseFloat(e.target.value) || 0 })} className="mt-1" min={0} /></div>
+                </div>
+                <LineItemsEditor items={billItems} setItems={setBillItems} />
+                <div className="flex justify-between items-center">
+                  <div className="text-sm font-semibold">Total: {formatCurrency(calcTotal(billItems, billForm.tax))}</div>
+                  <div className="flex gap-3">
+                    <Textarea placeholder="Notes (optional)" value={billForm.notes} onChange={e => setBillForm({ ...billForm, notes: e.target.value })} className="w-64 h-16 text-sm" />
+                    <div className="flex gap-2 items-end">
+                      <Button type="button" variant="outline" onClick={() => setShowBillForm(false)}>Cancel</Button>
+                      <Button type="submit">Create Bill</Button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+          )}
           <FilterBar />
           <p className="text-xs text-muted-foreground mb-2">{filteredBills.length} bill(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
@@ -360,6 +555,58 @@ export default function Purchases() {
 
         {/* Payments */}
         <TabsContent value="payments">
+          {showPaymentForm && (
+            <div className="bg-card rounded-lg border p-6 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold">Record Payment</h2>
+                <Button variant="ghost" size="icon" onClick={() => setShowPaymentForm(false)}><X className="w-4 h-4" /></Button>
+              </div>
+              <form onSubmit={handleSavePayment} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Supplier *</Label>
+                    <Select value={paymentForm.supplier} onValueChange={v => setPaymentForm({ ...paymentForm, supplier: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map(s => <SelectItem key={s.id} value={s.company}>{s.company}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Date</Label><Input type="date" value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="mt-1" /></div>
+                  <div>
+                    <Label>Bill Number</Label>
+                    <Select value={paymentForm.billNumber} onValueChange={v => setPaymentForm({ ...paymentForm, billNumber: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select bill" /></SelectTrigger>
+                      <SelectContent>
+                        {bills.filter(b => !paymentForm.supplier || b.supplier === paymentForm.supplier).map(b => (
+                          <SelectItem key={b.id} value={b.number}>{b.number} - {formatCurrency(b.amount)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Amount *</Label><Input type="number" value={paymentForm.amount} onChange={e => setPaymentForm({ ...paymentForm, amount: parseFloat(e.target.value) || 0 })} className="mt-1" min={0} required /></div>
+                  <div>
+                    <Label>Payment Method</Label>
+                    <Select value={paymentForm.paymentMethod} onValueChange={v => setPaymentForm({ ...paymentForm, paymentMethod: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="Credit Card">Credit Card</SelectItem>
+                        <SelectItem value="Cash">Cash</SelectItem>
+                        <SelectItem value="Cheque">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label>Reference</Label><Input value={paymentForm.reference} onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })} className="mt-1" placeholder="Transaction reference" /></div>
+                </div>
+                <Textarea placeholder="Notes (optional)" value={paymentForm.notes} onChange={e => setPaymentForm({ ...paymentForm, notes: e.target.value })} className="h-16 text-sm" />
+                <div className="flex gap-3 justify-end">
+                  <Button type="button" variant="outline" onClick={() => setShowPaymentForm(false)}>Cancel</Button>
+                  <Button type="submit">Record Payment</Button>
+                </div>
+              </form>
+            </div>
+          )}
           <FilterBar />
           <p className="text-xs text-muted-foreground mb-2">{filteredPayments.length} payment(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
@@ -440,6 +687,7 @@ export default function Purchases() {
                 <div><Label>Company *</Label><Input value={supplierForm.company} onChange={e => setSupplierForm({ ...supplierForm, company: e.target.value })} className="mt-1" required /></div>
                 <div><Label>Email *</Label><Input type="email" value={supplierForm.email} onChange={e => setSupplierForm({ ...supplierForm, email: e.target.value })} className="mt-1" required /></div>
                 <div><Label>Phone</Label><Input value={supplierForm.phone} onChange={e => setSupplierForm({ ...supplierForm, phone: e.target.value })} className="mt-1" /></div>
+                <div className="md:col-span-2"><Label>Address</Label><Textarea value={supplierForm.address} onChange={e => setSupplierForm({ ...supplierForm, address: e.target.value })} className="mt-1 h-16" placeholder="Full address" /></div>
                 <div className="md:col-span-2 flex gap-3 justify-end">
                   <Button type="button" variant="outline" onClick={() => setShowSupplierForm(false)}>Cancel</Button>
                   <Button type="submit">{editingSupplier ? "Update" : "Add"}</Button>
@@ -454,6 +702,7 @@ export default function Purchases() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Company</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Contact</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Address</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Total Paid</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Outstanding</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
@@ -464,6 +713,7 @@ export default function Purchases() {
                     <td className="px-4 py-3 font-medium">{s.company}</td>
                     <td className="px-4 py-3">{s.name}</td>
                     <td className="px-4 py-3 text-muted-foreground">{s.email}</td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px] truncate">{s.address || "—"}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(s.totalPaid)}</td>
                     <td className={`px-4 py-3 text-right font-semibold ${s.outstanding > 0 ? "text-amber-600" : "text-emerald-600"}`}>{formatCurrency(s.outstanding)}</td>
                     <td className="px-4 py-3 text-center">
@@ -474,7 +724,7 @@ export default function Purchases() {
                     </td>
                   </tr>
                 ))}
-                {suppliers.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No suppliers yet.</td></tr>}
+                {suppliers.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No suppliers yet.</td></tr>}
               </tbody>
             </table>
           </div>

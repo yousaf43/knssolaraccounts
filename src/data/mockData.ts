@@ -83,6 +83,7 @@ export type Supplier = {
   email: string;
   phone: string;
   company: string;
+  address: string;
   totalPaid: number;
   outstanding: number;
 };
@@ -169,10 +170,10 @@ export function getInitialCustomers(): Customer[] {
 
 export function getInitialSuppliers(): Supplier[] {
   return [
-    { id: "1", name: "AWS Cloud Services", email: "billing@aws.com", phone: "+1 555-0201", company: "Amazon Web Services", totalPaid: 24000, outstanding: 3200 },
-    { id: "2", name: "Office Supplies Co", email: "orders@officesupplies.com", phone: "+1 555-0202", company: "Office Supplies Co", totalPaid: 4800, outstanding: 0 },
-    { id: "3", name: "Digital Marketing Pro", email: "contact@dmpro.com", phone: "+1 555-0203", company: "DM Pro Agency", totalPaid: 18000, outstanding: 6000 },
-    { id: "4", name: "CloudHost Inc", email: "support@cloudhost.com", phone: "+1 555-0204", company: "CloudHost Inc", totalPaid: 9600, outstanding: 1600 },
+    { id: "1", name: "AWS Cloud Services", email: "billing@aws.com", phone: "+1 555-0201", company: "Amazon Web Services", address: "410 Terry Ave N, Seattle, WA 98109", totalPaid: 24000, outstanding: 3200 },
+    { id: "2", name: "Office Supplies Co", email: "orders@officesupplies.com", phone: "+1 555-0202", company: "Office Supplies Co", address: "123 Commerce St, Dallas, TX 75201", totalPaid: 4800, outstanding: 0 },
+    { id: "3", name: "Digital Marketing Pro", email: "contact@dmpro.com", phone: "+1 555-0203", company: "DM Pro Agency", address: "456 Market Ave, San Francisco, CA 94105", totalPaid: 18000, outstanding: 6000 },
+    { id: "4", name: "CloudHost Inc", email: "support@cloudhost.com", phone: "+1 555-0204", company: "CloudHost Inc", address: "789 Tech Blvd, Austin, TX 73301", totalPaid: 9600, outstanding: 1600 },
   ];
 }
 
