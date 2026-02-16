@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,26 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Please enter your email");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Password reset link sent! Check your email.");
+      setForgotPassword(false);
+    }
+    setLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,60 +74,99 @@ export default function Auth() {
             <div className="text-center">
               <h1 className="text-2xl font-bold">CloudBooks</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {isLogin ? "Sign in to your account" : "Create a new account"}
+                {forgotPassword
+                  ? "Enter your email to reset password"
+                  : isLogin
+                  ? "Sign in to your account"
+                  : "Create a new account"}
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+          {forgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
-                <Label>Full Name</Label>
+                <Label>Email</Label>
                 <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your full name"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
                   className="mt-1"
-                  required={!isLogin}
+                  required
                 />
               </div>
-            )}
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="mt-1"
-                required
-              />
-            </div>
-            <div>
-              <Label>Password</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="mt-1"
-                required
-                minLength={6}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isLogin ? "Sign In" : "Create Account"}
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Send Reset Link
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div>
+                  <Label>Full Name</Label>
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your full name"
+                    className="mt-1"
+                    required={!isLogin}
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="mt-1"
+                  required
+                />
+              </div>
+              <div>
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-1"
+                  required
+                  minLength={6}
+                />
+              </div>
+              {isLogin && (
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setForgotPassword(true)}
+                    className="text-xs text-muted-foreground hover:text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {isLogin ? "Sign In" : "Create Account"}
+              </Button>
+            </form>
+          )}
 
           <div className="text-center">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => { setIsLogin(!isLogin); setForgotPassword(false); }}
               className="text-sm text-primary hover:underline"
             >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              {forgotPassword
+                ? "Back to sign in"
+                : isLogin
+                ? "Don't have an account? Sign up"
+                : "Already have an account? Sign in"}
             </button>
           </div>
         </div>
