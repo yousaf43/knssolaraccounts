@@ -14,6 +14,7 @@ import {
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
+import ksLogo from "@/assets/ks-logo.png";
 
 const navItems = [
 { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -37,14 +38,7 @@ export function AppSidebar() {
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
-          <Landmark className="w-4 h-4 text-sidebar-primary-foreground" />
-        </div>
-        {!collapsed
-
-
-
-        }
+        <img src={ksLogo} alt="K&S Solar Energy" className={`${collapsed ? "w-8 h-8" : "h-10"} object-contain flex-shrink-0`} />
       </div>
 
       {/* Nav */}
