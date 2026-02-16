@@ -338,6 +338,55 @@ export default function Accounts() {
                 </tbody>
               </table>
             </div>
+
+            {/* Bank-wise Summary */}
+            <div className="bg-card border rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b bg-muted/50">
+                <h3 className="font-semibold text-sm">Bank-wise Summary ({ledgerPeriod === "year" ? ledgerMonth.substring(0, 4) : ledgerMonth})</h3>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left p-3">Bank Name</th>
+                    <th className="text-right p-3">Total Incoming</th>
+                    <th className="text-right p-3">Total Outgoing</th>
+                    <th className="text-right p-3">Net Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const bankMap: Record<string, { incoming: number; outgoing: number }> = {};
+                    filteredLedger.forEach(e => {
+                      if (!bankMap[e.bank]) bankMap[e.bank] = { incoming: 0, outgoing: 0 };
+                      if (e.type === "incoming") bankMap[e.bank].incoming += e.amount;
+                      else bankMap[e.bank].outgoing += e.amount;
+                    });
+                    const banks = Object.entries(bankMap);
+                    if (banks.length === 0) return (
+                      <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No data for this period</td></tr>
+                    );
+                    return banks.map(([bank, data]) => (
+                      <tr key={bank} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="p-3 font-medium text-primary">{bank}</td>
+                        <td className="p-3 text-right text-success font-semibold">{formatCurrency(data.incoming)}</td>
+                        <td className="p-3 text-right text-destructive font-semibold">{formatCurrency(data.outgoing)}</td>
+                        <td className={`p-3 text-right font-bold ${data.incoming - data.outgoing >= 0 ? "text-success" : "text-destructive"}`}>
+                          {formatCurrency(data.incoming - data.outgoing)}
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t bg-muted/50 font-bold">
+                    <td className="p-3">Total</td>
+                    <td className="p-3 text-right text-success">{formatCurrency(ledgerSummary.totalIn)}</td>
+                    <td className="p-3 text-right text-destructive">{formatCurrency(ledgerSummary.totalOut)}</td>
+                    <td className={`p-3 text-right ${ledgerSummary.net >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(ledgerSummary.net)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </TabsContent>
 
