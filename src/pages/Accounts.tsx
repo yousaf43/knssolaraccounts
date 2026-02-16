@@ -12,15 +12,18 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
 }
 
-type Account = { id: string; name: string; bank: string; balance: number; number: string };
+type Account = { id: string; name: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
 type OtherReceipt = { id: string; date: string; account: string; receivedFrom: string; amount: number; reference: string; description: string };
 type Transfer = { id: string; date: string; fromAccount: string; toAccount: string; amount: number; reference: string };
 type ReconcileEntry = { id: string; date: string; account: string; statementBalance: number; bookBalance: number; difference: number; status: "reconciled" | "pending" };
 
 const initialAccounts: Account[] = [
-  { id: "1", name: "Business Checking", bank: "Chase Bank", balance: 148200, number: "****4521" },
-  { id: "2", name: "Savings Account", bank: "Chase Bank", balance: 50200, number: "****7833" },
+  { id: "1", name: "Cash on hand", code: "230901", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "2", name: "Current account 1", code: "230902", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "3", name: "Current account 2", code: "230903", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "4", name: "Savings account 1", code: "230904", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "5", name: "Savings account 2", code: "230905", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
 ];
 
 const initialPayments: OtherPayment[] = [
@@ -46,7 +49,7 @@ const initialReconcile: ReconcileEntry[] = [
 export default function Accounts() {
   const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
   const [showAccForm, setShowAccForm] = useState(false);
-  const [accForm, setAccForm] = useState({ name: "", bank: "", balance: "", number: "" });
+  const [accForm, setAccForm] = useState({ name: "", code: "", currency: "PKR", balance: "" });
   const [payments, setPayments] = useLocalStorage<OtherPayment[]>("otherPayments", initialPayments);
   const [receipts, setReceipts] = useLocalStorage<OtherReceipt[]>("otherReceipts", initialReceipts);
   const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
@@ -100,13 +103,14 @@ export default function Accounts() {
   };
 
   const addAccount = () => {
-    if (!accForm.name || !accForm.bank) return;
+    if (!accForm.name || !accForm.code) return;
     const newAcc: Account = {
-      id: Date.now().toString(), name: accForm.name, bank: accForm.bank,
-      balance: parseFloat(accForm.balance) || 0, number: accForm.number || "****0000",
+      id: Date.now().toString(), name: accForm.name, code: accForm.code,
+      reconcileDate: "", currency: accForm.currency || "PKR",
+      fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
     };
     setAccounts([...accounts, newAcc]);
-    setAccForm({ name: "", bank: "", balance: "", number: "" });
+    setAccForm({ name: "", code: "", currency: "PKR", balance: "" });
     setShowAccForm(false);
   };
 
@@ -133,14 +137,14 @@ export default function Accounts() {
         {/* Account Balances */}
         <TabsContent value="balances">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Bank Accounts</h2>
-            <Button size="sm" onClick={() => setShowAccForm(!showAccForm)}><Plus className="w-4 h-4 mr-1" /> Add Account</Button>
+            <h2 className="text-lg font-semibold">Account Balances</h2>
+            <Button size="sm" className="bg-primary" onClick={() => setShowAccForm(!showAccForm)}><Plus className="w-4 h-4 mr-1" /> New Account</Button>
           </div>
           {showAccForm && (
             <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-              <Input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="Account Name" />
-              <Input value={accForm.bank} onChange={e => setAccForm({ ...accForm, bank: e.target.value })} placeholder="Bank Name" />
-              <Input value={accForm.number} onChange={e => setAccForm({ ...accForm, number: e.target.value })} placeholder="Account Number" />
+              <Input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="Bank Name" />
+              <Input value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} placeholder="Code" />
+              <Input value={accForm.currency} onChange={e => setAccForm({ ...accForm, currency: e.target.value })} placeholder="Currency Code (e.g. PKR)" />
               <Input type="number" value={accForm.balance} onChange={e => setAccForm({ ...accForm, balance: e.target.value })} placeholder="Opening Balance" />
               <div className="md:col-span-4 flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setShowAccForm(false)}>Cancel</Button>
@@ -148,41 +152,33 @@ export default function Accounts() {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {accounts.map((acc) => (
-              <div key={acc.id} className="bg-card rounded-lg border p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Landmark className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{acc.name}</p>
-                    <p className="text-xs text-muted-foreground">{acc.bank} · {acc.number}</p>
-                  </div>
-                </div>
-                <p className="text-2xl font-bold">{formatCurrency(acc.balance)}</p>
-              </div>
-            ))}
-          </div>
-          <div className="bg-card rounded-lg border p-6">
-            <h2 className="text-lg font-semibold mb-4">Recent Transactions</h2>
-            <div className="space-y-3">
-              {recentTransactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${tx.type === "credit" ? "bg-success/10" : "bg-destructive/10"}`}>
-                      {tx.type === "credit" ? <ArrowUpRight className="w-4 h-4 text-success" /> : <ArrowDownRight className="w-4 h-4 text-destructive" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{tx.description}</p>
-                      <p className="text-xs text-muted-foreground">{tx.date}</p>
-                    </div>
-                  </div>
-                  <span className={`text-sm font-semibold ${tx.type === "credit" ? "text-success" : "text-destructive"}`}>
-                    {tx.type === "credit" ? "+" : ""}{formatCurrency(tx.amount)}
-                  </span>
-                </div>
-              ))}
+          <div className="bg-card border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left p-3">Bank</th>
+                  <th className="text-left p-3">Code</th>
+                  <th className="text-left p-3">Reconcile Date</th>
+                  <th className="text-left p-3">Fx Currency Code</th>
+                  <th className="text-right p-3">Fx Balance</th>
+                  <th className="text-right p-3">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map((acc) => (
+                  <tr key={acc.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="p-3 text-primary font-medium">{acc.name}</td>
+                    <td className="p-3">{acc.code}</td>
+                    <td className="p-3">{acc.reconcileDate || "—"}</td>
+                    <td className="p-3">{acc.currency}</td>
+                    <td className="p-3 text-right">{acc.fxBalance.toFixed(2)}</td>
+                    <td className="p-3 text-right">{acc.balance.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex items-center justify-between px-3 py-2 border-t text-xs text-muted-foreground">
+              <span>Showing 1 to {accounts.length} of {accounts.length} entries</span>
             </div>
           </div>
         </TabsContent>
