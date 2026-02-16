@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Printer, X } from "lucide-react";
 import type { Invoice } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
+import ksLogo from "@/assets/ks-logo.png";
 
 type Props = {
   invoice: Invoice;
@@ -80,14 +81,8 @@ export function InvoicePreview({ invoice, onClose }: Props) {
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            {settings.logoUrl ? (
-              <img src={settings.logoUrl} alt={settings.companyName} className="h-12 max-w-[160px] object-contain mb-2" />
-            ) : (
-              <h1 className="text-2xl font-bold text-primary">{settings.companyName || "Company"}</h1>
-            )}
-            {settings.logoUrl && (
-              <p className="text-sm font-semibold text-foreground">{settings.companyName}</p>
-            )}
+            <img src={ksLogo} alt={settings.companyName || "K&S Solar Energy"} className="h-14 max-w-[180px] object-contain mb-2" />
+            <p className="text-sm font-semibold text-foreground">{settings.companyName || "K&S Solar Energy"}</p>
             <p className="text-sm text-muted-foreground mt-1">{settings.companyAddress}</p>
             <p className="text-sm text-muted-foreground">{settings.companyPhone}</p>
             <p className="text-sm text-muted-foreground">{settings.companyEmail}</p>

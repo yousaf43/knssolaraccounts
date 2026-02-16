@@ -37,8 +37,8 @@ export function AppSidebar() {
       }>
 
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-        <img src={ksLogo} alt="K&S Solar Energy" className={`${collapsed ? "w-8 h-8" : "h-10"} object-contain flex-shrink-0`} />
+      <div className="flex items-center justify-center px-2 py-3 border-b border-sidebar-border">
+        <img src={ksLogo} alt="K&S Solar Energy" className={`${collapsed ? "w-10" : "h-12 w-full"} object-contain`} />
       </div>
 
       {/* Nav */}
