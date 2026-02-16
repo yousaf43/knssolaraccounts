@@ -4,12 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, UserPlus } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext";
 import type { Invoice, InvoiceItem, Customer } from "@/data/mockData";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(amount);
-}
 
 type Props = {
   customers: Customer[];
@@ -17,9 +14,11 @@ type Props = {
   onCancel: () => void;
   editInvoice?: Invoice | null;
   nextNumber: string;
+  onAddCustomer?: (customer: Customer) => void;
 };
 
-export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumber }: Props) {
+export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
+  const { formatCurrency } = useSettings();
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
   const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
@@ -29,6 +28,28 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
   const [items, setItems] = useState<InvoiceItem[]>(
     editInvoice?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]
   );
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickCompany, setQuickCompany] = useState("");
+  const [quickEmail, setQuickEmail] = useState("");
+
+  const handleQuickAddCustomer = () => {
+    if (!quickName.trim() || !quickCompany.trim()) return;
+    const newCustomer: Customer = {
+      id: crypto.randomUUID(),
+      name: quickName.trim(),
+      company: quickCompany.trim(),
+      email: quickEmail.trim(),
+      phone: "",
+      address: "",
+      totalBilled: 0,
+      outstanding: 0,
+    };
+    onAddCustomer?.(newCustomer);
+    setCustomer(newCustomer.company);
+    setShowQuickAdd(false);
+    setQuickName(""); setQuickCompany(""); setQuickEmail("");
+  };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
     setItems((prev) => {
@@ -86,16 +107,35 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
         </div>
         <div>
           <Label>Customer *</Label>
-          <Select value={customer} onValueChange={setCustomer}>
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.map((c) => (
-                <SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 mt-1">
+            <Select value={customer} onValueChange={setCustomer}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((c) => (
+                  <SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {onAddCustomer && (
+              <Button type="button" variant="outline" size="icon" onClick={() => setShowQuickAdd(!showQuickAdd)} title="Add new customer">
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          {showQuickAdd && (
+            <div className="mt-2 p-3 border rounded-lg bg-muted/30 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Quick Add Customer</p>
+              <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="Name *" className="h-8" />
+              <Input value={quickCompany} onChange={e => setQuickCompany(e.target.value)} placeholder="Company *" className="h-8" />
+              <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="Email" className="h-8" />
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
+                <Button type="button" size="sm" onClick={handleQuickAddCustomer}>Add</Button>
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <Label>Invoice Date *</Label>

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { X, UserPlus } from "lucide-react";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
 
 type Props = {
@@ -14,9 +14,10 @@ type Props = {
   onCancel: () => void;
   editReceipt?: Receipt | null;
   nextNumber: string;
+  onAddCustomer?: (customer: Customer) => void;
 };
 
-export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt, nextNumber }: Props) {
+export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt, nextNumber, onAddCustomer }: Props) {
   const [customer, setCustomer] = useState(editReceipt?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || "");
@@ -24,6 +25,28 @@ export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt
   const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Bank Transfer");
   const [reference, setReference] = useState(editReceipt?.reference || "");
   const [notes, setNotes] = useState(editReceipt?.notes || "");
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickCompany, setQuickCompany] = useState("");
+  const [quickEmail, setQuickEmail] = useState("");
+
+  const handleQuickAddCustomer = () => {
+    if (!quickName.trim() || !quickCompany.trim()) return;
+    const newCustomer: Customer = {
+      id: crypto.randomUUID(),
+      name: quickName.trim(),
+      company: quickCompany.trim(),
+      email: quickEmail.trim(),
+      phone: "",
+      address: "",
+      totalBilled: 0,
+      outstanding: 0,
+    };
+    onAddCustomer?.(newCustomer);
+    setCustomer(newCustomer.company);
+    setShowQuickAdd(false);
+    setQuickName(""); setQuickCompany(""); setQuickEmail("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,12 +81,31 @@ export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt
         </div>
         <div>
           <Label>Customer *</Label>
-          <Select value={customer} onValueChange={setCustomer}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Select customer" /></SelectTrigger>
-            <SelectContent>
-              {customers.map((c) => (<SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 mt-1">
+            <Select value={customer} onValueChange={setCustomer}>
+              <SelectTrigger className="flex-1"><SelectValue placeholder="Select customer" /></SelectTrigger>
+              <SelectContent>
+                {customers.map((c) => (<SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            {onAddCustomer && (
+              <Button type="button" variant="outline" size="icon" onClick={() => setShowQuickAdd(!showQuickAdd)} title="Add new customer">
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          {showQuickAdd && (
+            <div className="mt-2 p-3 border rounded-lg bg-muted/30 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Quick Add Customer</p>
+              <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="Name *" className="h-8" />
+              <Input value={quickCompany} onChange={e => setQuickCompany(e.target.value)} placeholder="Company *" className="h-8" />
+              <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="Email" className="h-8" />
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
+                <Button type="button" size="sm" onClick={handleQuickAddCustomer}>Add</Button>
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <Label>Receipt Date *</Label>
