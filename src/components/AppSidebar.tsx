@@ -8,12 +8,12 @@ import {
   Landmark,
   BarChart3,
   Settings,
-  LogOut,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -28,6 +28,7 @@ const navItems = [
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const { settings } = useSettings();
 
   return (
     <aside
@@ -37,12 +38,16 @@ export function AppSidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
-          <Landmark className="w-4 h-4 text-sidebar-primary-foreground" />
-        </div>
+        {settings.logoUrl ? (
+          <img src={settings.logoUrl} alt={settings.companyName} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+        ) : (
+          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
+            <Landmark className="w-4 h-4 text-sidebar-primary-foreground" />
+          </div>
+        )}
         {!collapsed && (
-          <span className="text-lg font-bold text-sidebar-primary-foreground tracking-tight">
-            CloudBooks
+          <span className="text-lg font-bold text-sidebar-primary-foreground tracking-tight truncate">
+            {settings.companyName || "CloudBooks"}
           </span>
         )}
       </div>

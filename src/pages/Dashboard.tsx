@@ -1,59 +1,58 @@
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Aging data for receivables
+// Empty aging data
 const receivableAging = [
-  { name: "Older", value: 15200, color: "hsl(0, 72%, 51%)" },
-  { name: "Current", value: 12500, color: "hsl(217, 71%, 45%)" },
-  { name: "1-7 Days", value: 8750, color: "hsl(142, 71%, 45%)" },
-  { name: "8-14 Days", value: 4800, color: "hsl(38, 92%, 50%)" },
-  { name: "15-21 Days", value: 2200, color: "hsl(270, 60%, 50%)" },
-  { name: "22-28 Days", value: 1500, color: "hsl(215, 16%, 47%)" },
-  { name: "Future", value: 650, color: "hsl(160, 60%, 45%)" },
+  { name: "Older", value: 0, color: "hsl(0, 72%, 51%)" },
+  { name: "Current", value: 0, color: "hsl(217, 71%, 45%)" },
+  { name: "1-7 Days", value: 0, color: "hsl(142, 71%, 45%)" },
+  { name: "8-14 Days", value: 0, color: "hsl(38, 92%, 50%)" },
+  { name: "15-21 Days", value: 0, color: "hsl(270, 60%, 50%)" },
+  { name: "22-28 Days", value: 0, color: "hsl(215, 16%, 47%)" },
+  { name: "Future", value: 0, color: "hsl(160, 60%, 45%)" },
 ];
 
-// Aging data for payables
 const payableAging = [
-  { name: "Older", value: 6000, color: "hsl(0, 72%, 51%)" },
-  { name: "Current", value: 9800, color: "hsl(217, 71%, 45%)" },
-  { name: "1-7 Days", value: 5200, color: "hsl(142, 71%, 45%)" },
-  { name: "8-14 Days", value: 3400, color: "hsl(38, 92%, 50%)" },
-  { name: "15-21 Days", value: 4100, color: "hsl(270, 60%, 50%)" },
-  { name: "22-28 Days", value: 2200, color: "hsl(215, 16%, 47%)" },
-  { name: "Future", value: 1400, color: "hsl(160, 60%, 45%)" },
+  { name: "Older", value: 0, color: "hsl(0, 72%, 51%)" },
+  { name: "Current", value: 0, color: "hsl(217, 71%, 45%)" },
+  { name: "1-7 Days", value: 0, color: "hsl(142, 71%, 45%)" },
+  { name: "8-14 Days", value: 0, color: "hsl(38, 92%, 50%)" },
+  { name: "15-21 Days", value: 0, color: "hsl(270, 60%, 50%)" },
+  { name: "22-28 Days", value: 0, color: "hsl(215, 16%, 47%)" },
+  { name: "Future", value: 0, color: "hsl(160, 60%, 45%)" },
 ];
 
-const bankAccounts = [
-  { name: "Cash on hand", code: "230901", balance: 45200 },
-  { name: "Current account 1", code: "230902", balance: 82400 },
-  { name: "Current account 2", code: "230903", balance: 38600 },
-  { name: "Savings account 1", code: "230904", balance: 25000 },
-  { name: "Savings account 2", code: "230905", balance: 7200 },
-];
+const bankAccounts: { name: string; code: string; balance: number }[] = [];
 
 const productStats = [
-  { label: "Low Stock", value: 3, color: "text-warning" },
-  { label: "Out of Stock", value: 1, color: "text-destructive" },
+  { label: "Low Stock", value: 0, color: "text-warning" },
+  { label: "Out of Stock", value: 0, color: "text-destructive" },
   { label: "Oversold", value: 0, color: "text-destructive" },
-  { label: "In Stock", value: 24, color: "text-primary" },
+  { label: "In Stock", value: 0, color: "text-primary" },
 ];
 
 function AgingChart({ data }: { data: typeof receivableAging }) {
   const { formatCurrency } = useSettings();
+  const hasData = data.some((d) => d.value > 0);
   return (
     <div className="flex items-center gap-4">
-      <div className="w-32 h-32">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}>
-              {data.map((entry, i) => (
-                <Cell key={i} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value: number) => formatCurrency(value)} />
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="w-32 h-32 flex items-center justify-center">
+        {hasData ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="value" cx="50%" cy="50%" innerRadius={30} outerRadius={55} paddingAngle={2} strokeWidth={0}>
+                {data.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value: number) => formatCurrency(value)} />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-xs text-muted-foreground">No data</p>
+        )}
       </div>
       <div className="space-y-1">
         {data.map((item) => (
@@ -103,12 +102,13 @@ function AgingTable({ data, title, totalLabel }: { data: typeof receivableAging;
 
 export default function Dashboard() {
   const { formatCurrency } = useSettings();
+  const { profile } = useAuth();
   return (
     <div className="space-y-6">
       {/* Welcome */}
       <div>
         <p className="text-muted-foreground text-sm">Welcome</p>
-        <h1 className="text-2xl font-bold">Admin User</h1>
+        <h1 className="text-2xl font-bold">{profile?.full_name || "User"}</h1>
       </div>
 
       {/* Top Row: Receivable Summary | Payable Summary | Bank + Products */}
@@ -130,26 +130,30 @@ export default function Dashboard() {
           {/* Bank Balances */}
           <div className="bg-card rounded-lg border p-5">
             <h2 className="text-sm font-semibold mb-3 text-foreground">Bank Balances</h2>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-1.5 text-muted-foreground font-medium">Bank</th>
-                  <th className="text-right py-1.5 text-muted-foreground font-medium">Balance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bankAccounts.map((acc) => (
-                  <tr key={acc.code} className="border-b border-border/50">
-                    <td className="py-1.5">
-                      <Link to="/banking" className="text-primary hover:underline">
-                        {acc.name} - ({acc.code})
-                      </Link>
-                    </td>
-                    <td className="py-1.5 text-right">{formatCurrency(acc.balance)}</td>
+            {bankAccounts.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">No bank accounts added</p>
+            ) : (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-1.5 text-muted-foreground font-medium">Bank</th>
+                    <th className="text-right py-1.5 text-muted-foreground font-medium">Balance</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {bankAccounts.map((acc) => (
+                    <tr key={acc.code} className="border-b border-border/50">
+                      <td className="py-1.5">
+                        <Link to="/accounts" className="text-primary hover:underline">
+                          {acc.name} - ({acc.code})
+                        </Link>
+                      </td>
+                      <td className="py-1.5 text-right">{formatCurrency(acc.balance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* Products */}
