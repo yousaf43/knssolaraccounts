@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database } from "lucide-react";
+import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database, Cloud, Trash2, RotateCcw, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useCloudBackup } from "@/hooks/useCloudBackup";
 
 const currencies = [
   { code: "PKR", locale: "en-PK", label: "PKR - Pakistani Rupee (₨)" },
@@ -48,6 +50,7 @@ export default function Settings() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cloudBackup = useCloudBackup();
 
   const handleSave = async () => {
     let logoUrl = form.logoUrl || "";
@@ -291,13 +294,61 @@ export default function Settings() {
               <Database className="w-5 h-5 text-primary" />
               <h2 className="font-semibold text-lg">Backup & Restore</h2>
             </div>
-            <p className="text-sm text-muted-foreground">Export all your data as a JSON file or import a previously exported backup to restore your data.</p>
 
-            {/* Export */}
+            {/* Auto Cloud Backup */}
             <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-medium flex items-center gap-2"><Download className="w-4 h-4" /> Export Backup</h3>
-              <p className="text-sm text-muted-foreground">Download a complete backup of all your data including invoices, customers, suppliers, inventory, expenses, accounts, and settings.</p>
-              <Button variant="outline" className="gap-2" onClick={() => {
+              <h3 className="font-medium flex items-center gap-2"><Cloud className="w-4 h-4" /> Auto Cloud Backup</h3>
+              <p className="text-sm text-muted-foreground">Automatically save your data to the cloud every 5 minutes. Max 10 backups are kept.</p>
+              <div className="flex items-center gap-3">
+                <Switch checked={cloudBackup.autoBackup} onCheckedChange={cloudBackup.setAutoBackup} />
+                <span className="text-sm">{cloudBackup.autoBackup ? "Enabled" : "Disabled"}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={cloudBackup.saving} onClick={() => { cloudBackup.saveToCloud("manual"); toast.success("Backup saved to cloud"); }}>
+                  {cloudBackup.saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Cloud className="w-3.5 h-3.5" />}
+                  Save to Cloud Now
+                </Button>
+              </div>
+            </div>
+
+            {/* Cloud Backups List */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h3 className="font-medium flex items-center gap-2"><RotateCcw className="w-4 h-4" /> Cloud Backups</h3>
+              {cloudBackup.loading ? (
+                <div className="flex items-center gap-2 py-4 justify-center text-muted-foreground text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Loading...</div>
+              ) : cloudBackup.backups.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No cloud backups yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {cloudBackup.backups.map((b) => (
+                    <div key={b.id} className="flex items-center justify-between border rounded-md px-3 py-2">
+                      <div>
+                        <span className="text-sm font-medium">{new Date(b.created_at).toLocaleString()}</span>
+                        <Badge variant="outline" className="ml-2 text-[10px]">{b.label}</Badge>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <Button variant="ghost" size="sm" className="gap-1 text-xs h-7" disabled={cloudBackup.restoring} onClick={async () => {
+                          const ok = await cloudBackup.restoreFromCloud(b.id);
+                          if (ok) { toast.success("Restored! Reloading..."); setTimeout(() => window.location.reload(), 1000); }
+                          else toast.error("Restore failed");
+                        }}>
+                          <RotateCcw className="w-3 h-3" /> Restore
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 text-destructive hover:text-destructive" onClick={() => { cloudBackup.deleteBackup(b.id); toast.success("Backup deleted"); }}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Local Export */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h3 className="font-medium flex items-center gap-2"><Download className="w-4 h-4" /> Export to File</h3>
+              <p className="text-sm text-muted-foreground">Download a complete backup as a JSON file.</p>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => {
                 const backupKeys = [
                   "cb-settings-v2", "cb-invoices", "cb-sales-orders", "cb-receipts",
                   "cb-customers", "cb-suppliers", "cb-expenses", "cb-inventory",
@@ -306,58 +357,37 @@ export default function Settings() {
                   "accounts", "otherPayments", "otherReceipts", "transfers", "reconcileEntries", "ledgerEntries"
                 ];
                 const backup: Record<string, any> = { _backupVersion: 1, _exportedAt: new Date().toISOString() };
-                backupKeys.forEach(key => {
-                  const val = localStorage.getItem(key);
-                  if (val) backup[key] = JSON.parse(val);
-                });
+                backupKeys.forEach(key => { const val = localStorage.getItem(key); if (val) backup[key] = JSON.parse(val); });
                 const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
+                const a = document.createElement("a"); a.href = url;
                 a.download = `ks-solar-backup-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                toast.success("Backup exported successfully");
+                a.click(); URL.revokeObjectURL(url);
+                toast.success("Backup exported");
               }}>
                 <Download className="w-4 h-4" /> Download Backup
               </Button>
             </div>
 
-            {/* Import */}
+            {/* Local Import */}
             <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-medium flex items-center gap-2"><UploadCloud className="w-4 h-4" /> Import Backup</h3>
-              <p className="text-sm text-muted-foreground">Restore data from a previously exported backup file. This will <strong>replace</strong> all current data.</p>
-              <input
-                type="file"
-                accept=".json"
-                className="hidden"
-                id="backup-import"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const reader = new FileReader();
-                  reader.onload = (ev) => {
-                    try {
-                      const data = JSON.parse(ev.target?.result as string);
-                      if (!data._backupVersion) {
-                        toast.error("Invalid backup file");
-                        return;
-                      }
-                      const { _backupVersion, _exportedAt, ...entries } = data;
-                      Object.entries(entries).forEach(([key, value]) => {
-                        localStorage.setItem(key, JSON.stringify(value));
-                      });
-                      toast.success("Backup restored! Reloading...");
-                      setTimeout(() => window.location.reload(), 1000);
-                    } catch {
-                      toast.error("Failed to parse backup file");
-                    }
-                  };
-                  reader.readAsText(file);
-                  e.target.value = "";
-                }}
-              />
-              <Button variant="outline" className="gap-2" onClick={() => document.getElementById("backup-import")?.click()}>
+              <h3 className="font-medium flex items-center gap-2"><UploadCloud className="w-4 h-4" /> Import from File</h3>
+              <p className="text-sm text-muted-foreground">Restore from a previously exported JSON file. This <strong>replaces</strong> all current data.</p>
+              <input type="file" accept=".json" className="hidden" id="backup-import" onChange={(e) => {
+                const file = e.target.files?.[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  try {
+                    const data = JSON.parse(ev.target?.result as string);
+                    if (!data._backupVersion) { toast.error("Invalid backup file"); return; }
+                    const { _backupVersion, _exportedAt, ...entries } = data;
+                    Object.entries(entries).forEach(([key, value]) => { localStorage.setItem(key, JSON.stringify(value)); });
+                    toast.success("Backup restored! Reloading..."); setTimeout(() => window.location.reload(), 1000);
+                  } catch { toast.error("Failed to parse backup file"); }
+                };
+                reader.readAsText(file); e.target.value = "";
+              }} />
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => document.getElementById("backup-import")?.click()}>
                 <UploadCloud className="w-4 h-4" /> Import Backup File
               </Button>
             </div>
