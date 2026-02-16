@@ -38,7 +38,7 @@ type SettingsContextType = {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useLocalStorage<AppSettings>("cb-settings", defaultSettings);
+  const [settings, setSettings] = useLocalStorage<AppSettings>("cb-settings-v2", defaultSettings);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(settings.currencyLocale, {
