@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      backups: {
+        Row: {
+          backup_data: Json
+          created_at: string
+          id: string
+          label: string | null
+          user_id: string
+        }
+        Insert: {
+          backup_data: Json
+          created_at?: string
+          id?: string
+          label?: string | null
+          user_id: string
+        }
+        Update: {
+          backup_data?: Json
+          created_at?: string
+          id?: string
+          label?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
