@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useSettings } from "@/contexts/SettingsContext";
 
 // Aging data for receivables
 const receivableAging = [
@@ -38,11 +39,8 @@ const productStats = [
   { label: "In Stock", value: 24, color: "text-primary" },
 ];
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(amount);
-}
-
 function AgingChart({ data }: { data: typeof receivableAging }) {
+  const { formatCurrency } = useSettings();
   return (
     <div className="flex items-center gap-4">
       <div className="w-32 h-32">
@@ -70,6 +68,7 @@ function AgingChart({ data }: { data: typeof receivableAging }) {
 }
 
 function AgingTable({ data, title, totalLabel }: { data: typeof receivableAging; title: string; totalLabel: string }) {
+  const { formatCurrency } = useSettings();
   const total = data.reduce((sum, d) => sum + d.value, 0);
   return (
     <div>
@@ -103,6 +102,7 @@ function AgingTable({ data, title, totalLabel }: { data: typeof receivableAging;
 }
 
 export default function Dashboard() {
+  const { formatCurrency } = useSettings();
   return (
     <div className="space-y-6">
       {/* Welcome */}

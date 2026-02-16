@@ -2,10 +2,7 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, X } from "lucide-react";
 import type { Invoice } from "@/data/mockData";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(amount);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 type Props = {
   invoice: Invoice;
@@ -13,6 +10,7 @@ type Props = {
 };
 
 export function InvoicePreview({ invoice, onClose }: Props) {
+  const { formatCurrency } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);

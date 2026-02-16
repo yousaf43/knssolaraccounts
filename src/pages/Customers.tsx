@@ -6,14 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Mail, Phone, Edit, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", totalBilled: 0, outstanding: 0 });
 
 export default function Customers() {
+  const { formatCurrency } = useSettings();
   const [customers, setCustomers] = useLocalStorage<Customer[]>("cb-customers", getInitialCustomers());
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);

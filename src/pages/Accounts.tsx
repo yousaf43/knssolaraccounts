@@ -7,10 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { recentTransactions } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
@@ -54,6 +51,7 @@ const initialReconcile: ReconcileEntry[] = [
 ];
 
 export default function Accounts() {
+  const { formatCurrency } = useSettings();
   const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
   const [showAccForm, setShowAccForm] = useState(false);
   const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
