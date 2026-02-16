@@ -12,10 +12,7 @@ import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { ReceiptForm } from "@/components/ReceiptForm";
 import { toast } from "sonner";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 const invoiceStatusStyles: Record<string, string> = {
   paid: "bg-success/10 text-success hover:bg-success/20 border-0",
@@ -43,6 +40,7 @@ function parseCSV(text: string): Record<string, string>[] {
 }
 
 export default function Invoices() {
+  const { formatCurrency } = useSettings();
   const [invoices, setInvoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
   const [salesOrders, setSalesOrders] = useLocalStorage<SalesOrder[]>("cb-sales-orders", getInitialSalesOrders());
   const [receipts, setReceipts] = useLocalStorage<Receipt[]>("cb-receipts", getInitialReceipts());

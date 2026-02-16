@@ -13,10 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 const DEFAULT_UNITS = ["pcs", "kg", "ltr", "box", "dozen", "meter", "feet"];
 const DEFAULT_ACCOUNTS = ["Inventory Asset", "Stock on Hand", "Raw Materials", "Finished Goods"];
@@ -30,6 +27,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
 });
 
 export default function Inventory() {
+  const { formatCurrency } = useSettings();
   const [inventory, setInventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
   const [customUnits, setCustomUnits] = useLocalStorage<string[]>("cb-custom-units", []);
   const [customAccounts, setCustomAccounts] = useLocalStorage<string[]>("cb-custom-accounts", []);

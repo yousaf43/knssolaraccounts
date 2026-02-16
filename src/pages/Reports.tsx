@@ -11,10 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 type Report = {
   code: string;
@@ -229,6 +226,7 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 
 // --- Report Detail ---
 function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }) {
+  const { formatCurrency } = useSettings();
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
 

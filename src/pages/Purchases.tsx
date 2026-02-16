@@ -12,10 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, X, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
-
-function formatCurrency(a: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(a);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 function isInDateRange(dateStr: string, range: string, from: string, to: string) {
   if (range === "all") return true;
@@ -48,6 +45,7 @@ const emptyItem = (): InvoiceItem => ({ description: "", qty: 1, rate: 0, amount
 const today = () => new Date().toISOString().split("T")[0];
 
 export default function Purchases() {
+  const { formatCurrency } = useSettings();
   const [tab, setTab] = useState("purchase-orders");
 
   // Data
