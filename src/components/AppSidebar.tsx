@@ -22,7 +22,7 @@ const navItems = [
   { title: "Purchases", url: "/purchases", icon: Truck },
   { title: "Expenses", url: "/expenses", icon: Receipt },
   { title: "Inventory", url: "/inventory", icon: Package },
-  { title: "Banking", url: "/banking", icon: Landmark },
+  { title: "Accounts", url: "/accounts", icon: Landmark },
   { title: "Reports", url: "/reports", icon: BarChart3 },
 ];
 
