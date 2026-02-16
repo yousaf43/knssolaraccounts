@@ -88,6 +88,9 @@ export default function Accounts() {
       reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
     };
     setLedger([entry, ...ledger]);
+    // Auto-set month filter to match the new entry so it's visible
+    const entryMonth = entry.date.substring(0, 7);
+    if (entryMonth !== ledgerMonth) setLedgerMonth(entryMonth);
     setLedgerForm({ date: "", bank: "", type: "incoming", amount: "", description: "", reference: "" });
     setShowLedgerForm(false);
   };

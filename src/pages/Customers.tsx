@@ -8,7 +8,7 @@ import { Plus, Mail, Phone, Edit, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 
-const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", totalBilled: 0, outstanding: 0 });
+const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", address: "", totalBilled: 0, outstanding: 0 });
 
 export default function Customers() {
   const { formatCurrency } = useSettings();
@@ -27,7 +27,7 @@ export default function Customers() {
       setCustomers((prev) => prev.map((c) => c.id === editing.id ? { ...c, ...form } as Customer : c));
       toast.success("Customer updated");
     } else {
-      setCustomers((prev) => [...prev, { ...form, id: crypto.randomUUID(), totalBilled: 0, outstanding: 0 } as Customer]);
+      setCustomers((prev) => [...prev, { ...form, id: crypto.randomUUID(), address: form.address || "", totalBilled: 0, outstanding: 0 } as Customer]);
       toast.success("Customer added");
     }
     setShowForm(false);
@@ -61,6 +61,7 @@ export default function Customers() {
             <div><Label>Company *</Label><Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="mt-1" maxLength={100} required /></div>
             <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1" maxLength={255} required /></div>
             <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="mt-1" maxLength={20} /></div>
+            <div className="md:col-span-2"><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="mt-1" maxLength={300} placeholder="Full address" /></div>
             <div className="md:col-span-2 flex gap-3 justify-end">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               <Button type="submit">{editing ? "Update" : "Add"}</Button>
@@ -90,6 +91,7 @@ export default function Customers() {
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /><span className="truncate">{c.email}</span></div>
               <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" /><span>{c.phone}</span></div>
+              {c.address && <p className="text-muted-foreground text-xs truncate">{c.address}</p>}
             </div>
             <div className="flex justify-between mt-4 pt-4 border-t text-sm">
               <div><p className="text-muted-foreground">Total Billed</p><p className="font-semibold">{formatCurrency(c.totalBilled)}</p></div>

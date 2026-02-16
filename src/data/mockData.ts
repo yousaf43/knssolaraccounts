@@ -60,6 +60,7 @@ export type Customer = {
   email: string;
   phone: string;
   company: string;
+  address: string;
   totalBilled: number;
   outstanding: number;
 };

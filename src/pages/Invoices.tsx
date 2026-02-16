@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, type Invoice, type SalesOrder, type Receipt } from "@/data/mockData";
+import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, type Invoice, type SalesOrder, type Receipt, type Customer } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export default function Invoices() {
   const [invoices, setInvoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
   const [salesOrders, setSalesOrders] = useLocalStorage<SalesOrder[]>("cb-sales-orders", getInitialSalesOrders());
   const [receipts, setReceipts] = useLocalStorage<Receipt[]>("cb-receipts", getInitialReceipts());
-  const [customers] = useLocalStorage("cb-customers", getInitialCustomers());
+  const [customers, setCustomers] = useLocalStorage("cb-customers", getInitialCustomers());
 
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview">("list");
@@ -65,6 +65,10 @@ export default function Invoices() {
   const soFileRef = useRef<HTMLInputElement>(null);
 
   const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); };
+
+  const handleAddCustomer = (c: Customer) => {
+    setCustomers((prev) => [...prev, c]);
+  };
 
   // --- Invoice handlers ---
   const handleSaveInvoice = (invoice: Invoice) => {
@@ -224,13 +228,13 @@ export default function Invoices() {
     if (activeTab === "receipts") {
       return (
         <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} />
+          <ReceiptForm customers={customers} invoices={invoices} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
         </div>
       );
     }
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoiceForm customers={customers} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} />
+        <InvoiceForm customers={customers} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
       </div>
     );
   }
