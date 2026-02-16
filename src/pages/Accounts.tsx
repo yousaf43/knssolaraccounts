@@ -44,7 +44,9 @@ const initialReconcile: ReconcileEntry[] = [
 ];
 
 export default function Accounts() {
-  const [accounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
+  const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
+  const [showAccForm, setShowAccForm] = useState(false);
+  const [accForm, setAccForm] = useState({ name: "", bank: "", balance: "", number: "" });
   const [payments, setPayments] = useLocalStorage<OtherPayment[]>("otherPayments", initialPayments);
   const [receipts, setReceipts] = useLocalStorage<OtherReceipt[]>("otherReceipts", initialReceipts);
   const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
@@ -97,6 +99,17 @@ export default function Accounts() {
     setShowTrfForm(false);
   };
 
+  const addAccount = () => {
+    if (!accForm.name || !accForm.bank) return;
+    const newAcc: Account = {
+      id: Date.now().toString(), name: accForm.name, bank: accForm.bank,
+      balance: parseFloat(accForm.balance) || 0, number: accForm.number || "****0000",
+    };
+    setAccounts([...accounts, newAcc]);
+    setAccForm({ name: "", bank: "", balance: "", number: "" });
+    setShowAccForm(false);
+  };
+
   const markReconciled = (id: string) => {
     setReconcile(reconcile.map(r => r.id === id ? { ...r, status: "reconciled" as const, difference: 0 } : r));
   };
@@ -119,6 +132,22 @@ export default function Accounts() {
 
         {/* Account Balances */}
         <TabsContent value="balances">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Bank Accounts</h2>
+            <Button size="sm" onClick={() => setShowAccForm(!showAccForm)}><Plus className="w-4 h-4 mr-1" /> Add Account</Button>
+          </div>
+          {showAccForm && (
+            <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+              <Input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="Account Name" />
+              <Input value={accForm.bank} onChange={e => setAccForm({ ...accForm, bank: e.target.value })} placeholder="Bank Name" />
+              <Input value={accForm.number} onChange={e => setAccForm({ ...accForm, number: e.target.value })} placeholder="Account Number" />
+              <Input type="number" value={accForm.balance} onChange={e => setAccForm({ ...accForm, balance: e.target.value })} placeholder="Opening Balance" />
+              <div className="md:col-span-4 flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setShowAccForm(false)}>Cancel</Button>
+                <Button size="sm" onClick={addAccount}>Save</Button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {accounts.map((acc) => (
               <div key={acc.id} className="bg-card rounded-lg border p-6">
