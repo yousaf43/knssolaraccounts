@@ -10,11 +10,11 @@ type Props = {
 };
 
 export function InvoicePreview({ invoice, onClose }: Props) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
-  const taxRate = invoice.tax ?? 10;
+  const taxRate = invoice.tax ?? settings.taxRate;
   const taxAmount = subtotal * (taxRate / 100);
   const total = subtotal + taxAmount;
 
@@ -40,6 +40,7 @@ export function InvoicePreview({ invoice, onClose }: Props) {
         .totals { margin-left: auto; width: 250px; }
         .totals div { display: flex; justify-content: space-between; padding: 6px 0; }
         .total-row { border-top: 2px solid #1e40af; font-weight: bold; font-size: 16px; padding-top: 10px; }
+        .company-logo { max-height: 48px; max-width: 160px; object-fit: contain; }
       </style></head><body>
       ${content.innerHTML}
       </body></html>
@@ -49,7 +50,6 @@ export function InvoicePreview({ invoice, onClose }: Props) {
   };
 
   const handleDownloadPDF = () => {
-    // Use print-to-PDF via browser
     handlePrint();
   };
 
@@ -80,10 +80,17 @@ export function InvoicePreview({ invoice, onClose }: Props) {
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-primary">CloudBooks</h1>
-            <p className="text-sm text-muted-foreground mt-1">123 Business Ave, Suite 100</p>
-            <p className="text-sm text-muted-foreground">New York, NY 10001</p>
-            <p className="text-sm text-muted-foreground">admin@cloudbooks.com</p>
+            {settings.logoUrl ? (
+              <img src={settings.logoUrl} alt={settings.companyName} className="h-12 max-w-[160px] object-contain mb-2" />
+            ) : (
+              <h1 className="text-2xl font-bold text-primary">{settings.companyName || "Company"}</h1>
+            )}
+            {settings.logoUrl && (
+              <p className="text-sm font-semibold text-foreground">{settings.companyName}</p>
+            )}
+            <p className="text-sm text-muted-foreground mt-1">{settings.companyAddress}</p>
+            <p className="text-sm text-muted-foreground">{settings.companyPhone}</p>
+            <p className="text-sm text-muted-foreground">{settings.companyEmail}</p>
           </div>
           <div className="text-right">
             <h2 className="text-3xl font-bold text-muted-foreground/50">INVOICE</h2>
@@ -142,7 +149,7 @@ export function InvoicePreview({ invoice, onClose }: Props) {
               <span>{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax ({taxRate}%)</span>
+              <span className="text-muted-foreground">{settings.taxLabel} ({taxRate}%)</span>
               <span>{formatCurrency(taxAmount)}</span>
             </div>
             <div className="flex justify-between border-t-2 border-primary pt-2 text-lg font-bold">
