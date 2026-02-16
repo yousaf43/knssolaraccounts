@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, BookOpen } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ type OtherPayment = { id: string; date: string; account: string; payee: string; 
 type OtherReceipt = { id: string; date: string; account: string; receivedFrom: string; amount: number; reference: string; description: string };
 type Transfer = { id: string; date: string; fromAccount: string; toAccount: string; amount: number; reference: string };
 type ReconcileEntry = { id: string; date: string; account: string; statementBalance: number; bookBalance: number; difference: number; status: "reconciled" | "pending" };
+type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
 const initialAccounts: Account[] = [
   { id: "1", name: "Cash on hand", code: "230901", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
@@ -55,6 +56,12 @@ export default function Accounts() {
   const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
   const [reconcile, setReconcile] = useLocalStorage<ReconcileEntry[]>("reconcileEntries", initialReconcile);
 
+  // Ledger (Account Management)
+  const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+  const [ledgerForm, setLedgerForm] = useState({ date: "", bank: "", type: "incoming" as "incoming" | "outgoing", amount: "", description: "", reference: "" });
+  const [showLedgerForm, setShowLedgerForm] = useState(false);
+  const [ledgerMonth, setLedgerMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
+
   // Payment form
   const [payForm, setPayForm] = useState({ date: "", account: "", payee: "", amount: "", reference: "", description: "" });
   const [showPayForm, setShowPayForm] = useState(false);
@@ -66,6 +73,37 @@ export default function Accounts() {
   // Transfer form
   const [trfForm, setTrfForm] = useState({ date: "", fromAccount: "", toAccount: "", amount: "", reference: "" });
   const [showTrfForm, setShowTrfForm] = useState(false);
+
+  const addLedgerEntry = () => {
+    if (!ledgerForm.date || !ledgerForm.bank || !ledgerForm.amount) return;
+    const entry: LedgerEntry = {
+      id: Date.now().toString(), date: ledgerForm.date, bank: ledgerForm.bank, type: ledgerForm.type,
+      amount: parseFloat(ledgerForm.amount), description: ledgerForm.description,
+      reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
+    };
+    setLedger([entry, ...ledger]);
+    setLedgerForm({ date: "", bank: "", type: "incoming", amount: "", description: "", reference: "" });
+    setShowLedgerForm(false);
+  };
+
+  const filteredLedger = useMemo(() => {
+    return ledger.filter(e => e.date.startsWith(ledgerMonth));
+  }, [ledger, ledgerMonth]);
+
+  const ledgerSummary = useMemo(() => {
+    const totalIn = filteredLedger.filter(e => e.type === "incoming").reduce((s, e) => s + e.amount, 0);
+    const totalOut = filteredLedger.filter(e => e.type === "outgoing").reduce((s, e) => s + e.amount, 0);
+    return { totalIn, totalOut, net: totalIn - totalOut };
+  }, [filteredLedger]);
+
+  const exportCSV = () => {
+    const headers = "Date,Bank,Type,Amount,Reference,Description\n";
+    const rows = filteredLedger.map(e => `${e.date},${e.bank},${e.type},${e.amount},${e.reference},"${e.description}"`).join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `account-management-${ledgerMonth}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const addPayment = () => {
     if (!payForm.date || !payForm.payee || !payForm.amount) return;
@@ -126,8 +164,9 @@ export default function Accounts() {
       </div>
 
       <Tabs defaultValue="balances" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="balances">Account Balances</TabsTrigger>
+          <TabsTrigger value="management">Account Management</TabsTrigger>
           <TabsTrigger value="payments">Other Payments</TabsTrigger>
           <TabsTrigger value="receipts">Other Receipts</TabsTrigger>
           <TabsTrigger value="transfers">Transfers</TabsTrigger>
@@ -179,6 +218,95 @@ export default function Accounts() {
             </table>
             <div className="flex items-center justify-between px-3 py-2 border-t text-xs text-muted-foreground">
               <span>Showing 1 to {accounts.length} of {accounts.length} entries</span>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Account Management */}
+        <TabsContent value="management">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Account Management</h2>
+              <div className="flex gap-2">
+                <Input type="month" value={ledgerMonth} onChange={e => setLedgerMonth(e.target.value)} className="w-44" />
+                <Button size="sm" variant="outline" onClick={exportCSV}><Download className="w-4 h-4 mr-1" /> Export CSV</Button>
+                <Button size="sm" onClick={() => setShowLedgerForm(!showLedgerForm)}><Plus className="w-4 h-4 mr-1" /> Add Entry</Button>
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-xs text-muted-foreground">Total Incoming</p>
+                <p className="text-xl font-bold text-green-600">{formatCurrency(ledgerSummary.totalIn)}</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-xs text-muted-foreground">Total Outgoing</p>
+                <p className="text-xl font-bold text-destructive">{formatCurrency(ledgerSummary.totalOut)}</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-xs text-muted-foreground">Net Balance</p>
+                <p className={`text-xl font-bold ${ledgerSummary.net >= 0 ? "text-green-600" : "text-destructive"}`}>{formatCurrency(ledgerSummary.net)}</p>
+              </div>
+            </div>
+
+            {showLedgerForm && (
+              <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Input type="date" value={ledgerForm.date} onChange={e => setLedgerForm({ ...ledgerForm, date: e.target.value })} placeholder="Date" />
+                <Input value={ledgerForm.bank} onChange={e => setLedgerForm({ ...ledgerForm, bank: e.target.value })} placeholder="Bank Name" list="ledger-bank-list" />
+                <datalist id="ledger-bank-list">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
+                <Select value={ledgerForm.type} onValueChange={v => setLedgerForm({ ...ledgerForm, type: v as "incoming" | "outgoing" })}>
+                  <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="incoming">Incoming (Received)</SelectItem>
+                    <SelectItem value="outgoing">Outgoing (Paid)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input type="number" value={ledgerForm.amount} onChange={e => setLedgerForm({ ...ledgerForm, amount: e.target.value })} placeholder="Amount" />
+                <Input value={ledgerForm.reference} onChange={e => setLedgerForm({ ...ledgerForm, reference: e.target.value })} placeholder="Reference" />
+                <Input value={ledgerForm.description} onChange={e => setLedgerForm({ ...ledgerForm, description: e.target.value })} placeholder="Description" className="md:col-span-2" />
+                <div className="flex gap-2 justify-end items-end">
+                  <Button variant="outline" size="sm" onClick={() => setShowLedgerForm(false)}>Cancel</Button>
+                  <Button size="sm" onClick={addLedgerEntry}>Save</Button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-card border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-3">Date</th>
+                    <th className="text-left p-3">Bank</th>
+                    <th className="text-left p-3">Type</th>
+                    <th className="text-left p-3">Reference</th>
+                    <th className="text-left p-3">Description</th>
+                    <th className="text-right p-3">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLedger.length === 0 && (
+                    <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No entries for this month</td></tr>
+                  )}
+                  {filteredLedger.map(e => (
+                    <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="p-3">{e.date}</td>
+                      <td className="p-3 font-medium">{e.bank}</td>
+                      <td className="p-3">
+                        <Badge variant={e.type === "incoming" ? "default" : "secondary"}>
+                          {e.type === "incoming" ? <ArrowDownRight className="w-3 h-3 mr-1" /> : <ArrowUpRight className="w-3 h-3 mr-1" />}
+                          {e.type === "incoming" ? "Incoming" : "Outgoing"}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-muted-foreground">{e.reference}</td>
+                      <td className="p-3">{e.description}</td>
+                      <td className={`p-3 text-right font-semibold ${e.type === "incoming" ? "text-green-600" : "text-destructive"}`}>
+                        {e.type === "incoming" ? "+" : "-"}{formatCurrency(e.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </TabsContent>
