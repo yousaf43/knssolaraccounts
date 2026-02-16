@@ -12,7 +12,7 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
 }
 
-type Account = { id: string; name: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
+type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
 type OtherReceipt = { id: string; date: string; account: string; receivedFrom: string; amount: number; reference: string; description: string };
 type Transfer = { id: string; date: string; fromAccount: string; toAccount: string; amount: number; reference: string };
@@ -20,11 +20,17 @@ type ReconcileEntry = { id: string; date: string; account: string; statementBala
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
 const initialAccounts: Account[] = [
-  { id: "1", name: "Cash on hand", code: "230901", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
-  { id: "2", name: "Current account 1", code: "230902", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
-  { id: "3", name: "Current account 2", code: "230903", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
-  { id: "4", name: "Savings account 1", code: "230904", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
-  { id: "5", name: "Savings account 2", code: "230905", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "1", name: "Faysal Bank", accountTitle: "K&S Solar Energy", code: "230901", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "2", name: "Bank Al Habib", accountTitle: "K&S Solar Energy Pvt. Ltd.", code: "230902", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "3", name: "Bank Islami Pakistan Limited", accountTitle: "K&S Solar Energy", code: "230903", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "4", name: "U MICROFINANCE BANK LIMITED", accountTitle: "K&S Solar Energy", code: "230904", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "5", name: "MEEZAN BANK", accountTitle: "KHAWAR MEHMOOD", code: "230905", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "6", name: "MOBILINK MICROFINANCE BANK", accountTitle: "K&S Solar Energy", code: "230906", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "7", name: "U-BANK LIMITED", accountTitle: "K&S Solar Energy Pvt. Ltd.", code: "230907", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "8", name: "UBL BANK LTD", accountTitle: "KHAWAR MEHMOOD", code: "230908", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "9", name: "Bank of Punjab (BOP)", accountTitle: "Bhakkar Solar House", code: "230909", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "10", name: "Bank of Punjab (BOP)", accountTitle: "BHAKKAR SOLAR HOUSE", code: "230910", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "11", name: "UBL BANK LTD", accountTitle: "BHAKKAR SOLAR HOUSE", code: "230911", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
 ];
 
 const initialPayments: OtherPayment[] = [
@@ -50,7 +56,7 @@ const initialReconcile: ReconcileEntry[] = [
 export default function Accounts() {
   const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
   const [showAccForm, setShowAccForm] = useState(false);
-  const [accForm, setAccForm] = useState({ name: "", code: "", currency: "PKR", balance: "" });
+  const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
   const [payments, setPayments] = useLocalStorage<OtherPayment[]>("otherPayments", initialPayments);
   const [receipts, setReceipts] = useLocalStorage<OtherReceipt[]>("otherReceipts", initialReceipts);
   const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
@@ -61,6 +67,8 @@ export default function Accounts() {
   const [ledgerForm, setLedgerForm] = useState({ date: "", bank: "", type: "incoming" as "incoming" | "outgoing", amount: "", description: "", reference: "" });
   const [showLedgerForm, setShowLedgerForm] = useState(false);
   const [ledgerMonth, setLedgerMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
+  const [ledgerBank, setLedgerBank] = useState("all");
+  const [ledgerPeriod, setLedgerPeriod] = useState<"month" | "year">("month");
 
   // Payment form
   const [payForm, setPayForm] = useState({ date: "", account: "", payee: "", amount: "", reference: "", description: "" });
@@ -87,8 +95,9 @@ export default function Accounts() {
   };
 
   const filteredLedger = useMemo(() => {
-    return ledger.filter(e => e.date.startsWith(ledgerMonth));
-  }, [ledger, ledgerMonth]);
+    const prefix = ledgerPeriod === "year" ? ledgerMonth.substring(0, 4) : ledgerMonth;
+    return ledger.filter(e => e.date.startsWith(prefix) && (ledgerBank === "all" || e.bank === ledgerBank));
+  }, [ledger, ledgerMonth, ledgerBank, ledgerPeriod]);
 
   const ledgerSummary = useMemo(() => {
     const totalIn = filteredLedger.filter(e => e.type === "incoming").reduce((s, e) => s + e.amount, 0);
@@ -143,12 +152,12 @@ export default function Accounts() {
   const addAccount = () => {
     if (!accForm.name || !accForm.code) return;
     const newAcc: Account = {
-      id: Date.now().toString(), name: accForm.name, code: accForm.code,
+      id: Date.now().toString(), name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code,
       reconcileDate: "", currency: accForm.currency || "PKR",
       fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
     };
     setAccounts([...accounts, newAcc]);
-    setAccForm({ name: "", code: "", currency: "PKR", balance: "" });
+    setAccForm({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
     setShowAccForm(false);
   };
 
@@ -180,12 +189,13 @@ export default function Accounts() {
             <Button size="sm" className="bg-primary" onClick={() => setShowAccForm(!showAccForm)}><Plus className="w-4 h-4 mr-1" /> New Account</Button>
           </div>
           {showAccForm && (
-            <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
               <Input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="Bank Name" />
+              <Input value={accForm.accountTitle} onChange={e => setAccForm({ ...accForm, accountTitle: e.target.value })} placeholder="Account Title" />
               <Input value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} placeholder="Code" />
               <Input value={accForm.currency} onChange={e => setAccForm({ ...accForm, currency: e.target.value })} placeholder="Currency Code (e.g. PKR)" />
               <Input type="number" value={accForm.balance} onChange={e => setAccForm({ ...accForm, balance: e.target.value })} placeholder="Opening Balance" />
-              <div className="md:col-span-4 flex gap-2 justify-end">
+              <div className="md:col-span-5 flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setShowAccForm(false)}>Cancel</Button>
                 <Button size="sm" onClick={addAccount}>Save</Button>
               </div>
@@ -195,7 +205,8 @@ export default function Accounts() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left p-3">Bank</th>
+                  <th className="text-left p-3">Bank Name</th>
+                  <th className="text-left p-3">Account Title</th>
                   <th className="text-left p-3">Code</th>
                   <th className="text-left p-3">Reconcile Date</th>
                   <th className="text-left p-3">Fx Currency Code</th>
@@ -207,6 +218,7 @@ export default function Accounts() {
                 {accounts.map((acc) => (
                   <tr key={acc.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="p-3 text-primary font-medium">{acc.name}</td>
+                    <td className="p-3">{acc.accountTitle}</td>
                     <td className="p-3">{acc.code}</td>
                     <td className="p-3">{acc.reconcileDate || "—"}</td>
                     <td className="p-3">{acc.currency}</td>
@@ -225,9 +237,23 @@ export default function Accounts() {
         {/* Account Management */}
         <TabsContent value="management">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap justify-between items-center gap-2">
               <h2 className="text-lg font-semibold">Account Management</h2>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Select value={ledgerBank} onValueChange={setLedgerBank}>
+                  <SelectTrigger className="w-52"><SelectValue placeholder="All Banks" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Banks</SelectItem>
+                    {accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name} — {a.accountTitle}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={ledgerPeriod} onValueChange={v => setLedgerPeriod(v as "month" | "year")}>
+                  <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="month">Monthly</SelectItem>
+                    <SelectItem value="year">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input type="month" value={ledgerMonth} onChange={e => setLedgerMonth(e.target.value)} className="w-44" />
                 <Button size="sm" variant="outline" onClick={exportCSV}><Download className="w-4 h-4 mr-1" /> Export CSV</Button>
                 <Button size="sm" onClick={() => setShowLedgerForm(!showLedgerForm)}><Plus className="w-4 h-4 mr-1" /> Add Entry</Button>
@@ -238,7 +264,7 @@ export default function Accounts() {
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-card border rounded-lg p-4">
                 <p className="text-xs text-muted-foreground">Total Incoming</p>
-                <p className="text-xl font-bold text-green-600">{formatCurrency(ledgerSummary.totalIn)}</p>
+                <p className="text-xl font-bold text-success">{formatCurrency(ledgerSummary.totalIn)}</p>
               </div>
               <div className="bg-card border rounded-lg p-4">
                 <p className="text-xs text-muted-foreground">Total Outgoing</p>
@@ -246,15 +272,19 @@ export default function Accounts() {
               </div>
               <div className="bg-card border rounded-lg p-4">
                 <p className="text-xs text-muted-foreground">Net Balance</p>
-                <p className={`text-xl font-bold ${ledgerSummary.net >= 0 ? "text-green-600" : "text-destructive"}`}>{formatCurrency(ledgerSummary.net)}</p>
+                <p className={`text-xl font-bold ${ledgerSummary.net >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(ledgerSummary.net)}</p>
               </div>
             </div>
 
             {showLedgerForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Input type="date" value={ledgerForm.date} onChange={e => setLedgerForm({ ...ledgerForm, date: e.target.value })} placeholder="Date" />
-                <Input value={ledgerForm.bank} onChange={e => setLedgerForm({ ...ledgerForm, bank: e.target.value })} placeholder="Bank Name" list="ledger-bank-list" />
-                <datalist id="ledger-bank-list">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
+                <Select value={ledgerForm.bank} onValueChange={v => setLedgerForm({ ...ledgerForm, bank: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select Bank" /></SelectTrigger>
+                  <SelectContent>
+                    {accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name} — {a.accountTitle}</SelectItem>)}
+                  </SelectContent>
+                </Select>
                 <Select value={ledgerForm.type} onValueChange={v => setLedgerForm({ ...ledgerForm, type: v as "incoming" | "outgoing" })}>
                   <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
                   <SelectContent>
@@ -300,7 +330,7 @@ export default function Accounts() {
                       </td>
                       <td className="p-3 text-muted-foreground">{e.reference}</td>
                       <td className="p-3">{e.description}</td>
-                      <td className={`p-3 text-right font-semibold ${e.type === "incoming" ? "text-green-600" : "text-destructive"}`}>
+                      <td className={`p-3 text-right font-semibold ${e.type === "incoming" ? "text-success" : "text-destructive"}`}>
                         {e.type === "incoming" ? "+" : "-"}{formatCurrency(e.amount)}
                       </td>
                     </tr>
