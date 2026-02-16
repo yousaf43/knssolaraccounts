@@ -197,10 +197,8 @@ export default function Accounts() {
             {showPayForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Input type="date" value={payForm.date} onChange={e => setPayForm({ ...payForm, date: e.target.value })} placeholder="Date" />
-                <Select value={payForm.account} onValueChange={v => setPayForm({ ...payForm, account: v })}>
-                  <SelectTrigger><SelectValue placeholder="Account" /></SelectTrigger>
-                  <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Input value={payForm.account} onChange={e => setPayForm({ ...payForm, account: e.target.value })} placeholder="Bank / Account Name" list="account-list" />
+                <datalist id="account-list">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
                 <Input value={payForm.payee} onChange={e => setPayForm({ ...payForm, payee: e.target.value })} placeholder="Payee" />
                 <Input type="number" value={payForm.amount} onChange={e => setPayForm({ ...payForm, amount: e.target.value })} placeholder="Amount" />
                 <Input value={payForm.reference} onChange={e => setPayForm({ ...payForm, reference: e.target.value })} placeholder="Reference" />
@@ -238,10 +236,8 @@ export default function Accounts() {
             {showRecForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Input type="date" value={recForm.date} onChange={e => setRecForm({ ...recForm, date: e.target.value })} placeholder="Date" />
-                <Select value={recForm.account} onValueChange={v => setRecForm({ ...recForm, account: v })}>
-                  <SelectTrigger><SelectValue placeholder="Account" /></SelectTrigger>
-                  <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Input value={recForm.account} onChange={e => setRecForm({ ...recForm, account: e.target.value })} placeholder="Bank / Account Name" list="account-list-rec" />
+                <datalist id="account-list-rec">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
                 <Input value={recForm.receivedFrom} onChange={e => setRecForm({ ...recForm, receivedFrom: e.target.value })} placeholder="Received From" />
                 <Input type="number" value={recForm.amount} onChange={e => setRecForm({ ...recForm, amount: e.target.value })} placeholder="Amount" />
                 <Input value={recForm.reference} onChange={e => setRecForm({ ...recForm, reference: e.target.value })} placeholder="Reference" />
@@ -279,14 +275,10 @@ export default function Accounts() {
             {showTrfForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Input type="date" value={trfForm.date} onChange={e => setTrfForm({ ...trfForm, date: e.target.value })} placeholder="Date" />
-                <Select value={trfForm.fromAccount} onValueChange={v => setTrfForm({ ...trfForm, fromAccount: v })}>
-                  <SelectTrigger><SelectValue placeholder="From Account" /></SelectTrigger>
-                  <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent>
-                </Select>
-                <Select value={trfForm.toAccount} onValueChange={v => setTrfForm({ ...trfForm, toAccount: v })}>
-                  <SelectTrigger><SelectValue placeholder="To Account" /></SelectTrigger>
-                  <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Input value={trfForm.fromAccount} onChange={e => setTrfForm({ ...trfForm, fromAccount: e.target.value })} placeholder="From Bank / Account" list="account-list-from" />
+                <datalist id="account-list-from">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
+                <Input value={trfForm.toAccount} onChange={e => setTrfForm({ ...trfForm, toAccount: e.target.value })} placeholder="To Bank / Account" list="account-list-to" />
+                <datalist id="account-list-to">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
                 <Input type="number" value={trfForm.amount} onChange={e => setTrfForm({ ...trfForm, amount: e.target.value })} placeholder="Amount" />
                 <Input value={trfForm.reference} onChange={e => setTrfForm({ ...trfForm, reference: e.target.value })} placeholder="Reference" />
                 <div className="flex gap-2 justify-end items-end">
