@@ -12,6 +12,7 @@ export type AppSettings = {
   taxLabel: string;
   fiscalYearStart: string; // "01" to "12"
   dateFormat: string;
+  logoUrl: string;
 };
 
 const defaultSettings: AppSettings = {
@@ -25,6 +26,7 @@ const defaultSettings: AppSettings = {
   taxLabel: "GST",
   fiscalYearStart: "07",
   dateFormat: "dd/MM/yyyy",
+  logoUrl: "",
 };
 
 type SettingsContextType = {

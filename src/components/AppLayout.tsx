@@ -1,8 +1,12 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 export function AppLayout() {
+  const { profile, role, signOut } = useAuth();
+
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
@@ -23,14 +27,31 @@ export function AppLayout() {
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
-                A
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold overflow-hidden">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (profile?.full_name?.[0] || "U").toUpperCase()
+                )}
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-medium">Admin User</p>
-                <p className="text-xs text-muted-foreground">admin@cloudbooks.com</p>
+                <p className="text-sm font-medium">{profile?.full_name || "User"}</p>
+                <div className="flex items-center gap-1.5">
+                  {role && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 capitalize">
+                      {role}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
+            <button
+              onClick={signOut}
+              className="p-2 rounded-md hover:bg-muted transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
         </header>
         {/* Content */}
