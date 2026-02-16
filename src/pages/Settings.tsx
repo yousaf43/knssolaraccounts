@@ -68,8 +68,8 @@ export default function Settings() {
         return;
       }
 
-      const { data: urlData } = supabase.storage.from("logos").getPublicUrl(path);
-      logoUrl = urlData.publicUrl;
+      const { data: urlData } = await supabase.storage.from("logos").createSignedUrl(path, 60 * 60 * 24 * 365);
+      logoUrl = urlData?.signedUrl || "";
       setUploading(false);
     }
 
