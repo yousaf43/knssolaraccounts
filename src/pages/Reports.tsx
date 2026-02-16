@@ -1,11 +1,16 @@
-import { useState, useMemo } from "react";
-import { BarChart3, Star, ArrowLeft, Download, Filter } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
+import { format } from "date-fns";
 import { monthlySales, kpiData } from "@/data/mockData";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, PieChart, Pie, Cell,
 } from "recharts";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount);
@@ -16,19 +21,18 @@ type Report = {
   title: string;
   category: string;
   section: "general" | "analytical";
-  favorite?: boolean;
 };
 
 const allReports: Report[] = [
   // General Reports - Sales
-  { code: "028", title: "Sale Invoices/Credits (By Date)", category: "Sales", section: "general", favorite: true },
-  { code: "029", title: "Sale Invoices/Credits (By Customer)", category: "Sales", section: "general", favorite: true },
-  { code: "034", title: "Customer Statement", category: "Sales", section: "general", favorite: true },
-  { code: "037", title: "Unpaid Sale Invoices/Credits (By Customer)", category: "Sales", section: "general", favorite: true },
-  { code: "084", title: "Product Sale Detail (By Date)", category: "Sales", section: "general", favorite: true },
-  { code: "085", title: "Product Sale Detail (By Product)", category: "Sales", section: "general", favorite: true },
-  { code: "088", title: "Product Sale Summary", category: "Sales", section: "general", favorite: true },
-  { code: "235", title: "Category Sale Summary", category: "Sales", section: "general", favorite: true },
+  { code: "028", title: "Sale Invoices/Credits (By Date)", category: "Sales", section: "general" },
+  { code: "029", title: "Sale Invoices/Credits (By Customer)", category: "Sales", section: "general" },
+  { code: "034", title: "Customer Statement", category: "Sales", section: "general" },
+  { code: "037", title: "Unpaid Sale Invoices/Credits (By Customer)", category: "Sales", section: "general" },
+  { code: "084", title: "Product Sale Detail (By Date)", category: "Sales", section: "general" },
+  { code: "085", title: "Product Sale Detail (By Product)", category: "Sales", section: "general" },
+  { code: "088", title: "Product Sale Summary", category: "Sales", section: "general" },
+  { code: "235", title: "Category Sale Summary", category: "Sales", section: "general" },
 
   // General Reports - Purchases
   { code: "040", title: "Purchase Invoices (By Date)", category: "Purchases", section: "general" },
@@ -50,13 +54,13 @@ const allReports: Report[] = [
   { code: "063", title: "Payment Receipts Summary", category: "Cash & Bank", section: "general" },
 
   // General Reports - Inventory
-  { code: "078", title: "Products List", category: "Inventory", section: "general", favorite: true },
-  { code: "080", title: "Stock Quantity", category: "Inventory", section: "general", favorite: true },
-  { code: "082", title: "Out of Stock", category: "Inventory", section: "general", favorite: true },
-  { code: "083", title: "Low Stock", category: "Inventory", section: "general", favorite: true },
-  { code: "148", title: "Stock Valuation", category: "Inventory", section: "general", favorite: true },
+  { code: "078", title: "Products List", category: "Inventory", section: "general" },
+  { code: "080", title: "Stock Quantity", category: "Inventory", section: "general" },
+  { code: "082", title: "Out of Stock", category: "Inventory", section: "general" },
+  { code: "083", title: "Low Stock", category: "Inventory", section: "general" },
+  { code: "148", title: "Stock Valuation", category: "Inventory", section: "general" },
   { code: "173", title: "Opening Stock", category: "Inventory", section: "general" },
-  { code: "180", title: "Stock Adjustment Detail (By Date)", category: "Inventory", section: "general", favorite: true },
+  { code: "180", title: "Stock Adjustment Detail (By Date)", category: "Inventory", section: "general" },
   { code: "366", title: "Inventory Transactions Summary By Product", category: "Inventory", section: "general" },
 
   // General Reports - Taxation
@@ -65,39 +69,31 @@ const allReports: Report[] = [
   { code: "102", title: "Tax Summary", category: "Taxation", section: "general" },
 
   // General Reports - Management
-  { code: "121", title: "Profit & Loss Account", category: "Management", section: "general", favorite: true },
-  { code: "123", title: "Profit & Loss Account Summary", category: "Management", section: "general", favorite: true },
-  { code: "125", title: "Profit & Loss Account Detailed", category: "Management", section: "general", favorite: true },
-  { code: "127", title: "Income Statement", category: "Management", section: "general", favorite: true },
-  { code: "129", title: "Balance Sheet", category: "Management", section: "general", favorite: true },
-  { code: "135", title: "Nominal Activities", category: "Management", section: "general", favorite: true },
+  { code: "121", title: "Profit & Loss Account", category: "Management", section: "general" },
+  { code: "123", title: "Profit & Loss Account Summary", category: "Management", section: "general" },
+  { code: "125", title: "Profit & Loss Account Detailed", category: "Management", section: "general" },
+  { code: "127", title: "Income Statement", category: "Management", section: "general" },
+  { code: "129", title: "Balance Sheet", category: "Management", section: "general" },
+  { code: "135", title: "Nominal Activities", category: "Management", section: "general" },
   { code: "244", title: "Product Transaction Detail", category: "Management", section: "general" },
-  { code: "258", title: "Expenses Nominal Summary", category: "Management", section: "general", favorite: true },
-  { code: "307", title: "Budget Income Statement", category: "Management", section: "general", favorite: true },
-  { code: "381", title: "Depreciation Details", category: "Management", section: "general", favorite: true },
-  { code: "383", title: "Fixed Assets Details", category: "Management", section: "general", favorite: true },
+  { code: "258", title: "Expenses Nominal Summary", category: "Management", section: "general" },
+  { code: "307", title: "Budget Income Statement", category: "Management", section: "general" },
+  { code: "381", title: "Depreciation Details", category: "Management", section: "general" },
+  { code: "383", title: "Fixed Assets Details", category: "Management", section: "general" },
 
-  // Analytical Reports - Sales
+  // Analytical Reports
   { code: "200", title: "Sales Trend Analysis", category: "Sales", section: "analytical" },
   { code: "201", title: "Customer Revenue Analysis", category: "Sales", section: "analytical" },
   { code: "202", title: "Sales Growth Report", category: "Sales", section: "analytical" },
   { code: "203", title: "Top Selling Products", category: "Sales", section: "analytical" },
-
-  // Analytical Reports - Purchases
   { code: "210", title: "Purchase Trend Analysis", category: "Purchases", section: "analytical" },
   { code: "211", title: "Supplier Spending Analysis", category: "Purchases", section: "analytical" },
-  { code: "272", title: "Bills Data", category: "Purchases", section: "analytical", favorite: true },
-
-  // Analytical Reports - Cash & Bank
+  { code: "272", title: "Bills Data", category: "Purchases", section: "analytical" },
   { code: "220", title: "Cash Flow Analysis", category: "Cash & Bank", section: "analytical" },
   { code: "221", title: "Bank Balance Trend", category: "Cash & Bank", section: "analytical" },
-
-  // Analytical Reports - Inventory
   { code: "230", title: "Inventory Aging Report", category: "Inventory", section: "analytical" },
   { code: "231", title: "Stock Movement Analysis", category: "Inventory", section: "analytical" },
   { code: "232", title: "Dead Stock Report", category: "Inventory", section: "analytical" },
-
-  // Analytical Reports - Management
   { code: "240", title: "Profitability Analysis", category: "Management", section: "analytical" },
   { code: "241", title: "Expense Trend Analysis", category: "Management", section: "analytical" },
   { code: "242", title: "Revenue vs Expense Comparison", category: "Management", section: "analytical" },
@@ -115,8 +111,93 @@ const expenseBreakdown = [
   { name: "Other", value: 1650, color: "hsl(215, 16%, 47%)" },
 ];
 
-function ReportList({ reports, onSelect }: { reports: Report[]; onSelect: (r: Report) => void }) {
-  // Split into two columns
+// --- Date Picker ---
+function DateRangePicker({ from, to, onFromChange, onToChange }: {
+  from: Date | undefined; to: Date | undefined;
+  onFromChange: (d: Date | undefined) => void; onToChange: (d: Date | undefined) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className={cn("w-[150px] justify-start text-left font-normal text-xs", !from && "text-muted-foreground")}>
+            <CalendarIcon className="w-3.5 h-3.5 mr-1" />
+            {from ? format(from, "dd MMM yyyy") : "From date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="single" selected={from} onSelect={onFromChange} initialFocus className="p-3 pointer-events-auto" />
+        </PopoverContent>
+      </Popover>
+      <span className="text-muted-foreground text-xs">to</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className={cn("w-[150px] justify-start text-left font-normal text-xs", !to && "text-muted-foreground")}>
+            <CalendarIcon className="w-3.5 h-3.5 mr-1" />
+            {to ? format(to, "dd MMM yyyy") : "To date"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar mode="single" selected={to} onSelect={onToChange} initialFocus className="p-3 pointer-events-auto" />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+// --- Export helpers ---
+function exportCSV(report: Report, data: { month: string; sales: number; expenses: number }[], dateRange: string) {
+  const header = "Month,Sales,Expenses,Net\n";
+  const rows = data.map(d => `${d.month},${d.sales},${d.expenses},${d.sales - d.expenses}`).join("\n");
+  const csv = `Report: ${report.code} - ${report.title}\nPeriod: ${dateRange}\n\n${header}${rows}`;
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${report.code}_${report.title.replace(/\s+/g, "_")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPDF(report: Report, dateRange: string) {
+  const content = `
+    <html><head><title>${report.code} - ${report.title}</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+      h1 { color: #1a56db; font-size: 22px; margin-bottom: 4px; }
+      .subtitle { color: #666; font-size: 13px; margin-bottom: 24px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+      th { background: #f3f4f6; text-align: left; padding: 10px; font-size: 13px; border-bottom: 2px solid #e5e7eb; }
+      td { padding: 10px; font-size: 13px; border-bottom: 1px solid #e5e7eb; }
+      .text-right { text-align: right; }
+      .positive { color: #16a34a; }
+      .negative { color: #dc2626; }
+      .footer { margin-top: 30px; font-size: 11px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+    </style></head><body>
+    <h1>${report.code} - ${report.title}</h1>
+    <div class="subtitle">Period: ${dateRange} | Generated: ${format(new Date(), "dd MMM yyyy HH:mm")}</div>
+    <table>
+      <thead><tr><th>Month</th><th class="text-right">Sales</th><th class="text-right">Expenses</th><th class="text-right">Net</th></tr></thead>
+      <tbody>
+        ${monthlySales.map(d => `<tr><td>${d.month}</td><td class="text-right">$${d.sales.toLocaleString()}</td><td class="text-right">$${d.expenses.toLocaleString()}</td><td class="text-right ${d.sales - d.expenses >= 0 ? 'positive' : 'negative'}">$${(d.sales - d.expenses).toLocaleString()}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    <div class="footer">CloudBooks Reports — Auto-generated</div>
+    </body></html>
+  `;
+  const win = window.open("", "_blank");
+  if (win) {
+    win.document.write(content);
+    win.document.close();
+    setTimeout(() => { win.print(); }, 500);
+  }
+}
+
+// --- Report List ---
+function ReportList({ reports, onSelect, favorites, onToggleFav }: {
+  reports: Report[]; onSelect: (r: Report) => void;
+  favorites: string[]; onToggleFav: (code: string) => void;
+}) {
   const mid = Math.ceil(reports.length / 2);
   const col1 = reports.slice(0, mid);
   const col2 = reports.slice(mid);
@@ -130,15 +211,15 @@ function ReportList({ reports, onSelect }: { reports: Report[]; onSelect: (r: Re
       {[col1, col2].map((col, ci) => (
         <div key={ci}>
           {col.map((r) => (
-            <button
-              key={r.code}
-              onClick={() => onSelect(r)}
-              className="flex items-center gap-3 w-full text-left px-3 py-2.5 border-b border-border/50 hover:bg-muted/50 transition-colors group"
-            >
+            <div key={r.code} className="flex items-center gap-3 w-full px-3 py-2.5 border-b border-border/50 hover:bg-muted/50 transition-colors group">
               <span className="text-xs text-muted-foreground font-mono w-8 shrink-0">{r.code}</span>
-              <span className="text-sm text-primary font-medium group-hover:underline flex-1">{r.title}</span>
-              <Star className={`w-4 h-4 shrink-0 ${r.favorite ? "text-amber-500 fill-amber-500" : "text-muted-foreground/30"}`} />
-            </button>
+              <button onClick={() => onSelect(r)} className="text-sm text-primary font-medium group-hover:underline flex-1 text-left">
+                {r.title}
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onToggleFav(r.code); }} className="shrink-0">
+                <Star className={`w-4 h-4 transition-colors ${favorites.includes(r.code) ? "text-amber-500 fill-amber-500" : "text-muted-foreground/30 hover:text-amber-400"}`} />
+              </button>
+            </div>
           ))}
         </div>
       ))}
@@ -146,28 +227,70 @@ function ReportList({ reports, onSelect }: { reports: Report[]; onSelect: (r: Re
   );
 }
 
+// --- Report Detail ---
 function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }) {
+  const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
+  const [toDate, setToDate] = useState<Date | undefined>(undefined);
+
+  const dateRange = useMemo(() => {
+    if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
+    if (fromDate) return `From ${format(fromDate, "dd MMM yyyy")}`;
+    if (toDate) return `To ${format(toDate, "dd MMM yyyy")}`;
+    return "All Time";
+  }, [fromDate, toDate]);
+
+  // Filter monthlySales by date range (month index approximation)
+  const monthIndex: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+  const filteredData = useMemo(() => {
+    return monthlySales.filter(m => {
+      const mi = monthIndex[m.month];
+      if (fromDate && mi < fromDate.getMonth()) return false;
+      if (toDate && mi > toDate.getMonth()) return false;
+      return true;
+    });
+  }, [fromDate, toDate]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      {/* Header */}
+      <div className="flex items-center gap-4 flex-wrap">
         <button onClick={onBack} className="flex items-center gap-1 text-primary hover:underline text-sm">
           <ArrowLeft className="w-4 h-4" /> Back to Reports
         </button>
         <h1 className="text-xl font-bold">{report.code} - {report.title}</h1>
       </div>
 
+      {/* Toolbar: Date Range + Export */}
+      <div className="flex items-center gap-3 flex-wrap bg-card border rounded-lg p-3">
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <DateRangePicker from={fromDate} to={toDate} onFromChange={setFromDate} onToChange={setToDate} />
+        {(fromDate || toDate) && (
+          <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFromDate(undefined); setToDate(undefined); }}>
+            Clear
+          </Button>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportCSV(report, filteredData, dateRange)}>
+            <Download className="w-3.5 h-3.5" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportPDF(report, dateRange)}>
+            <FileText className="w-3.5 h-3.5" /> PDF
+          </Button>
+        </div>
+      </div>
+
       {/* P&L Reports */}
       {["121", "123", "125"].includes(report.code) && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">{formatCurrency(kpiData.totalSales)}</p></div>
-            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Expenses</p><p className="text-2xl font-bold text-destructive">{formatCurrency(kpiData.totalExpenses)}</p></div>
-            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Net Profit</p><p className="text-2xl font-bold text-success">{formatCurrency(kpiData.netProfit)}</p></div>
+            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">{formatCurrency(filteredData.reduce((s, d) => s + d.sales, 0))}</p></div>
+            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Expenses</p><p className="text-2xl font-bold text-destructive">{formatCurrency(filteredData.reduce((s, d) => s + d.expenses, 0))}</p></div>
+            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Net Profit</p><p className="text-2xl font-bold text-success">{formatCurrency(filteredData.reduce((s, d) => s + d.sales - d.expenses, 0))}</p></div>
           </div>
           <div className="bg-card rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Monthly Revenue vs Expenses</h2>
             <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={monthlySales}>
+              <BarChart data={filteredData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
                 <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
@@ -186,7 +309,7 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Cash Flow Trend</h2>
           <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={monthlySales.map((m) => ({ ...m, net: m.sales - m.expenses }))}>
+            <LineChart data={filteredData.map((m) => ({ ...m, net: m.sales - m.expenses }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
@@ -249,7 +372,7 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Monthly Sales Trend</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlySales}>
+            <BarChart data={filteredData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
@@ -265,7 +388,7 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Monthly Purchases Trend</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlySales}>
+            <BarChart data={filteredData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
@@ -281,7 +404,7 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Stock Overview</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlySales.map(m => ({ month: m.month, stock: Math.round(m.sales / 100) }))}>
+            <BarChart data={filteredData.map(m => ({ month: m.month, stock: Math.round(m.sales / 100) }))}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
@@ -297,7 +420,7 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Summary</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlySales}>
+            <LineChart data={filteredData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
               <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
@@ -313,20 +436,31 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
   );
 }
 
+// --- Main Reports Page ---
 export default function Reports() {
   const [activeReport, setActiveReport] = useState<Report | null>(null);
   const [generalTab, setGeneralTab] = useState("Favourites");
   const [analyticalTab, setAnalyticalTab] = useState("Favourites");
+  const [favorites, setFavorites] = useLocalStorage<string[]>("report-favorites", [
+    "028", "029", "034", "037", "084", "085", "088", "235",
+    "078", "080", "082", "083", "148", "180",
+    "121", "123", "125", "127", "129", "135", "258", "307", "381", "383",
+    "272",
+  ]);
+
+  const toggleFav = useCallback((code: string) => {
+    setFavorites(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
+  }, [setFavorites]);
 
   const generalFiltered = useMemo(() => {
-    if (generalTab === "Favourites") return allReports.filter(r => r.section === "general" && r.favorite);
+    if (generalTab === "Favourites") return allReports.filter(r => r.section === "general" && favorites.includes(r.code));
     return allReports.filter(r => r.section === "general" && r.category === generalTab);
-  }, [generalTab]);
+  }, [generalTab, favorites]);
 
   const analyticalFiltered = useMemo(() => {
-    if (analyticalTab === "Favourites") return allReports.filter(r => r.section === "analytical" && r.favorite);
+    if (analyticalTab === "Favourites") return allReports.filter(r => r.section === "analytical" && favorites.includes(r.code));
     return allReports.filter(r => r.section === "analytical" && r.category === analyticalTab);
-  }, [analyticalTab]);
+  }, [analyticalTab, favorites]);
 
   if (activeReport) {
     return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} />;
@@ -346,22 +480,15 @@ export default function Reports() {
           <div className="border-b px-1 pt-1">
             <div className="flex flex-wrap gap-0">
               {generalCategories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setGeneralTab(cat)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
-                    generalTab === cat
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                  }`}
-                >
+                <button key={cat} onClick={() => setGeneralTab(cat)}
+                  className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${generalTab === cat ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"}`}>
                   {cat}
                 </button>
               ))}
             </div>
           </div>
           <div className="p-4">
-            <ReportList reports={generalFiltered} onSelect={setActiveReport} />
+            <ReportList reports={generalFiltered} onSelect={setActiveReport} favorites={favorites} onToggleFav={toggleFav} />
           </div>
         </div>
       </div>
@@ -373,22 +500,15 @@ export default function Reports() {
           <div className="border-b px-1 pt-1">
             <div className="flex flex-wrap gap-0">
               {analyticalCategories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setAnalyticalTab(cat)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
-                    analyticalTab === cat
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                  }`}
-                >
+                <button key={cat} onClick={() => setAnalyticalTab(cat)}
+                  className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${analyticalTab === cat ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"}`}>
                   {cat}
                 </button>
               ))}
             </div>
           </div>
           <div className="p-4">
-            <ReportList reports={analyticalFiltered} onSelect={setActiveReport} />
+            <ReportList reports={analyticalFiltered} onSelect={setActiveReport} favorites={favorites} onToggleFav={toggleFav} />
           </div>
         </div>
       </div>
