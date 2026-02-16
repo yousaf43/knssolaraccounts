@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield } from "lucide-react";
+import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const currencies = [
@@ -146,11 +146,12 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="company" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="company" className="gap-1.5 text-xs"><Building2 className="w-3.5 h-3.5" /> Company</TabsTrigger>
           <TabsTrigger value="currency" className="gap-1.5 text-xs"><Globe className="w-3.5 h-3.5" /> Currency</TabsTrigger>
           <TabsTrigger value="tax" className="gap-1.5 text-xs"><Receipt className="w-3.5 h-3.5" /> Tax</TabsTrigger>
           <TabsTrigger value="fiscal" className="gap-1.5 text-xs"><Calendar className="w-3.5 h-3.5" /> Fiscal Year</TabsTrigger>
+          <TabsTrigger value="backup" className="gap-1.5 text-xs"><Database className="w-3.5 h-3.5" /> Backup</TabsTrigger>
           {role === "admin" && (
             <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={loadUsers}><Users className="w-3.5 h-3.5" /> Users & Roles</TabsTrigger>
           )}
@@ -279,6 +280,86 @@ export default function Settings() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Backup & Restore */}
+        <TabsContent value="backup">
+          <div className="bg-card border rounded-lg p-6 space-y-6">
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold text-lg">Backup & Restore</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">Export all your data as a JSON file or import a previously exported backup to restore your data.</p>
+
+            {/* Export */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h3 className="font-medium flex items-center gap-2"><Download className="w-4 h-4" /> Export Backup</h3>
+              <p className="text-sm text-muted-foreground">Download a complete backup of all your data including invoices, customers, suppliers, inventory, expenses, accounts, and settings.</p>
+              <Button variant="outline" className="gap-2" onClick={() => {
+                const backupKeys = [
+                  "cb-settings-v2", "cb-invoices", "cb-sales-orders", "cb-receipts",
+                  "cb-customers", "cb-suppliers", "cb-expenses", "cb-inventory",
+                  "cb-stock-adjustments", "cb-purchase-orders", "cb-bills", "cb-purchase-payments",
+                  "cb-custom-units", "cb-custom-accounts", "cb-custom-categories",
+                  "accounts", "otherPayments", "otherReceipts", "transfers", "reconcileEntries", "ledgerEntries"
+                ];
+                const backup: Record<string, any> = { _backupVersion: 1, _exportedAt: new Date().toISOString() };
+                backupKeys.forEach(key => {
+                  const val = localStorage.getItem(key);
+                  if (val) backup[key] = JSON.parse(val);
+                });
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `ks-solar-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success("Backup exported successfully");
+              }}>
+                <Download className="w-4 h-4" /> Download Backup
+              </Button>
+            </div>
+
+            {/* Import */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h3 className="font-medium flex items-center gap-2"><UploadCloud className="w-4 h-4" /> Import Backup</h3>
+              <p className="text-sm text-muted-foreground">Restore data from a previously exported backup file. This will <strong>replace</strong> all current data.</p>
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                id="backup-import"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    try {
+                      const data = JSON.parse(ev.target?.result as string);
+                      if (!data._backupVersion) {
+                        toast.error("Invalid backup file");
+                        return;
+                      }
+                      const { _backupVersion, _exportedAt, ...entries } = data;
+                      Object.entries(entries).forEach(([key, value]) => {
+                        localStorage.setItem(key, JSON.stringify(value));
+                      });
+                      toast.success("Backup restored! Reloading...");
+                      setTimeout(() => window.location.reload(), 1000);
+                    } catch {
+                      toast.error("Failed to parse backup file");
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = "";
+                }}
+              />
+              <Button variant="outline" className="gap-2" onClick={() => document.getElementById("backup-import")?.click()}>
+                <UploadCloud className="w-4 h-4" /> Import Backup File
+              </Button>
             </div>
           </div>
         </TabsContent>
