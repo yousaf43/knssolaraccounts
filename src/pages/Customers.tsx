@@ -25,9 +25,9 @@ export default function Customers() {
   const openEdit = (c: Customer) => { setEditing(c); setForm(c); setShowForm(true); };
 
   // Calculate real totals from invoices/receipts
-  const getCustomerTotals = (customerCompany: string) => {
-    const custInvoices = invoices.filter((i) => i.customer === customerCompany);
-    const custReceipts = receipts.filter((r) => r.customer === customerCompany);
+  const getCustomerTotals = (customerName: string) => {
+    const custInvoices = invoices.filter((i) => i.customer === customerName);
+    const custReceipts = receipts.filter((r) => r.customer === customerName);
     const totalBilled = custInvoices.reduce((sum, i) => sum + i.amount, 0);
     const totalPaid = custReceipts.reduce((sum, r) => sum + r.amount, 0);
     const outstanding = totalBilled - totalPaid;
@@ -86,7 +86,7 @@ export default function Customers() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {customers.map((c) => {
-          const { totalBilled, totalPaid, outstanding, custInvoices, custReceipts } = getCustomerTotals(c.company);
+          const { totalBilled, totalPaid, outstanding, custInvoices, custReceipts } = getCustomerTotals(c.name);
           const isExpanded = expandedCustomer === c.id;
           return (
             <div key={c.id} className="bg-card rounded-lg border hover:shadow-md transition-shadow">
