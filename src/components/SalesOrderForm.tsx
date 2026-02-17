@@ -4,14 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, X, PackageCheck } from "lucide-react";
+import { Plus, Trash2, X, PackageCheck, UserPlus, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import type { SalesOrder, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(amount);
-}
+import { useSettings } from "@/contexts/SettingsContext";
 
 type Props = {
   customers: Customer[];
@@ -20,9 +17,11 @@ type Props = {
   onCancel: () => void;
   editOrder?: SalesOrder | null;
   nextNumber: string;
+  onAddCustomer?: (customer: Customer) => void;
 };
 
-export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber }: Props) {
+export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber, onAddCustomer }: Props) {
+  const { formatCurrency } = useSettings();
   const [customer, setCustomer] = useState(editOrder?.customer || "");
   const [date, setDate] = useState(editOrder?.date || new Date().toISOString().split("T")[0]);
   const [deliveryDate, setDeliveryDate] = useState(editOrder?.deliveryDate || "");
@@ -32,12 +31,37 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const [items, setItems] = useState<InvoiceItem[]>(
     editOrder?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]
   );
+  const [productSearch, setProductSearch] = useState<Record<number, string>>({});
+
+  // Quick add customer
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickCompany, setQuickCompany] = useState("");
+  const [quickEmail, setQuickEmail] = useState("");
 
   // Advance payment
   const [showAdvance, setShowAdvance] = useState(!!(editOrder?.advancePayment && editOrder.advancePayment > 0));
   const [advancePayment, setAdvancePayment] = useState(editOrder?.advancePayment ?? 0);
   const [advancePaymentMethod, setAdvancePaymentMethod] = useState(editOrder?.advancePaymentMethod || "cash");
   const [advancePaymentRef, setAdvancePaymentRef] = useState(editOrder?.advancePaymentRef || "");
+
+  const handleQuickAddCustomer = () => {
+    if (!quickName.trim() || !quickCompany.trim()) return;
+    const newCustomer: Customer = {
+      id: crypto.randomUUID(),
+      name: quickName.trim(),
+      company: quickCompany.trim(),
+      email: quickEmail.trim(),
+      phone: "",
+      address: "",
+      totalBilled: 0,
+      outstanding: 0,
+    };
+    onAddCustomer?.(newCustomer);
+    setCustomer(newCustomer.company);
+    setShowQuickAdd(false);
+    setQuickName(""); setQuickCompany(""); setQuickEmail("");
+  };
 
   const selectInventoryItem = (index: number, itemId: string) => {
     const invItem = inventory.find((i) => i.id === itemId);
@@ -53,6 +77,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       };
       return updated;
     });
+    setProductSearch((prev) => ({ ...prev, [index]: "" }));
   };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
@@ -76,12 +101,21 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
     if (!itemId) return null;
     const invItem = inventory.find((i) => i.id === itemId);
     if (!invItem) return null;
-    // Subtract qty already used in other lines for the same item
     const usedInOtherLines = items.reduce((sum, lineItem) => {
       if (lineItem.inventoryItemId === itemId) return sum + (lineItem.qty || 0);
       return sum;
     }, 0);
     return invItem.qty - usedInOtherLines;
+  };
+
+  const getFilteredInventory = (index: number) => {
+    const search = (productSearch[index] || "").toLowerCase();
+    if (!search) return inventory;
+    return inventory.filter((inv) =>
+      inv.name.toLowerCase().includes(search) ||
+      inv.sku.toLowerCase().includes(search) ||
+      inv.category.toLowerCase().includes(search)
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -116,17 +150,36 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label>Order Number</Label>
+          <Label>Document Number</Label>
           <Input value={editOrder?.number || nextNumber} disabled className="mt-1" />
         </div>
         <div>
           <Label>Customer *</Label>
-          <Select value={customer} onValueChange={setCustomer}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Select customer" /></SelectTrigger>
-            <SelectContent>
-              {customers.map((c) => (<SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 mt-1">
+            <Select value={customer} onValueChange={setCustomer}>
+              <SelectTrigger className="flex-1"><SelectValue placeholder="Select customer" /></SelectTrigger>
+              <SelectContent>
+                {customers.map((c) => (<SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            {onAddCustomer && (
+              <Button type="button" variant="outline" size="icon" onClick={() => setShowQuickAdd(!showQuickAdd)} title="Add new customer">
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          {showQuickAdd && (
+            <div className="mt-2 p-3 border rounded-lg bg-muted/30 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Quick Add Customer</p>
+              <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="Name *" className="h-8" />
+              <Input value={quickCompany} onChange={e => setQuickCompany(e.target.value)} placeholder="Company *" className="h-8" />
+              <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="Email" className="h-8" />
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
+                <Button type="button" size="sm" onClick={handleQuickAddCustomer}>Add</Button>
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <Label>Order Date *</Label>
@@ -155,14 +208,14 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
         </div>
       </div>
 
-      {/* Line Items with Inventory Dropdown */}
+      {/* Line Items with Inventory Dropdown + Search */}
       <div>
         <Label className="mb-2 block">Line Items (from Inventory)</Label>
         <div className="bg-muted/30 rounded-lg border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground w-[220px]">Product</th>
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground w-[260px]">Product</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground">Description</th>
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">Qty</th>
                 <th className="text-center px-3 py-2 font-medium text-muted-foreground w-24">Stock</th>
@@ -175,27 +228,40 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
               {items.map((item, i) => {
                 const remaining = getRemainingStock(item.inventoryItemId);
                 const stockWarning = remaining !== null && remaining < 0;
+                const filtered = getFilteredInventory(i);
                 return (
                   <tr key={i} className="border-b last:border-0">
                     <td className="px-3 py-2">
-                      <Select
-                        value={item.inventoryItemId || ""}
-                        onValueChange={(v) => selectInventoryItem(i, v)}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {inventory.map((inv) => (
-                            <SelectItem key={inv.id} value={inv.id}>
-                              <span className="flex items-center gap-2">
-                                {inv.name}
-                                <span className="text-muted-foreground text-xs">({inv.qty} {inv.unit})</span>
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-1">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                          <Input
+                            value={productSearch[i] || ""}
+                            onChange={(e) => setProductSearch((prev) => ({ ...prev, [i]: e.target.value }))}
+                            placeholder="Search product..."
+                            className="h-7 text-xs pl-7"
+                          />
+                        </div>
+                        <Select
+                          value={item.inventoryItemId || ""}
+                          onValueChange={(v) => selectInventoryItem(i, v)}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filtered.map((inv) => (
+                              <SelectItem key={inv.id} value={inv.id}>
+                                <span className="flex items-center gap-2">
+                                  {inv.name}
+                                  <span className="text-muted-foreground text-xs">({inv.qty} {inv.unit})</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                            {filtered.length === 0 && <div className="text-xs text-muted-foreground p-2 text-center">No products found</div>}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </td>
                     <td className="px-3 py-2">
                       <Input value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Description" className="h-8" required />

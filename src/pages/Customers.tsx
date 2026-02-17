@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { getInitialCustomers, type Customer } from "@/data/mockData";
+import { getInitialCustomers, getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Mail, Phone, Edit, Trash2, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Mail, Phone, Edit, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -13,12 +14,25 @@ const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: ""
 export default function Customers() {
   const { formatCurrency } = useSettings();
   const [customers, setCustomers] = useLocalStorage<Customer[]>("cb-customers", getInitialCustomers());
+  const [invoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
+  const [receipts] = useLocalStorage<Receipt[]>("cb-receipts", getInitialReceipts());
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<Partial<Customer>>(emptyCustomer());
+  const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
 
   const openAdd = () => { setEditing(null); setForm(emptyCustomer()); setShowForm(true); };
   const openEdit = (c: Customer) => { setEditing(c); setForm(c); setShowForm(true); };
+
+  // Calculate real totals from invoices/receipts
+  const getCustomerTotals = (customerCompany: string) => {
+    const custInvoices = invoices.filter((i) => i.customer === customerCompany);
+    const custReceipts = receipts.filter((r) => r.customer === customerCompany);
+    const totalBilled = custInvoices.reduce((sum, i) => sum + i.amount, 0);
+    const totalPaid = custReceipts.reduce((sum, r) => sum + r.amount, 0);
+    const outstanding = totalBilled - totalPaid;
+    return { totalBilled, totalPaid, outstanding, custInvoices, custReceipts };
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,34 +85,103 @@ export default function Customers() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {customers.map((c) => (
-          <div key={c.id} className="bg-card rounded-lg border p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-                  {c.name.split(" ").map((n) => n[0]).join("")}
+        {customers.map((c) => {
+          const { totalBilled, totalPaid, outstanding, custInvoices, custReceipts } = getCustomerTotals(c.company);
+          const isExpanded = expandedCustomer === c.id;
+          return (
+            <div key={c.id} className="bg-card rounded-lg border hover:shadow-md transition-shadow">
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                      {c.name.split(" ").map((n) => n[0]).join("")}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{c.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{c.company}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button className="p-1 rounded hover:bg-muted" onClick={() => openEdit(c)}><Edit className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                    <button className="p-1 rounded hover:bg-destructive/10" onClick={() => handleDelete(c.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">{c.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{c.company}</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /><span className="truncate">{c.email}</span></div>
+                  <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" /><span>{c.phone}</span></div>
+                  {c.address && <p className="text-muted-foreground text-xs truncate">{c.address}</p>}
                 </div>
+                <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t text-sm">
+                  <div><p className="text-muted-foreground text-xs">Total Billed</p><p className="font-semibold">{formatCurrency(totalBilled)}</p></div>
+                  <div className="text-center"><p className="text-muted-foreground text-xs">Total Paid</p><p className="font-semibold text-success">{formatCurrency(totalPaid)}</p></div>
+                  <div className="text-right"><p className="text-muted-foreground text-xs">Outstanding</p><p className={`font-semibold ${outstanding > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(outstanding)}</p></div>
+                </div>
+                {/* Payment History Toggle */}
+                <button
+                  className="w-full mt-3 flex items-center justify-center gap-1 text-xs text-primary hover:underline"
+                  onClick={() => setExpandedCustomer(isExpanded ? null : c.id)}
+                >
+                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {isExpanded ? "Hide" : "View"} Payment History ({custReceipts.length})
+                </button>
               </div>
-              <div className="flex gap-1">
-                <button className="p-1 rounded hover:bg-muted" onClick={() => openEdit(c)}><Edit className="w-3.5 h-3.5 text-muted-foreground" /></button>
-                <button className="p-1 rounded hover:bg-destructive/10" onClick={() => handleDelete(c.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
-              </div>
+
+              {/* Expanded Payment History */}
+              {isExpanded && (
+                <div className="border-t px-5 py-3 bg-muted/20 max-h-64 overflow-y-auto">
+                  {custInvoices.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Invoices</p>
+                      <div className="space-y-1">
+                        {custInvoices.map((inv) => {
+                          const paidForInv = custReceipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
+                          const remaining = inv.amount - paidForInv;
+                          return (
+                            <div key={inv.id} className="flex items-center justify-between text-xs py-1 border-b border-dashed last:border-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{inv.number}</span>
+                                <span className="text-muted-foreground">{inv.date}</span>
+                                <Badge variant="outline" className="text-[10px] h-4">{inv.status}</Badge>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span>{formatCurrency(inv.amount)}</span>
+                                <span className={remaining > 0 ? "text-warning" : "text-success"}>
+                                  Rem: {formatCurrency(Math.max(0, remaining))}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {custReceipts.length > 0 ? (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Payments Received</p>
+                      <div className="space-y-1">
+                        {custReceipts.map((r) => (
+                          <div key={r.id} className="flex items-center justify-between text-xs py-1 border-b border-dashed last:border-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{r.number}</span>
+                              <span className="text-muted-foreground">{r.date}</span>
+                              <Badge variant="outline" className="text-[10px] h-4">{r.paymentMethod}</Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">→ {r.invoiceNumber}</span>
+                              <span className="font-medium text-success">{formatCurrency(r.amount)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-2">No payments recorded yet</p>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /><span className="truncate">{c.email}</span></div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" /><span>{c.phone}</span></div>
-              {c.address && <p className="text-muted-foreground text-xs truncate">{c.address}</p>}
-            </div>
-            <div className="flex justify-between mt-4 pt-4 border-t text-sm">
-              <div><p className="text-muted-foreground">Total Billed</p><p className="font-semibold">{formatCurrency(c.totalBilled)}</p></div>
-              <div className="text-right"><p className="text-muted-foreground">Outstanding</p><p className={`font-semibold ${c.outstanding > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(c.outstanding)}</p></div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
