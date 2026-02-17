@@ -1,7 +1,11 @@
 import { useState, useMemo, useCallback } from "react";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
-import { monthlySales, kpiData } from "@/data/mockData";
+import {
+  getInitialInvoices, getInitialExpenses, getInitialInventory, getInitialBills,
+  getInitialPurchaseOrders, getInitialReceipts, getInitialSalesOrders,
+  type Invoice, type Expense, type InventoryItem, type Bill, type SalesOrder, type Receipt,
+} from "@/data/mockData";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, PieChart, Pie, Cell,
@@ -12,6 +16,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
+
+type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
+type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
 type Report = {
   code: string;
@@ -30,7 +37,6 @@ const allReports: Report[] = [
   { code: "085", title: "Product Sale Detail (By Product)", category: "Sales", section: "general" },
   { code: "088", title: "Product Sale Summary", category: "Sales", section: "general" },
   { code: "235", title: "Category Sale Summary", category: "Sales", section: "general" },
-
   // General Reports - Purchases
   { code: "040", title: "Purchase Invoices (By Date)", category: "Purchases", section: "general" },
   { code: "041", title: "Purchase Invoices (By Supplier)", category: "Purchases", section: "general" },
@@ -38,18 +44,15 @@ const allReports: Report[] = [
   { code: "043", title: "Unpaid Purchase Invoices (By Supplier)", category: "Purchases", section: "general" },
   { code: "090", title: "Product Purchase Detail (By Date)", category: "Purchases", section: "general" },
   { code: "091", title: "Product Purchase Summary", category: "Purchases", section: "general" },
-
   // General Reports - Combined Statements
   { code: "050", title: "Trial Balance", category: "Combined Statements", section: "general" },
   { code: "051", title: "General Ledger", category: "Combined Statements", section: "general" },
   { code: "052", title: "Day Book", category: "Combined Statements", section: "general" },
-
   // General Reports - Cash & Bank
   { code: "060", title: "Cash Book", category: "Cash & Bank", section: "general" },
   { code: "061", title: "Bank Book", category: "Cash & Bank", section: "general" },
   { code: "062", title: "Bank Reconciliation", category: "Cash & Bank", section: "general" },
   { code: "063", title: "Payment Receipts Summary", category: "Cash & Bank", section: "general" },
-
   // General Reports - Inventory
   { code: "078", title: "Products List", category: "Inventory", section: "general" },
   { code: "080", title: "Stock Quantity", category: "Inventory", section: "general" },
@@ -59,12 +62,10 @@ const allReports: Report[] = [
   { code: "173", title: "Opening Stock", category: "Inventory", section: "general" },
   { code: "180", title: "Stock Adjustment Detail (By Date)", category: "Inventory", section: "general" },
   { code: "366", title: "Inventory Transactions Summary By Product", category: "Inventory", section: "general" },
-
   // General Reports - Taxation
   { code: "100", title: "Sales Tax Report", category: "Taxation", section: "general" },
   { code: "101", title: "Purchase Tax Report", category: "Taxation", section: "general" },
   { code: "102", title: "Tax Summary", category: "Taxation", section: "general" },
-
   // General Reports - Management
   { code: "121", title: "Profit & Loss Account", category: "Management", section: "general" },
   { code: "123", title: "Profit & Loss Account Summary", category: "Management", section: "general" },
@@ -77,7 +78,6 @@ const allReports: Report[] = [
   { code: "307", title: "Budget Income Statement", category: "Management", section: "general" },
   { code: "381", title: "Depreciation Details", category: "Management", section: "general" },
   { code: "383", title: "Fixed Assets Details", category: "Management", section: "general" },
-
   // Analytical Reports
   { code: "200", title: "Sales Trend Analysis", category: "Sales", section: "analytical" },
   { code: "201", title: "Customer Revenue Analysis", category: "Sales", section: "analytical" },
@@ -99,14 +99,38 @@ const allReports: Report[] = [
 const generalCategories = ["Favourites", "Sales", "Purchases", "Combined Statements", "Cash & Bank", "Inventory", "Taxation", "Management"];
 const analyticalCategories = ["Favourites", "Sales", "Purchases", "Cash & Bank", "Inventory", "Management"];
 
-const expenseBreakdown = [
-  { name: "Payroll", value: 42000, color: "hsl(0, 72%, 51%)" },
-  { name: "Office", value: 5500, color: "hsl(217, 71%, 45%)" },
-  { name: "Marketing", value: 3200, color: "hsl(38, 92%, 50%)" },
-  { name: "Software", value: 2400, color: "hsl(142, 71%, 45%)" },
-  { name: "Travel", value: 1800, color: "hsl(270, 60%, 50%)" },
-  { name: "Other", value: 1650, color: "hsl(215, 16%, 47%)" },
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Build monthly data from real invoices/expenses/bills
+function buildMonthlyData(invoices: Invoice[], expenses: Expense[], bills: Bill[]) {
+  const salesByMonth: Record<string, number> = {};
+  const expensesByMonth: Record<string, number> = {};
+  MONTHS.forEach(m => { salesByMonth[m] = 0; expensesByMonth[m] = 0; });
+
+  invoices.forEach(inv => {
+    const d = new Date(inv.date);
+    const m = MONTHS[d.getMonth()];
+    if (m) salesByMonth[m] += inv.amount;
+  });
+
+  expenses.forEach(exp => {
+    const d = new Date(exp.date);
+    const m = MONTHS[d.getMonth()];
+    if (m) expensesByMonth[m] += exp.amount;
+  });
+
+  bills.forEach(bill => {
+    const d = new Date(bill.date);
+    const m = MONTHS[d.getMonth()];
+    if (m) expensesByMonth[m] += bill.amount;
+  });
+
+  return MONTHS.map(month => ({
+    month,
+    sales: salesByMonth[month],
+    expenses: expensesByMonth[month],
+  })).filter(m => m.sales > 0 || m.expenses > 0);
+}
 
 // --- Date Picker ---
 function DateRangePicker({ from, to, onFromChange, onToChange }: {
@@ -156,7 +180,7 @@ function exportCSV(report: Report, data: { month: string; sales: number; expense
   URL.revokeObjectURL(url);
 }
 
-function exportPDF(report: Report, dateRange: string) {
+function exportPDF(report: Report, data: { month: string; sales: number; expenses: number }[], dateRange: string) {
   const content = `
     <html><head><title>${report.code} - ${report.title}</title>
     <style>
@@ -176,7 +200,7 @@ function exportPDF(report: Report, dateRange: string) {
     <table>
       <thead><tr><th>Month</th><th class="text-right">Sales</th><th class="text-right">Expenses</th><th class="text-right">Net</th></tr></thead>
       <tbody>
-        ${monthlySales.map(d => `<tr><td>${d.month}</td><td class="text-right">$${d.sales.toLocaleString()}</td><td class="text-right">$${d.expenses.toLocaleString()}</td><td class="text-right ${d.sales - d.expenses >= 0 ? 'positive' : 'negative'}">$${(d.sales - d.expenses).toLocaleString()}</td></tr>`).join("")}
+        ${data.map(d => `<tr><td>${d.month}</td><td class="text-right">${d.sales.toLocaleString()}</td><td class="text-right">${d.expenses.toLocaleString()}</td><td class="text-right ${d.sales - d.expenses >= 0 ? 'positive' : 'negative'}">${(d.sales - d.expenses).toLocaleString()}</td></tr>`).join("")}
       </tbody>
     </table>
     <div class="footer">CloudBooks Reports — Auto-generated</div>
@@ -225,7 +249,13 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }) {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory }: {
+  report: Report; onBack: () => void;
+  monthlySales: { month: string; sales: number; expenses: number }[];
+  kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
+  expenseBreakdown: { name: string; value: number; color: string }[];
+  inventory: InventoryItem[];
+}) {
   const { formatCurrency } = useSettings();
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
@@ -237,7 +267,6 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
     return "All Time";
   }, [fromDate, toDate]);
 
-  // Filter monthlySales by date range (month index approximation)
   const monthIndex: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
   const filteredData = useMemo(() => {
     return monthlySales.filter(m => {
@@ -246,7 +275,19 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
       if (toDate && mi > toDate.getMonth()) return false;
       return true;
     });
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, monthlySales]);
+
+  // Inventory-specific data tables
+  const inventoryTableData = useMemo(() => {
+    if (report.code === "078") return inventory; // Products List
+    if (report.code === "080") return inventory; // Stock Quantity
+    if (report.code === "082") return inventory.filter(i => i.qty === 0); // Out of Stock
+    if (report.code === "083") return inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
+    if (report.code === "148") return inventory; // Stock Valuation
+    return null;
+  }, [report.code, inventory]);
+
+  const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
 
   return (
     <div className="space-y-6">
@@ -258,7 +299,7 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
         <h1 className="text-xl font-bold">{report.code} - {report.title}</h1>
       </div>
 
-      {/* Toolbar: Date Range + Export */}
+      {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap bg-card border rounded-lg p-3">
         <Filter className="w-4 h-4 text-muted-foreground" />
         <DateRangePicker from={fromDate} to={toDate} onFromChange={setFromDate} onToChange={setToDate} />
@@ -271,11 +312,58 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportCSV(report, filteredData, dateRange)}>
             <Download className="w-3.5 h-3.5" /> CSV
           </Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportPDF(report, dateRange)}>
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportPDF(report, filteredData, dateRange)}>
             <FileText className="w-3.5 h-3.5" /> PDF
           </Button>
         </div>
       </div>
+
+      {/* Inventory Table Reports */}
+      {showInventoryTable && inventoryTableData && (
+        <div className="bg-card rounded-lg border p-6">
+          <h2 className="text-lg font-semibold mb-4">{report.title} ({inventoryTableData.length} items)</h2>
+          {inventoryTableData.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No items found for this report.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Item</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">SKU</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventoryTableData.map(item => (
+                    <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium">{item.name}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{item.sku}</td>
+                      <td className="px-3 py-2">{item.category}</td>
+                      <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>
+                      {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
+                    </tr>
+                  ))}
+                </tbody>
+                {report.code === "148" && (
+                  <tfoot>
+                    <tr className="border-t-2 font-bold">
+                      <td className="px-3 py-2" colSpan={6}>Total Stock Valuation</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + i.qty * i.costPrice, 0))}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* P&L Reports */}
       {["121", "123", "125"].includes(report.code) && (
@@ -287,17 +375,21 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
           </div>
           <div className="bg-card rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Monthly Revenue vs Expenses</h2>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                <Legend />
-                <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Revenue" />
-                <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Expenses" opacity={0.7} />
-              </BarChart>
-            </ResponsiveContainer>
+            {filteredData.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-8">No data available. Add invoices and expenses to see reports.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={filteredData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                  <Legend />
+                  <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Revenue" />
+                  <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Expenses" opacity={0.7} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </>
       )}
@@ -306,18 +398,22 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
       {["220", "060", "061"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Cash Flow Trend</h2>
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={filteredData.map((m) => ({ ...m, net: m.sales - m.expenses }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-              <Legend />
-              <Line type="monotone" dataKey="sales" stroke="hsl(var(--primary))" strokeWidth={2} name="Inflow" />
-              <Line type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" strokeWidth={2} name="Outflow" />
-              <Line type="monotone" dataKey="net" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="5 5" name="Net Cash Flow" />
-            </LineChart>
-          </ResponsiveContainer>
+          {filteredData.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No data available.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={350}>
+              <LineChart data={filteredData.map((m) => ({ ...m, net: m.sales - m.expenses }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                <Legend />
+                <Line type="monotone" dataKey="sales" stroke="hsl(var(--primary))" strokeWidth={2} name="Inflow" />
+                <Line type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" strokeWidth={2} name="Outflow" />
+                <Line type="monotone" dataKey="net" stroke="hsl(var(--success))" strokeWidth={2} strokeDasharray="5 5" name="Net Cash Flow" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
 
@@ -326,27 +422,31 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Expense Breakdown</h2>
-            <div className="flex items-center gap-6">
-              <div className="w-48 h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={expenseBreakdown} dataKey="value" cx="50%" cy="50%" outerRadius={80} strokeWidth={0}>
-                      {expenseBreakdown.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
+            {expenseBreakdown.every(e => e.value === 0) ? (
+              <p className="text-muted-foreground text-sm text-center py-8">No expenses recorded yet.</p>
+            ) : (
+              <div className="flex items-center gap-6">
+                <div className="w-48 h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={expenseBreakdown.filter(e => e.value > 0)} dataKey="value" cx="50%" cy="50%" outerRadius={80} strokeWidth={0}>
+                        {expenseBreakdown.filter(e => e.value > 0).map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2">
+                  {expenseBreakdown.filter(e => e.value > 0).map((item) => (
+                    <div key={item.name} className="flex items-center gap-2 text-sm">
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-muted-foreground">{item.name}</span>
+                      <span className="font-medium ml-auto">{formatCurrency(item.value)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                {expenseBreakdown.map((item) => (
-                  <div key={item.name} className="flex items-center gap-2 text-sm">
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                    <span className="text-muted-foreground">{item.name}</span>
-                    <span className="font-medium ml-auto">{formatCurrency(item.value)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
           <div className="bg-card rounded-lg border p-6 space-y-4">
             <h2 className="text-lg font-semibold">Key Metrics</h2>
@@ -354,7 +454,7 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
               { label: "Bank Balance", value: kpiData.bankBalance, color: "text-primary" },
               { label: "Outstanding Receivables", value: kpiData.outstandingReceivables, color: "text-amber-500" },
               { label: "Outstanding Payables", value: kpiData.outstandingPayables, color: "text-destructive" },
-              { label: "Profit Margin", value: `${((kpiData.netProfit / kpiData.totalSales) * 100).toFixed(1)}%`, color: "text-success", raw: true },
+              { label: "Profit Margin", value: kpiData.totalSales > 0 ? `${((kpiData.netProfit / kpiData.totalSales) * 100).toFixed(1)}%` : "0.0%", color: "text-success", raw: true },
             ].map((m) => (
               <div key={m.label} className="flex items-center justify-between py-2 border-b last:border-0">
                 <span className="text-sm text-muted-foreground">{m.label}</span>
@@ -369,15 +469,19 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
       {["028", "029", "034", "037", "084", "085", "088", "235", "200", "201", "202", "203"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Monthly Sales Trend</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-              <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Sales" />
-            </BarChart>
-          </ResponsiveContainer>
+          {filteredData.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No sales data. Add invoices to see trends.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={filteredData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Sales" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
 
@@ -385,31 +489,39 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
       {["040", "041", "042", "043", "090", "091", "210", "211", "272"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Monthly Purchases Trend</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-              <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Purchases" />
-            </BarChart>
-          </ResponsiveContainer>
+          {filteredData.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No purchase data. Add bills to see trends.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={filteredData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Purchases" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
 
-      {/* Inventory Reports */}
-      {["078", "080", "082", "083", "148", "173", "180", "366", "230", "231", "232"].includes(report.code) && (
+      {/* Inventory chart Reports (non-table ones) */}
+      {["173", "180", "366", "230", "231", "232"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Stock Overview</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={filteredData.map(m => ({ month: m.month, stock: Math.round(m.sales / 100) }))}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-              <Bar dataKey="stock" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Stock Units" />
-            </BarChart>
-          </ResponsiveContainer>
+          {filteredData.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No data available.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={filteredData.map(m => ({ month: m.month, stock: Math.round(m.sales / 100) }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                <Bar dataKey="stock" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Stock Units" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
 
@@ -417,17 +529,21 @@ function ReportDetail({ report, onBack }: { report: Report; onBack: () => void }
       {["100", "101", "102", "050", "051", "052", "062", "063", "135", "244", "258", "381", "383", "241", "242"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Summary</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-              <Legend />
-              <Line type="monotone" dataKey="sales" stroke="hsl(var(--primary))" strokeWidth={2} name="Revenue" />
-              <Line type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" strokeWidth={2} name="Expenses" />
-            </LineChart>
-          </ResponsiveContainer>
+          {filteredData.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No data available.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={filteredData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                <Legend />
+                <Line type="monotone" dataKey="sales" stroke="hsl(var(--primary))" strokeWidth={2} name="Revenue" />
+                <Line type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" strokeWidth={2} name="Expenses" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       )}
     </div>
@@ -446,6 +562,41 @@ export default function Reports() {
     "272",
   ]);
 
+  // Read real data from localStorage
+  const [invoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
+  const [expenses] = useLocalStorage<Expense[]>("cb-expenses", getInitialExpenses());
+  const [bills] = useLocalStorage<Bill[]>("cb-bills", []);
+  const [inventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
+  const [accounts] = useLocalStorage<Account[]>("accounts", []);
+  const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+
+  // Build monthly data from real data
+  const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills), [invoices, expenses, bills]);
+
+  // Build expense breakdown by category
+  const expenseBreakdown = useMemo(() => {
+    const catMap: Record<string, number> = {};
+    const colors = ["hsl(0, 72%, 51%)", "hsl(217, 71%, 45%)", "hsl(38, 92%, 50%)", "hsl(142, 71%, 45%)", "hsl(270, 60%, 50%)", "hsl(215, 16%, 47%)", "hsl(160, 60%, 45%)"];
+    expenses.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.amount; });
+    return Object.entries(catMap).map(([name, value], i) => ({ name, value, color: colors[i % colors.length] }));
+  }, [expenses]);
+
+  // Build KPI data
+  const kpiData = useMemo(() => {
+    const totalSales = invoices.reduce((s, i) => s + i.amount, 0);
+    const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0) + bills.reduce((s, b) => s + b.amount, 0);
+    const outstandingReceivables = invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
+    const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((s, b) => s + b.amount, 0);
+
+    // Bank balance from accounts + ledger
+    let bankBalance = accounts.reduce((s, a) => s + a.balance, 0);
+    const incoming = ledger.filter(e => e.type === "incoming").reduce((s, e) => s + e.amount, 0);
+    const outgoing = ledger.filter(e => e.type === "outgoing").reduce((s, e) => s + e.amount, 0);
+    bankBalance += incoming - outgoing;
+
+    return { totalSales, totalExpenses, netProfit: totalSales - totalExpenses, outstandingReceivables, outstandingPayables, bankBalance };
+  }, [invoices, expenses, bills, accounts, ledger]);
+
   const toggleFav = useCallback((code: string) => {
     setFavorites(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
   }, [setFavorites]);
@@ -461,7 +612,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} />;
   }
 
   return (
