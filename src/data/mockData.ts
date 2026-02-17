@@ -144,6 +144,8 @@ export type InventoryItem = {
   stockAssetAccount: string;
   saleDiscount: number;
   purchaseDiscount: number;
+  productType?: "stock" | "non-stock" | "bundle";
+  bundleItems?: { itemId: string; qty: number }[];
 };
 
 export type StockAdjustment = {

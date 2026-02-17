@@ -23,7 +23,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
   name: "", sku: "", qty: 0, reorderLevel: 5, price: 0, category: "",
   date: new Date().toISOString().split("T")[0], costPrice: 0, salePrice: 0,
   unit: "pcs", weight: 0, stockAssetAccount: "Inventory Asset",
-  saleDiscount: 0, purchaseDiscount: 0,
+  saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [],
 });
 
 export default function Inventory() {
@@ -214,6 +214,18 @@ export default function Inventory() {
             <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-4 h-4" /></Button>
           </div>
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* Product Type */}
+            <div>
+              <Label>Product Type</Label>
+              <Select value={form.productType || "stock"} onValueChange={(v) => setForm({ ...form, productType: v as InventoryItem["productType"] })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stock">Stock (Tracked)</SelectItem>
+                  <SelectItem value="non-stock">Non-Stock (Service)</SelectItem>
+                  <SelectItem value="bundle">Bundle (Composite)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Item Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" maxLength={100} required /></div>
             <div><Label>SKU *</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" maxLength={20} required /></div>
             <div>
@@ -237,8 +249,14 @@ export default function Inventory() {
             <div><Label>Date</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1" /></div>
             <div><Label>Cost Price</Label><Input type="number" min={0} step={0.01} value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Sale Price</Label><Input type="number" min={0} step={0.01} value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })} className="mt-1" /></div>
-            <div><Label>Quantity</Label><Input type="number" min={0} value={form.qty} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
-            <div><Label>Reorder Level</Label><Input type="number" min={0} value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
+
+            {/* Only show qty/reorder for stock items */}
+            {form.productType !== "non-stock" && (
+              <>
+                <div><Label>Quantity</Label><Input type="number" min={0} value={form.qty} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
+                <div><Label>Reorder Level</Label><Input type="number" min={0} value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
+              </>
+            )}
 
             {/* Unit dropdown with Add New */}
             <div>
@@ -263,28 +281,80 @@ export default function Inventory() {
             <div><Label>Weight</Label><Input type="number" min={0} step={0.01} value={form.weight} onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })} className="mt-1" /></div>
 
             {/* Stock Asset Account dropdown with Add New */}
-            <div>
-              <Label>Stock Asset Account</Label>
-              {addingAccount ? (
-                <div className="flex gap-1 mt-1">
-                  <Input value={newAccount} onChange={(e) => setNewAccount(e.target.value)} placeholder="New account..." className="flex-1" maxLength={50} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewAccount())} />
-                  <Button type="button" size="sm" onClick={addNewAccount} className="shrink-0">Add</Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setAddingAccount(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
-                </div>
-              ) : (
-                <Select value={form.stockAssetAccount || "Inventory Asset"} onValueChange={(v) => v === "__add_new__" ? setAddingAccount(true) : setForm({ ...form, stockAssetAccount: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {allAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                    <SelectItem value="__add_new__">+ Add New Account</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+            {form.productType !== "non-stock" && (
+              <div>
+                <Label>Stock Asset Account</Label>
+                {addingAccount ? (
+                  <div className="flex gap-1 mt-1">
+                    <Input value={newAccount} onChange={(e) => setNewAccount(e.target.value)} placeholder="New account..." className="flex-1" maxLength={50} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewAccount())} />
+                    <Button type="button" size="sm" onClick={addNewAccount} className="shrink-0">Add</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setAddingAccount(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                  </div>
+                ) : (
+                  <Select value={form.stockAssetAccount || "Inventory Asset"} onValueChange={(v) => v === "__add_new__" ? setAddingAccount(true) : setForm({ ...form, stockAssetAccount: v })}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {allAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                      <SelectItem value="__add_new__">+ Add New Account</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
 
             <div><Label>Sale Discount (%)</Label><Input type="number" min={0} max={100} step={0.1} value={form.saleDiscount} onChange={(e) => setForm({ ...form, saleDiscount: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Purchase Discount (%)</Label><Input type="number" min={0} max={100} step={0.1} value={form.purchaseDiscount} onChange={(e) => setForm({ ...form, purchaseDiscount: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Price (Display)</Label><Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="mt-1" /></div>
+
+            {/* Bundle Items - only for bundle type */}
+            {form.productType === "bundle" && (
+              <div className="md:col-span-3 lg:col-span-4">
+                <Label className="mb-2 block">Bundle Components</Label>
+                <div className="bg-muted/30 rounded-lg border p-3 space-y-2">
+                  {(form.bundleItems || []).map((bi, idx) => {
+                    const bundledItem = inventory.find((inv) => inv.id === bi.itemId);
+                    return (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Select value={bi.itemId} onValueChange={(v) => {
+                          const updated = [...(form.bundleItems || [])];
+                          updated[idx] = { ...updated[idx], itemId: v };
+                          setForm({ ...form, bundleItems: updated });
+                        }}>
+                          <SelectTrigger className="flex-1 h-8 text-xs"><SelectValue placeholder="Select component product" /></SelectTrigger>
+                          <SelectContent>
+                            {inventory.filter((inv) => inv.id !== editing?.id && inv.productType !== "bundle").map((inv) => (
+                              <SelectItem key={inv.id} value={inv.id}>{inv.name} ({inv.sku})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number" min={1} value={bi.qty}
+                          onChange={(e) => {
+                            const updated = [...(form.bundleItems || [])];
+                            updated[idx] = { ...updated[idx], qty: Number(e.target.value) };
+                            setForm({ ...form, bundleItems: updated });
+                          }}
+                          className="w-20 h-8 text-xs" placeholder="Qty"
+                        />
+                        <span className="text-xs text-muted-foreground w-16 truncate">{bundledItem?.unit || ""}</span>
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
+                          const updated = (form.bundleItems || []).filter((_, i) => i !== idx);
+                          setForm({ ...form, bundleItems: updated });
+                        }}>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    setForm({ ...form, bundleItems: [...(form.bundleItems || []), { itemId: "", qty: 1 }] });
+                  }}>
+                    <Plus className="w-3 h-3 mr-1" /> Add Component
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="md:col-span-3 lg:col-span-4 flex gap-3 justify-end">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               <Button type="submit">{editing ? "Update" : "Add"}</Button>
@@ -307,6 +377,7 @@ export default function Inventory() {
           <thead>
             <tr className="border-b bg-muted/50">
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Item</th>
+              <th className="text-left px-3 py-3 font-medium text-muted-foreground">Type</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">SKU</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Category</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Date</th>
@@ -322,9 +393,13 @@ export default function Inventory() {
             </tr>
           </thead>
           <tbody>
-            {filteredInventory.map((item) => (
+            {filteredInventory.map((item) => {
+              const typeLabel = item.productType === "non-stock" ? "Non-Stock" : item.productType === "bundle" ? "Bundle" : "Stock";
+              const typeVariant = item.productType === "non-stock" ? "outline" : item.productType === "bundle" ? "secondary" : "default";
+              return (
               <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="px-3 py-3 font-medium">{item.name}</td>
+                <td className="px-3 py-3"><Badge variant={typeVariant} className="text-xs">{typeLabel}</Badge></td>
                 <td className="px-3 py-3 text-muted-foreground">{item.sku}</td>
                 <td className="px-3 py-3 text-muted-foreground">{item.category}</td>
                 <td className="px-3 py-3 text-muted-foreground">{item.date || "—"}</td>
@@ -332,11 +407,13 @@ export default function Inventory() {
                 <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
                 <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>
                 <td className="px-3 py-3 text-right">{item.weight || 0}</td>
-                <td className="px-3 py-3 text-right">{item.qty}</td>
+                <td className="px-3 py-3 text-right">{item.productType === "non-stock" ? "∞" : item.qty}</td>
                 <td className="px-3 py-3 text-right">{item.saleDiscount || 0}%</td>
                 <td className="px-3 py-3 text-right">{item.purchaseDiscount || 0}%</td>
                 <td className="px-3 py-3 text-center">
-                  {item.qty <= item.reorderLevel ? (
+                  {item.productType === "non-stock" ? (
+                    <Badge className="bg-primary/10 text-primary border-0">Service</Badge>
+                  ) : item.qty <= item.reorderLevel ? (
                     <Badge className="bg-destructive/10 text-destructive border-0">Low Stock</Badge>
                   ) : (
                     <Badge className="bg-success/10 text-success border-0">In Stock</Badge>
@@ -349,8 +426,9 @@ export default function Inventory() {
                   </div>
                 </td>
               </tr>
-            ))}
-            {filteredInventory.length === 0 && <tr><td colSpan={13} className="text-center py-8 text-muted-foreground">{inventory.length === 0 ? "No inventory items." : "No items match your filters."}</td></tr>}
+              );
+            })}
+            {filteredInventory.length === 0 && <tr><td colSpan={14} className="text-center py-8 text-muted-foreground">{inventory.length === 0 ? "No inventory items." : "No items match your filters."}</td></tr>}
           </tbody>
         </table>
       </div>
