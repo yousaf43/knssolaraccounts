@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, UserPlus } from "lucide-react";
+import { X, UserPlus, AlertTriangle } from "lucide-react";
+import { useSettings } from "@/contexts/SettingsContext";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
 
 type Props = {
   customers: Customer[];
   invoices: Invoice[];
+  receipts?: Receipt[];
   onSave: (receipt: Receipt) => void;
   onCancel: () => void;
   editReceipt?: Receipt | null;
@@ -17,12 +19,13 @@ type Props = {
   onAddCustomer?: (customer: Customer) => void;
 };
 
-export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt, nextNumber, onAddCustomer }: Props) {
+export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCancel, editReceipt, nextNumber, onAddCustomer }: Props) {
+  const { formatCurrency } = useSettings();
   const [customer, setCustomer] = useState(editReceipt?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || "");
   const [amount, setAmount] = useState(editReceipt?.amount || 0);
-  const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Bank Transfer");
+  const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Cash");
   const [reference, setReference] = useState(editReceipt?.reference || "");
   const [notes, setNotes] = useState(editReceipt?.notes || "");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -43,14 +46,27 @@ export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt
       outstanding: 0,
     };
     onAddCustomer?.(newCustomer);
-    setCustomer(newCustomer.company);
+    setCustomer(newCustomer.name);
     setShowQuickAdd(false);
     setQuickName(""); setQuickCompany(""); setQuickEmail("");
   };
 
+  // Calculate remaining for selected invoice
+  const selectedInvoice = invoices.find((i) => i.number === invoiceNumber);
+  const invoiceRemaining = useMemo(() => {
+    if (!selectedInvoice) return 0;
+    const paidSoFar = receipts
+      .filter((r) => r.invoiceNumber === invoiceNumber && r.id !== editReceipt?.id)
+      .reduce((s, r) => s + r.amount, 0);
+    return Math.max(0, selectedInvoice.amount - paidSoFar);
+  }, [selectedInvoice, invoiceNumber, receipts, editReceipt]);
+
+  const isOverpay = selectedInvoice && amount > invoiceRemaining;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.trim() || !date || !invoiceNumber || amount <= 0) return;
+    if (isOverpay) return;
 
     onSave({
       id: editReceipt?.id || crypto.randomUUID(),
@@ -85,7 +101,7 @@ export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt
             <Select value={customer} onValueChange={setCustomer}>
               <SelectTrigger className="flex-1"><SelectValue placeholder="Select customer" /></SelectTrigger>
               <SelectContent>
-                {customers.map((c) => (<SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>))}
+                {customers.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name} ({c.company})</SelectItem>))}
               </SelectContent>
             </Select>
             {onAddCustomer && (
@@ -116,29 +132,38 @@ export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt
           <Select value={invoiceNumber} onValueChange={(v) => {
             setInvoiceNumber(v);
             const inv = invoices.find((i) => i.number === v);
-            if (inv) setAmount(inv.amount);
+            if (inv) {
+              const paid = receipts.filter((r) => r.invoiceNumber === v && r.id !== editReceipt?.id).reduce((s, r) => s + r.amount, 0);
+              setAmount(Math.max(0, inv.amount - paid));
+            }
           }}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="Select invoice" /></SelectTrigger>
             <SelectContent>
               {(customer ? customerInvoices : invoices).map((inv) => (
-                <SelectItem key={inv.id} value={inv.number}>{inv.number} - ${inv.amount.toLocaleString()}</SelectItem>
+                <SelectItem key={inv.id} value={inv.number}>{inv.number} - {formatCurrency(inv.amount)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label>Amount *</Label>
-          <Input type="number" min={0} step={0.01} value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="mt-1" required />
+          <Label>Amount * {selectedInvoice && <span className="text-xs text-muted-foreground ml-1">(Remaining: {formatCurrency(invoiceRemaining)})</span>}</Label>
+          <Input type="number" min={0} max={invoiceRemaining || undefined} step={0.01} value={amount} onChange={(e) => setAmount(Number(e.target.value))} className={`mt-1 ${isOverpay ? "border-destructive" : ""}`} required />
+          {isOverpay && (
+            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> Amount exceeds remaining balance ({formatCurrency(invoiceRemaining)})
+            </p>
+          )}
         </div>
         <div>
           <Label>Payment Method</Label>
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-              <SelectItem value="Credit Card">Credit Card</SelectItem>
               <SelectItem value="Cash">Cash</SelectItem>
+              <SelectItem value="Online">Online</SelectItem>
+              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
               <SelectItem value="Cheque">Cheque</SelectItem>
+              <SelectItem value="Credit Card">Credit Card</SelectItem>
               <SelectItem value="UPI">UPI</SelectItem>
             </SelectContent>
           </Select>
@@ -156,7 +181,7 @@ export function ReceiptForm({ customers, invoices, onSave, onCancel, editReceipt
 
       <div className="flex gap-3 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button type="submit">{editReceipt ? "Update Receipt" : "Create Receipt"}</Button>
+        <Button type="submit" disabled={!!isOverpay}>{editReceipt ? "Update Receipt" : "Create Receipt"}</Button>
       </div>
     </form>
   );

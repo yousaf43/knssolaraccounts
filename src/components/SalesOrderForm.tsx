@@ -22,6 +22,7 @@ type Props = {
 
 export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber, onAddCustomer }: Props) {
   const { formatCurrency } = useSettings();
+  const [customNumber, setCustomNumber] = useState(editOrder?.number || "");
   const [customer, setCustomer] = useState(editOrder?.customer || "");
   const [date, setDate] = useState(editOrder?.date || new Date().toISOString().split("T")[0]);
   const [deliveryDate, setDeliveryDate] = useState(editOrder?.deliveryDate || "");
@@ -58,7 +59,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       outstanding: 0,
     };
     onAddCustomer?.(newCustomer);
-    setCustomer(newCustomer.company);
+    setCustomer(newCustomer.name);
     setShowQuickAdd(false);
     setQuickName(""); setQuickCompany(""); setQuickEmail("");
   };
@@ -126,7 +127,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
 
     onSave({
       id: editOrder?.id || crypto.randomUUID(),
-      number: editOrder?.number || nextNumber,
+      number: customNumber.trim() || nextNumber,
       customer: customer.trim(),
       date,
       deliveryDate,
@@ -151,7 +152,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label>Document Number</Label>
-          <Input value={editOrder?.number || nextNumber} disabled className="mt-1" />
+          <Input value={customNumber || nextNumber} onChange={(e) => setCustomNumber(e.target.value)} placeholder={nextNumber} className="mt-1" />
         </div>
         <div>
           <Label>Customer *</Label>
@@ -159,7 +160,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
             <Select value={customer} onValueChange={setCustomer}>
               <SelectTrigger className="flex-1"><SelectValue placeholder="Select customer" /></SelectTrigger>
               <SelectContent>
-                {customers.map((c) => (<SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>))}
+                {customers.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name} ({c.company})</SelectItem>))}
               </SelectContent>
             </Select>
             {onAddCustomer && (
@@ -242,13 +243,8 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                             className="h-7 text-xs pl-7"
                           />
                         </div>
-                        <Select
-                          value={item.inventoryItemId || ""}
-                          onValueChange={(v) => selectInventoryItem(i, v)}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
+                        <Select value={item.inventoryItemId || ""} onValueChange={(v) => selectInventoryItem(i, v)}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select product" /></SelectTrigger>
                           <SelectContent>
                             {filtered.map((inv) => (
                               <SelectItem key={inv.id} value={inv.id}>
@@ -324,9 +320,9 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="online">Online</SelectItem>
                   <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                   <SelectItem value="cheque">Cheque</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
                 </SelectContent>
               </Select>
             </div>

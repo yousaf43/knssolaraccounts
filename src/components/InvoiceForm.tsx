@@ -4,12 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, X, UserPlus } from "lucide-react";
+import { Plus, Trash2, X, UserPlus, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useSettings } from "@/contexts/SettingsContext";
-import type { Invoice, InvoiceItem, Customer } from "@/data/mockData";
+import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
 
 type Props = {
   customers: Customer[];
+  inventory?: InventoryItem[];
   onSave: (invoice: Invoice) => void;
   onCancel: () => void;
   editInvoice?: Invoice | null;
@@ -17,8 +19,9 @@ type Props = {
   onAddCustomer?: (customer: Customer) => void;
 };
 
-export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
   const { formatCurrency } = useSettings();
+  const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
   const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
@@ -28,6 +31,7 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
   const [items, setItems] = useState<InvoiceItem[]>(
     editInvoice?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]
   );
+  const [productSearch, setProductSearch] = useState<Record<number, string>>({});
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickCompany, setQuickCompany] = useState("");
@@ -46,9 +50,36 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
       outstanding: 0,
     };
     onAddCustomer?.(newCustomer);
-    setCustomer(newCustomer.company);
+    setCustomer(newCustomer.name);
     setShowQuickAdd(false);
     setQuickName(""); setQuickCompany(""); setQuickEmail("");
+  };
+
+  const selectInventoryItem = (index: number, itemId: string) => {
+    const invItem = inventory.find((i) => i.id === itemId);
+    if (!invItem) return;
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        inventoryItemId: itemId,
+        description: invItem.name,
+        rate: invItem.salePrice || invItem.price,
+        amount: (updated[index].qty || 1) * (invItem.salePrice || invItem.price),
+      };
+      return updated;
+    });
+    setProductSearch((prev) => ({ ...prev, [index]: "" }));
+  };
+
+  const getFilteredInventory = (index: number) => {
+    const search = (productSearch[index] || "").toLowerCase();
+    if (!search) return inventory;
+    return inventory.filter((inv) =>
+      inv.name.toLowerCase().includes(search) ||
+      inv.sku.toLowerCase().includes(search) ||
+      inv.category.toLowerCase().includes(search)
+    );
   };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
@@ -79,7 +110,7 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
 
     onSave({
       id: editInvoice?.id || crypto.randomUUID(),
-      number: editInvoice?.number || nextNumber,
+      number: customNumber.trim() || nextNumber,
       customer: customer.trim(),
       date,
       dueDate,
@@ -90,6 +121,8 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
       tax,
     });
   };
+
+  const hasInventory = inventory.length > 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -103,7 +136,7 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label>Invoice Number</Label>
-          <Input value={editInvoice?.number || nextNumber} disabled className="mt-1" />
+          <Input value={customNumber || nextNumber} onChange={(e) => setCustomNumber(e.target.value)} placeholder={nextNumber} className="mt-1" />
         </div>
         <div>
           <Label>Customer *</Label>
@@ -114,7 +147,7 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
               </SelectTrigger>
               <SelectContent>
                 {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.company}>{c.company}</SelectItem>
+                  <SelectItem key={c.id} value={c.name}>{c.name} ({c.company})</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -171,57 +204,79 @@ export function InvoiceForm({ customers, onSave, onCancel, editInvoice, nextNumb
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
+                {hasInventory && <th className="text-left px-3 py-2 font-medium text-muted-foreground w-[240px]">Product</th>}
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground">Description</th>
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">Qty</th>
+                {hasInventory && <th className="text-center px-3 py-2 font-medium text-muted-foreground w-20">Stock</th>}
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Rate</th>
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Amount</th>
                 <th className="w-10"></th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item, i) => (
-                <tr key={i} className="border-b last:border-0">
-                  <td className="px-3 py-2">
-                    <Input
-                      value={item.description}
-                      onChange={(e) => updateItem(i, "description", e.target.value)}
-                      placeholder="Item description"
-                      className="h-8"
-                      maxLength={200}
-                      required
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      value={item.qty}
-                      onChange={(e) => updateItem(i, "qty", Number(e.target.value))}
-                      className="h-8 text-right"
-                      required
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={item.rate}
-                      onChange={(e) => updateItem(i, "rate", Number(e.target.value))}
-                      className="h-8 text-right"
-                      required
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
-                  <td className="px-2 py-2">
-                    {items.length > 1 && (
-                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(i)}>
-                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                      </Button>
+              {items.map((item, i) => {
+                const filtered = getFilteredInventory(i);
+                const invItem = item.inventoryItemId ? inventory.find((inv) => inv.id === item.inventoryItemId) : null;
+                return (
+                  <tr key={i} className="border-b last:border-0">
+                    {hasInventory && (
+                      <td className="px-3 py-2">
+                        <div className="space-y-1">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                            <Input
+                              value={productSearch[i] || ""}
+                              onChange={(e) => setProductSearch((prev) => ({ ...prev, [i]: e.target.value }))}
+                              placeholder="Search product..."
+                              className="h-7 text-xs pl-7"
+                            />
+                          </div>
+                          <Select value={item.inventoryItemId || ""} onValueChange={(v) => selectInventoryItem(i, v)}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select product" /></SelectTrigger>
+                            <SelectContent>
+                              {filtered.map((inv) => (
+                                <SelectItem key={inv.id} value={inv.id}>
+                                  <span className="flex items-center gap-2">
+                                    {inv.name}
+                                    <span className="text-muted-foreground text-xs">({inv.qty} {inv.unit})</span>
+                                  </span>
+                                </SelectItem>
+                              ))}
+                              {filtered.length === 0 && <div className="text-xs text-muted-foreground p-2 text-center">No products found</div>}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </td>
                     )}
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-3 py-2">
+                      <Input value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Item description" className="h-8" required />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Input type="number" min={1} value={item.qty} onChange={(e) => updateItem(i, "qty", Number(e.target.value))} className="h-8 text-right" required />
+                    </td>
+                    {hasInventory && (
+                      <td className="px-3 py-2 text-center">
+                        {invItem ? (
+                          <Badge variant={invItem.qty < item.qty ? "destructive" : "secondary"} className="text-xs">{invItem.qty}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-3 py-2">
+                      <Input type="number" min={0} step={0.01} value={item.rate} onChange={(e) => updateItem(i, "rate", Number(e.target.value))} className="h-8 text-right" required />
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
+                    <td className="px-2 py-2">
+                      {items.length > 1 && (
+                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(i)}>
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <div className="px-3 py-2 border-t">
