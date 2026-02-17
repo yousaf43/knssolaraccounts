@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, X, UserPlus, Search } from "lucide-react";
+import { Plus, Trash2, X, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ProductCombobox } from "@/components/ProductCombobox";
 import { useSettings } from "@/contexts/SettingsContext";
 import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
 
@@ -32,7 +33,6 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [items, setItems] = useState<InvoiceItem[]>(
     editInvoice?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]
   );
-  const [productSearch, setProductSearch] = useState<Record<number, string>>({});
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickCompany, setQuickCompany] = useState("");
@@ -70,17 +70,6 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       };
       return updated;
     });
-    setProductSearch((prev) => ({ ...prev, [index]: "" }));
-  };
-
-  const getFilteredInventory = (index: number) => {
-    const search = (productSearch[index] || "").toLowerCase();
-    if (!search) return inventory;
-    return inventory.filter((inv) =>
-      inv.name.toLowerCase().includes(search) ||
-      inv.sku.toLowerCase().includes(search) ||
-      inv.category.toLowerCase().includes(search)
-    );
   };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
@@ -221,37 +210,16 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             </thead>
             <tbody>
               {items.map((item, i) => {
-                const filtered = getFilteredInventory(i);
                 const invItem = item.inventoryItemId ? inventory.find((inv) => inv.id === item.inventoryItemId) : null;
                 return (
                   <tr key={i} className="border-b last:border-0">
                     {hasInventory && (
                       <td className="px-3 py-2">
-                        <div className="space-y-1">
-                          <div className="relative">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                            <Input
-                              value={productSearch[i] || ""}
-                              onChange={(e) => setProductSearch((prev) => ({ ...prev, [i]: e.target.value }))}
-                              placeholder="Search product..."
-                              className="h-7 text-xs pl-7"
-                            />
-                          </div>
-                          <Select value={item.inventoryItemId || ""} onValueChange={(v) => selectInventoryItem(i, v)}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select product" /></SelectTrigger>
-                            <SelectContent>
-                              {filtered.map((inv) => (
-                                <SelectItem key={inv.id} value={inv.id}>
-                                  <span className="flex items-center gap-2">
-                                    {inv.name}
-                                    <span className="text-muted-foreground text-xs">({inv.qty} {inv.unit})</span>
-                                  </span>
-                                </SelectItem>
-                              ))}
-                              {filtered.length === 0 && <div className="text-xs text-muted-foreground p-2 text-center">No products found</div>}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <ProductCombobox
+                          inventory={inventory}
+                          selectedItemId={item.inventoryItemId}
+                          onSelect={(id) => selectInventoryItem(i, id)}
+                        />
                       </td>
                     )}
                     <td className="px-3 py-2">
