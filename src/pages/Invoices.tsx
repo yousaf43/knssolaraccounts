@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
-import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, type Invoice, type SalesOrder, type Receipt, type Customer } from "@/data/mockData";
+import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle } from "lucide-react";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
@@ -23,6 +23,7 @@ const invoiceStatusStyles: Record<string, string> = {
 const soStatusStyles: Record<string, string> = {
   confirmed: "bg-primary/10 text-primary hover:bg-primary/20 border-0",
   pending: "bg-warning/10 text-warning hover:bg-warning/20 border-0",
+  approved: "bg-success/10 text-success hover:bg-success/20 border-0",
   shipped: "bg-success/10 text-success hover:bg-success/20 border-0",
   cancelled: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
 };
@@ -45,7 +46,7 @@ export default function Invoices() {
   const [salesOrders, setSalesOrders] = useLocalStorage<SalesOrder[]>("cb-sales-orders", getInitialSalesOrders());
   const [receipts, setReceipts] = useLocalStorage<Receipt[]>("cb-receipts", getInitialReceipts());
   const [customers, setCustomers] = useLocalStorage("cb-customers", getInitialCustomers());
-
+  const [inventory, setInventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
@@ -85,6 +86,58 @@ export default function Invoices() {
     toast.success(editOrder ? "Sales Order updated" : "Sales Order created");
   };
   const handleDeleteSO = (id: string) => { setSalesOrders((prev) => prev.filter((i) => i.id !== id)); toast.success("Sales Order deleted"); };
+
+  // Approve Sales Order → Convert to Invoice + Deduct Inventory
+  const handleApproveSO = (so: SalesOrder) => {
+    // Create invoice from SO
+    const newInvoice: Invoice = {
+      id: crypto.randomUUID(),
+      number: `INV-${String(invoices.length + 1).padStart(3, "0")}`,
+      customer: so.customer,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: so.deliveryDate,
+      amount: so.amount,
+      status: "pending",
+      items: so.items,
+      notes: so.notes ? `From ${so.number}. ${so.notes}` : `Converted from ${so.number}`,
+      tax: so.tax,
+    };
+    setInvoices((prev) => [...prev, newInvoice]);
+
+    // Deduct inventory for each line item
+    setInventory((prev) => {
+      const updated = [...prev];
+      for (const item of so.items) {
+        if (item.inventoryItemId) {
+          const idx = updated.findIndex((inv) => inv.id === item.inventoryItemId);
+          if (idx !== -1) {
+            updated[idx] = { ...updated[idx], qty: Math.max(0, updated[idx].qty - item.qty) };
+          }
+        }
+      }
+      return updated;
+    });
+
+    // If advance payment exists, create a receipt
+    if (so.advancePayment && so.advancePayment > 0) {
+      const newReceipt: Receipt = {
+        id: crypto.randomUUID(),
+        number: `RCP-${String(receipts.length + 1).padStart(3, "0")}`,
+        customer: so.customer,
+        date: so.date,
+        invoiceNumber: newInvoice.number,
+        amount: so.advancePayment,
+        paymentMethod: so.advancePaymentMethod || "cash",
+        reference: so.advancePaymentRef,
+        notes: `Advance payment against ${so.number}`,
+      };
+      setReceipts((prev) => [...prev, newReceipt]);
+    }
+
+    // Mark SO as approved
+    setSalesOrders((prev) => prev.map((s) => s.id === so.id ? { ...s, status: "approved" as const } : s));
+    toast.success(`${so.number} approved → Invoice ${newInvoice.number} created & inventory deducted`);
+  };
 
   // --- Receipt handlers ---
   const handleSaveReceipt = (receipt: Receipt) => {
@@ -221,7 +274,7 @@ export default function Invoices() {
     if (activeTab === "sales-orders") {
       return (
         <div className="max-w-4xl mx-auto">
-          <SalesOrderForm customers={customers} onSave={handleSaveSO} onCancel={goList} editOrder={editOrder} nextNumber={`SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />
+          <SalesOrderForm customers={customers} inventory={inventory} onSave={handleSaveSO} onCancel={goList} editOrder={editOrder} nextNumber={`SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />
         </div>
       );
     }
@@ -421,6 +474,11 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center"><Badge className={soStatusStyles[so.status]}>{so.status}</Badge></td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          {so.status !== "approved" && so.status !== "cancelled" && (
+                            <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve → Convert to Invoice" onClick={() => handleApproveSO(so)}>
+                              <CheckCircle className="w-4 h-4 text-success" />
+                            </button>
+                          )}
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditOrder(so); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
                           <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteSO(so.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
                         </div>

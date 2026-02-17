@@ -14,6 +14,7 @@ export type InvoiceItem = {
   qty: number;
   rate: number;
   amount: number;
+  inventoryItemId?: string;
 };
 
 export type Invoice = {
@@ -36,10 +37,13 @@ export type SalesOrder = {
   date: string;
   deliveryDate: string;
   amount: number;
-  status: "confirmed" | "pending" | "shipped" | "cancelled";
+  status: "confirmed" | "pending" | "shipped" | "cancelled" | "approved";
   items: InvoiceItem[];
   notes?: string;
   tax?: number;
+  advancePayment?: number;
+  advancePaymentMethod?: string;
+  advancePaymentRef?: string;
 };
 
 export type Receipt = {
