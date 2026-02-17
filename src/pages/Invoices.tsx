@@ -281,11 +281,11 @@ export default function Invoices() {
         date: new Date().toISOString().split("T")[0],
         invoiceNumber: receivePaymentInvoice.number,
         amount: 0,
-        paymentMethod: "cash",
+        paymentMethod: "Cash",
       };
       return (
         <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} />
+          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} />
         </div>
       );
     }
@@ -299,13 +299,13 @@ export default function Invoices() {
     if (activeTab === "receipts") {
       return (
         <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
+          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
         </div>
       );
     }
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoiceForm customers={customers} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
+        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
       </div>
     );
   }
