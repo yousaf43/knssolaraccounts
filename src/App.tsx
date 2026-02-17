@@ -13,6 +13,7 @@ import Purchases from "@/pages/Purchases";
 import Expenses from "@/pages/Expenses";
 import Inventory from "@/pages/Inventory";
 import Accounts from "@/pages/Accounts";
+import Assets from "@/pages/Assets";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
@@ -45,6 +46,7 @@ function ProtectedRoutes() {
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/accounts" element={<Accounts />} />
+        <Route path="/assets" element={<Assets />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

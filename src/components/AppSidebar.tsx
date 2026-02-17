@@ -6,6 +6,7 @@ import {
   Receipt,
   Package,
   Landmark,
+  Building2,
   BarChart3,
   Settings,
   LogOut,
@@ -24,6 +25,7 @@ const navItems = [
 { title: "Expenses", url: "/expenses", icon: Receipt },
 { title: "Inventory", url: "/inventory", icon: Package },
 { title: "Accounts", url: "/accounts", icon: Landmark },
+{ title: "Assets", url: "/assets", icon: Building2 },
 { title: "Reports", url: "/reports", icon: BarChart3 }];
 
 
