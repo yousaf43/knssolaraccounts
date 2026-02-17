@@ -20,6 +20,7 @@ export type InvoiceItem = {
 export type Invoice = {
   id: string;
   number: string;
+  documentNumber?: string;
   customer: string;
   date: string;
   dueDate: string;

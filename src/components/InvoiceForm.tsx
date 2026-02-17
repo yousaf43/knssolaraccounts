@@ -22,6 +22,7 @@ type Props = {
 export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
   const { formatCurrency } = useSettings();
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
+  const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
   const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
@@ -111,6 +112,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     onSave({
       id: editInvoice?.id || crypto.randomUUID(),
       number: customNumber.trim() || nextNumber,
+      documentNumber: documentNumber.trim() || undefined,
       customer: customer.trim(),
       date,
       dueDate,
@@ -137,6 +139,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
         <div>
           <Label>Invoice Number</Label>
           <Input value={customNumber || nextNumber} onChange={(e) => setCustomNumber(e.target.value)} placeholder={nextNumber} className="mt-1" />
+        </div>
+        <div>
+          <Label>Document Number</Label>
+          <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} placeholder="e.g. DOC-001" className="mt-1" />
         </div>
         <div>
           <Label>Customer *</Label>
