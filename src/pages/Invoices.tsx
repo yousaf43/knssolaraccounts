@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
@@ -48,11 +48,13 @@ export default function Invoices() {
   const [customers, setCustomers] = useLocalStorage("cb-customers", getInitialCustomers());
   const [inventory, setInventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
   const [activeTab, setActiveTab] = useState("invoices");
-  const [view, setView] = useState<"list" | "form" | "preview">("list");
+  const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
+  const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
   // Filters
   const [filterCustomer, setFilterCustomer] = useState("all");
@@ -65,7 +67,7 @@ export default function Invoices() {
   const invoiceFileRef = useRef<HTMLInputElement>(null);
   const soFileRef = useRef<HTMLInputElement>(null);
 
-  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); };
+  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); setReceivePaymentInvoice(null); };
 
   const handleAddCustomer = (c: Customer) => {
     setCustomers((prev) => [...prev, c]);
@@ -270,11 +272,27 @@ export default function Invoices() {
   };
 
   // --- Form views ---
-  if (view === "form") {
+  if (view === "form" || view === "form-receipt-for-invoice") {
+    if (view === "form-receipt-for-invoice" && receivePaymentInvoice) {
+      const prefillReceipt: Receipt = {
+        id: "",
+        number: `RCP-${String(receipts.length + 1).padStart(3, "0")}`,
+        customer: receivePaymentInvoice.customer,
+        date: new Date().toISOString().split("T")[0],
+        invoiceNumber: receivePaymentInvoice.number,
+        amount: 0,
+        paymentMethod: "cash",
+      };
+      return (
+        <div className="max-w-4xl mx-auto">
+          <ReceiptForm customers={customers} invoices={invoices} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} />
+        </div>
+      );
+    }
     if (activeTab === "sales-orders") {
       return (
         <div className="max-w-4xl mx-auto">
-          <SalesOrderForm customers={customers} inventory={inventory} onSave={handleSaveSO} onCancel={goList} editOrder={editOrder} nextNumber={`SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />
+          <SalesOrderForm customers={customers} inventory={inventory} onSave={handleSaveSO} onCancel={goList} editOrder={editOrder} nextNumber={`SO-${String(salesOrders.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
         </div>
       );
     }
@@ -508,30 +526,66 @@ export default function Invoices() {
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Paid</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Remaining</th>
                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInvoices.map((inv) => (
-                    <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{inv.number}</td>
-                      <td className="px-4 py-3">{inv.customer}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{inv.date}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
-                      <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.amount)}</td>
-                      <td className="px-4 py-3 text-center"><Badge className={invoiceStatusStyles[inv.status]}>{inv.status}</Badge></td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditInvoice(inv); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Download PDF" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}><Download className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteInvoice(inv.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredInvoices.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No invoices found.</td></tr>}
+                  {filteredInvoices.map((inv) => {
+                    const invReceipts = receipts.filter((r) => r.invoiceNumber === inv.number);
+                    const totalPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
+                    const remaining = Math.max(0, inv.amount - totalPaid);
+                    const isExpanded = expandedInvoice === inv.id;
+                    return (
+                      <React.Fragment key={inv.id}>
+                        <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 font-medium">{inv.number}</td>
+                          <td className="px-4 py-3">{inv.customer}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{inv.date}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
+                          <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.amount)}</td>
+                          <td className="px-4 py-3 text-right text-success font-medium">{formatCurrency(totalPaid)}</td>
+                          <td className={`px-4 py-3 text-right font-medium ${remaining > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(remaining)}</td>
+                          <td className="px-4 py-3 text-center"><Badge className={invoiceStatusStyles[inv.status]}>{inv.status}</Badge></td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
+                              {remaining > 0 && (
+                                <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Receive Payment" onClick={() => { setReceivePaymentInvoice(inv); setView("form-receipt-for-invoice"); }}><CreditCard className="w-4 h-4 text-success" /></button>
+                              )}
+                              <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Payment History" onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}>
+                                {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                              </button>
+                              <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditInvoice(inv); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                              <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteInvoice(inv.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={9} className="px-4 py-2 bg-muted/20">
+                              <div className="text-xs space-y-1">
+                                <p className="font-semibold text-muted-foreground mb-1">Payment History for {inv.number}</p>
+                                {invReceipts.length > 0 ? invReceipts.map((r) => (
+                                  <div key={r.id} className="flex items-center justify-between py-1 border-b border-dashed last:border-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{r.number}</span>
+                                      <span className="text-muted-foreground">{r.date}</span>
+                                      <Badge variant="outline" className="text-[10px] h-4">{r.paymentMethod}</Badge>
+                                    </div>
+                                    <span className="font-medium text-success">{formatCurrency(r.amount)}</span>
+                                  </div>
+                                )) : <p className="text-muted-foreground py-1">No payments received yet</p>}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                  {filteredInvoices.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No invoices found.</td></tr>}
                 </tbody>
               </table>
             </div>
