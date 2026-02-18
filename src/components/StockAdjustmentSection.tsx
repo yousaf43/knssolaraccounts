@@ -128,34 +128,49 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Date</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Item</th>
                 <th className="text-center px-3 py-3 font-medium text-muted-foreground">Type</th>
-                <th className="text-right px-3 py-3 font-medium text-muted-foreground">Qty / Price Change</th>
+                <th className="text-right px-3 py-3 font-medium text-muted-foreground">Qty</th>
+                <th className="text-right px-3 py-3 font-medium text-muted-foreground">Price Change</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Reason</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Note</th>
               </tr>
             </thead>
             <tbody>
-              {adjustments.slice(0, 20).map((adj) => (
-                <tr key={adj.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-3 text-muted-foreground">{adj.date}</td>
-                  <td className="px-3 py-3 font-medium">{adj.itemName}</td>
-                  <td className="px-3 py-3 text-center">
-                    {adj.type === "increase" ? (
-                      <Badge className="bg-success/10 text-success border-0"><ArrowUp className="w-3 h-3 mr-1" />Increase</Badge>
-                    ) : (
-                      <Badge className="bg-destructive/10 text-destructive border-0"><ArrowDown className="w-3 h-3 mr-1" />Decrease</Badge>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    {adj.reason === "Price Update" ? (
-                      <span className="text-xs text-warning font-medium">Price Update</span>
-                    ) : (
-                      <span>{adj.qty}</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3 text-muted-foreground">{adj.reason}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{adj.note || "—"}</td>
-                </tr>
-              ))}
+              {adjustments.slice(0, 20).map((adj) => {
+                // Parse price info from note if it's a Price Update
+                const isPriceUpdate = adj.reason === "Price Update";
+                let priceChange: string | null = null;
+                if (isPriceUpdate && adj.note) {
+                  // note format: "Cost: 100 → 120" or "Sale: 200 → 250"
+                  priceChange = adj.note;
+                }
+                return (
+                  <tr key={adj.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-3 py-3 text-muted-foreground">{adj.date}</td>
+                    <td className="px-3 py-3 font-medium">{adj.itemName}</td>
+                    <td className="px-3 py-3 text-center">
+                      {isPriceUpdate ? (
+                        <Badge className="bg-warning/10 text-warning border-0">Price Update</Badge>
+                      ) : adj.type === "increase" ? (
+                        <Badge className="bg-success/10 text-success border-0"><ArrowUp className="w-3 h-3 mr-1" />Increase</Badge>
+                      ) : (
+                        <Badge className="bg-destructive/10 text-destructive border-0"><ArrowDown className="w-3 h-3 mr-1" />Decrease</Badge>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      {isPriceUpdate ? <span className="text-xs text-muted-foreground">—</span> : <span>{adj.qty}</span>}
+                    </td>
+                    <td className="px-3 py-3 text-right text-xs">
+                      {priceChange ? (
+                        <span className="font-medium text-warning">{priceChange}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">{adj.reason}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{isPriceUpdate ? "—" : (adj.note || "—")}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

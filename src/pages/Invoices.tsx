@@ -321,9 +321,15 @@ export default function Invoices() {
   }
 
   if (view === "preview" && previewInvoice) {
+    // Calculate customer account balance (sum of all unpaid invoices for this customer)
+    const customerInvoices = invoices.filter((inv) => inv.customer === previewInvoice.customer);
+    const customerOutstanding = customerInvoices.reduce((sum, inv) => {
+      const paid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
+      return sum + Math.max(0, inv.amount - paid);
+    }, 0);
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoicePreview invoice={previewInvoice} onClose={goList} />
+        <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} customerOutstanding={customerOutstanding} />
       </div>
     );
   }
