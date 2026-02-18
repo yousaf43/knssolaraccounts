@@ -128,7 +128,7 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Date</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Item</th>
                 <th className="text-center px-3 py-3 font-medium text-muted-foreground">Type</th>
-                <th className="text-right px-3 py-3 font-medium text-muted-foreground">Qty</th>
+                <th className="text-right px-3 py-3 font-medium text-muted-foreground">Qty / Price Change</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Reason</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Note</th>
               </tr>
@@ -145,7 +145,13 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                       <Badge className="bg-destructive/10 text-destructive border-0"><ArrowDown className="w-3 h-3 mr-1" />Decrease</Badge>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-right">{adj.qty}</td>
+                  <td className="px-3 py-3 text-right">
+                    {adj.reason === "Price Update" ? (
+                      <span className="text-xs text-warning font-medium">Price Update</span>
+                    ) : (
+                      <span>{adj.qty}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-3 text-muted-foreground">{adj.reason}</td>
                   <td className="px-3 py-3 text-muted-foreground">{adj.note || "—"}</td>
                 </tr>

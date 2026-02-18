@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { type Invoice, type Expense, type InventoryItem, type Bill } from "@/data/mockData";
+import { type CompanyAsset } from "@/pages/Assets";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, PieChart, Pie, Cell,
@@ -77,6 +78,10 @@ const allReports: Report[] = [
   { code: "307", title: "Budget Income Statement", category: "Management", section: "general" },
   { code: "381", title: "Depreciation Details", category: "Management", section: "general" },
   { code: "383", title: "Fixed Assets Details", category: "Management", section: "general" },
+  // General Reports - Assets
+  { code: "A01", title: "Assets List", category: "Assets", section: "general" },
+  { code: "A02", title: "Assets by Category", category: "Assets", section: "general" },
+  { code: "A03", title: "Assets Valuation Summary", category: "Assets", section: "general" },
   // Analytical Reports
   { code: "200", title: "Sales Trend Analysis", category: "Sales", section: "analytical" },
   { code: "201", title: "Customer Revenue Analysis", category: "Sales", section: "analytical" },
@@ -95,7 +100,7 @@ const allReports: Report[] = [
   { code: "242", title: "Revenue vs Expense Comparison", category: "Management", section: "analytical" },
 ];
 
-const generalCategories = ["Favourites", "Sales", "Purchases", "Combined Statements", "Cash & Bank", "Inventory", "Taxation", "Management"];
+const generalCategories = ["Favourites", "Sales", "Purchases", "Combined Statements", "Cash & Bank", "Inventory", "Taxation", "Management", "Assets"];
 const analyticalCategories = ["Favourites", "Sales", "Purchases", "Cash & Bank", "Inventory", "Management"];
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -248,12 +253,13 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets }: {
   report: Report; onBack: () => void;
   monthlySales: { month: string; sales: number; expenses: number }[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
   expenseBreakdown: { name: string; value: number; color: string }[];
   inventory: InventoryItem[];
+  assets: CompanyAsset[];
 }) {
   const { formatCurrency } = useSettings();
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
@@ -334,26 +340,33 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {inventoryTableData.map(item => (
-                    <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="px-3 py-2 font-medium">{item.name}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{item.sku}</td>
-                      <td className="px-3 py-2">{item.category}</td>
-                      <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>
-                      {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
-                    </tr>
-                  ))}
+                  {inventoryTableData.map(item => {
+                    const avgPrice = item.costPrice > 0 && item.salePrice > 0
+                      ? (item.costPrice + item.salePrice) / 2
+                      : item.costPrice || item.salePrice;
+                    return (
+                      <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-3 py-2 font-medium">{item.name}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{item.sku}</td>
+                        <td className="px-3 py-2">{item.category}</td>
+                        <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>
+                        {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgPrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 {report.code === "148" && (
                   <tfoot>
                     <tr className="border-t-2 font-bold">
-                      <td className="px-3 py-2" colSpan={6}>Total Stock Valuation</td>
+                      <td className="px-3 py-2" colSpan={7}>Total Stock Valuation</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + i.qty * i.costPrice, 0))}</td>
                     </tr>
                   </tfoot>
@@ -545,6 +558,130 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           )}
         </div>
       )}
+
+      {/* Assets Reports */}
+      {["A01", "A02", "A03"].includes(report.code) && (
+        <div className="bg-card rounded-lg border p-6">
+          <h2 className="text-lg font-semibold mb-4">{report.title} ({assets.length} assets)</h2>
+          {assets.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No assets recorded. Add assets from the Assets page.</p>
+          ) : report.code === "A03" ? (
+            // Valuation Summary by category
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div className="bg-muted/30 border rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">Total Assets</p>
+                  <p className="text-2xl font-bold">{assets.length}</p>
+                </div>
+                <div className="bg-muted/30 border rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">Total Value</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(assets.reduce((s, a) => s + a.value, 0))}</p>
+                </div>
+                <div className="bg-muted/30 border rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground">Categories</p>
+                  <p className="text-2xl font-bold">{new Set(assets.map(a => a.category)).size}</p>
+                </div>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Count</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Value</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from(new Set(assets.map(a => a.category))).map(cat => {
+                    const catAssets = assets.filter(a => a.category === cat);
+                    const total = catAssets.reduce((s, a) => s + a.value, 0);
+                    return (
+                      <tr key={cat} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-3 py-2 font-medium">{cat}</td>
+                        <td className="px-3 py-2 text-right">{catAssets.length}</td>
+                        <td className="px-3 py-2 text-right font-semibold">{formatCurrency(total)}</td>
+                        <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(total / catAssets.length)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-bold">
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2 text-right">{assets.length}</td>
+                    <td className="px-3 py-2 text-right">{formatCurrency(assets.reduce((s, a) => s + a.value, 0))}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : report.code === "A02" ? (
+            // By Category grouping
+            <div className="space-y-4">
+              {Array.from(new Set(assets.map(a => a.category))).map(cat => (
+                <div key={cat}>
+                  <h3 className="font-semibold text-sm mb-2 text-muted-foreground uppercase tracking-wide">{cat}</h3>
+                  <table className="w-full text-sm mb-2">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Asset</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Value</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Condition</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Purchase Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assets.filter(a => a.category === cat).map(a => (
+                        <tr key={a.id} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 font-medium">{a.name}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(a.value)}</td>
+                          <td className="px-3 py-2 capitalize text-muted-foreground">{a.condition}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{a.purchaseDate}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // A01 - Full Assets List
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Asset</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Value</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Condition</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Purchased From</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Serial No.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map(a => (
+                  <tr key={a.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="px-3 py-2 font-medium">{a.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{a.category}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{formatCurrency(a.value)}</td>
+                    <td className="px-3 py-2 capitalize text-muted-foreground">{a.condition}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{a.purchaseFrom || "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{a.purchaseDate}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{a.serialNumber || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 font-bold">
+                  <td className="px-3 py-2" colSpan={2}>Total</td>
+                  <td className="px-3 py-2 text-right">{formatCurrency(assets.reduce((s, a) => s + a.value, 0))}</td>
+                  <td colSpan={4}></td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -568,6 +705,7 @@ export default function Reports() {
   const { data: inventory } = useInventoryCloud();
   const [accounts] = useLocalStorage<Account[]>("accounts", []);
   const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+  const [assets] = useLocalStorage<CompanyAsset[]>("cb-company-assets", []);
 
   // Build monthly data from real data
   const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills), [invoices, expenses, bills]);
@@ -611,7 +749,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} />;
   }
 
   return (

@@ -290,7 +290,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
 
       {!editInvoice && (
         <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
-          <Label className="font-medium text-sm">Advance Payment (Optional)</Label>
+          <Label className="font-medium text-sm">Payment (Optional)</Label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">Advance Amount</Label>
