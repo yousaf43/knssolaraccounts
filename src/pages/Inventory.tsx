@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from "react";
 import StockAdjustmentSection from "@/components/StockAdjustmentSection";
-import type { InventoryItem } from "@/data/mockData";
-import { useInventoryCloud, useUserSettingsCloud } from "@/hooks/useAppData";
+import type { InventoryItem, StockAdjustment } from "@/data/mockData";
+import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
 export default function Inventory() {
   const { formatCurrency } = useSettings();
   const { data: inventory, loading, upsert, remove, replaceAll } = useInventoryCloud();
+  const { upsert: upsertAdjustment } = useStockAdjustmentsCloud();
   const { customUnits, customAccounts, customCategories, setCustomUnits, setCustomAccounts, setCustomCategories } = useUserSettingsCloud();
 
   const [showForm, setShowForm] = useState(false);
@@ -88,6 +89,28 @@ export default function Inventory() {
       ...form,
       id: editing?.id || crypto.randomUUID(),
     } as InventoryItem;
+
+    // Log price change as stock adjustment if editing and price changed
+    if (editing) {
+      const oldCost = editing.costPrice;
+      const newCost = item.costPrice;
+      const oldSale = editing.salePrice;
+      const newSale = item.salePrice;
+      if (oldCost !== newCost || oldSale !== newSale) {
+        const priceAdj: StockAdjustment = {
+          id: crypto.randomUUID(),
+          itemId: item.id,
+          itemName: item.name,
+          type: "increase", // type just for record; qty 0 means price-only change
+          qty: 0,
+          reason: "Price Update",
+          date: new Date().toISOString().split("T")[0],
+          note: `Cost: ${oldCost} → ${newCost} | Sale: ${oldSale} → ${newSale}`,
+        };
+        await upsertAdjustment(priceAdj);
+      }
+    }
+
     await upsert(item);
     toast.success(editing ? "Item updated" : "Item added");
     setShowForm(false);

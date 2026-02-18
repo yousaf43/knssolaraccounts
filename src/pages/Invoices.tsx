@@ -72,8 +72,34 @@ export default function Invoices() {
   const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
   // --- Invoice handlers ---
-  const handleSaveInvoice = (invoice: Invoice) => {
-    upsertInvoice(invoice);
+  const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => {
+    await upsertInvoice(invoice);
+    // Deduct inventory stock for newly created invoices (not edits)
+    if (!editInvoice) {
+      for (const item of invoice.items) {
+        if (item.inventoryItemId) {
+          const invItem = inventory.find((inv) => inv.id === item.inventoryItemId);
+          if (invItem && invItem.productType !== "non-stock") {
+            await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+          }
+        }
+      }
+      // Create advance payment receipt if provided
+      if (advanceAmount && advanceAmount > 0) {
+        const advReceipt: Receipt = {
+          id: crypto.randomUUID(),
+          number: `RCP-${String(receipts.length + 1).padStart(3, "0")}`,
+          customer: invoice.customer,
+          date: invoice.date,
+          invoiceNumber: invoice.number,
+          amount: advanceAmount,
+          paymentMethod: advanceMethod || "Cash",
+          reference: advanceRef || "",
+          notes: `Advance payment for ${invoice.number}`,
+        };
+        await upsertReceipt(advReceipt);
+      }
+    }
     goList();
     toast.success(editInvoice ? "Invoice updated" : "Invoice created");
   };

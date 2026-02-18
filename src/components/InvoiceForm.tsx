@@ -13,7 +13,7 @@ import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockD
 type Props = {
   customers: Customer[];
   inventory?: InventoryItem[];
-  onSave: (invoice: Invoice) => void;
+  onSave: (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => void;
   onCancel: () => void;
   editInvoice?: Invoice | null;
   nextNumber: string;
@@ -38,6 +38,9 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [quickName, setQuickName] = useState("");
   const [quickCompany, setQuickCompany] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
+  const [advanceAmount, setAdvanceAmount] = useState(0);
+  const [advanceMethod, setAdvanceMethod] = useState("Cash");
+  const [advanceRef, setAdvanceRef] = useState("");
 
   const handleQuickAddCustomer = () => {
     if (!quickName.trim() || !quickCompany.trim()) return;
@@ -112,7 +115,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       items: validItems,
       notes: notes.trim(),
       tax,
-    });
+    }, advanceAmount > 0 ? advanceAmount : undefined, advanceMethod, advanceRef.trim() || undefined);
   };
 
   const hasInventory = inventory.length > 0;
@@ -284,6 +287,36 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           </div>
         </div>
       </div>
+
+      {!editInvoice && (
+        <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+          <Label className="font-medium text-sm">Advance Payment (Optional)</Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Advance Amount</Label>
+              <Input type="number" min={0} step={0.01} value={advanceAmount || ""} onChange={(e) => setAdvanceAmount(Number(e.target.value))} placeholder="0.00" className="mt-1 h-8" />
+            </div>
+            <div>
+              <Label className="text-xs">Payment Method</Label>
+              <Select value={advanceMethod} onValueChange={setAdvanceMethod}>
+                <SelectTrigger className="mt-1 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Online">Online</SelectItem>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Cheque">Cheque</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Reference</Label>
+              <Input value={advanceRef} onChange={(e) => setAdvanceRef(e.target.value)} placeholder="e.g. TXN-001" className="mt-1 h-8" />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div>
         <Label>Notes</Label>

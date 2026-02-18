@@ -349,6 +349,7 @@ export default function Accounts() {
                 <thead>
                   <tr className="border-b bg-muted/30">
                     <th className="text-left p-3">Bank Name</th>
+                    <th className="text-left p-3">Account Holder</th>
                     <th className="text-right p-3">Total Incoming</th>
                     <th className="text-right p-3">Total Outgoing</th>
                     <th className="text-right p-3">Net Balance</th>
@@ -356,19 +357,23 @@ export default function Accounts() {
                 </thead>
                 <tbody>
                   {(() => {
-                    const bankMap: Record<string, { incoming: number; outgoing: number }> = {};
+                    const bankMap: Record<string, { incoming: number; outgoing: number; title: string }> = {};
                     filteredLedger.forEach(e => {
-                      if (!bankMap[e.bank]) bankMap[e.bank] = { incoming: 0, outgoing: 0 };
+                      if (!bankMap[e.bank]) {
+                        const acc = accounts.find(a => a.name === e.bank);
+                        bankMap[e.bank] = { incoming: 0, outgoing: 0, title: acc?.accountTitle || "" };
+                      }
                       if (e.type === "incoming") bankMap[e.bank].incoming += e.amount;
                       else bankMap[e.bank].outgoing += e.amount;
                     });
                     const banks = Object.entries(bankMap);
                     if (banks.length === 0) return (
-                      <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No data for this period</td></tr>
+                      <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No data for this period</td></tr>
                     );
                     return banks.map(([bank, data]) => (
                       <tr key={bank} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="p-3 font-medium text-primary">{bank}</td>
+                        <td className="p-3 text-muted-foreground text-xs">{data.title || "—"}</td>
                         <td className="p-3 text-right text-success font-semibold">{formatCurrency(data.incoming)}</td>
                         <td className="p-3 text-right text-destructive font-semibold">{formatCurrency(data.outgoing)}</td>
                         <td className={`p-3 text-right font-bold ${data.incoming - data.outgoing >= 0 ? "text-success" : "text-destructive"}`}>
@@ -381,6 +386,7 @@ export default function Accounts() {
                 <tfoot>
                   <tr className="border-t bg-muted/50 font-bold">
                     <td className="p-3">Total</td>
+                    <td className="p-3"></td>
                     <td className="p-3 text-right text-success">{formatCurrency(ledgerSummary.totalIn)}</td>
                     <td className="p-3 text-right text-destructive">{formatCurrency(ledgerSummary.totalOut)}</td>
                     <td className={`p-3 text-right ${ledgerSummary.net >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(ledgerSummary.net)}</td>
