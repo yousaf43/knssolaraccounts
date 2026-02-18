@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, X, Upload, Download } from "lucide-react";
+import { Plus, Edit, Trash2, X, Upload, Download, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -64,6 +64,8 @@ export default function Purchases() {
   const [showPOForm, setShowPOForm] = useState(false);
   const [poForm, setPOForm] = useState({ supplier: "", date: today(), deliveryDate: "", status: "pending" as PurchaseOrder["status"], notes: "", tax: 10 });
   const [poItems, setPOItems] = useState<InvoiceItem[]>([emptyItem()]);
+  const [showPOQuickSupplier, setShowPOQuickSupplier] = useState(false);
+  const [poQuickSupplier, setPOQuickSupplier] = useState({ name: "", company: "", email: "", phone: "" });
 
   // Bill Form
   const [showBillForm, setShowBillForm] = useState(false);
@@ -412,12 +414,37 @@ export default function Purchases() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <Label>Supplier *</Label>
-                    <Select value={poForm.supplier} onValueChange={v => setPOForm({ ...poForm, supplier: v })}>
-                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select supplier" /></SelectTrigger>
-                      <SelectContent>
-                        {suppliers.map(s => <SelectItem key={s.id} value={s.company}>{s.company}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2 mt-1">
+                      <Select value={poForm.supplier} onValueChange={v => setPOForm({ ...poForm, supplier: v })}>
+                        <SelectTrigger className="flex-1"><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                        <SelectContent>
+                          {suppliers.map(s => <SelectItem key={s.id} value={s.company}>{s.company}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" variant="outline" size="icon" title="Quick add supplier" onClick={() => setShowPOQuickSupplier(!showPOQuickSupplier)}>
+                        <UserPlus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {showPOQuickSupplier && (
+                      <div className="mt-2 p-3 border rounded-lg bg-muted/30 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">Quick Add Supplier</p>
+                        <Input value={poQuickSupplier.name} onChange={e => setPOQuickSupplier({ ...poQuickSupplier, name: e.target.value })} placeholder="Contact Name *" className="h-8" />
+                        <Input value={poQuickSupplier.company} onChange={e => setPOQuickSupplier({ ...poQuickSupplier, company: e.target.value })} placeholder="Company *" className="h-8" />
+                        <Input value={poQuickSupplier.email} onChange={e => setPOQuickSupplier({ ...poQuickSupplier, email: e.target.value })} placeholder="Email" className="h-8" />
+                        <Input value={poQuickSupplier.phone} onChange={e => setPOQuickSupplier({ ...poQuickSupplier, phone: e.target.value })} placeholder="Phone" className="h-8" />
+                        <div className="flex gap-2 justify-end">
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setShowPOQuickSupplier(false)}>Cancel</Button>
+                          <Button type="button" size="sm" onClick={() => {
+                            if (!poQuickSupplier.name.trim() || !poQuickSupplier.company.trim()) return;
+                            const newS: Supplier = { id: crypto.randomUUID(), name: poQuickSupplier.name.trim(), company: poQuickSupplier.company.trim(), email: poQuickSupplier.email.trim(), phone: poQuickSupplier.phone.trim(), address: "", totalPaid: 0, outstanding: 0 };
+                            upsertSupplier(newS);
+                            setPOForm({ ...poForm, supplier: newS.company });
+                            setShowPOQuickSupplier(false);
+                            setPOQuickSupplier({ name: "", company: "", email: "", phone: "" });
+                          }}>Add</Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div><Label>Date</Label><Input type="date" value={poForm.date} onChange={e => setPOForm({ ...poForm, date: e.target.value })} className="mt-1" /></div>
                   <div><Label>Delivery Date</Label><Input type="date" value={poForm.deliveryDate} onChange={e => setPOForm({ ...poForm, deliveryDate: e.target.value })} className="mt-1" /></div>
