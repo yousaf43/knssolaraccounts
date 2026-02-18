@@ -4,11 +4,10 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMemo } from "react";
+import { type Invoice, type InventoryItem, type Expense, type Bill } from "@/data/mockData";
 import {
-  getInitialInvoices, getInitialInventory, getInitialExpenses,
-  getInitialBills, getInitialPurchaseOrders,
-  type Invoice, type InventoryItem, type Expense, type Bill,
-} from "@/data/mockData";
+  useInvoicesCloud, useInventoryCloud, useExpensesCloud, useBillsCloud,
+} from "@/hooks/useAppData";
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
@@ -132,11 +131,11 @@ export default function Dashboard() {
   const { formatCurrency } = useSettings();
   const { profile } = useAuth();
 
-  // Read all data from localStorage
-  const [invoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
-  const [bills] = useLocalStorage<Bill[]>("cb-bills", []);
-  const [inventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
-  const [expenses] = useLocalStorage<Expense[]>("cb-expenses", getInitialExpenses());
+  // Read all data from cloud
+  const { data: invoices } = useInvoicesCloud();
+  const { data: bills } = useBillsCloud();
+  const { data: inventory } = useInventoryCloud();
+  const { data: expenses } = useExpensesCloud();
   const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
   const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
 

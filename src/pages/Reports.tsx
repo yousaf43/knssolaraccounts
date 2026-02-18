@@ -1,11 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
-import {
-  getInitialInvoices, getInitialExpenses, getInitialInventory, getInitialBills,
-  getInitialPurchaseOrders, getInitialReceipts, getInitialSalesOrders,
-  type Invoice, type Expense, type InventoryItem, type Bill, type SalesOrder, type Receipt,
-} from "@/data/mockData";
+import { type Invoice, type Expense, type InventoryItem, type Bill } from "@/data/mockData";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, PieChart, Pie, Cell,
@@ -16,6 +12,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
+import {
+  useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
+} from "@/hooks/useAppData";
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
@@ -562,11 +561,11 @@ export default function Reports() {
     "272",
   ]);
 
-  // Read real data from localStorage
-  const [invoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
-  const [expenses] = useLocalStorage<Expense[]>("cb-expenses", getInitialExpenses());
-  const [bills] = useLocalStorage<Bill[]>("cb-bills", []);
-  const [inventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
+  // Read real data from cloud
+  const { data: invoices } = useInvoicesCloud();
+  const { data: expenses } = useExpensesCloud();
+  const { data: bills } = useBillsCloud();
+  const { data: inventory } = useInventoryCloud();
   const [accounts] = useLocalStorage<Account[]>("accounts", []);
   const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
 

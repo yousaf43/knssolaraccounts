@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { getInitialSuppliers, type Supplier } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import type { Supplier } from "@/data/mockData";
+import { useSuppliersCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, Trash2, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 
@@ -12,7 +12,7 @@ const empty = (): Partial<Supplier> => ({ name: "", email: "", phone: "", compan
 
 export default function Suppliers() {
   const { formatCurrency } = useSettings();
-  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>("cb-suppliers", getInitialSuppliers());
+  const { data: suppliers, loading, upsert, remove } = useSuppliersCloud();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [form, setForm] = useState<Partial<Supplier>>(empty());
@@ -20,23 +20,29 @@ export default function Suppliers() {
   const openAdd = () => { setEditing(null); setForm(empty()); setShowForm(true); };
   const openEdit = (s: Supplier) => { setEditing(s); setForm(s); setShowForm(true); };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name?.trim() || !form.email?.trim() || !form.company?.trim()) return;
-    if (editing) {
-      setSuppliers((prev) => prev.map((s) => s.id === editing.id ? { ...s, ...form } as Supplier : s));
-      toast.success("Supplier updated");
-    } else {
-      setSuppliers((prev) => [...prev, { ...form, id: crypto.randomUUID(), totalPaid: 0, outstanding: 0 } as Supplier]);
-      toast.success("Supplier added");
-    }
+    const supplier: Supplier = {
+      ...empty(),
+      ...form,
+      id: editing?.id || crypto.randomUUID(),
+      totalPaid: form.totalPaid || 0,
+      outstanding: form.outstanding || 0,
+    } as Supplier;
+    await upsert(supplier);
+    toast.success(editing ? "Supplier updated" : "Supplier added");
     setShowForm(false);
   };
 
-  const handleDelete = (id: string) => {
-    setSuppliers((prev) => prev.filter((s) => s.id !== id));
+  const handleDelete = async (id: string) => {
+    await remove(id);
     toast.success("Supplier deleted");
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">
