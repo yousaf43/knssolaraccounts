@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { getInitialExpenses, type Expense } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { type Expense } from "@/data/mockData";
+import { useExpensesCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().s
 
 export default function Expenses() {
   const { formatCurrency } = useSettings();
-  const [expenses, setExpenses] = useLocalStorage<Expense[]>("cb-expenses", getInitialExpenses());
+  const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
@@ -41,17 +41,17 @@ export default function Expenses() {
     e.preventDefault();
     if (!form.description?.trim() || !form.amount || !form.date) return;
     if (editing) {
-      setExpenses((prev) => prev.map((ex) => ex.id === editing.id ? { ...ex, ...form } as Expense : ex));
+      upsertExpense({ ...editing, ...form } as Expense);
       toast.success("Expense updated");
     } else {
-      setExpenses((prev) => [{ ...form, id: crypto.randomUUID() } as Expense, ...prev]);
+      upsertExpense({ ...form, id: crypto.randomUUID() } as Expense);
       toast.success("Expense added");
     }
     setShowForm(false);
   };
 
   const handleDelete = (id: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    removeExpense(id);
     toast.success("Expense deleted");
   };
 

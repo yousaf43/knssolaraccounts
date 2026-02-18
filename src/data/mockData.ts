@@ -21,6 +21,7 @@ export type Invoice = {
   id: string;
   number: string;
   documentNumber?: string;
+  projectName?: string;
   customer: string;
   date: string;
   dueDate: string;
@@ -29,11 +30,13 @@ export type Invoice = {
   items: InvoiceItem[];
   notes?: string;
   tax?: number;
+  payments?: { date: string; amount: number; method: string; reference?: string }[];
 };
 
 export type SalesOrder = {
   id: string;
   number: string;
+  projectName?: string;
   customer: string;
   date: string;
   deliveryDate: string;

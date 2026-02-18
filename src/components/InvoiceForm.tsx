@@ -24,6 +24,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const { formatCurrency } = useSettings();
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
+  const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
   const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
@@ -102,6 +103,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       id: editInvoice?.id || crypto.randomUUID(),
       number: customNumber.trim() || nextNumber,
       documentNumber: documentNumber.trim() || undefined,
+      projectName: projectName.trim() || undefined,
       customer: customer.trim(),
       date,
       dueDate,
@@ -133,7 +135,11 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           <Label>Document Number</Label>
           <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} placeholder="e.g. DOC-001" className="mt-1" />
         </div>
-        <div>
+        <div className="md:col-span-2">
+          <Label>Project Name</Label>
+          <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="e.g. Solar Panel Installation - Phase 1" className="mt-1" />
+        </div>
+        <div className="md:col-span-2">
           <Label>Customer *</Label>
           <div className="flex gap-2 mt-1">
             <Select value={customer} onValueChange={setCustomer}>

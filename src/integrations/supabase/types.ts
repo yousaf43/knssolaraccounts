@@ -38,6 +38,258 @@ export type Database = {
         }
         Relationships: []
       }
+      bills: {
+        Row: {
+          amount: number | null
+          created_at: string
+          date: string | null
+          due_date: string | null
+          id: string
+          items: Json | null
+          notes: string | null
+          number: string | null
+          status: string | null
+          supplier: string | null
+          tax: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          due_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          status?: string | null
+          supplier?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          due_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          status?: string | null
+          supplier?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      customers: {
+        Row: {
+          address: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          outstanding: number | null
+          phone: string | null
+          total_billed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          outstanding?: number | null
+          phone?: string | null
+          total_billed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          outstanding?: number | null
+          phone?: string | null
+          total_billed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number | null
+          category: string | null
+          created_at: string
+          date: string | null
+          description: string | null
+          id: string
+          payment_method: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          category?: string | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          category?: string | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      inventory: {
+        Row: {
+          bundle_items: Json | null
+          category: string | null
+          cost_price: number | null
+          created_at: string
+          date: string | null
+          id: string
+          name: string
+          price: number | null
+          product_type: string | null
+          purchase_discount: number | null
+          qty: number | null
+          reorder_level: number | null
+          sale_discount: number | null
+          sale_price: number | null
+          sku: string | null
+          stock_asset_account: string | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          bundle_items?: Json | null
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string
+          date?: string | null
+          id?: string
+          name?: string
+          price?: number | null
+          product_type?: string | null
+          purchase_discount?: number | null
+          qty?: number | null
+          reorder_level?: number | null
+          sale_discount?: number | null
+          sale_price?: number | null
+          sku?: string | null
+          stock_asset_account?: string | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          bundle_items?: Json | null
+          category?: string | null
+          cost_price?: number | null
+          created_at?: string
+          date?: string | null
+          id?: string
+          name?: string
+          price?: number | null
+          product_type?: string | null
+          purchase_discount?: number | null
+          qty?: number | null
+          reorder_level?: number | null
+          sale_discount?: number | null
+          sale_price?: number | null
+          sku?: string | null
+          stock_asset_account?: string | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount: number | null
+          created_at: string
+          customer: string | null
+          date: string | null
+          document_number: string | null
+          due_date: string | null
+          id: string
+          items: Json | null
+          notes: string | null
+          number: string | null
+          payments: Json | null
+          project_name: string | null
+          status: string | null
+          tax: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          document_number?: string | null
+          due_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          payments?: Json | null
+          project_name?: string | null
+          status?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          document_number?: string | null
+          due_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          payments?: Json | null
+          project_name?: string | null
+          status?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -71,6 +323,285 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_orders: {
+        Row: {
+          amount: number | null
+          created_at: string
+          date: string | null
+          delivery_date: string | null
+          id: string
+          items: Json | null
+          notes: string | null
+          number: string | null
+          status: string | null
+          supplier: string | null
+          tax: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          delivery_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          status?: string | null
+          supplier?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          delivery_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          status?: string | null
+          supplier?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      purchase_payments: {
+        Row: {
+          amount: number | null
+          bill_number: string | null
+          created_at: string
+          date: string | null
+          id: string
+          notes: string | null
+          number: string | null
+          payment_method: string | null
+          reference: string | null
+          supplier: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          bill_number?: string | null
+          created_at?: string
+          date?: string | null
+          id?: string
+          notes?: string | null
+          number?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          supplier?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          bill_number?: string | null
+          created_at?: string
+          date?: string | null
+          id?: string
+          notes?: string | null
+          number?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          supplier?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      receipts: {
+        Row: {
+          amount: number | null
+          created_at: string
+          customer: string | null
+          date: string | null
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          number: string | null
+          payment_method: string | null
+          reference: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          number?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          number?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sales_orders: {
+        Row: {
+          advance_payment: number | null
+          advance_payment_method: string | null
+          advance_payment_ref: string | null
+          amount: number | null
+          created_at: string
+          customer: string | null
+          date: string | null
+          delivery_date: string | null
+          id: string
+          items: Json | null
+          notes: string | null
+          number: string | null
+          project_name: string | null
+          status: string | null
+          tax: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advance_payment?: number | null
+          advance_payment_method?: string | null
+          advance_payment_ref?: string | null
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          delivery_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          project_name?: string | null
+          status?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advance_payment?: number | null
+          advance_payment_method?: string | null
+          advance_payment_ref?: string | null
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          delivery_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          project_name?: string | null
+          status?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stock_adjustments: {
+        Row: {
+          created_at: string
+          date: string | null
+          id: string
+          item_id: string | null
+          item_name: string | null
+          note: string | null
+          qty: number | null
+          reason: string | null
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          note?: string | null
+          qty?: number | null
+          reason?: string | null
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          note?: string | null
+          qty?: number | null
+          reason?: string | null
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          outstanding: number | null
+          phone: string | null
+          total_paid: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          outstanding?: number | null
+          phone?: string | null
+          total_paid?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          outstanding?: number | null
+          phone?: string | null
+          total_paid?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -85,6 +616,39 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          custom_accounts: Json | null
+          custom_categories: Json | null
+          custom_units: Json | null
+          id: string
+          settings_data: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_accounts?: Json | null
+          custom_categories?: Json | null
+          custom_units?: Json | null
+          id?: string
+          settings_data?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_accounts?: Json | null
+          custom_categories?: Json | null
+          custom_units?: Json | null
+          id?: string
+          settings_data?: Json | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
