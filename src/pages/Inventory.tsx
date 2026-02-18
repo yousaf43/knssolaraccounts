@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import StockAdjustmentSection from "@/components/StockAdjustmentSection";
-import { getInitialInventory, type InventoryItem } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon } from "lucide-react";
+import type { InventoryItem } from "@/data/mockData";
+import { useInventoryCloud, useUserSettingsCloud } from "@/hooks/useAppData";
+import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,10 +28,9 @@ const emptyItem = (): Partial<InventoryItem> => ({
 
 export default function Inventory() {
   const { formatCurrency } = useSettings();
-  const [inventory, setInventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
-  const [customUnits, setCustomUnits] = useLocalStorage<string[]>("cb-custom-units", []);
-  const [customAccounts, setCustomAccounts] = useLocalStorage<string[]>("cb-custom-accounts", []);
-  const [customCategories, setCustomCategories] = useLocalStorage<string[]>("cb-custom-categories", []);
+  const { data: inventory, loading, upsert, remove, replaceAll } = useInventoryCloud();
+  const { customUnits, customAccounts, customCategories, setCustomUnits, setCustomAccounts, setCustomCategories } = useUserSettingsCloud();
+
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<Partial<InventoryItem>>(emptyItem());
@@ -41,6 +40,8 @@ export default function Inventory() {
   const [newCategory, setNewCategory] = useState("");
   const [addingCategory, setAddingCategory] = useState(false);
   const [addingAccount, setAddingAccount] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,43 +62,39 @@ export default function Inventory() {
 
   const filteredInventory = useMemo(() => {
     return inventory.filter((item) => {
-      // Text search
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q)) return false;
       }
-      // Category
       if (filterCategory !== "__all__" && item.category !== filterCategory) return false;
-      // Status
       if (filterStatus === "low" && item.qty > item.reorderLevel) return false;
       if (filterStatus === "in_stock" && item.qty <= item.reorderLevel) return false;
-      // Date range
       if (dateFrom && item.date && new Date(item.date) < dateFrom) return false;
       if (dateTo && item.date && new Date(item.date) > dateTo) return false;
       return true;
     });
   }, [inventory, searchQuery, filterCategory, filterStatus, dateFrom, dateTo]);
 
-  const lowStock = inventory.filter((i) => i.qty <= i.reorderLevel);
+  const lowStock = inventory.filter((i) => i.productType !== "non-stock" && i.qty <= i.reorderLevel);
 
   const openAdd = () => { setEditing(null); setForm(emptyItem()); setShowForm(true); };
   const openEdit = (item: InventoryItem) => { setEditing(item); setForm(item); setShowForm(true); };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name?.trim() || !form.sku?.trim()) return;
-    if (editing) {
-      setInventory((prev) => prev.map((i) => i.id === editing.id ? { ...i, ...form } as InventoryItem : i));
-      toast.success("Item updated");
-    } else {
-      setInventory((prev) => [...prev, { ...form, id: crypto.randomUUID() } as InventoryItem]);
-      toast.success("Item added");
-    }
+    const item: InventoryItem = {
+      ...emptyItem(),
+      ...form,
+      id: editing?.id || crypto.randomUUID(),
+    } as InventoryItem;
+    await upsert(item);
+    toast.success(editing ? "Item updated" : "Item added");
     setShowForm(false);
   };
 
-  const handleDelete = (id: string) => {
-    setInventory((prev) => prev.filter((i) => i.id !== id));
+  const handleDelete = async (id: string) => {
+    await remove(id);
     toast.success("Item deleted");
   };
 
@@ -131,6 +128,93 @@ export default function Inventory() {
     toast.success(`Category "${v}" added`);
   };
 
+  // CSV/Excel Import
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!["csv"].includes(ext || "")) {
+      toast.error("Only CSV files are supported. Please export your Excel file as CSV first.");
+      return;
+    }
+    setImportLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target?.result as string;
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) { toast.error("CSV file is empty or has no data rows"); setImportLoading(false); return; }
+
+        const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""));
+        const getCol = (row: string[], ...keys: string[]) => {
+          for (const k of keys) {
+            const idx = headers.indexOf(k);
+            if (idx !== -1 && row[idx]?.trim()) return row[idx].trim().replace(/^"|"$/g, "");
+          }
+          return "";
+        };
+
+        const imported: InventoryItem[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(",");
+          const name = getCol(cols, "name", "item_name", "product_name", "item");
+          const sku = getCol(cols, "sku", "code", "item_code", "product_code");
+          if (!name) continue;
+          imported.push({
+            id: crypto.randomUUID(),
+            name,
+            sku: sku || `SKU-${i}`,
+            qty: Number(getCol(cols, "qty", "quantity", "stock", "stock_qty")) || 0,
+            reorderLevel: Number(getCol(cols, "reorder_level", "reorder", "min_qty")) || 5,
+            price: Number(getCol(cols, "price", "sale_price", "selling_price")) || 0,
+            costPrice: Number(getCol(cols, "cost_price", "cost", "purchase_price", "buying_price")) || 0,
+            salePrice: Number(getCol(cols, "sale_price", "selling_price", "price")) || 0,
+            category: getCol(cols, "category", "cat", "type"),
+            date: getCol(cols, "date") || new Date().toISOString().split("T")[0],
+            unit: getCol(cols, "unit", "uom") || "pcs",
+            weight: Number(getCol(cols, "weight")) || 0,
+            stockAssetAccount: getCol(cols, "stock_asset_account", "account") || "Inventory Asset",
+            saleDiscount: Number(getCol(cols, "sale_discount", "discount")) || 0,
+            purchaseDiscount: Number(getCol(cols, "purchase_discount")) || 0,
+            productType: (getCol(cols, "product_type", "type") as InventoryItem["productType"]) || "stock",
+            bundleItems: [],
+          });
+        }
+
+        if (imported.length === 0) { toast.error("No valid rows found in CSV"); setImportLoading(false); return; }
+
+        // Merge with existing: update by SKU if exists, else add new
+        const existingSkus = new Map(inventory.map(i => [i.sku, i]));
+        let added = 0, updated = 0;
+        for (const item of imported) {
+          const existing = existingSkus.get(item.sku);
+          if (existing) {
+            await upsert({ ...item, id: existing.id });
+            updated++;
+          } else {
+            await upsert(item);
+            added++;
+          }
+        }
+        toast.success(`Import complete: ${added} added, ${updated} updated`);
+      } catch {
+        toast.error("Failed to parse CSV file");
+      }
+      setImportLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.readAsText(file);
+  };
+
+  const handleUpdateInventory = async (updater: (prev: InventoryItem[]) => InventoryItem[]) => {
+    const updated = updater(inventory);
+    await replaceAll(updated);
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -138,9 +222,22 @@ export default function Inventory() {
           <h1 className="text-2xl font-bold">Inventory</h1>
           <p className="text-muted-foreground text-sm">Stock management and alerts</p>
         </div>
-        <Button onClick={openAdd}>
-          <Plus className="w-4 h-4 mr-2" /> Add Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importLoading}>
+            {importLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+            Import CSV
+          </Button>
+          <Button onClick={openAdd}>
+            <Plus className="w-4 h-4 mr-2" /> Add Item
+          </Button>
+        </div>
+      </div>
+
+      {/* CSV Format Help */}
+      <div className="bg-muted/40 border rounded-lg px-4 py-2 text-xs text-muted-foreground">
+        <span className="font-medium">CSV Import Format:</span> name, sku, qty, cost_price, sale_price, category, unit, reorder_level, date
+        {" "}(columns auto-detected by header name)
       </div>
 
       {/* Search & Filters */}
@@ -214,7 +311,6 @@ export default function Inventory() {
             <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-4 h-4" /></Button>
           </div>
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {/* Product Type */}
             <div>
               <Label>Product Type</Label>
               <Select value={form.productType || "stock"} onValueChange={(v) => setForm({ ...form, productType: v as InventoryItem["productType"] })}>
@@ -250,7 +346,6 @@ export default function Inventory() {
             <div><Label>Cost Price</Label><Input type="number" min={0} step={0.01} value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Sale Price</Label><Input type="number" min={0} step={0.01} value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })} className="mt-1" /></div>
 
-            {/* Only show qty/reorder for stock items */}
             {form.productType !== "non-stock" && (
               <>
                 <div><Label>Quantity</Label><Input type="number" min={0} value={form.qty} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
@@ -258,7 +353,6 @@ export default function Inventory() {
               </>
             )}
 
-            {/* Unit dropdown with Add New */}
             <div>
               <Label>Unit</Label>
               {addingUnit ? (
@@ -280,7 +374,6 @@ export default function Inventory() {
 
             <div><Label>Weight</Label><Input type="number" min={0} step={0.01} value={form.weight} onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })} className="mt-1" /></div>
 
-            {/* Stock Asset Account dropdown with Add New */}
             {form.productType !== "non-stock" && (
               <div>
                 <Label>Stock Asset Account</Label>
@@ -306,7 +399,6 @@ export default function Inventory() {
             <div><Label>Purchase Discount (%)</Label><Input type="number" min={0} max={100} step={0.1} value={form.purchaseDiscount} onChange={(e) => setForm({ ...form, purchaseDiscount: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Price (Display)</Label><Input type="number" min={0} step={0.01} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="mt-1" /></div>
 
-            {/* Bundle Items - only for bundle type */}
             {form.productType === "bundle" && (
               <div className="md:col-span-3 lg:col-span-4">
                 <Label className="mb-2 block">Bundle Components</Label>
@@ -397,35 +489,35 @@ export default function Inventory() {
               const typeLabel = item.productType === "non-stock" ? "Non-Stock" : item.productType === "bundle" ? "Bundle" : "Stock";
               const typeVariant = item.productType === "non-stock" ? "outline" : item.productType === "bundle" ? "secondary" : "default";
               return (
-              <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-3 py-3 font-medium">{item.name}</td>
-                <td className="px-3 py-3"><Badge variant={typeVariant} className="text-xs">{typeLabel}</Badge></td>
-                <td className="px-3 py-3 text-muted-foreground">{item.sku}</td>
-                <td className="px-3 py-3 text-muted-foreground">{item.category}</td>
-                <td className="px-3 py-3 text-muted-foreground">{item.date || "—"}</td>
-                <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
-                <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
-                <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>
-                <td className="px-3 py-3 text-right">{item.weight || 0}</td>
-                <td className="px-3 py-3 text-right">{item.productType === "non-stock" ? "∞" : item.qty}</td>
-                <td className="px-3 py-3 text-right">{item.saleDiscount || 0}%</td>
-                <td className="px-3 py-3 text-right">{item.purchaseDiscount || 0}%</td>
-                <td className="px-3 py-3 text-center">
-                  {item.productType === "non-stock" ? (
-                    <Badge className="bg-primary/10 text-primary border-0">Service</Badge>
-                  ) : item.qty <= item.reorderLevel ? (
-                    <Badge className="bg-destructive/10 text-destructive border-0">Low Stock</Badge>
-                  ) : (
-                    <Badge className="bg-success/10 text-success border-0">In Stock</Badge>
-                  )}
-                </td>
-                <td className="px-3 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(item)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                    <button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
-                  </div>
-                </td>
-              </tr>
+                <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="px-3 py-3 font-medium">{item.name}</td>
+                  <td className="px-3 py-3"><Badge variant={typeVariant} className="text-xs">{typeLabel}</Badge></td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.sku}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.category}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.date || "—"}</td>
+                  <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
+                  <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
+                  <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>
+                  <td className="px-3 py-3 text-right">{item.weight || 0}</td>
+                  <td className="px-3 py-3 text-right">{item.productType === "non-stock" ? "∞" : item.qty}</td>
+                  <td className="px-3 py-3 text-right">{item.saleDiscount || 0}%</td>
+                  <td className="px-3 py-3 text-right">{item.purchaseDiscount || 0}%</td>
+                  <td className="px-3 py-3 text-center">
+                    {item.productType === "non-stock" ? (
+                      <Badge className="bg-primary/10 text-primary border-0">Service</Badge>
+                    ) : item.qty <= item.reorderLevel ? (
+                      <Badge className="bg-destructive/10 text-destructive border-0">Low Stock</Badge>
+                    ) : (
+                      <Badge className="bg-success/10 text-success border-0">In Stock</Badge>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(item)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                      <button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                    </div>
+                  </td>
+                </tr>
               );
             })}
             {filteredInventory.length === 0 && <tr><td colSpan={14} className="text-center py-8 text-muted-foreground">{inventory.length === 0 ? "No inventory items." : "No items match your filters."}</td></tr>}
@@ -434,7 +526,7 @@ export default function Inventory() {
       </div>
 
       {/* Stock Adjustment Section */}
-      <StockAdjustmentSection inventory={inventory} onUpdateInventory={setInventory} />
+      <StockAdjustmentSection inventory={inventory} onUpdateInventory={handleUpdateInventory} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useStockAdjustmentsCloud } from "@/hooks/useAppData";
 import { Plus, ArrowUp, ArrowDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,15 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 
 const ADJUSTMENT_REASONS = [
-  "Damaged",
-  "Returned",
-  "Correction",
-  "Theft/Loss",
-  "Expired",
-  "Found",
-  "Transfer In",
-  "Transfer Out",
-  "Other",
+  "Damaged", "Returned", "Correction", "Theft/Loss",
+  "Expired", "Found", "Transfer In", "Transfer Out", "Other",
 ];
 
 interface StockAdjustmentSectionProps {
@@ -27,7 +20,7 @@ interface StockAdjustmentSectionProps {
 }
 
 export default function StockAdjustmentSection({ inventory, onUpdateInventory }: StockAdjustmentSectionProps) {
-  const [adjustments, setAdjustments] = useLocalStorage<StockAdjustment[]>("cb-stock-adjustments", []);
+  const { data: adjustments, upsert } = useStockAdjustmentsCloud();
   const [showForm, setShowForm] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [type, setType] = useState<"increase" | "decrease">("increase");
@@ -36,49 +29,27 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
   const [note, setNote] = useState("");
 
   const resetForm = () => {
-    setSelectedItemId("");
-    setType("increase");
-    setQty(0);
-    setReason("");
-    setNote("");
+    setSelectedItemId(""); setType("increase"); setQty(0); setReason(""); setNote("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedItemId || !reason || qty <= 0) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-
+    if (!selectedItemId || !reason || qty <= 0) { toast.error("Please fill all required fields"); return; }
     const item = inventory.find((i) => i.id === selectedItemId);
     if (!item) return;
-
     if (type === "decrease" && qty > item.qty) {
-      toast.error(`Cannot decrease by ${qty}. Current stock is ${item.qty}.`);
-      return;
+      toast.error(`Cannot decrease by ${qty}. Current stock is ${item.qty}.`); return;
     }
-
     const adjustment: StockAdjustment = {
-      id: crypto.randomUUID(),
-      itemId: selectedItemId,
-      itemName: item.name,
-      type,
-      qty,
-      reason,
-      date: new Date().toISOString().split("T")[0],
-      note: note || undefined,
+      id: crypto.randomUUID(), itemId: selectedItemId, itemName: item.name,
+      type, qty, reason, date: new Date().toISOString().split("T")[0], note: note || undefined,
     };
-
-    setAdjustments((prev) => [adjustment, ...prev]);
-
+    await upsert(adjustment);
     onUpdateInventory((prev) =>
-      prev.map((i) =>
-        i.id === selectedItemId
-          ? { ...i, qty: type === "increase" ? i.qty + qty : i.qty - qty }
-          : i
-      )
+      prev.map((i) => i.id === selectedItemId
+        ? { ...i, qty: type === "increase" ? i.qty + qty : i.qty - qty }
+        : i)
     );
-
     toast.success(`Stock ${type === "increase" ? "increased" : "decreased"} by ${qty} for ${item.name}`);
     resetForm();
     setShowForm(false);
@@ -109,9 +80,7 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select item" /></SelectTrigger>
                 <SelectContent>
                   {inventory.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.name} (Qty: {item.qty})
-                    </SelectItem>
+                    <SelectItem key={item.id} value={item.id}>{item.name} (Qty: {item.qty})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -135,9 +104,7 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
               <Select value={reason} onValueChange={setReason}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select reason" /></SelectTrigger>
                 <SelectContent>
-                  {ADJUSTMENT_REASONS.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                  ))}
+                  {ADJUSTMENT_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
