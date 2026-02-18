@@ -1,9 +1,8 @@
 import { useState, useRef } from "react";
 import {
-  getInitialPurchaseOrders, getInitialBills, getInitialPurchasePayments, getInitialSuppliers,
   type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem,
 } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { usePurchaseOrdersCloud, useBillsCloud, usePurchasePaymentsCloud, useSuppliersCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,10 +48,10 @@ export default function Purchases() {
   const [tab, setTab] = useState("purchase-orders");
 
   // Data
-  const [purchaseOrders, setPurchaseOrders] = useLocalStorage<PurchaseOrder[]>("cb-purchase-orders", getInitialPurchaseOrders());
-  const [bills, setBills] = useLocalStorage<Bill[]>("cb-bills", getInitialBills());
-  const [payments, setPayments] = useLocalStorage<PurchasePayment[]>("cb-purchase-payments", getInitialPurchasePayments());
-  const [suppliers, setSuppliers] = useLocalStorage<Supplier[]>("cb-suppliers", getInitialSuppliers());
+  const { data: purchaseOrders, upsert: upsertPO, remove: removePO, setData: setPurchaseOrders } = usePurchaseOrdersCloud();
+  const { data: bills, upsert: upsertBill, remove: removeBill, setData: setBills } = useBillsCloud();
+  const { data: payments, upsert: upsertPayment, remove: removePayment, setData: setPayments } = usePurchasePaymentsCloud();
+  const { data: suppliers, upsert: upsertSupplier, remove: removeSupplier, setData: setSuppliers } = useSuppliersCloud();
 
   // Filters
   const [filterSupplier, setFilterSupplier] = useState("all");
@@ -171,6 +170,7 @@ export default function Purchases() {
         amount: parseFloat(r.amount) || 0, status: (r.status as PurchaseOrder["status"]) || "pending",
         items: [{ description: "Imported item", qty: parseFloat(r.quantity || r.qty || "1"), rate: parseFloat(r.price || r.rate || "0"), amount: parseFloat(r.amount) || 0 }],
       }));
+      newItems.forEach(item => upsertPO(item));
       setPurchaseOrders(prev => [...prev, ...newItems]);
       toast.success(`${newItems.length} purchase orders imported`);
     };
@@ -190,6 +190,7 @@ export default function Purchases() {
         amount: parseFloat(r.amount) || 0, status: (r.status as Bill["status"]) || "pending",
         items: [{ description: "Imported item", qty: parseFloat(r.quantity || r.qty || "1"), rate: parseFloat(r.price || r.rate || "0"), amount: parseFloat(r.amount) || 0 }],
       }));
+      newItems.forEach(item => upsertBill(item));
       setBills(prev => [...prev, ...newItems]);
       toast.success(`${newItems.length} bills imported`);
     };
@@ -219,9 +220,12 @@ export default function Purchases() {
     if (!poForm.supplier) return;
     const total = calcTotal(poItems, poForm.tax);
     const num = `PO-${String(purchaseOrders.length + 1).padStart(3, "0")}`;
-    setPurchaseOrders(prev => [...prev, { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax }]);
+    const newPO = { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
+    upsertPO(newPO);
+    setPurchaseOrders(prev => [...prev, newPO]);
     setShowPOForm(false);
     setPOItems([emptyItem()]);
+
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
     toast.success("Purchase Order created");
   };
@@ -232,7 +236,9 @@ export default function Purchases() {
     if (!billForm.supplier) return;
     const total = calcTotal(billItems, billForm.tax);
     const num = `BILL-${String(bills.length + 1).padStart(3, "0")}`;
-    setBills(prev => [...prev, { id: crypto.randomUUID(), number: num, supplier: billForm.supplier, date: billForm.date, dueDate: billForm.dueDate, amount: total, status: billForm.status, items: billItems, notes: billForm.notes, tax: billForm.tax }]);
+    const newBill = { id: crypto.randomUUID(), number: num, supplier: billForm.supplier, date: billForm.date, dueDate: billForm.dueDate, amount: total, status: billForm.status, items: billItems, notes: billForm.notes, tax: billForm.tax };
+    upsertBill(newBill);
+    setBills(prev => [...prev, newBill]);
     setShowBillForm(false);
     setBillItems([emptyItem()]);
     setBillForm({ supplier: "", date: today(), dueDate: "", status: "pending", notes: "", tax: 10 });
@@ -244,7 +250,9 @@ export default function Purchases() {
     e.preventDefault();
     if (!paymentForm.supplier || !paymentForm.amount) return;
     const num = `PP-${String(payments.length + 1).padStart(3, "0")}`;
-    setPayments(prev => [...prev, { id: crypto.randomUUID(), number: num, supplier: paymentForm.supplier, date: paymentForm.date, billNumber: paymentForm.billNumber, amount: paymentForm.amount, paymentMethod: paymentForm.paymentMethod, reference: paymentForm.reference, notes: paymentForm.notes }]);
+    const newPayment = { id: crypto.randomUUID(), number: num, supplier: paymentForm.supplier, date: paymentForm.date, billNumber: paymentForm.billNumber, amount: paymentForm.amount, paymentMethod: paymentForm.paymentMethod, reference: paymentForm.reference, notes: paymentForm.notes };
+    upsertPayment(newPayment);
+    setPayments(prev => [...prev, newPayment]);
     setShowPaymentForm(false);
     setPaymentForm({ supplier: "", date: today(), billNumber: "", amount: 0, paymentMethod: "Bank Transfer", reference: "", notes: "" });
     toast.success("Payment recorded");
@@ -257,20 +265,20 @@ export default function Purchases() {
     e.preventDefault();
     if (!supplierForm.name?.trim() || !supplierForm.email?.trim() || !supplierForm.company?.trim()) return;
     if (editingSupplier) {
-      setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? { ...s, ...supplierForm } as Supplier : s));
+      upsertSupplier({ ...editingSupplier, ...supplierForm } as Supplier);
       toast.success("Supplier updated");
     } else {
-      setSuppliers(prev => [...prev, { ...supplierForm, id: crypto.randomUUID(), totalPaid: 0, outstanding: 0 } as Supplier]);
+      upsertSupplier({ ...supplierForm, id: crypto.randomUUID(), totalPaid: 0, outstanding: 0 } as Supplier);
       toast.success("Supplier added");
     }
     setShowSupplierForm(false);
   };
-  const handleDeleteSupplier = (id: string) => { setSuppliers(prev => prev.filter(s => s.id !== id)); toast.success("Supplier deleted"); };
+  const handleDeleteSupplier = (id: string) => { removeSupplier(id); toast.success("Supplier deleted"); };
 
   // Delete handlers
-  const handleDeletePO = (id: string) => { setPurchaseOrders(prev => prev.filter(p => p.id !== id)); toast.success("Purchase order deleted"); };
-  const handleDeleteBill = (id: string) => { setBills(prev => prev.filter(b => b.id !== id)); toast.success("Bill deleted"); };
-  const handleDeletePayment = (id: string) => { setPayments(prev => prev.filter(p => p.id !== id)); toast.success("Payment deleted"); };
+  const handleDeletePO = (id: string) => { removePO(id); toast.success("Purchase order deleted"); };
+  const handleDeleteBill = (id: string) => { removeBill(id); toast.success("Bill deleted"); };
+  const handleDeletePayment = (id: string) => { removePayment(id); toast.success("Payment deleted"); };
 
   // Reusable Line Items Editor
   const LineItemsEditor = ({ items, setItems }: { items: InvoiceItem[]; setItems: (v: InvoiceItem[]) => void }) => (

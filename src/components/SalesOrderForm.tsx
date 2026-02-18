@@ -24,6 +24,7 @@ type Props = {
 export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber, onAddCustomer }: Props) {
   const { formatCurrency } = useSettings();
   const [customNumber, setCustomNumber] = useState(editOrder?.number || "");
+  const [projectName, setProjectName] = useState(editOrder?.projectName || "");
   const [customer, setCustomer] = useState(editOrder?.customer || "");
   const [date, setDate] = useState(editOrder?.date || new Date().toISOString().split("T")[0]);
   const [deliveryDate, setDeliveryDate] = useState(editOrder?.deliveryDate || "");
@@ -119,6 +120,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
     onSave({
       id: editOrder?.id || crypto.randomUUID(),
       number: customNumber.trim() || nextNumber,
+      projectName: projectName.trim() || undefined,
       customer: customer.trim(),
       date,
       deliveryDate,
@@ -144,6 +146,10 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
         <div>
           <Label>Document Number</Label>
           <Input value={customNumber || nextNumber} onChange={(e) => setCustomNumber(e.target.value)} placeholder={nextNumber} className="mt-1" />
+        </div>
+        <div className="md:col-span-2">
+          <Label>Project Name</Label>
+          <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="e.g. K&S Solar - Lahore Office Installation" className="mt-1" />
         </div>
         <div>
           <Label>Customer *</Label>

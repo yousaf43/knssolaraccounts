@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { getInitialCustomers, getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
+import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,9 @@ const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: ""
 
 export default function Customers() {
   const { formatCurrency } = useSettings();
-  const [customers, setCustomers] = useLocalStorage<Customer[]>("cb-customers", getInitialCustomers());
-  const [invoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
-  const [receipts] = useLocalStorage<Receipt[]>("cb-receipts", getInitialReceipts());
+  const { data: customers, upsert: upsertCustomer, remove: removeCustomer } = useCustomersCloud();
+  const { data: invoices } = useInvoicesCloud();
+  const { data: receipts } = useReceiptsCloud();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<Partial<Customer>>(emptyCustomer());
@@ -38,17 +38,17 @@ export default function Customers() {
     e.preventDefault();
     if (!form.name?.trim() || !form.email?.trim() || !form.company?.trim()) return;
     if (editing) {
-      setCustomers((prev) => prev.map((c) => c.id === editing.id ? { ...c, ...form } as Customer : c));
+      upsertCustomer({ ...editing, ...form } as Customer);
       toast.success("Customer updated");
     } else {
-      setCustomers((prev) => [...prev, { ...form, id: crypto.randomUUID(), address: form.address || "", totalBilled: 0, outstanding: 0 } as Customer]);
+      upsertCustomer({ ...form, id: crypto.randomUUID(), address: form.address || "", totalBilled: 0, outstanding: 0 } as Customer);
       toast.success("Customer added");
     }
     setShowForm(false);
   };
 
   const handleDelete = (id: string) => {
-    setCustomers((prev) => prev.filter((c) => c.id !== id));
+    removeCustomer(id);
     toast.success("Customer deleted");
   };
 

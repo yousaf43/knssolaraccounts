@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,11 +42,11 @@ function parseCSV(text: string): Record<string, string>[] {
 
 export default function Invoices() {
   const { formatCurrency } = useSettings();
-  const [invoices, setInvoices] = useLocalStorage<Invoice[]>("cb-invoices", getInitialInvoices());
-  const [salesOrders, setSalesOrders] = useLocalStorage<SalesOrder[]>("cb-sales-orders", getInitialSalesOrders());
-  const [receipts, setReceipts] = useLocalStorage<Receipt[]>("cb-receipts", getInitialReceipts());
-  const [customers, setCustomers] = useLocalStorage("cb-customers", getInitialCustomers());
-  const [inventory, setInventory] = useLocalStorage<InventoryItem[]>("cb-inventory", getInitialInventory());
+  const { data: invoices, upsert: upsertInvoice, remove: removeInvoice, setData: setInvoices } = useInvoicesCloud();
+  const { data: salesOrders, upsert: upsertSalesOrder, remove: removeSalesOrder, setData: setSalesOrders } = useSalesOrdersCloud();
+  const { data: receipts, upsert: upsertReceipt, remove: removeReceipt, setData: setReceipts } = useReceiptsCloud();
+  const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
+  const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
@@ -69,32 +69,30 @@ export default function Invoices() {
 
   const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); setReceivePaymentInvoice(null); };
 
-  const handleAddCustomer = (c: Customer) => {
-    setCustomers((prev) => [...prev, c]);
-  };
+  const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
   // --- Invoice handlers ---
   const handleSaveInvoice = (invoice: Invoice) => {
-    setInvoices((prev) => { const exists = prev.find((i) => i.id === invoice.id); return exists ? prev.map((i) => (i.id === invoice.id ? invoice : i)) : [...prev, invoice]; });
+    upsertInvoice(invoice);
     goList();
     toast.success(editInvoice ? "Invoice updated" : "Invoice created");
   };
-  const handleDeleteInvoice = (id: string) => { setInvoices((prev) => prev.filter((i) => i.id !== id)); toast.success("Invoice deleted"); };
+  const handleDeleteInvoice = (id: string) => { removeInvoice(id); toast.success("Invoice deleted"); };
 
   // --- Sales Order handlers ---
   const handleSaveSO = (order: SalesOrder) => {
-    setSalesOrders((prev) => { const exists = prev.find((i) => i.id === order.id); return exists ? prev.map((i) => (i.id === order.id ? order : i)) : [...prev, order]; });
+    upsertSalesOrder(order);
     goList();
     toast.success(editOrder ? "Sales Order updated" : "Sales Order created");
   };
-  const handleDeleteSO = (id: string) => { setSalesOrders((prev) => prev.filter((i) => i.id !== id)); toast.success("Sales Order deleted"); };
+  const handleDeleteSO = (id: string) => { removeSalesOrder(id); toast.success("Sales Order deleted"); };
 
   // Approve Sales Order → Convert to Invoice + Deduct Inventory
-  const handleApproveSO = (so: SalesOrder) => {
-    // Create invoice from SO
+  const handleApproveSO = async (so: SalesOrder) => {
     const newInvoice: Invoice = {
       id: crypto.randomUUID(),
       number: `INV-${String(invoices.length + 1).padStart(3, "0")}`,
+      projectName: so.projectName,
       customer: so.customer,
       date: new Date().toISOString().split("T")[0],
       dueDate: so.deliveryDate,
@@ -104,50 +102,34 @@ export default function Invoices() {
       notes: so.notes ? `From ${so.number}. ${so.notes}` : `Converted from ${so.number}`,
       tax: so.tax,
     };
-    setInvoices((prev) => [...prev, newInvoice]);
-
-    // Deduct inventory for each line item
-    setInventory((prev) => {
-      const updated = [...prev];
-      for (const item of so.items) {
-        if (item.inventoryItemId) {
-          const idx = updated.findIndex((inv) => inv.id === item.inventoryItemId);
-          if (idx !== -1) {
-            updated[idx] = { ...updated[idx], qty: Math.max(0, updated[idx].qty - item.qty) };
-          }
-        }
+    await upsertInvoice(newInvoice);
+    for (const item of so.items) {
+      if (item.inventoryItemId) {
+        const invItem = inventory.find((inv) => inv.id === item.inventoryItemId);
+        if (invItem) await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
       }
-      return updated;
-    });
-
-    // If advance payment exists, create a receipt
+    }
     if (so.advancePayment && so.advancePayment > 0) {
       const newReceipt: Receipt = {
         id: crypto.randomUUID(),
         number: `RCP-${String(receipts.length + 1).padStart(3, "0")}`,
-        customer: so.customer,
-        date: so.date,
-        invoiceNumber: newInvoice.number,
-        amount: so.advancePayment,
-        paymentMethod: so.advancePaymentMethod || "cash",
-        reference: so.advancePaymentRef,
-        notes: `Advance payment against ${so.number}`,
+        customer: so.customer, date: so.date, invoiceNumber: newInvoice.number,
+        amount: so.advancePayment, paymentMethod: so.advancePaymentMethod || "cash",
+        reference: so.advancePaymentRef, notes: `Advance payment against ${so.number}`,
       };
-      setReceipts((prev) => [...prev, newReceipt]);
+      await upsertReceipt(newReceipt);
     }
-
-    // Mark SO as approved
-    setSalesOrders((prev) => prev.map((s) => s.id === so.id ? { ...s, status: "approved" as const } : s));
-    toast.success(`${so.number} approved → Invoice ${newInvoice.number} created & inventory deducted`);
+    await upsertSalesOrder({ ...so, status: "approved" });
+    toast.success(`${so.number} approved → Invoice ${newInvoice.number} created`);
   };
 
   // --- Receipt handlers ---
   const handleSaveReceipt = (receipt: Receipt) => {
-    setReceipts((prev) => { const exists = prev.find((i) => i.id === receipt.id); return exists ? prev.map((i) => (i.id === receipt.id ? receipt : i)) : [...prev, receipt]; });
+    upsertReceipt(receipt);
     goList();
     toast.success(editReceipt ? "Receipt updated" : "Receipt created");
   };
-  const handleDeleteReceipt = (id: string) => { setReceipts((prev) => prev.filter((i) => i.id !== id)); toast.success("Receipt deleted"); };
+  const handleDeleteReceipt = (id: string) => { removeReceipt(id); toast.success("Receipt deleted"); };
 
   // --- Import handlers ---
   const handleImportInvoices = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +151,7 @@ export default function Invoices() {
           tax: parseFloat(r.tax) || 0,
           notes: r.notes || "Imported via CSV",
         }));
+        newInvoices.forEach((inv) => upsertInvoice(inv));
         setInvoices((prev) => [...prev, ...newInvoices]);
         toast.success(`${newInvoices.length} invoice(s) imported`);
       } catch { toast.error("Failed to parse CSV file"); }
@@ -195,6 +178,7 @@ export default function Invoices() {
           items: [{ description: r.description || "Imported item", qty: parseFloat(r.quantity) || 1, rate: parseFloat(r.price || r.amount) || 0, amount: parseFloat(r.amount) || 0 }],
           notes: r.notes || "Imported via CSV",
         }));
+        newOrders.forEach((order) => upsertSalesOrder(order));
         setSalesOrders((prev) => [...prev, ...newOrders]);
         toast.success(`${newOrders.length} sales order(s) imported`);
       } catch { toast.error("Failed to parse CSV file"); }
