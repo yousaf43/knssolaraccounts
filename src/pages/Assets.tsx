@@ -19,16 +19,23 @@ export type CompanyAsset = {
   description: string;
   condition: "new" | "good" | "fair" | "poor";
   serialNumber?: string;
+  nominalAccount?: string;
 };
 
 const categories = [
   "Furniture", "Electronics", "Vehicles", "Machinery", "Office Equipment",
   "Solar Panels", "Inverters", "Tools", "Land & Building", "Other"
 ];
+const nominalAccounts = [
+  "1500 - Fixed Assets", "1510 - Furniture & Fixtures", "1520 - Office Equipment",
+  "1530 - Vehicles", "1540 - Machinery & Equipment", "1550 - Land & Buildings",
+  "1560 - Solar Equipment", "1590 - Other Fixed Assets",
+  "1600 - Accumulated Depreciation", "6500 - Depreciation Expense",
+];
 
 const defaultAsset: Omit<CompanyAsset, "id"> = {
   name: "", category: "Other", value: 0, purchaseDate: new Date().toISOString().slice(0, 10),
-  purchaseFrom: "", description: "", condition: "new", serialNumber: ""
+  purchaseFrom: "", description: "", condition: "new", serialNumber: "", nominalAccount: ""
 };
 
 export default function Assets() {
@@ -173,6 +180,15 @@ export default function Assets() {
               <Label>Description</Label>
               <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="mt-1" placeholder="Brief description" />
             </div>
+            <div className="md:col-span-3">
+              <Label>Nominal Account</Label>
+              <Select value={form.nominalAccount || ""} onValueChange={v => setForm({ ...form, nominalAccount: v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select nominal account (optional)" /></SelectTrigger>
+                <SelectContent>
+                  {nominalAccounts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -203,35 +219,37 @@ export default function Assets() {
                   <th className="text-right px-4 py-3 font-medium">Value</th>
                   <th className="text-left px-4 py-3 font-medium">Purchase Date</th>
                   <th className="text-left px-4 py-3 font-medium">From</th>
+                  <th className="text-left px-4 py-3 font-medium">Nominal Account</th>
                   <th className="text-left px-4 py-3 font-medium">Condition</th>
                   <th className="text-right px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(a => (
-                  <tr key={a.id} className="border-t hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">{a.name}</td>
-                    <td className="px-4 py-3"><Badge variant="outline">{a.category}</Badge></td>
-                    <td className="px-4 py-3 text-right font-semibold">{fmt(a.value)}</td>
-                    <td className="px-4 py-3">{a.purchaseDate}</td>
-                    <td className="px-4 py-3">{a.purchaseFrom || "—"}</td>
-                    <td className="px-4 py-3"><Badge variant={conditionColor(a.condition) as any} className="capitalize">{a.condition}</Badge></td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(a)}><Pencil className="w-3.5 h-3.5" /></Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(a.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t bg-muted/30">
-                  <td className="px-4 py-3 font-semibold" colSpan={2}>Total</td>
-                  <td className="px-4 py-3 text-right font-bold text-primary">{fmt(totalValue)}</td>
-                  <td colSpan={4}></td>
-                </tr>
-              </tfoot>
+                   <tr key={a.id} className="border-t hover:bg-muted/30">
+                     <td className="px-4 py-3 font-medium">{a.name}</td>
+                     <td className="px-4 py-3"><Badge variant="outline">{a.category}</Badge></td>
+                     <td className="px-4 py-3 text-right font-semibold">{fmt(a.value)}</td>
+                     <td className="px-4 py-3">{a.purchaseDate}</td>
+                     <td className="px-4 py-3">{a.purchaseFrom || "—"}</td>
+                     <td className="px-4 py-3 text-xs text-muted-foreground">{a.nominalAccount || "—"}</td>
+                     <td className="px-4 py-3"><Badge variant={conditionColor(a.condition) as any} className="capitalize">{a.condition}</Badge></td>
+                     <td className="px-4 py-3 text-right">
+                       <div className="flex justify-end gap-1">
+                         <Button variant="ghost" size="sm" onClick={() => openEdit(a)}><Pencil className="w-3.5 h-3.5" /></Button>
+                         <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(a.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                       </div>
+                     </td>
+                   </tr>
+                 ))}
+               </tbody>
+               <tfoot>
+                 <tr className="border-t bg-muted/30">
+                   <td className="px-4 py-3 font-semibold" colSpan={2}>Total</td>
+                   <td className="px-4 py-3 text-right font-bold text-primary">{fmt(totalValue)}</td>
+                   <td colSpan={5}></td>
+                 </tr>
+               </tfoot>
             </table>
           </div>
         </div>

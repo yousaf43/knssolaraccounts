@@ -12,6 +12,14 @@ import { useSettings } from "@/contexts/SettingsContext";
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Other"];
 const paymentMethods = ["Credit Card", "Bank Transfer", "Auto-debit", "Cash", "Check"];
+const nominalAccounts = [
+  "4000 - Sales Revenue", "4100 - Service Revenue", "4200 - Other Income",
+  "5000 - Cost of Goods Sold", "5100 - Purchase Returns",
+  "6000 - Salaries & Wages", "6100 - Rent Expense", "6200 - Utilities Expense",
+  "6300 - Marketing & Advertising", "6400 - Insurance Expense", "6500 - Depreciation",
+  "6600 - Office Supplies", "6700 - Travel & Entertainment", "6800 - Professional Fees",
+  "6900 - Bank Charges", "7000 - Other Expenses",
+];
 
 const categoryColors: Record<string, string> = {
   Software: "bg-primary/10 text-primary",
@@ -23,7 +31,7 @@ const categoryColors: Record<string, string> = {
   Insurance: "bg-secondary text-secondary-foreground",
 };
 
-const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Bank Transfer" });
+const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Bank Transfer", nominalAccount: "" });
 
 export default function Expenses() {
   const { formatCurrency } = useSettings();
@@ -91,6 +99,13 @@ export default function Expenses() {
             </div>
             <div className="md:col-span-2"><Label>Description *</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-1" maxLength={200} required /></div>
             <div><Label>Amount *</Label><Input type="number" min={0} step={0.01} value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} className="mt-1" required /></div>
+            <div className="md:col-span-3">
+              <Label>Nominal Account</Label>
+              <Select value={form.nominalAccount || ""} onValueChange={(v) => setForm({ ...form, nominalAccount: v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select nominal account (optional)" /></SelectTrigger>
+                <SelectContent>{nominalAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div className="md:col-span-3 flex gap-3 justify-end">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
               <Button type="submit">{editing ? "Update" : "Add"}</Button>
@@ -111,6 +126,7 @@ export default function Expenses() {
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Description</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nominal Account</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Payment</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
               <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
@@ -122,6 +138,7 @@ export default function Expenses() {
                 <td className="px-4 py-3 text-muted-foreground">{e.date}</td>
                 <td className="px-4 py-3"><Badge className={`${categoryColors[e.category] || "bg-muted text-muted-foreground"} border-0`}>{e.category}</Badge></td>
                 <td className="px-4 py-3">{e.description}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">{e.nominalAccount || "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{e.paymentMethod}</td>
                 <td className="px-4 py-3 text-right font-semibold">{formatCurrency(e.amount)}</td>
                 <td className="px-4 py-3 text-center">
