@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const ADJUSTMENT_REASONS = [
   "Damaged", "Returned", "Correction", "Theft/Loss",
@@ -20,6 +21,7 @@ interface StockAdjustmentSectionProps {
 }
 
 export default function StockAdjustmentSection({ inventory, onUpdateInventory }: StockAdjustmentSectionProps) {
+  const { formatCurrency } = useSettings();
   const { data: adjustments, upsert } = useStockAdjustmentsCloud();
   const [showForm, setShowForm] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState("");
@@ -27,9 +29,14 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
   const [qty, setQty] = useState(0);
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
+  const [newCostPrice, setNewCostPrice] = useState<number | "">("");
+  const [newSalePrice, setNewSalePrice] = useState<number | "">("");
+
+  const selectedItem = inventory.find((i) => i.id === selectedItemId);
 
   const resetForm = () => {
     setSelectedItemId(""); setType("increase"); setQty(0); setReason(""); setNote("");
+    setNewCostPrice(""); setNewSalePrice("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,17 +47,37 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
     if (type === "decrease" && qty > item.qty) {
       toast.error(`Cannot decrease by ${qty}. Current stock is ${item.qty}.`); return;
     }
+
+    // Build note with new prices if provided
+    let noteText = note || undefined;
+    const updatedCost = newCostPrice !== "" ? Number(newCostPrice) : item.costPrice;
+    const updatedSale = newSalePrice !== "" ? Number(newSalePrice) : item.salePrice;
+    const hasPriceChange = (newCostPrice !== "" && Number(newCostPrice) !== item.costPrice) ||
+                           (newSalePrice !== "" && Number(newSalePrice) !== item.salePrice);
+    if (hasPriceChange) {
+      const parts = [];
+      if (newCostPrice !== "" && Number(newCostPrice) !== item.costPrice) parts.push(`Cost: ${item.costPrice} → ${newCostPrice}`);
+      if (newSalePrice !== "" && Number(newSalePrice) !== item.salePrice) parts.push(`Sale: ${item.salePrice} → ${newSalePrice}`);
+      noteText = parts.join(" | ") + (note ? ` | ${note}` : "");
+    }
+
     const adjustment: StockAdjustment = {
       id: crypto.randomUUID(), itemId: selectedItemId, itemName: item.name,
-      type, qty, reason, date: new Date().toISOString().split("T")[0], note: note || undefined,
+      type, qty, reason, date: new Date().toISOString().split("T")[0], note: noteText,
     };
     await upsert(adjustment);
     onUpdateInventory((prev) =>
       prev.map((i) => i.id === selectedItemId
-        ? { ...i, qty: type === "increase" ? i.qty + qty : i.qty - qty }
+        ? {
+            ...i,
+            qty: type === "increase" ? i.qty + qty : i.qty - qty,
+            costPrice: hasPriceChange ? updatedCost : i.costPrice,
+            salePrice: hasPriceChange ? updatedSale : i.salePrice,
+            price: hasPriceChange ? updatedSale : i.price,
+          }
         : i)
     );
-    toast.success(`Stock ${type === "increase" ? "increased" : "decreased"} by ${qty} for ${item.name}`);
+    toast.success(`Stock ${type === "increase" ? "increased" : "decreased"} by ${qty} for ${item.name}${hasPriceChange ? " (prices updated)" : ""}`);
     resetForm();
     setShowForm(false);
   };
@@ -107,6 +134,25 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                   {ADJUSTMENT_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            {/* New Price fields */}
+            <div>
+              <Label>New Cost Price{selectedItem ? ` (current: ${formatCurrency(selectedItem.costPrice)})` : ""}</Label>
+              <Input
+                type="number" min={0} step={0.01}
+                value={newCostPrice}
+                onChange={(e) => setNewCostPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                className="mt-1" placeholder="Leave blank to keep current"
+              />
+            </div>
+            <div>
+              <Label>New Sale Price{selectedItem ? ` (current: ${formatCurrency(selectedItem.salePrice)})` : ""}</Label>
+              <Input
+                type="number" min={0} step={0.01}
+                value={newSalePrice}
+                onChange={(e) => setNewSalePrice(e.target.value === "" ? "" : Number(e.target.value))}
+                className="mt-1" placeholder="Leave blank to keep current"
+              />
             </div>
             <div className="md:col-span-2">
               <Label>Note (optional)</Label>

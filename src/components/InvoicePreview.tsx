@@ -9,7 +9,9 @@ type Props = {
   invoice: Invoice;
   onClose: () => void;
   receipts?: Receipt[];
-  customerOutstanding?: number; // total outstanding balance of the customer
+  customerOutstanding?: number;
+  customerPhone?: string;
+  customerAddress?: string;
 };
 
 // Convert number to words (for PKR amounts)
@@ -48,7 +50,7 @@ function numberToWords(num: number): string {
   return result + " Only";
 }
 
-export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0 }: Props) {
+export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0, customerPhone, customerAddress }: Props) {
   const { formatCurrency, settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -152,6 +154,8 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         <div className="flex justify-between mb-4">
           <div>
             <p className="font-bold text-sm">{invoice.customer}</p>
+            {customerPhone && <p className="text-xs text-gray-500"><strong>Phone:</strong> {customerPhone}</p>}
+            {customerAddress && <p className="text-xs text-gray-500">{customerAddress}</p>}
             {invoice.documentNumber && <p className="text-xs text-gray-500">Doc No. {invoice.documentNumber}</p>}
             {invoice.projectName && <p className="text-xs text-gray-500">Project: {invoice.projectName}</p>}
           </div>

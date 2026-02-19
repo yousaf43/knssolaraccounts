@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer } from "lucide-react";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
+import { SalesOrderPreview } from "@/components/SalesOrderPreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { ReceiptForm } from "@/components/ReceiptForm";
 import { toast } from "sonner";
@@ -48,11 +49,12 @@ export default function Invoices() {
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
   const [activeTab, setActiveTab] = useState("invoices");
-  const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice">("list");
+  const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
+  const [previewSO, setPreviewSO] = useState<{ order: SalesOrder; showPrices: boolean } | null>(null);
   const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
@@ -67,7 +69,7 @@ export default function Invoices() {
   const invoiceFileRef = useRef<HTMLInputElement>(null);
   const soFileRef = useRef<HTMLInputElement>(null);
 
-  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); setReceivePaymentInvoice(null); };
+  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); };
 
   const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
@@ -327,9 +329,18 @@ export default function Invoices() {
       const paid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
       return sum + Math.max(0, inv.amount - paid);
     }, 0);
+    const cust = customers.find((c) => c.name === previewInvoice.customer || `${c.name} [${c.company}]` === previewInvoice.customer);
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} customerOutstanding={customerOutstanding} />
+        <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} customerOutstanding={customerOutstanding} customerPhone={cust?.phone} customerAddress={cust?.address} />
+      </div>
+    );
+  }
+
+  if (view === "so-preview" && previewSO) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} customers={customers} />
       </div>
     );
   }
@@ -513,6 +524,8 @@ export default function Invoices() {
                               <CheckCircle className="w-4 h-4 text-success" />
                             </button>
                           )}
+                          <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Print with Prices" onClick={() => { setPreviewSO({ order: so, showPrices: true }); setView("so-preview"); }}><Printer className="w-4 h-4 text-primary" /></button>
+                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Delivery Challan (no prices)" onClick={() => { setPreviewSO({ order: so, showPrices: false }); setView("so-preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditOrder(so); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
                           <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteSO(so.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
                         </div>
