@@ -691,6 +691,7 @@ export default function Reports() {
   const [activeReport, setActiveReport] = useState<Report | null>(null);
   const [generalTab, setGeneralTab] = useState("Favourites");
   const [analyticalTab, setAnalyticalTab] = useState("Favourites");
+  const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useLocalStorage<string[]>("report-favorites", [
     "028", "029", "034", "037", "084", "085", "088", "235",
     "078", "080", "082", "083", "148", "180",
@@ -738,6 +739,13 @@ export default function Reports() {
     setFavorites(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
   }, [setFavorites]);
 
+  // Search across all reports
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const q = searchQuery.toLowerCase();
+    return allReports.filter(r => r.title.toLowerCase().includes(q) || r.code.toLowerCase().includes(q) || r.category.toLowerCase().includes(q));
+  }, [searchQuery]);
+
   const generalFiltered = useMemo(() => {
     if (generalTab === "Favourites") return allReports.filter(r => r.section === "general" && favorites.includes(r.code));
     return allReports.filter(r => r.section === "general" && r.category === generalTab);
@@ -759,45 +767,73 @@ export default function Reports() {
         <p className="text-muted-foreground text-sm">Financial reports and analytics</p>
       </div>
 
-      {/* General Reports */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-primary">General Reports</h2>
-        <div className="bg-card border rounded-lg overflow-hidden">
-          <div className="border-b px-1 pt-1">
-            <div className="flex flex-wrap gap-0">
-              {generalCategories.map((cat) => (
-                <button key={cat} onClick={() => setGeneralTab(cat)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${generalTab === cat ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"}`}>
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="p-4">
-            <ReportList reports={generalFiltered} onSelect={setActiveReport} favorites={favorites} onToggleFav={toggleFav} />
-          </div>
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search reports by name, code, or category..."
+          className="w-full md:max-w-md h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        />
       </div>
 
-      {/* Analytical Reports */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-primary">Analytical Reports</h2>
+      {/* Search Results */}
+      {searchResults !== null && (
         <div className="bg-card border rounded-lg overflow-hidden">
-          <div className="border-b px-1 pt-1">
-            <div className="flex flex-wrap gap-0">
-              {analyticalCategories.map((cat) => (
-                <button key={cat} onClick={() => setAnalyticalTab(cat)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${analyticalTab === cat ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"}`}>
-                  {cat}
-                </button>
-              ))}
-            </div>
+          <div className="px-4 py-3 border-b bg-muted/50">
+            <h2 className="font-semibold text-sm">Search Results ({searchResults.length})</h2>
           </div>
           <div className="p-4">
-            <ReportList reports={analyticalFiltered} onSelect={setActiveReport} favorites={favorites} onToggleFav={toggleFav} />
+            <ReportList reports={searchResults} onSelect={setActiveReport} favorites={favorites} onToggleFav={toggleFav} />
           </div>
         </div>
-      </div>
+      )}
+
+      {/* General Reports */}
+      {!searchResults && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-primary">General Reports</h2>
+          <div className="bg-card border rounded-lg overflow-hidden">
+            <div className="border-b px-1 pt-1">
+              <div className="flex flex-wrap gap-0">
+                {generalCategories.map((cat) => (
+                  <button key={cat} onClick={() => setGeneralTab(cat)}
+                    className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${generalTab === cat ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="p-4">
+              <ReportList reports={generalFiltered} onSelect={setActiveReport} favorites={favorites} onToggleFav={toggleFav} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Analytical Reports */}
+      {!searchResults && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-primary">Analytical Reports</h2>
+          <div className="bg-card border rounded-lg overflow-hidden">
+            <div className="border-b px-1 pt-1">
+              <div className="flex flex-wrap gap-0">
+                {analyticalCategories.map((cat) => (
+                  <button key={cat} onClick={() => setAnalyticalTab(cat)}
+                    className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${analyticalTab === cat ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="p-4">
+              <ReportList reports={analyticalFiltered} onSelect={setActiveReport} favorites={favorites} onToggleFav={toggleFav} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

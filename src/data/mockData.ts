@@ -129,6 +129,7 @@ export type Expense = {
   description: string;
   amount: number;
   paymentMethod: string;
+  nominalAccount?: string;
 };
 
 export type InventoryItem = {

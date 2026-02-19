@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, BookOpen } from "lucide-react";
+import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,70 +30,119 @@ const initialAccounts: Account[] = [
   { id: "11", name: "UBL BANK LTD", accountTitle: "BHAKKAR SOLAR HOUSE", code: "230911", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
 ];
 
-const initialPayments: OtherPayment[] = [
-  { id: "1", date: "2025-02-10", account: "Business Checking", payee: "Office Landlord", amount: 5500, reference: "PAY-001", description: "Office rent - Feb" },
-  { id: "2", date: "2025-02-08", account: "Business Checking", payee: "Google Ads", amount: 3200, reference: "PAY-002", description: "Ad campaign" },
-  { id: "3", date: "2025-02-05", account: "Business Checking", payee: "Insurance Co", amount: 1200, reference: "PAY-003", description: "Business insurance" },
-];
-
-const initialReceipts: OtherReceipt[] = [
-  { id: "1", date: "2025-02-13", account: "Business Checking", receivedFrom: "Acme Corp", amount: 12500, reference: "REC-001", description: "Invoice payment" },
-  { id: "2", date: "2025-02-11", account: "Business Checking", receivedFrom: "BlueSky Ltd", amount: 6300, reference: "REC-002", description: "Service fee" },
-];
-
-const initialTransfers: Transfer[] = [
-  { id: "1", date: "2025-02-01", fromAccount: "Business Checking", toAccount: "Savings Account", amount: 10000, reference: "TRF-001" },
-];
+const initialPayments: OtherPayment[] = [];
+const initialReceipts: OtherReceipt[] = [];
+const initialTransfers: Transfer[] = [];
 
 const initialReconcile: ReconcileEntry[] = [
   { id: "1", date: "2025-01-31", account: "Business Checking", statementBalance: 155000, bookBalance: 148200, difference: 6800, status: "pending" },
   { id: "2", date: "2025-01-31", account: "Savings Account", statementBalance: 50200, bookBalance: 50200, difference: 0, status: "reconciled" },
 ];
 
+function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, companyName: string) {
+  const content = `
+    <html><head><title>Receipt ${r.reference}</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 40px; color: #222; }
+      .header { text-align: center; border-bottom: 2px solid #1a56db; padding-bottom: 12px; margin-bottom: 20px; }
+      h1 { color: #1a56db; font-size: 20px; margin: 0; }
+      .meta { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; }
+      .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+      .amount { font-size: 22px; font-weight: bold; color: #16a34a; text-align: right; margin-top: 16px; }
+      .footer { margin-top: 40px; display: flex; justify-content: space-between; font-size: 12px; color: #666; }
+      .sig { border-top: 1px solid #999; padding-top: 4px; width: 180px; text-align: center; }
+    </style></head><body>
+    <div class="header"><h1>${companyName}</h1><p style="margin:4px 0;font-size:13px;color:#555">RECEIPT</p></div>
+    <div class="meta"><span><b>Receipt No:</b> ${r.reference}</span><span><b>Date:</b> ${r.date}</span></div>
+    <div class="row"><span>Received From</span><span><b>${r.receivedFrom}</b></span></div>
+    <div class="row"><span>Account / Bank</span><span>${r.account}</span></div>
+    <div class="row"><span>Description</span><span>${r.description || "—"}</span></div>
+    <div class="amount">Amount: ${formatCurrency(r.amount)}</div>
+    <div class="footer">
+      <div class="sig">Received By<br/>&nbsp;</div>
+      <div class="sig">Authorized Signature<br/>&nbsp;</div>
+    </div>
+    </body></html>
+  `;
+  const win = window.open("", "_blank");
+  if (win) { win.document.write(content); win.document.close(); setTimeout(() => win.print(), 400); }
+}
+
 export default function Accounts() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, settings } = useSettings();
   const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
   const [showAccForm, setShowAccForm] = useState(false);
+  const [editAccId, setEditAccId] = useState<string | null>(null);
   const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
   const [payments, setPayments] = useLocalStorage<OtherPayment[]>("otherPayments", initialPayments);
   const [receipts, setReceipts] = useLocalStorage<OtherReceipt[]>("otherReceipts", initialReceipts);
   const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
   const [reconcile, setReconcile] = useLocalStorage<ReconcileEntry[]>("reconcileEntries", initialReconcile);
 
-  // Ledger (Account Management)
+  // Ledger
   const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
   const [ledgerForm, setLedgerForm] = useState({ date: "", bank: "", type: "incoming" as "incoming" | "outgoing", amount: "", description: "", reference: "" });
   const [showLedgerForm, setShowLedgerForm] = useState(false);
+  const [editLedgerId, setEditLedgerId] = useState<string | null>(null);
   const [ledgerMonth, setLedgerMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
   const [ledgerBank, setLedgerBank] = useState("all");
   const [ledgerPeriod, setLedgerPeriod] = useState<"month" | "year">("month");
 
   // Payment form
-  const [payForm, setPayForm] = useState({ date: "", account: "", payee: "", amount: "", reference: "", description: "" });
+  const emptyPay = { date: "", account: "", payee: "", amount: "", reference: "", description: "" };
+  const [payForm, setPayForm] = useState(emptyPay);
   const [showPayForm, setShowPayForm] = useState(false);
+  const [editPayId, setEditPayId] = useState<string | null>(null);
 
   // Receipt form
-  const [recForm, setRecForm] = useState({ date: "", account: "", receivedFrom: "", amount: "", reference: "", description: "" });
+  const emptyRec = { date: "", account: "", receivedFrom: "", amount: "", reference: "", description: "" };
+  const [recForm, setRecForm] = useState(emptyRec);
   const [showRecForm, setShowRecForm] = useState(false);
+  const [editRecId, setEditRecId] = useState<string | null>(null);
 
   // Transfer form
-  const [trfForm, setTrfForm] = useState({ date: "", fromAccount: "", toAccount: "", amount: "", reference: "" });
+  const emptyTrf = { date: "", fromAccount: "", toAccount: "", amount: "", reference: "" };
+  const [trfForm, setTrfForm] = useState(emptyTrf);
   const [showTrfForm, setShowTrfForm] = useState(false);
+  const [editTrfId, setEditTrfId] = useState<string | null>(null);
 
-  const addLedgerEntry = () => {
+  // ---- Ledger computed balance per bank from ledger entries ----
+  const bankBalances = useMemo(() => {
+    const map: Record<string, number> = {};
+    ledger.forEach(e => {
+      if (!map[e.bank]) map[e.bank] = 0;
+      if (e.type === "incoming") map[e.bank] += e.amount;
+      else map[e.bank] -= e.amount;
+    });
+    return map;
+  }, [ledger]);
+
+  const addOrUpdateLedgerEntry = () => {
     if (!ledgerForm.date || !ledgerForm.bank || !ledgerForm.amount) return;
-    const entry: LedgerEntry = {
-      id: Date.now().toString(), date: ledgerForm.date, bank: ledgerForm.bank, type: ledgerForm.type,
-      amount: parseFloat(ledgerForm.amount), description: ledgerForm.description,
-      reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
-    };
-    setLedger([entry, ...ledger]);
-    // Auto-set month filter to match the new entry so it's visible
-    const entryMonth = entry.date.substring(0, 7);
-    if (entryMonth !== ledgerMonth) setLedgerMonth(entryMonth);
+    if (editLedgerId) {
+      setLedger(ledger.map(e => e.id === editLedgerId ? { ...e, ...ledgerForm, amount: parseFloat(ledgerForm.amount) } : e));
+      setEditLedgerId(null);
+    } else {
+      const entry: LedgerEntry = {
+        id: Date.now().toString(), date: ledgerForm.date, bank: ledgerForm.bank, type: ledgerForm.type,
+        amount: parseFloat(ledgerForm.amount), description: ledgerForm.description,
+        reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
+      };
+      setLedger([entry, ...ledger]);
+      const entryMonth = entry.date.substring(0, 7);
+      if (entryMonth !== ledgerMonth) setLedgerMonth(entryMonth);
+    }
     setLedgerForm({ date: "", bank: "", type: "incoming", amount: "", description: "", reference: "" });
     setShowLedgerForm(false);
   };
+
+  const openEditLedger = (e: LedgerEntry) => {
+    setLedgerForm({ date: e.date, bank: e.bank, type: e.type, amount: String(e.amount), description: e.description, reference: e.reference });
+    setEditLedgerId(e.id);
+    setShowLedgerForm(true);
+  };
+
+  const deleteLedger = (id: string) => setLedger(ledger.filter(e => e.id !== id));
 
   const filteredLedger = useMemo(() => {
     const prefix = ledgerPeriod === "year" ? ledgerMonth.substring(0, 4) : ledgerMonth;
@@ -115,52 +164,110 @@ export default function Accounts() {
     URL.revokeObjectURL(url);
   };
 
-  const addPayment = () => {
+  // ---- Payments ----
+  const addOrUpdatePayment = () => {
     if (!payForm.date || !payForm.payee || !payForm.amount) return;
-    const newP: OtherPayment = {
-      id: Date.now().toString(), date: payForm.date, account: payForm.account || accounts[0]?.name || "",
-      payee: payForm.payee, amount: parseFloat(payForm.amount), reference: payForm.reference || `PAY-${(payments.length + 1).toString().padStart(3, "0")}`,
-      description: payForm.description,
-    };
-    setPayments([newP, ...payments]);
-    setPayForm({ date: "", account: "", payee: "", amount: "", reference: "", description: "" });
+    if (editPayId) {
+      setPayments(payments.map(p => p.id === editPayId ? { ...p, ...payForm, amount: parseFloat(payForm.amount) } : p));
+      setEditPayId(null);
+    } else {
+      const newP: OtherPayment = {
+        id: Date.now().toString(), date: payForm.date, account: payForm.account || accounts[0]?.name || "",
+        payee: payForm.payee, amount: parseFloat(payForm.amount),
+        reference: payForm.reference || `PAY-${(payments.length + 1).toString().padStart(3, "0")}`,
+        description: payForm.description,
+      };
+      setPayments([newP, ...payments]);
+    }
+    setPayForm(emptyPay);
     setShowPayForm(false);
   };
 
-  const addReceipt = () => {
+  const openEditPayment = (p: OtherPayment) => {
+    setPayForm({ date: p.date, account: p.account, payee: p.payee, amount: String(p.amount), reference: p.reference, description: p.description });
+    setEditPayId(p.id);
+    setShowPayForm(true);
+  };
+
+  const deletePayment = (id: string) => setPayments(payments.filter(p => p.id !== id));
+
+  // ---- Receipts ----
+  const addOrUpdateReceipt = () => {
     if (!recForm.date || !recForm.receivedFrom || !recForm.amount) return;
-    const newR: OtherReceipt = {
-      id: Date.now().toString(), date: recForm.date, account: recForm.account || accounts[0]?.name || "",
-      receivedFrom: recForm.receivedFrom, amount: parseFloat(recForm.amount), reference: recForm.reference || `REC-${(receipts.length + 1).toString().padStart(3, "0")}`,
-      description: recForm.description,
-    };
-    setReceipts([newR, ...receipts]);
-    setRecForm({ date: "", account: "", receivedFrom: "", amount: "", reference: "", description: "" });
+    if (editRecId) {
+      setReceipts(receipts.map(r => r.id === editRecId ? { ...r, ...recForm, amount: parseFloat(recForm.amount) } : r));
+      setEditRecId(null);
+    } else {
+      const newR: OtherReceipt = {
+        id: Date.now().toString(), date: recForm.date, account: recForm.account || accounts[0]?.name || "",
+        receivedFrom: recForm.receivedFrom, amount: parseFloat(recForm.amount),
+        reference: recForm.reference || `REC-${(receipts.length + 1).toString().padStart(3, "0")}`,
+        description: recForm.description,
+      };
+      setReceipts([newR, ...receipts]);
+    }
+    setRecForm(emptyRec);
     setShowRecForm(false);
   };
 
-  const addTransfer = () => {
+  const openEditReceipt = (r: OtherReceipt) => {
+    setRecForm({ date: r.date, account: r.account, receivedFrom: r.receivedFrom, amount: String(r.amount), reference: r.reference, description: r.description });
+    setEditRecId(r.id);
+    setShowRecForm(true);
+  };
+
+  const deleteReceipt = (id: string) => setReceipts(receipts.filter(r => r.id !== id));
+
+  // ---- Transfers ----
+  const addOrUpdateTransfer = () => {
     if (!trfForm.date || !trfForm.fromAccount || !trfForm.toAccount || !trfForm.amount) return;
-    const newT: Transfer = {
-      id: Date.now().toString(), date: trfForm.date, fromAccount: trfForm.fromAccount, toAccount: trfForm.toAccount,
-      amount: parseFloat(trfForm.amount), reference: trfForm.reference || `TRF-${(transfers.length + 1).toString().padStart(3, "0")}`,
-    };
-    setTransfers([newT, ...transfers]);
-    setTrfForm({ date: "", fromAccount: "", toAccount: "", amount: "", reference: "" });
+    if (editTrfId) {
+      setTransfers(transfers.map(t => t.id === editTrfId ? { ...t, ...trfForm, amount: parseFloat(trfForm.amount) } : t));
+      setEditTrfId(null);
+    } else {
+      const newT: Transfer = {
+        id: Date.now().toString(), date: trfForm.date, fromAccount: trfForm.fromAccount, toAccount: trfForm.toAccount,
+        amount: parseFloat(trfForm.amount), reference: trfForm.reference || `TRF-${(transfers.length + 1).toString().padStart(3, "0")}`,
+      };
+      setTransfers([newT, ...transfers]);
+    }
+    setTrfForm(emptyTrf);
     setShowTrfForm(false);
   };
 
-  const addAccount = () => {
+  const openEditTransfer = (t: Transfer) => {
+    setTrfForm({ date: t.date, fromAccount: t.fromAccount, toAccount: t.toAccount, amount: String(t.amount), reference: t.reference });
+    setEditTrfId(t.id);
+    setShowTrfForm(true);
+  };
+
+  const deleteTransfer = (id: string) => setTransfers(transfers.filter(t => t.id !== id));
+
+  // ---- Account management ----
+  const addOrUpdateAccount = () => {
     if (!accForm.name || !accForm.code) return;
-    const newAcc: Account = {
-      id: Date.now().toString(), name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code,
-      reconcileDate: "", currency: accForm.currency || "PKR",
-      fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
-    };
-    setAccounts([...accounts, newAcc]);
+    if (editAccId) {
+      setAccounts(accounts.map(a => a.id === editAccId ? { ...a, name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code, currency: accForm.currency || "PKR", balance: parseFloat(accForm.balance) || 0 } : a));
+      setEditAccId(null);
+    } else {
+      const newAcc: Account = {
+        id: Date.now().toString(), name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code,
+        reconcileDate: "", currency: accForm.currency || "PKR",
+        fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
+      };
+      setAccounts([...accounts, newAcc]);
+    }
     setAccForm({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
     setShowAccForm(false);
   };
+
+  const openEditAccount = (a: Account) => {
+    setAccForm({ name: a.name, accountTitle: a.accountTitle, code: a.code, currency: a.currency, balance: String(a.balance) });
+    setEditAccId(a.id);
+    setShowAccForm(true);
+  };
+
+  const deleteAccount = (id: string) => setAccounts(accounts.filter(a => a.id !== id));
 
   const markReconciled = (id: string) => {
     setReconcile(reconcile.map(r => r.id === id ? { ...r, status: "reconciled" as const, difference: 0 } : r));
@@ -187,18 +294,20 @@ export default function Accounts() {
         <TabsContent value="balances">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Account Balances</h2>
-            <Button size="sm" className="bg-primary" onClick={() => setShowAccForm(!showAccForm)}><Plus className="w-4 h-4 mr-1" /> New Account</Button>
+            <Button size="sm" className="bg-primary" onClick={() => { setEditAccId(null); setAccForm({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" }); setShowAccForm(!showAccForm); }}>
+              <Plus className="w-4 h-4 mr-1" /> New Account
+            </Button>
           </div>
           {showAccForm && (
             <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
               <Input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="Bank Name" />
               <Input value={accForm.accountTitle} onChange={e => setAccForm({ ...accForm, accountTitle: e.target.value })} placeholder="Account Title" />
               <Input value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} placeholder="Code" />
-              <Input value={accForm.currency} onChange={e => setAccForm({ ...accForm, currency: e.target.value })} placeholder="Currency Code (e.g. PKR)" />
+              <Input value={accForm.currency} onChange={e => setAccForm({ ...accForm, currency: e.target.value })} placeholder="Currency (e.g. PKR)" />
               <Input type="number" value={accForm.balance} onChange={e => setAccForm({ ...accForm, balance: e.target.value })} placeholder="Opening Balance" />
               <div className="md:col-span-5 flex gap-2 justify-end">
-                <Button variant="outline" size="sm" onClick={() => setShowAccForm(false)}>Cancel</Button>
-                <Button size="sm" onClick={addAccount}>Save</Button>
+                <Button variant="outline" size="sm" onClick={() => { setShowAccForm(false); setEditAccId(null); }}>Cancel</Button>
+                <Button size="sm" onClick={addOrUpdateAccount}>{editAccId ? "Update" : "Save"}</Button>
               </div>
             </div>
           )}
@@ -210,28 +319,45 @@ export default function Accounts() {
                   <th className="text-left p-3">Account Title</th>
                   <th className="text-left p-3">Code</th>
                   <th className="text-left p-3">Reconcile Date</th>
-                  <th className="text-left p-3">Fx Currency Code</th>
-                  <th className="text-right p-3">Fx Balance</th>
-                  <th className="text-right p-3">Balance</th>
+                  <th className="text-left p-3">Currency</th>
+                  <th className="text-right p-3">Opening Balance</th>
+                  <th className="text-right p-3">Ledger Balance</th>
+                  <th className="text-right p-3">Total Balance</th>
+                  <th className="text-center p-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((acc) => (
-                  <tr key={acc.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="p-3 text-primary font-medium">{acc.name}</td>
-                    <td className="p-3">{acc.accountTitle}</td>
-                    <td className="p-3">{acc.code}</td>
-                    <td className="p-3">{acc.reconcileDate || "—"}</td>
-                    <td className="p-3">{acc.currency}</td>
-                    <td className="p-3 text-right">{acc.fxBalance.toFixed(2)}</td>
-                    <td className="p-3 text-right">{acc.balance.toFixed(2)}</td>
-                  </tr>
-                ))}
+                {accounts.map((acc) => {
+                  const ledgerBal = bankBalances[acc.name] || 0;
+                  const total = acc.balance + ledgerBal;
+                  return (
+                    <tr key={acc.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="p-3 text-primary font-medium">{acc.name}</td>
+                      <td className="p-3">{acc.accountTitle}</td>
+                      <td className="p-3">{acc.code}</td>
+                      <td className="p-3">{acc.reconcileDate || "—"}</td>
+                      <td className="p-3">{acc.currency}</td>
+                      <td className="p-3 text-right">{formatCurrency(acc.balance)}</td>
+                      <td className={`p-3 text-right font-medium ${ledgerBal >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(ledgerBal)}</td>
+                      <td className={`p-3 text-right font-bold ${total >= 0 ? "text-primary" : "text-destructive"}`}>{formatCurrency(total)}</td>
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditAccount(acc)}><Pencil className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteAccount(acc.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
+              <tfoot>
+                <tr className="border-t bg-muted/30 font-bold">
+                  <td className="p-3" colSpan={7}>Total Balance</td>
+                  <td className="p-3 text-right text-primary">{formatCurrency(accounts.reduce((s, a) => s + a.balance + (bankBalances[a.name] || 0), 0))}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
             </table>
-            <div className="flex items-center justify-between px-3 py-2 border-t text-xs text-muted-foreground">
-              <span>Showing 1 to {accounts.length} of {accounts.length} entries</span>
-            </div>
           </div>
         </TabsContent>
 
@@ -257,11 +383,12 @@ export default function Accounts() {
                 </Select>
                 <Input type="month" value={ledgerMonth} onChange={e => setLedgerMonth(e.target.value)} className="w-44" />
                 <Button size="sm" variant="outline" onClick={exportCSV}><Download className="w-4 h-4 mr-1" /> Export CSV</Button>
-                <Button size="sm" onClick={() => setShowLedgerForm(!showLedgerForm)}><Plus className="w-4 h-4 mr-1" /> Add Entry</Button>
+                <Button size="sm" onClick={() => { setEditLedgerId(null); setLedgerForm({ date: "", bank: "", type: "incoming", amount: "", description: "", reference: "" }); setShowLedgerForm(!showLedgerForm); }}>
+                  <Plus className="w-4 h-4 mr-1" /> Add Entry
+                </Button>
               </div>
             </div>
 
-            {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-card border rounded-lg p-4">
                 <p className="text-xs text-muted-foreground">Total Incoming</p>
@@ -295,10 +422,10 @@ export default function Accounts() {
                 </Select>
                 <Input type="number" value={ledgerForm.amount} onChange={e => setLedgerForm({ ...ledgerForm, amount: e.target.value })} placeholder="Amount" />
                 <Input value={ledgerForm.reference} onChange={e => setLedgerForm({ ...ledgerForm, reference: e.target.value })} placeholder="Reference" />
-                <Input value={ledgerForm.description} onChange={e => setLedgerForm({ ...ledgerForm, description: e.target.value })} placeholder="Description" className="md:col-span-2" />
-                <div className="flex gap-2 justify-end items-end">
-                  <Button variant="outline" size="sm" onClick={() => setShowLedgerForm(false)}>Cancel</Button>
-                  <Button size="sm" onClick={addLedgerEntry}>Save</Button>
+                <Input value={ledgerForm.description} onChange={e => setLedgerForm({ ...ledgerForm, description: e.target.value })} placeholder="Description" />
+                <div className="flex gap-2 justify-end items-end md:col-span-3">
+                  <Button variant="outline" size="sm" onClick={() => { setShowLedgerForm(false); setEditLedgerId(null); }}>Cancel</Button>
+                  <Button size="sm" onClick={addOrUpdateLedgerEntry}>{editLedgerId ? "Update" : "Save"}</Button>
                 </div>
               </div>
             )}
@@ -313,11 +440,12 @@ export default function Accounts() {
                     <th className="text-left p-3">Reference</th>
                     <th className="text-left p-3">Description</th>
                     <th className="text-right p-3">Amount</th>
+                    <th className="text-center p-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredLedger.length === 0 && (
-                    <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No entries for this month</td></tr>
+                    <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No entries for this period</td></tr>
                   )}
                   {filteredLedger.map(e => (
                     <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
@@ -333,6 +461,12 @@ export default function Accounts() {
                       <td className="p-3">{e.description}</td>
                       <td className={`p-3 text-right font-semibold ${e.type === "incoming" ? "text-success" : "text-destructive"}`}>
                         {e.type === "incoming" ? "+" : "-"}{formatCurrency(e.amount)}
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditLedger(e)}><Pencil className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteLedger(e.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -402,7 +536,9 @@ export default function Accounts() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Other Payments</h2>
-              <Button size="sm" onClick={() => setShowPayForm(!showPayForm)}><Plus className="w-4 h-4 mr-1" /> Add Payment</Button>
+              <Button size="sm" onClick={() => { setEditPayId(null); setPayForm(emptyPay); setShowPayForm(!showPayForm); }}>
+                <Plus className="w-4 h-4 mr-1" /> Add Payment
+              </Button>
             </div>
             {showPayForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -414,20 +550,32 @@ export default function Accounts() {
                 <Input value={payForm.reference} onChange={e => setPayForm({ ...payForm, reference: e.target.value })} placeholder="Reference" />
                 <Input value={payForm.description} onChange={e => setPayForm({ ...payForm, description: e.target.value })} placeholder="Description" />
                 <div className="md:col-span-3 flex gap-2 justify-end">
-                  <Button variant="outline" size="sm" onClick={() => setShowPayForm(false)}>Cancel</Button>
-                  <Button size="sm" onClick={addPayment}>Save</Button>
+                  <Button variant="outline" size="sm" onClick={() => { setShowPayForm(false); setEditPayId(null); }}>Cancel</Button>
+                  <Button size="sm" onClick={addOrUpdatePayment}>{editPayId ? "Update" : "Save"}</Button>
                 </div>
               </div>
             )}
             <div className="bg-card border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50"><th className="text-left p-3">Date</th><th className="text-left p-3">Account</th><th className="text-left p-3">Payee</th><th className="text-left p-3">Reference</th><th className="text-left p-3">Description</th><th className="text-right p-3">Amount</th></tr></thead>
+                <thead><tr className="border-b bg-muted/50">
+                  <th className="text-left p-3">Date</th><th className="text-left p-3">Account</th>
+                  <th className="text-left p-3">Payee</th><th className="text-left p-3">Reference</th>
+                  <th className="text-left p-3">Description</th><th className="text-right p-3">Amount</th>
+                  <th className="text-center p-3">Actions</th>
+                </tr></thead>
                 <tbody>
+                  {payments.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No payments yet</td></tr>}
                   {payments.map(p => (
                     <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3">{p.date}</td><td className="p-3">{p.account}</td><td className="p-3">{p.payee}</td>
-                      <td className="p-3"><span className="text-muted-foreground">{p.reference}</span></td><td className="p-3">{p.description}</td>
+                      <td className="p-3 text-muted-foreground">{p.reference}</td><td className="p-3">{p.description}</td>
                       <td className="p-3 text-right font-semibold text-destructive">{formatCurrency(p.amount)}</td>
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditPayment(p)}><Pencil className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deletePayment(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -441,7 +589,9 @@ export default function Accounts() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Other Receipts</h2>
-              <Button size="sm" onClick={() => setShowRecForm(!showRecForm)}><Plus className="w-4 h-4 mr-1" /> Add Receipt</Button>
+              <Button size="sm" onClick={() => { setEditRecId(null); setRecForm(emptyRec); setShowRecForm(!showRecForm); }}>
+                <Plus className="w-4 h-4 mr-1" /> Add Receipt
+              </Button>
             </div>
             {showRecForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -453,20 +603,33 @@ export default function Accounts() {
                 <Input value={recForm.reference} onChange={e => setRecForm({ ...recForm, reference: e.target.value })} placeholder="Reference" />
                 <Input value={recForm.description} onChange={e => setRecForm({ ...recForm, description: e.target.value })} placeholder="Description" />
                 <div className="md:col-span-3 flex gap-2 justify-end">
-                  <Button variant="outline" size="sm" onClick={() => setShowRecForm(false)}>Cancel</Button>
-                  <Button size="sm" onClick={addReceipt}>Save</Button>
+                  <Button variant="outline" size="sm" onClick={() => { setShowRecForm(false); setEditRecId(null); }}>Cancel</Button>
+                  <Button size="sm" onClick={addOrUpdateReceipt}>{editRecId ? "Update" : "Save"}</Button>
                 </div>
               </div>
             )}
             <div className="bg-card border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50"><th className="text-left p-3">Date</th><th className="text-left p-3">Account</th><th className="text-left p-3">Received From</th><th className="text-left p-3">Reference</th><th className="text-left p-3">Description</th><th className="text-right p-3">Amount</th></tr></thead>
+                <thead><tr className="border-b bg-muted/50">
+                  <th className="text-left p-3">Date</th><th className="text-left p-3">Account</th>
+                  <th className="text-left p-3">Received From</th><th className="text-left p-3">Reference</th>
+                  <th className="text-left p-3">Description</th><th className="text-right p-3">Amount</th>
+                  <th className="text-center p-3">Actions</th>
+                </tr></thead>
                 <tbody>
+                  {receipts.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No receipts yet</td></tr>}
                   {receipts.map(r => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3">{r.date}</td><td className="p-3">{r.account}</td><td className="p-3">{r.receivedFrom}</td>
-                      <td className="p-3"><span className="text-muted-foreground">{r.reference}</span></td><td className="p-3">{r.description}</td>
+                      <td className="p-3 text-muted-foreground">{r.reference}</td><td className="p-3">{r.description}</td>
                       <td className="p-3 text-right font-semibold text-success">{formatCurrency(r.amount)}</td>
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditReceipt(r)}><Pencil className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => printReceipt(r, formatCurrency, settings.companyName)}><Printer className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteReceipt(r.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -480,7 +643,9 @@ export default function Accounts() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold">Account Transfers</h2>
-              <Button size="sm" onClick={() => setShowTrfForm(!showTrfForm)}><ArrowLeftRight className="w-4 h-4 mr-1" /> New Transfer</Button>
+              <Button size="sm" onClick={() => { setEditTrfId(null); setTrfForm(emptyTrf); setShowTrfForm(!showTrfForm); }}>
+                <ArrowLeftRight className="w-4 h-4 mr-1" /> New Transfer
+              </Button>
             </div>
             {showTrfForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -491,21 +656,32 @@ export default function Accounts() {
                 <datalist id="account-list-to">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
                 <Input type="number" value={trfForm.amount} onChange={e => setTrfForm({ ...trfForm, amount: e.target.value })} placeholder="Amount" />
                 <Input value={trfForm.reference} onChange={e => setTrfForm({ ...trfForm, reference: e.target.value })} placeholder="Reference" />
-                <div className="flex gap-2 justify-end items-end">
-                  <Button variant="outline" size="sm" onClick={() => setShowTrfForm(false)}>Cancel</Button>
-                  <Button size="sm" onClick={addTransfer}>Save</Button>
+                <div className="flex gap-2 justify-end items-end md:col-span-3">
+                  <Button variant="outline" size="sm" onClick={() => { setShowTrfForm(false); setEditTrfId(null); }}>Cancel</Button>
+                  <Button size="sm" onClick={addOrUpdateTransfer}>{editTrfId ? "Update" : "Save"}</Button>
                 </div>
               </div>
             )}
             <div className="bg-card border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50"><th className="text-left p-3">Date</th><th className="text-left p-3">From</th><th className="text-left p-3">To</th><th className="text-left p-3">Reference</th><th className="text-right p-3">Amount</th></tr></thead>
+                <thead><tr className="border-b bg-muted/50">
+                  <th className="text-left p-3">Date</th><th className="text-left p-3">From</th>
+                  <th className="text-left p-3">To</th><th className="text-left p-3">Reference</th>
+                  <th className="text-right p-3">Amount</th><th className="text-center p-3">Actions</th>
+                </tr></thead>
                 <tbody>
+                  {transfers.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No transfers yet</td></tr>}
                   {transfers.map(t => (
                     <tr key={t.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="p-3">{t.date}</td><td className="p-3">{t.fromAccount}</td><td className="p-3">{t.toAccount}</td>
-                      <td className="p-3"><span className="text-muted-foreground">{t.reference}</span></td>
+                      <td className="p-3 text-muted-foreground">{t.reference}</td>
                       <td className="p-3 text-right font-semibold">{formatCurrency(t.amount)}</td>
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditTransfer(t)}><Pencil className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteTransfer(t.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -520,7 +696,11 @@ export default function Accounts() {
             <h2 className="text-lg font-semibold">Bank Reconciliation</h2>
             <div className="bg-card border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
-                <thead><tr className="border-b bg-muted/50"><th className="text-left p-3">Date</th><th className="text-left p-3">Account</th><th className="text-right p-3">Statement Balance</th><th className="text-right p-3">Book Balance</th><th className="text-right p-3">Difference</th><th className="text-center p-3">Status</th><th className="text-center p-3">Action</th></tr></thead>
+                <thead><tr className="border-b bg-muted/50">
+                  <th className="text-left p-3">Date</th><th className="text-left p-3">Account</th>
+                  <th className="text-right p-3">Statement Balance</th><th className="text-right p-3">Book Balance</th>
+                  <th className="text-right p-3">Difference</th><th className="text-center p-3">Status</th><th className="text-center p-3">Action</th>
+                </tr></thead>
                 <tbody>
                   {reconcile.map(r => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
