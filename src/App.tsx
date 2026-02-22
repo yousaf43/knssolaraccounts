@@ -16,6 +16,8 @@ import Accounts from "@/pages/Accounts";
 import Assets from "@/pages/Assets";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import ActivityLogs from "@/pages/ActivityLogs";
+import TrashPage from "@/pages/Trash";
 import Auth from "@/pages/Auth";
 import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -48,6 +50,8 @@ function ProtectedRoutes() {
         <Route path="/accounts" element={<Accounts />} />
         <Route path="/assets" element={<Assets />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/activity-logs" element={<ActivityLogs />} />
+        <Route path="/trash" element={<TrashPage />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<NotFound />} />

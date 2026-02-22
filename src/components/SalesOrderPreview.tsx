@@ -63,6 +63,9 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         .sig-box .sig-label { font-size: 10px; color: #666; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
+        img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+        th { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .footer-bar { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       </style></head><body>
       ${content.innerHTML}
       </body></html>

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: string | null
+          id: string
+          item_id: string
+          item_label: string
+          item_type: string
+          user_id: string
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          item_id?: string
+          item_label?: string
+          item_type?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          item_id?: string
+          item_label?: string
+          item_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       backups: {
         Row: {
           backup_data: Json
@@ -598,6 +631,33 @@ export type Database = {
           phone?: string | null
           total_paid?: number | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trash: {
+        Row: {
+          deleted_at: string
+          id: string
+          item_data: Json
+          item_id: string
+          item_type: string
+          user_id: string
+        }
+        Insert: {
+          deleted_at?: string
+          id?: string
+          item_data?: Json
+          item_id?: string
+          item_type?: string
+          user_id: string
+        }
+        Update: {
+          deleted_at?: string
+          id?: string
+          item_data?: Json
+          item_id?: string
+          item_type?: string
           user_id?: string
         }
         Relationships: []
