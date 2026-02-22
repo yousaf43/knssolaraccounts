@@ -11,7 +11,9 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight } from
+  ChevronRight,
+  History,
+  Trash2 } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
@@ -26,7 +28,9 @@ const navItems = [
 { title: "Inventory", url: "/inventory", icon: Package },
 { title: "Accounts", url: "/accounts", icon: Landmark },
 { title: "Assets", url: "/assets", icon: Building2 },
-{ title: "Reports", url: "/reports", icon: BarChart3 }];
+{ title: "Reports", url: "/reports", icon: BarChart3 },
+{ title: "Activity Logs", url: "/activity-logs", icon: History },
+{ title: "Trash", url: "/trash", icon: Trash2 }];
 
 
 export function AppSidebar() {

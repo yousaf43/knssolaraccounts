@@ -1,7 +1,9 @@
 import { useState } from "react";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useStockAdjustmentsCloud } from "@/hooks/useAppData";
-import { Plus, ArrowUp, ArrowDown, X } from "lucide-react";
+import { useTrash } from "@/hooks/useTrash";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import { Plus, ArrowUp, ArrowDown, X, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +24,11 @@ interface StockAdjustmentSectionProps {
 
 export default function StockAdjustmentSection({ inventory, onUpdateInventory }: StockAdjustmentSectionProps) {
   const { formatCurrency } = useSettings();
-  const { data: adjustments, upsert } = useStockAdjustmentsCloud();
+  const { data: adjustments, upsert, remove } = useStockAdjustmentsCloud();
+  const { moveToTrash } = useTrash();
+  const { log } = useActivityLog();
   const [showForm, setShowForm] = useState(false);
+  const [editingAdj, setEditingAdj] = useState<StockAdjustment | null>(null);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [type, setType] = useState<"increase" | "decrease">("increase");
   const [qty, setQty] = useState(0);
@@ -36,7 +41,30 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
 
   const resetForm = () => {
     setSelectedItemId(""); setType("increase"); setQty(0); setReason(""); setNote("");
-    setNewCostPrice(""); setNewSalePrice("");
+    setNewCostPrice(""); setNewSalePrice(""); setEditingAdj(null);
+  };
+
+  const openEdit = (adj: StockAdjustment) => {
+    setEditingAdj(adj);
+    setSelectedItemId(adj.itemId);
+    setType(adj.type);
+    setQty(adj.qty);
+    setReason(adj.reason);
+    setNote(adj.note || "");
+    setNewCostPrice("");
+    setNewSalePrice("");
+    setShowForm(true);
+  };
+
+  const handleDelete = async (adj: StockAdjustment) => {
+    // Move to trash first
+    await moveToTrash("stock_adjustment", adj.id, {
+      id: adj.id, item_id: adj.itemId, item_name: adj.itemName,
+      type: adj.type, qty: adj.qty, reason: adj.reason, date: adj.date, note: adj.note || "",
+    });
+    await remove(adj.id);
+    await log("delete", "stock_adjustment", adj.id, `${adj.itemName} (${adj.type} ${adj.qty})`, adj.reason);
+    toast.success("Adjustment moved to trash");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +76,6 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
       toast.error(`Cannot decrease by ${qty}. Current stock is ${item.qty}.`); return;
     }
 
-    // Build note with new prices if provided
     let noteText = note || undefined;
     const updatedCost = newCostPrice !== "" ? Number(newCostPrice) : item.costPrice;
     const updatedSale = newSalePrice !== "" ? Number(newSalePrice) : item.salePrice;
@@ -62,22 +89,28 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
     }
 
     const adjustment: StockAdjustment = {
-      id: crypto.randomUUID(), itemId: selectedItemId, itemName: item.name,
-      type, qty, reason, date: new Date().toISOString().split("T")[0], note: noteText,
+      id: editingAdj?.id || crypto.randomUUID(), itemId: selectedItemId, itemName: item.name,
+      type, qty, reason, date: editingAdj?.date || new Date().toISOString().split("T")[0], note: noteText,
     };
     await upsert(adjustment);
-    onUpdateInventory((prev) =>
-      prev.map((i) => i.id === selectedItemId
-        ? {
-            ...i,
-            qty: type === "increase" ? i.qty + qty : i.qty - qty,
-            costPrice: hasPriceChange ? updatedCost : i.costPrice,
-            salePrice: hasPriceChange ? updatedSale : i.salePrice,
-            price: hasPriceChange ? updatedSale : i.price,
-          }
-        : i)
-    );
-    toast.success(`Stock ${type === "increase" ? "increased" : "decreased"} by ${qty} for ${item.name}${hasPriceChange ? " (prices updated)" : ""}`);
+
+    if (!editingAdj) {
+      onUpdateInventory((prev) =>
+        prev.map((i) => i.id === selectedItemId
+          ? {
+              ...i,
+              qty: type === "increase" ? i.qty + qty : i.qty - qty,
+              costPrice: hasPriceChange ? updatedCost : i.costPrice,
+              salePrice: hasPriceChange ? updatedSale : i.salePrice,
+              price: hasPriceChange ? updatedSale : i.price,
+            }
+          : i)
+      );
+    }
+
+    const action = editingAdj ? "edit" : "create";
+    await log(action, "stock_adjustment", adjustment.id, `${item.name} (${type} ${qty})`, reason);
+    toast.success(editingAdj ? "Adjustment updated" : `Stock ${type === "increase" ? "increased" : "decreased"} by ${qty} for ${item.name}${hasPriceChange ? " (prices updated)" : ""}`);
     resetForm();
     setShowForm(false);
   };
@@ -97,8 +130,8 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
       {showForm && (
         <div className="bg-card rounded-lg border p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-sm">Record Adjustment</h3>
-            <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-4 h-4" /></Button>
+            <h3 className="font-medium text-sm">{editingAdj ? "Edit Adjustment" : "Record Adjustment"}</h3>
+            <Button variant="ghost" size="icon" onClick={() => { setShowForm(false); resetForm(); }}><X className="w-4 h-4" /></Button>
           </div>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -135,7 +168,6 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                 </SelectContent>
               </Select>
             </div>
-            {/* New Price fields */}
             <div>
               <Label>New Cost Price{selectedItem ? ` (current: ${formatCurrency(selectedItem.costPrice)})` : ""}</Label>
               <Input
@@ -159,8 +191,8 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
               <Input value={note} onChange={(e) => setNote(e.target.value)} className="mt-1" placeholder="Additional details..." maxLength={200} />
             </div>
             <div className="md:col-span-3 flex gap-3 justify-end">
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit">Save Adjustment</Button>
+              <Button type="button" variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>Cancel</Button>
+              <Button type="submit">{editingAdj ? "Update" : "Save"} Adjustment</Button>
             </div>
           </form>
         </div>
@@ -178,15 +210,14 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                 <th className="text-right px-3 py-3 font-medium text-muted-foreground">Price Change</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Reason</th>
                 <th className="text-left px-3 py-3 font-medium text-muted-foreground">Note</th>
+                <th className="text-center px-3 py-3 font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {adjustments.slice(0, 20).map((adj) => {
-                // Parse price info from note if it's a Price Update
+              {adjustments.slice(0, 50).map((adj) => {
                 const isPriceUpdate = adj.reason === "Price Update";
                 let priceChange: string | null = null;
-                if (isPriceUpdate && adj.note) {
-                  // note format: "Cost: 100 → 120" or "Sale: 200 → 250"
+                if (adj.note && (adj.note.includes("Cost:") || adj.note.includes("Sale:"))) {
                   priceChange = adj.note;
                 }
                 return (
@@ -214,6 +245,16 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                     </td>
                     <td className="px-3 py-3 text-muted-foreground">{adj.reason}</td>
                     <td className="px-3 py-3 text-muted-foreground">{isPriceUpdate ? "—" : (adj.note || "—")}</td>
+                    <td className="px-3 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(adj)}>
+                          <Edit className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                        <button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDelete(adj)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
