@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import { useTrash } from "@/hooks/useTrash";
 
 const DEFAULT_UNITS = ["pcs", "kg", "ltr", "box", "dozen", "meter", "feet"];
 const DEFAULT_ACCOUNTS = ["Inventory Asset", "Stock on Hand", "Raw Materials", "Finished Goods"];
@@ -28,6 +30,8 @@ const emptyItem = (): Partial<InventoryItem> => ({
 
 export default function Inventory() {
   const { formatCurrency } = useSettings();
+  const { log } = useActivityLog();
+  const { moveToTrash } = useTrash();
   const { data: inventory, loading, upsert, remove, replaceAll } = useInventoryCloud();
   const { upsert: upsertAdjustment } = useStockAdjustmentsCloud();
   const { customUnits, customAccounts, customCategories, setCustomUnits, setCustomAccounts, setCustomCategories } = useUserSettingsCloud();
@@ -112,11 +116,17 @@ export default function Inventory() {
     }
 
     await upsert(item);
+    await log(editing ? "edit" : "create", "inventory", item.id, item.name, `SKU: ${item.sku}, Qty: ${item.qty}`);
     toast.success(editing ? "Item updated" : "Item added");
     setShowForm(false);
   };
 
   const handleDelete = async (id: string) => {
+    const item = inventory.find(i => i.id === id);
+    if (item) {
+      await moveToTrash("inventory", id, item);
+      await log("delete", "inventory", id, item.name, `SKU: ${item.sku}`);
+    }
     await remove(id);
     toast.success("Item deleted");
   };

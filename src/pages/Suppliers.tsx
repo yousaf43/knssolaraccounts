@@ -7,11 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import { useTrash } from "@/hooks/useTrash";
 
 const empty = (): Partial<Supplier> => ({ name: "", email: "", phone: "", company: "", totalPaid: 0, outstanding: 0 });
 
 export default function Suppliers() {
   const { formatCurrency } = useSettings();
+  const { log } = useActivityLog();
+  const { moveToTrash } = useTrash();
   const { data: suppliers, loading, upsert, remove } = useSuppliersCloud();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
@@ -31,11 +35,17 @@ export default function Suppliers() {
       outstanding: form.outstanding || 0,
     } as Supplier;
     await upsert(supplier);
+    await log(editing ? "edit" : "create", "supplier", supplier.id, supplier.name, `Company: ${supplier.company}`);
     toast.success(editing ? "Supplier updated" : "Supplier added");
     setShowForm(false);
   };
 
   const handleDelete = async (id: string) => {
+    const s = suppliers.find(su => su.id === id);
+    if (s) {
+      await moveToTrash("supplier", id, s);
+      await log("delete", "supplier", id, s.name, `Company: ${s.company}`);
+    }
     await remove(id);
     toast.success("Supplier deleted");
   };

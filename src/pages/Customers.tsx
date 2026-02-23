@@ -8,11 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Mail, Phone, Edit, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import { useTrash } from "@/hooks/useTrash";
 
 const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", address: "", totalBilled: 0, outstanding: 0 });
 
 export default function Customers() {
   const { formatCurrency } = useSettings();
+  const { log } = useActivityLog();
+  const { moveToTrash } = useTrash();
   const { data: customers, upsert: upsertCustomer, remove: removeCustomer } = useCustomersCloud();
   const { data: invoices } = useInvoicesCloud();
   const { data: receipts } = useReceiptsCloud();
@@ -34,20 +38,28 @@ export default function Customers() {
     return { totalBilled, totalPaid, outstanding, custInvoices, custReceipts };
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name?.trim() || !form.email?.trim() || !form.company?.trim()) return;
     if (editing) {
-      upsertCustomer({ ...editing, ...form } as Customer);
+      await upsertCustomer({ ...editing, ...form } as Customer);
+      await log("edit", "customer", editing.id, editing.name, `Company: ${form.company}`);
       toast.success("Customer updated");
     } else {
-      upsertCustomer({ ...form, id: crypto.randomUUID(), address: form.address || "", totalBilled: 0, outstanding: 0 } as Customer);
+      const id = crypto.randomUUID();
+      await upsertCustomer({ ...form, id, address: form.address || "", totalBilled: 0, outstanding: 0 } as Customer);
+      await log("create", "customer", id, form.name || "", `Company: ${form.company}`);
       toast.success("Customer added");
     }
     setShowForm(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    const c = customers.find(cu => cu.id === id);
+    if (c) {
+      await moveToTrash("customer", id, c);
+      await log("delete", "customer", id, c.name, `Company: ${c.company}`);
+    }
     removeCustomer(id);
     toast.success("Customer deleted");
   };
