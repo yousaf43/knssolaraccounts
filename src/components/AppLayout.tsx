@@ -1,32 +1,53 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
-import { Bell, Search, LogOut } from "lucide-react";
+import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 export function AppLayout() {
   const { profile, role, signOut } = useAuth();
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen w-full">
-      <AppSidebar />
+      {/* Desktop sidebar */}
+      {!isMobile && <AppSidebar />}
+
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-16 border-b bg-card flex items-center justify-between px-6 flex-shrink-0">
-          <div className="flex items-center gap-3 flex-1 max-w-md">
-            <Search className="w-4 h-4 text-muted-foreground" />
+        <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2">
+          {/* Mobile menu button */}
+          {isMobile && (
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <SheetTrigger asChild>
+                <button className="p-2 rounded-md hover:bg-muted transition-colors">
+                  <Menu className="w-5 h-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-64 [&>button]:hidden">
+                <AppSidebar onNavigate={() => setSidebarOpen(false)} />
+              </SheetContent>
+            </Sheet>
+          )}
+
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-md">
+            <Search className="w-4 h-4 text-muted-foreground hidden sm:block" />
             <input
               type="text"
-              placeholder="Search transactions, invoices..."
+              placeholder="Search..."
               className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground"
             />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button className="relative p-2 rounded-md hover:bg-muted transition-colors">
               <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
             </button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold overflow-hidden">
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -55,7 +76,7 @@ export function AppLayout() {
           </div>
         </header>
         {/* Content */}
-        <main className="flex-1 overflow-auto p-6 bg-background">
+        <main className="flex-1 overflow-auto p-3 sm:p-6 bg-background">
           <Outlet />
         </main>
       </div>
