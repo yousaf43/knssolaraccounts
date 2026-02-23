@@ -9,6 +9,8 @@ import { Plus, Edit, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import { useTrash } from "@/hooks/useTrash";
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Other"];
 const paymentMethods = ["Credit Card", "Bank Transfer", "Auto-debit", "Cash", "Check"];
@@ -35,6 +37,8 @@ const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().s
 
 export default function Expenses() {
   const { formatCurrency } = useSettings();
+  const { log } = useActivityLog();
+  const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
@@ -45,20 +49,28 @@ export default function Expenses() {
   const openAdd = () => { setEditing(null); setForm(emptyExpense()); setShowForm(true); };
   const openEdit = (e: Expense) => { setEditing(e); setForm(e); setShowForm(true); };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description?.trim() || !form.amount || !form.date) return;
     if (editing) {
-      upsertExpense({ ...editing, ...form } as Expense);
+      await upsertExpense({ ...editing, ...form } as Expense);
+      await log("edit", "expense", editing.id, editing.description, `Amount: ${form.amount}`);
       toast.success("Expense updated");
     } else {
-      upsertExpense({ ...form, id: crypto.randomUUID() } as Expense);
+      const id = crypto.randomUUID();
+      await upsertExpense({ ...form, id } as Expense);
+      await log("create", "expense", id, form.description || "", `Amount: ${form.amount}`);
       toast.success("Expense added");
     }
     setShowForm(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    const exp = expenses.find(e => e.id === id);
+    if (exp) {
+      await moveToTrash("expense", id, exp);
+      await log("delete", "expense", id, exp.description, `Amount: ${exp.amount}`);
+    }
     removeExpense(id);
     toast.success("Expense deleted");
   };

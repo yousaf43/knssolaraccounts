@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Edit, Trash2, X, Upload, Download, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import { useTrash } from "@/hooks/useTrash";
 
 function isInDateRange(dateStr: string, range: string, from: string, to: string) {
   if (range === "all") return true;
@@ -45,6 +47,8 @@ const today = () => new Date().toISOString().split("T")[0];
 
 export default function Purchases() {
   const { formatCurrency } = useSettings();
+  const { log } = useActivityLog();
+  const { moveToTrash } = useTrash();
   const [tab, setTab] = useState("purchase-orders");
 
   // Data
@@ -217,7 +221,7 @@ export default function Purchases() {
   };
 
   // ---- PO CRUD ----
-  const handleSavePO = (e: React.FormEvent) => {
+  const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!poForm.supplier) return;
     const total = calcTotal(poItems, poForm.tax);
@@ -227,13 +231,13 @@ export default function Purchases() {
     setPurchaseOrders(prev => [...prev, newPO]);
     setShowPOForm(false);
     setPOItems([emptyItem()]);
-
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
+    await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
     toast.success("Purchase Order created");
   };
 
   // ---- Bill CRUD ----
-  const handleSaveBill = (e: React.FormEvent) => {
+  const handleSaveBill = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!billForm.supplier) return;
     const total = calcTotal(billItems, billForm.tax);
@@ -244,11 +248,12 @@ export default function Purchases() {
     setShowBillForm(false);
     setBillItems([emptyItem()]);
     setBillForm({ supplier: "", date: today(), dueDate: "", status: "pending", notes: "", tax: 10 });
+    await log("create", "bill", newBill.id, num, `Supplier: ${billForm.supplier}, Amount: ${total}`);
     toast.success("Bill created");
   };
 
   // ---- Payment CRUD ----
-  const handleSavePayment = (e: React.FormEvent) => {
+  const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!paymentForm.supplier || !paymentForm.amount) return;
     const num = `PP-${String(payments.length + 1).padStart(3, "0")}`;
@@ -257,6 +262,7 @@ export default function Purchases() {
     setPayments(prev => [...prev, newPayment]);
     setShowPaymentForm(false);
     setPaymentForm({ supplier: "", date: today(), billNumber: "", amount: 0, paymentMethod: "Bank Transfer", reference: "", notes: "" });
+    await log("create", "purchase_payment", newPayment.id, num, `Supplier: ${paymentForm.supplier}, Amount: ${paymentForm.amount}`);
     toast.success("Payment recorded");
   };
 
@@ -278,9 +284,21 @@ export default function Purchases() {
   const handleDeleteSupplier = (id: string) => { removeSupplier(id); toast.success("Supplier deleted"); };
 
   // Delete handlers
-  const handleDeletePO = (id: string) => { removePO(id); toast.success("Purchase order deleted"); };
-  const handleDeleteBill = (id: string) => { removeBill(id); toast.success("Bill deleted"); };
-  const handleDeletePayment = (id: string) => { removePayment(id); toast.success("Payment deleted"); };
+  const handleDeletePO = async (id: string) => {
+    const po = purchaseOrders.find(p => p.id === id);
+    if (po) { await moveToTrash("purchase_order", id, po); await log("delete", "purchase_order", id, po.number, `Supplier: ${po.supplier}`); }
+    removePO(id); toast.success("Purchase order deleted");
+  };
+  const handleDeleteBill = async (id: string) => {
+    const b = bills.find(bl => bl.id === id);
+    if (b) { await moveToTrash("bill", id, b); await log("delete", "bill", id, b.number, `Supplier: ${b.supplier}`); }
+    removeBill(id); toast.success("Bill deleted");
+  };
+  const handleDeletePayment = async (id: string) => {
+    const p = payments.find(pm => pm.id === id);
+    if (p) { await moveToTrash("purchase_payment", id, p); await log("delete", "purchase_payment", id, p.number, `Supplier: ${p.supplier}`); }
+    removePayment(id); toast.success("Payment deleted");
+  };
 
   // Reusable Line Items Editor
   const LineItemsEditor = ({ items, setItems }: { items: InvoiceItem[]; setItems: (v: InvoiceItem[]) => void }) => (

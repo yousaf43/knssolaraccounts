@@ -14,6 +14,8 @@ import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { ReceiptForm } from "@/components/ReceiptForm";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useActivityLog } from "@/hooks/useActivityLog";
+import { useTrash } from "@/hooks/useTrash";
 
 const invoiceStatusStyles: Record<string, string> = {
   paid: "bg-success/10 text-success hover:bg-success/20 border-0",
@@ -43,6 +45,8 @@ function parseCSV(text: string): Record<string, string>[] {
 
 export default function Invoices() {
   const { formatCurrency } = useSettings();
+  const { log } = useActivityLog();
+  const { moveToTrash } = useTrash();
   const { data: invoices, upsert: upsertInvoice, remove: removeInvoice, setData: setInvoices } = useInvoicesCloud();
   const { data: salesOrders, upsert: upsertSalesOrder, remove: removeSalesOrder, setData: setSalesOrders } = useSalesOrdersCloud();
   const { data: receipts, upsert: upsertReceipt, remove: removeReceipt, setData: setReceipts } = useReceiptsCloud();
@@ -103,17 +107,35 @@ export default function Invoices() {
       }
     }
     goList();
+    await log(editInvoice ? "edit" : "create", "invoice", invoice.id, invoice.number, `Customer: ${invoice.customer}, Amount: ${invoice.amount}`);
     toast.success(editInvoice ? "Invoice updated" : "Invoice created");
   };
-  const handleDeleteInvoice = (id: string) => { removeInvoice(id); toast.success("Invoice deleted"); };
+  const handleDeleteInvoice = async (id: string) => {
+    const inv = invoices.find(i => i.id === id);
+    if (inv) {
+      await moveToTrash("invoice", id, inv);
+      await log("delete", "invoice", id, inv.number, `Customer: ${inv.customer}`);
+    }
+    removeInvoice(id);
+    toast.success("Invoice deleted");
+  };
 
   // --- Sales Order handlers ---
-  const handleSaveSO = (order: SalesOrder) => {
-    upsertSalesOrder(order);
+  const handleSaveSO = async (order: SalesOrder) => {
+    await upsertSalesOrder(order);
     goList();
+    await log(editOrder ? "edit" : "create", "sales_order", order.id, order.number, `Customer: ${order.customer}, Amount: ${order.amount}`);
     toast.success(editOrder ? "Sales Order updated" : "Sales Order created");
   };
-  const handleDeleteSO = (id: string) => { removeSalesOrder(id); toast.success("Sales Order deleted"); };
+  const handleDeleteSO = async (id: string) => {
+    const so = salesOrders.find(s => s.id === id);
+    if (so) {
+      await moveToTrash("sales_order", id, so);
+      await log("delete", "sales_order", id, so.number, `Customer: ${so.customer}`);
+    }
+    removeSalesOrder(id);
+    toast.success("Sales Order deleted");
+  };
 
   // Approve Sales Order → Convert to Invoice + Deduct Inventory
   const handleApproveSO = async (so: SalesOrder) => {
@@ -148,16 +170,26 @@ export default function Invoices() {
       await upsertReceipt(newReceipt);
     }
     await upsertSalesOrder({ ...so, status: "approved" });
+    await log("create", "invoice", newInvoice.id, newInvoice.number, `Converted from ${so.number}`);
     toast.success(`${so.number} approved → Invoice ${newInvoice.number} created`);
   };
 
   // --- Receipt handlers ---
-  const handleSaveReceipt = (receipt: Receipt) => {
-    upsertReceipt(receipt);
+  const handleSaveReceipt = async (receipt: Receipt) => {
+    await upsertReceipt(receipt);
     goList();
+    await log(editReceipt ? "edit" : "create", "receipt", receipt.id, receipt.number, `Customer: ${receipt.customer}, Amount: ${receipt.amount}`);
     toast.success(editReceipt ? "Receipt updated" : "Receipt created");
   };
-  const handleDeleteReceipt = (id: string) => { removeReceipt(id); toast.success("Receipt deleted"); };
+  const handleDeleteReceipt = async (id: string) => {
+    const r = receipts.find(rc => rc.id === id);
+    if (r) {
+      await moveToTrash("receipt", id, r);
+      await log("delete", "receipt", id, r.number, `Customer: ${r.customer}`);
+    }
+    removeReceipt(id);
+    toast.success("Receipt deleted");
+  };
 
   // --- Import handlers ---
   const handleImportInvoices = (e: React.ChangeEvent<HTMLInputElement>) => {
