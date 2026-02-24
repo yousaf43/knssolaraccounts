@@ -26,7 +26,7 @@ import { Loader2 } from "lucide-react";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useAuth();
 
   if (loading) {
     return (
@@ -38,23 +38,25 @@ function ProtectedRoutes() {
 
   if (!user) return <Navigate to="/auth" replace />;
 
+  const isSales = role === "sales";
+
   return (
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/customers" element={<Customers />} />
-        <Route path="/purchases" element={<Purchases />} />
-        <Route path="/expenses" element={<Expenses />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/accounts" element={<Accounts />} />
-        <Route path="/assets" element={<Assets />} />
-        <Route path="/reports" element={<Reports />} />
+        {!isSales && <Route path="/purchases" element={<Purchases />} />}
+        {!isSales && <Route path="/expenses" element={<Expenses />} />}
+        {!isSales && <Route path="/inventory" element={<Inventory />} />}
+        {!isSales && <Route path="/accounts" element={<Accounts />} />}
+        {!isSales && <Route path="/assets" element={<Assets />} />}
+        {!isSales && <Route path="/reports" element={<Reports />} />}
         <Route path="/activity-logs" element={<ActivityLogs />} />
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={isSales ? <Navigate to="/" replace /> : <NotFound />} />
     </Routes>
   );
 }
