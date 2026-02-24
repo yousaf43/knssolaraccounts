@@ -18,19 +18,20 @@ import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
 import ksLogo from "@/assets/ks-logo.png";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
-const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Invoices", url: "/invoices", icon: FileText },
-  { title: "Customers", url: "/customers", icon: Users },
-  { title: "Purchases", url: "/purchases", icon: Truck },
-  { title: "Expenses", url: "/expenses", icon: Receipt },
-  { title: "Inventory", url: "/inventory", icon: Package },
-  { title: "Accounts", url: "/accounts", icon: Landmark },
-  { title: "Assets", url: "/assets", icon: Building2 },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Activity Logs", url: "/activity-logs", icon: History },
-  { title: "Trash", url: "/trash", icon: Trash2 },
+const allNavItems = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin", "accountant", "sales"] },
+  { title: "Invoices", url: "/invoices", icon: FileText, roles: ["admin", "accountant", "sales"] },
+  { title: "Customers", url: "/customers", icon: Users, roles: ["admin", "accountant", "sales"] },
+  { title: "Purchases", url: "/purchases", icon: Truck, roles: ["admin", "accountant"] },
+  { title: "Expenses", url: "/expenses", icon: Receipt, roles: ["admin", "accountant"] },
+  { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "accountant"] },
+  { title: "Accounts", url: "/accounts", icon: Landmark, roles: ["admin", "accountant"] },
+  { title: "Assets", url: "/assets", icon: Building2, roles: ["admin", "accountant"] },
+  { title: "Reports", url: "/reports", icon: BarChart3, roles: ["admin", "accountant"] },
+  { title: "Activity Logs", url: "/activity-logs", icon: History, roles: ["admin", "accountant", "sales"] },
+  { title: "Trash", url: "/trash", icon: Trash2, roles: ["admin", "accountant", "sales"] },
 ];
 
 interface AppSidebarProps {
@@ -40,9 +41,11 @@ interface AppSidebarProps {
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
+  const { role } = useAuth();
 
-  // On mobile (inside sheet), never collapse
   const isCollapsed = isMobile ? false : collapsed;
+
+  const navItems = allNavItems.filter((item) => !role || item.roles.includes(role));
 
   return (
     <aside
@@ -50,16 +53,10 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         isCollapsed ? "w-16" : "w-60"
       } ${isMobile ? "min-h-full" : "min-h-screen"}`}
     >
-      {/* Logo */}
       <div className="flex items-center justify-center px-2 py-3 border-b border-sidebar-border">
-        <img
-          src={ksLogo}
-          alt="K&S Solar Energy"
-          className={`${isCollapsed ? "w-10" : "h-12 w-full"} object-contain`}
-        />
+        <img src={ksLogo} alt="K&S Solar Energy" className={`${isCollapsed ? "w-10" : "h-12 w-full"} object-contain`} />
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
@@ -76,7 +73,6 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         ))}
       </nav>
 
-      {/* Bottom */}
       <div className="border-t border-sidebar-border p-2 space-y-1">
         <NavLink
           to="/settings"

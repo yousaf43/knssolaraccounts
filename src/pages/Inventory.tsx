@@ -82,15 +82,29 @@ export default function Inventory() {
 
   const lowStock = inventory.filter((i) => i.productType !== "non-stock" && i.qty <= i.reorderLevel);
 
-  const openAdd = () => { setEditing(null); setForm(emptyItem()); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm({ ...emptyItem(), sku: generateProductCode() }); setShowForm(true); };
   const openEdit = (item: InventoryItem) => { setEditing(item); setForm(item); setShowForm(true); };
+
+  // Auto-generate product code
+  const generateProductCode = () => {
+    const existingCodes = inventory
+      .map((i) => i.sku)
+      .filter((s) => s.startsWith("PRD-"))
+      .map((s) => parseInt(s.replace("PRD-", ""), 10))
+      .filter((n) => !isNaN(n));
+    const next = existingCodes.length > 0 ? Math.max(...existingCodes) + 1 : 1;
+    return `PRD-${String(next).padStart(4, "0")}`;
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name?.trim() || !form.sku?.trim()) return;
+    if (!form.name?.trim()) return;
+    // Auto-generate SKU if empty
+    const sku = form.sku?.trim() || generateProductCode();
     const item: InventoryItem = {
       ...emptyItem(),
       ...form,
+      sku,
       id: editing?.id || crypto.randomUUID(),
     } as InventoryItem;
 

@@ -29,7 +29,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const [date, setDate] = useState(editOrder?.date || new Date().toISOString().split("T")[0]);
   const [deliveryDate, setDeliveryDate] = useState(editOrder?.deliveryDate || "");
   const [status, setStatus] = useState<SalesOrder["status"]>(editOrder?.status || "pending");
-  const [tax, setTax] = useState(editOrder?.tax ?? 10);
+  const [tax, setTax] = useState(editOrder?.tax ?? 0);
   const [notes, setNotes] = useState(editOrder?.notes || "");
   const [items, setItems] = useState<InvoiceItem[]>(
     editOrder?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]

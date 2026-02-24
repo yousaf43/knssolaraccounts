@@ -52,6 +52,13 @@ export default function Settings() {
   const fileRef = useRef<HTMLInputElement>(null);
   const cloudBackup = useCloudBackup();
 
+  // New user creation state
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState("sales");
+  const [creatingUser, setCreatingUser] = useState(false);
+
   const handleSave = async () => {
     let logoUrl = form.logoUrl || "";
 
@@ -139,6 +146,46 @@ export default function Settings() {
       setUsers((prev) => prev.map((u) => u.user_id === userId ? { ...u, role: newRole } : u));
       toast.success("Role updated");
     }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUserName.trim() || !newUserEmail.trim() || !newUserPassword.trim()) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+    if (newUserPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    setCreatingUser(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          email: newUserEmail.trim(),
+          password: newUserPassword,
+          fullName: newUserName.trim(),
+          role: newUserRole,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        toast.error(result.error || "Failed to create user");
+      } else {
+        toast.success("User created successfully!");
+        setNewUserName(""); setNewUserEmail(""); setNewUserPassword(""); setNewUserRole("sales");
+        setUsersLoaded(false);
+        loadUsers();
+      }
+    } catch (err: any) {
+      toast.error("Failed to create user: " + err.message);
+    }
+    setCreatingUser(false);
   };
 
   return (
@@ -397,13 +444,71 @@ export default function Settings() {
         {/* Users & Roles - Admin only */}
         {role === "admin" && (
           <TabsContent value="users">
-            <div className="bg-card border rounded-lg p-6 space-y-4">
+            <div className="bg-card border rounded-lg p-6 space-y-6">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
                 <h2 className="font-semibold text-lg">Users & Roles Management</h2>
               </div>
-              <p className="text-sm text-muted-foreground">Manage user roles. First signup gets Admin role automatically.</p>
 
+              {/* Add New User Form */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-medium text-sm">Add New User</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Full Name *</Label>
+                    <Input
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      placeholder="Full name"
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Email *</Label>
+                    <Input
+                      type="email"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      className="mt-1 h-9"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Password *</Label>
+                    <Input
+                      type="password"
+                      value={newUserPassword}
+                      onChange={(e) => setNewUserPassword(e.target.value)}
+                      placeholder="Min 6 characters"
+                      className="mt-1 h-9"
+                      minLength={6}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Role *</Label>
+                    <Select value={newUserRole} onValueChange={setNewUserRole}>
+                      <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="accountant">Accountant</SelectItem>
+                        <SelectItem value="sales">Sales</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={creatingUser}
+                  onClick={handleCreateUser}
+                  className="gap-1.5"
+                >
+                  {creatingUser ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+                  Create User
+                </Button>
+              </div>
+
+              {/* Existing Users */}
+              <p className="text-sm text-muted-foreground">Existing users and their roles:</p>
               {users.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No users found</p>
               ) : (

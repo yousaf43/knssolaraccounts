@@ -29,7 +29,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
   const [status, setStatus] = useState<Invoice["status"]>(editInvoice?.status || "pending");
-  const [tax, setTax] = useState(editInvoice?.tax ?? 10);
+  const [tax, setTax] = useState(editInvoice?.tax ?? 0);
   const [notes, setNotes] = useState(editInvoice?.notes || "");
   const [items, setItems] = useState<InvoiceItem[]>(
     editInvoice?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]

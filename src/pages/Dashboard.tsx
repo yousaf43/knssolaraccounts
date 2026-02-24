@@ -129,7 +129,9 @@ const defaultAccounts: Account[] = [
 
 export default function Dashboard() {
   const { formatCurrency } = useSettings();
-  const { profile } = useAuth();
+  const { profile, role } = useAuth();
+
+  const isSales = role === "sales";
 
   // Read all data from cloud
   const { data: invoices } = useInvoicesCloud();
@@ -192,102 +194,123 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid gap-4 ${isSales ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 lg:grid-cols-4"}`}>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-xs text-muted-foreground">Total Sales</p>
           <p className="text-xl font-bold text-primary">{formatCurrency(totalSales)}</p>
         </div>
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-xs text-muted-foreground">Total Expenses</p>
-          <p className="text-xl font-bold text-destructive">{formatCurrency(totalExpenses)}</p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-xs text-muted-foreground">Net Profit/Loss</p>
-          <p className={`text-xl font-bold ${netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netProfit)}</p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-xs text-muted-foreground">Bank Balance</p>
-          <p className="text-xl font-bold text-primary">{formatCurrency(totalBankBalance)}</p>
-        </div>
+        {!isSales && (
+          <div className="bg-card rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Total Expenses</p>
+            <p className="text-xl font-bold text-destructive">{formatCurrency(totalExpenses)}</p>
+          </div>
+        )}
+        {!isSales && (
+          <div className="bg-card rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Net Profit/Loss</p>
+            <p className={`text-xl font-bold ${netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netProfit)}</p>
+          </div>
+        )}
+        {!isSales && (
+          <div className="bg-card rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Bank Balance</p>
+            <p className="text-xl font-bold text-primary">{formatCurrency(totalBankBalance)}</p>
+          </div>
+        )}
+        {isSales && (
+          <div className="bg-card rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Pending Invoices</p>
+            <p className="text-xl font-bold text-warning">{invoices.filter(i => i.status === "pending").length}</p>
+          </div>
+        )}
       </div>
 
       {/* Top Row: Receivable Summary | Payable Summary | Bank + Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Account Receivable Summary */}
-        <div className="bg-card rounded-lg border p-5">
-          <h2 className="text-sm font-semibold mb-4 text-foreground">Account Receivable Summary</h2>
-          <AgingChart data={receivableAging} />
-        </div>
-
-        {/* Account Payable Summary */}
-        <div className="bg-card rounded-lg border p-5">
-          <h2 className="text-sm font-semibold mb-4 text-foreground">Account Payable Summary</h2>
-          <AgingChart data={payableAging} />
-        </div>
-
-        {/* Right Column: Bank Balances + Products */}
-        <div className="space-y-6">
-          {/* Bank Balances */}
+      {!isSales && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="bg-card rounded-lg border p-5">
-            <h2 className="text-sm font-semibold mb-3 text-foreground">Bank Balances</h2>
-            {bankAccounts.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">No bank accounts added</p>
-            ) : (
+            <h2 className="text-sm font-semibold mb-4 text-foreground">Account Receivable Summary</h2>
+            <AgingChart data={receivableAging} />
+          </div>
+          <div className="bg-card rounded-lg border p-5">
+            <h2 className="text-sm font-semibold mb-4 text-foreground">Account Payable Summary</h2>
+            <AgingChart data={payableAging} />
+          </div>
+          <div className="space-y-6">
+            <div className="bg-card rounded-lg border p-5">
+              <h2 className="text-sm font-semibold mb-3 text-foreground">Bank Balances</h2>
+              {bankAccounts.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">No bank accounts added</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-1.5 text-muted-foreground font-medium">Bank</th>
+                      <th className="text-right py-1.5 text-muted-foreground font-medium">Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bankAccounts.map((acc) => (
+                      <tr key={acc.code} className="border-b border-border/50">
+                        <td className="py-1.5">
+                          <Link to="/accounts" className="text-primary hover:underline">
+                            {acc.name} - ({acc.code})
+                          </Link>
+                        </td>
+                        <td className="py-1.5 text-right">{formatCurrency(acc.balance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="bg-card rounded-lg border p-5">
+              <h2 className="text-sm font-semibold mb-3 text-foreground">Products</h2>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-1.5 text-muted-foreground font-medium">Bank</th>
-                    <th className="text-right py-1.5 text-muted-foreground font-medium">Balance</th>
+                    <th className="text-left py-1.5 text-muted-foreground font-medium">Status</th>
+                    <th className="text-right py-1.5 text-muted-foreground font-medium">Quantity</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bankAccounts.map((acc) => (
-                    <tr key={acc.code} className="border-b border-border/50">
-                      <td className="py-1.5">
-                        <Link to="/accounts" className="text-primary hover:underline">
-                          {acc.name} - ({acc.code})
-                        </Link>
-                      </td>
-                      <td className="py-1.5 text-right">{formatCurrency(acc.balance)}</td>
+                  {productStats.map((stat) => (
+                    <tr key={stat.label} className="border-b border-border/50">
+                      <td className="py-2">{stat.label}</td>
+                      <td className={`py-2 text-right font-semibold ${stat.color}`}>{stat.value}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
+            </div>
           </div>
+        </div>
+      )}
 
-          {/* Products */}
+      {/* Sales role: show receivable only */}
+      {isSales && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-lg border p-5">
-            <h2 className="text-sm font-semibold mb-3 text-foreground">Products</h2>
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-1.5 text-muted-foreground font-medium">Status</th>
-                  <th className="text-right py-1.5 text-muted-foreground font-medium">Quantity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {productStats.map((stat) => (
-                  <tr key={stat.label} className="border-b border-border/50">
-                    <td className="py-2">{stat.label}</td>
-                    <td className={`py-2 text-right font-semibold ${stat.color}`}>{stat.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <h2 className="text-sm font-semibold mb-4 text-foreground">Account Receivable Summary</h2>
+            <AgingChart data={receivableAging} />
+          </div>
+          <div className="bg-card rounded-lg border p-5">
+            <AgingTable data={receivableAging} title="Unpaid Invoices" totalLabel="Total Receivable" />
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Bottom Row: Receivable Table | Payable Table */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card rounded-lg border p-5">
-          <AgingTable data={receivableAging} title="Unpaid Invoices" totalLabel="Total Receivable" />
+      {/* Bottom Row: Receivable Table | Payable Table (admin/accountant only) */}
+      {!isSales && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-card rounded-lg border p-5">
+            <AgingTable data={receivableAging} title="Unpaid Invoices" totalLabel="Total Receivable" />
+          </div>
+          <div className="bg-card rounded-lg border p-5">
+            <AgingTable data={payableAging} title="Unpaid Bills" totalLabel="Total Payable" />
+          </div>
         </div>
-        <div className="bg-card rounded-lg border p-5">
-          <AgingTable data={payableAging} title="Unpaid Bills" totalLabel="Total Payable" />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
