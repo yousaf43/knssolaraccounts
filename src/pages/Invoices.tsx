@@ -1,12 +1,12 @@
 import React, { useState, useRef } from "react";
-import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem } from "@/data/mockData";
-import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud } from "@/hooks/useAppData";
+import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem, type Quotation } from "@/data/mockData";
+import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud, useQuotationsCloud } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight } from "lucide-react";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderPreview } from "@/components/SalesOrderPreview";
@@ -31,6 +31,13 @@ const soStatusStyles: Record<string, string> = {
   cancelled: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
 };
 
+const quotationStatusStyles: Record<string, string> = {
+  draft: "bg-muted text-muted-foreground hover:bg-muted/80 border-0",
+  sent: "bg-primary/10 text-primary hover:bg-primary/20 border-0",
+  accepted: "bg-success/10 text-success hover:bg-success/20 border-0",
+  rejected: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
+};
+
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.trim().split("\n");
   if (lines.length < 2) return [];
@@ -52,11 +59,13 @@ export default function Invoices() {
   const { data: receipts, upsert: upsertReceipt, remove: removeReceipt, setData: setReceipts } = useReceiptsCloud();
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
+  const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
   const [activeTab, setActiveTab] = useState("invoices");
-  const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview">("list");
+  const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
+  const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [previewSO, setPreviewSO] = useState<{ order: SalesOrder; showPrices: boolean } | null>(null);
   const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
@@ -73,7 +82,7 @@ export default function Invoices() {
   const invoiceFileRef = useRef<HTMLInputElement>(null);
   const soFileRef = useRef<HTMLInputElement>(null);
 
-  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); };
+  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); };
 
   const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
@@ -191,6 +200,42 @@ export default function Invoices() {
     toast.success("Receipt deleted");
   };
 
+  // --- Quotation handlers ---
+  const handleSaveQuotation = async (quotation: Quotation) => {
+    await upsertQuotation(quotation);
+    goList();
+    await log(editQuotation ? "edit" : "create", "quotation", quotation.id, quotation.number, `Customer: ${quotation.customer}, Amount: ${quotation.amount}`);
+    toast.success(editQuotation ? "Quotation updated" : "Quotation created");
+  };
+  const handleDeleteQuotation = async (id: string) => {
+    const q = quotations.find(qt => qt.id === id);
+    if (q) {
+      await moveToTrash("quotation", id, q);
+      await log("delete", "quotation", id, q.number, `Customer: ${q.customer}`);
+    }
+    removeQuotation(id);
+    toast.success("Quotation deleted");
+  };
+  const handleConvertQuotationToSO = async (q: Quotation) => {
+    const newSO: SalesOrder = {
+      id: crypto.randomUUID(),
+      number: `SO-${String(salesOrders.length + 1).padStart(3, "0")}`,
+      projectName: q.projectName,
+      customer: q.customer,
+      date: new Date().toISOString().split("T")[0],
+      deliveryDate: q.dueDate,
+      amount: q.amount,
+      status: "pending",
+      items: q.items,
+      notes: q.notes ? `From ${q.number}. ${q.notes}` : `Converted from ${q.number}`,
+      tax: q.tax,
+    };
+    await upsertSalesOrder(newSO);
+    await upsertQuotation({ ...q, status: "accepted" });
+    await log("create", "sales_order", newSO.id, newSO.number, `Converted from quotation ${q.number}`);
+    toast.success(`${q.number} → Sales Order ${newSO.number} created`);
+  };
+
   // --- Import handlers ---
   const handleImportInvoices = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -252,6 +297,7 @@ export default function Invoices() {
     ...invoices.map((i) => i.customer),
     ...salesOrders.map((s) => s.customer),
     ...receipts.map((r) => r.customer),
+    ...quotations.map((q) => q.customer),
   ])).sort();
 
   // Date range filter helper
@@ -316,6 +362,41 @@ export default function Invoices() {
   };
 
   // --- Form views ---
+  if (view === "quotation-form") {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <SalesOrderForm customers={customers} inventory={inventory} onSave={(order) => {
+          const q: Quotation = {
+            id: editQuotation?.id || crypto.randomUUID(),
+            number: editQuotation?.number || `QTN-${String(quotations.length + 1).padStart(3, "0")}`,
+            projectName: order.projectName,
+            documentNumber: (order as any).documentNumber,
+            customer: order.customer,
+            date: order.date,
+            dueDate: order.deliveryDate,
+            amount: order.amount,
+            status: editQuotation?.status || "draft",
+            items: order.items,
+            notes: order.notes,
+            tax: order.tax,
+          };
+          handleSaveQuotation(q);
+        }} onCancel={goList} editOrder={editQuotation ? {
+          id: editQuotation.id,
+          number: editQuotation.number,
+          projectName: editQuotation.projectName,
+          customer: editQuotation.customer,
+          date: editQuotation.date,
+          deliveryDate: editQuotation.dueDate,
+          amount: editQuotation.amount,
+          status: "pending" as const,
+          items: editQuotation.items,
+          notes: editQuotation.notes,
+          tax: editQuotation.tax,
+        } : null} nextNumber={`QTN-${String(quotations.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
+      </div>
+    );
+  }
   if (view === "form" || view === "form-receipt-for-invoice") {
     if (view === "form-receipt-for-invoice" && receivePaymentInvoice) {
       const prefillReceipt: Receipt = {
@@ -382,14 +463,21 @@ export default function Invoices() {
     ...invoices.map((inv) => ({ ...inv, type: "Invoice" as const, statusStyle: invoiceStatusStyles[inv.status] })),
     ...salesOrders.map((so) => ({ id: so.id, number: so.number, customer: so.customer, date: so.date, dueDate: so.deliveryDate, amount: so.amount, status: so.status, type: "Sales Order" as const, statusStyle: soStatusStyles[so.status] })),
     ...receipts.map((r) => ({ id: r.id, number: r.number, customer: r.customer, date: r.date, dueDate: r.invoiceNumber, amount: r.amount, status: r.paymentMethod, type: "Receipt" as const, statusStyle: "bg-primary/10 text-primary hover:bg-primary/20 border-0" })),
+    ...quotations.map((q) => ({ id: q.id, number: q.number, customer: q.customer, date: q.date, dueDate: q.dueDate, amount: q.amount, status: q.status, type: "Quotation" as const, statusStyle: quotationStatusStyles[q.status] || "" })),
   ];
   const allSalesData = allSalesDataRaw
     .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status))
     .filter((item) => filterType === "all" || item.type === filterType)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : "New Invoice";
-  const handleNewClick = () => { setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setView("form"); };
+  const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status));
+
+  const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : "New Invoice";
+  const handleNewClick = () => {
+    setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null);
+    if (activeTab === "quotations") { setView("quotation-form"); }
+    else { setView("form"); }
+  };
 
   // Hidden file inputs
   const hiddenInputs = (
@@ -411,6 +499,7 @@ export default function Invoices() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Quotation">Quotation</SelectItem>
               <SelectItem value="Invoice">Invoice</SelectItem>
               <SelectItem value="Sales Order">Sales Order</SelectItem>
               <SelectItem value="Receipt">Receipt</SelectItem>
@@ -513,12 +602,62 @@ export default function Invoices() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className="w-4 h-4" />Quotations</TabsTrigger>
           <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Sales Orders</TabsTrigger>
           <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
           <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
-          <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />Sales All</TabsTrigger>
+          <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
         </TabsList>
+
+        {/* Quotations Tab */}
+        <TabsContent value="quotations">
+          <FilterBar />
+          <div className="flex items-center justify-end px-4 py-2">
+            <span className="text-xs text-muted-foreground">{filteredQuotations.length} quotation(s)</span>
+          </div>
+          <div className="bg-card rounded-lg border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Quotation #</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Valid Until</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
+                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
+                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredQuotations.map((q) => (
+                    <tr key={q.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3 font-medium">{q.number}</td>
+                      <td className="px-4 py-3">{q.customer}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{q.date}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{q.dueDate}</td>
+                      <td className="px-4 py-3 text-right font-semibold">{formatCurrency(q.amount)}</td>
+                      <td className="px-4 py-3 text-center"><Badge className={quotationStatusStyles[q.status] || ""}>{q.status}</Badge></td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {q.status !== "accepted" && q.status !== "rejected" && (
+                            <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Convert to Sales Order" onClick={() => handleConvertQuotationToSO(q)}>
+                              <ArrowRight className="w-4 h-4 text-success" />
+                            </button>
+                          )}
+                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditQuotation(q); setView("quotation-form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                          <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteQuotation(q.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredQuotations.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No quotations found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Sales Orders Tab */}
         <TabsContent value="sales-orders">
