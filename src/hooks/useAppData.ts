@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type {
-  Customer, Supplier, InventoryItem, Invoice, SalesOrder,
+  Customer, Supplier, InventoryItem, Invoice, SalesOrder, Quotation,
   Receipt, Expense, PurchaseOrder, Bill, PurchasePayment, StockAdjustment
 } from "@/data/mockData";
 
@@ -95,6 +95,24 @@ const salesOrderToDb = (s: SalesOrder, userId: string) => ({
   tax: s.tax || 0, advance_payment: s.advancePayment || 0,
   advance_payment_method: s.advancePaymentMethod || "",
   advance_payment_ref: s.advancePaymentRef || "",
+});
+
+// Quotation
+const quotationFromDb = (r: Record<string, unknown>): Quotation => ({
+  id: r.id as string, number: (r.number as string) || "",
+  documentNumber: (r.document_number as string) || undefined,
+  projectName: (r.project_name as string) || undefined,
+  customer: (r.customer as string) || "", date: (r.date as string) || "",
+  dueDate: (r.due_date as string) || "", amount: Number(r.amount) || 0,
+  status: (r.status as Quotation["status"]) || "draft",
+  items: (r.items as Quotation["items"]) || [],
+  notes: (r.notes as string) || "", tax: Number(r.tax) || 0,
+});
+const quotationToDb = (q: Quotation, userId: string) => ({
+  id: q.id, user_id: userId, number: q.number, document_number: q.documentNumber || "",
+  project_name: q.projectName || "", customer: q.customer, date: q.date, due_date: q.dueDate,
+  amount: q.amount, status: q.status, items: q.items || [], notes: q.notes || "",
+  tax: q.tax || 0,
 });
 
 // Receipt
@@ -192,7 +210,6 @@ function useTable<T extends { id: string }>(
     const { data: rows } = await supabase
       .from(tableName as never)
       .select("*")
-      .eq("user_id", user.id)
       .order(orderCol, { ascending: false });
     if (rows) setData((rows as Record<string, unknown>[]).map(fromDb));
     setLoading(false);
@@ -212,14 +229,21 @@ function useTable<T extends { id: string }>(
 
   const remove = useCallback(async (id: string) => {
     if (!user) return;
-    await supabase.from(tableName as never).delete().eq("id", id).eq("user_id", user.id);
+    await supabase.from(tableName as never).delete().eq("id", id);
     setData((prev) => prev.filter((d) => d.id !== id));
   }, [user, tableName]);
 
   // Replace all items (for bulk operations like inventory set)
   const replaceAll = useCallback(async (items: T[]) => {
     if (!user) return;
-    await supabase.from(tableName as never).delete().eq("user_id", user.id);
+    // Delete all rows visible to this user (shared data)
+    const { data: existingRows } = await supabase.from(tableName as never).select("id");
+    if (existingRows && existingRows.length > 0) {
+      const ids = (existingRows as { id: string }[]).map(r => r.id);
+      for (const id of ids) {
+        await supabase.from(tableName as never).delete().eq("id", id);
+      }
+    }
     if (items.length > 0) {
       const rows = items.map((item) => toDb(item, user.id));
       await supabase.from(tableName as never).insert(rows as never);
@@ -243,6 +267,7 @@ export const usePurchaseOrdersCloud = () => useTable("purchase_orders", purchase
 export const useBillsCloud = () => useTable("bills", billFromDb, billToDb);
 export const usePurchasePaymentsCloud = () => useTable("purchase_payments", purchasePaymentFromDb, purchasePaymentToDb);
 export const useStockAdjustmentsCloud = () => useTable("stock_adjustments", stockAdjFromDb, stockAdjToDb, "created_at");
+export const useQuotationsCloud = () => useTable("quotations", quotationFromDb, quotationToDb);
 
 // User Settings
 export function useUserSettingsCloud() {

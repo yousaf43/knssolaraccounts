@@ -449,6 +449,60 @@ export type Database = {
         }
         Relationships: []
       }
+      quotations: {
+        Row: {
+          amount: number | null
+          created_at: string
+          customer: string | null
+          date: string | null
+          document_number: string | null
+          due_date: string | null
+          id: string
+          items: Json | null
+          notes: string | null
+          number: string | null
+          project_name: string | null
+          status: string | null
+          tax: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          document_number?: string | null
+          due_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          project_name?: string | null
+          status?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          document_number?: string | null
+          due_date?: string | null
+          id?: string
+          items?: Json | null
+          notes?: string | null
+          number?: string | null
+          project_name?: string | null
+          status?: string | null
+          tax?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       receipts: {
         Row: {
           amount: number | null

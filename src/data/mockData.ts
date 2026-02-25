@@ -50,6 +50,21 @@ export type SalesOrder = {
   advancePaymentRef?: string;
 };
 
+export type Quotation = {
+  id: string;
+  number: string;
+  documentNumber?: string;
+  projectName?: string;
+  customer: string;
+  date: string;
+  dueDate: string;
+  amount: number;
+  status: "draft" | "sent" | "accepted" | "rejected";
+  items: InvoiceItem[];
+  notes?: string;
+  tax?: number;
+};
+
 export type Receipt = {
   id: string;
   number: string;
