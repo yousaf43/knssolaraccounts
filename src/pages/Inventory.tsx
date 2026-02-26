@@ -80,7 +80,9 @@ export default function Inventory() {
     });
   }, [inventory, searchQuery, filterCategory, filterStatus, dateFrom, dateTo]);
 
-  const lowStock = inventory.filter((i) => i.productType !== "non-stock" && i.qty <= i.reorderLevel);
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 13;
 
   const openAdd = () => { setEditing(null); setForm({ ...emptyItem(), sku: generateProductCode() }); setShowForm(true); };
   const openEdit = (item: InventoryItem) => { setEditing(item); setForm(item); setShowForm(true); };
@@ -502,14 +504,7 @@ export default function Inventory() {
         </div>
       )}
 
-      {lowStock.length > 0 && (
-        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
-          <p className="text-sm">
-            <span className="font-semibold">{lowStock.length} items</span> below reorder level: {lowStock.map((i) => i.name).join(", ")}
-          </p>
-        </div>
-      )}
+      {/* Notification removed */}
 
       <div className="bg-card rounded-lg border overflow-x-auto">
         <table className="w-full text-sm min-w-[1200px]">
@@ -532,7 +527,11 @@ export default function Inventory() {
             </tr>
           </thead>
           <tbody>
-            {filteredInventory.map((item) => {
+            {(() => {
+              const totalPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
+              const safeCurrentPage = Math.min(currentPage, totalPages || 1);
+              return filteredInventory.slice((safeCurrentPage - 1) * ITEMS_PER_PAGE, safeCurrentPage * ITEMS_PER_PAGE);
+            })().map((item) => {
               const typeLabel = item.productType === "non-stock" ? "Non-Stock" : item.productType === "bundle" ? "Bundle" : "Stock";
               const typeVariant = item.productType === "non-stock" ? "outline" : item.productType === "bundle" ? "secondary" : "default";
               return (
@@ -571,6 +570,25 @@ export default function Inventory() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filteredInventory.length > ITEMS_PER_PAGE && (() => {
+        const totalPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
+        return (
+          <div className="flex items-center justify-between px-2">
+            <p className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInventory.length)} of {filteredInventory.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</Button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <Button key={i+1} variant={currentPage === i+1 ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(i+1)}>{i+1}</Button>
+              ))}
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Stock Adjustment Section */}
       <StockAdjustmentSection inventory={inventory} onUpdateInventory={handleUpdateInventory} />

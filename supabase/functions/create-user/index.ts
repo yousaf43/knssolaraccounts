@@ -42,13 +42,77 @@ Deno.serve(async (req) => {
       .single();
 
     if (!roleData || roleData.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Only admins can create users" }), {
+      return new Response(JSON.stringify({ error: "Only admins can manage users" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { email, password, fullName, role } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // DELETE USER
+    if (action === "delete") {
+      const { userId } = body;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Missing userId" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (userId === caller.id) {
+        return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await adminClient.auth.admin.deleteUser(userId);
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // UPDATE USER (email/password)
+    if (action === "update") {
+      const { userId, email, password } = body;
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "Missing userId" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const updates: Record<string, unknown> = {};
+      if (email) updates.email = email;
+      if (password) updates.password = password;
+      
+      const { error } = await adminClient.auth.admin.updateUserById(userId, updates);
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // EXPORT ALL DATA
+    if (action === "export") {
+      const tables = ["customers", "suppliers", "inventory", "invoices", "sales_orders", "quotations", "receipts", "expenses", "purchase_orders", "bills", "purchase_payments", "stock_adjustments"];
+      const exportData: Record<string, unknown[]> = {};
+      for (const table of tables) {
+        const { data } = await adminClient.from(table).select("*");
+        exportData[table] = data || [];
+      }
+      return new Response(JSON.stringify({ success: true, data: exportData }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // CREATE USER (default action)
+    const { email, password, fullName, role } = body;
 
     if (!email || !password || !fullName || !role) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -57,7 +121,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create user with admin API (auto-confirms email)
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -72,7 +135,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Set role (the trigger already creates profile and default role, so update role)
+    // Set role
     await adminClient
       .from("user_roles")
       .update({ role })
