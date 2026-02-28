@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Loader2, FileText, Edit, Trash2, Printer, RotateCcw, Plus } from "lucide-react";
+import { Search, Loader2, FileText, Edit, Trash2, Printer, RotateCcw, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const ACTION_ICONS: Record<string, typeof FileText> = {
   create: Plus,
@@ -21,11 +22,14 @@ const ACTION_COLORS: Record<string, string> = {
   restore: "bg-warning/10 text-warning",
 };
 
+const LOGS_PER_PAGE = 20;
+
 export default function ActivityLogs() {
   const { user } = useAuth();
   const [logs, setLogs] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchLogs = useCallback(async () => {
     if (!user) return;
@@ -53,6 +57,13 @@ export default function ActivityLogs() {
     );
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / LOGS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedLogs = filtered.slice((safePage - 1) * LOGS_PER_PAGE, safePage * LOGS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => { setCurrentPage(1); }, [search]);
+
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
@@ -79,7 +90,7 @@ export default function ActivityLogs() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((log) => {
+            {paginatedLogs.map((log) => {
               const action = log.action as string;
               const Icon = ACTION_ICONS[action] || FileText;
               const colorClass = ACTION_COLORS[action] || "bg-muted text-muted-foreground";
@@ -101,12 +112,45 @@ export default function ActivityLogs() {
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
+            {paginatedLogs.length === 0 && (
               <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No activity logs found.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Showing {(safePage - 1) * LOGS_PER_PAGE + 1}–{Math.min(safePage * LOGS_PER_PAGE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage <= 1} onClick={() => setCurrentPage(safePage - 1)}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+              .reduce<(number | "...")[]>((acc, p, i, arr) => {
+                if (i > 0 && p - (arr[i - 1]) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "..." ? (
+                  <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">...</span>
+                ) : (
+                  <Button key={p} variant={p === safePage ? "default" : "outline"} size="icon" className="h-8 w-8 text-xs" onClick={() => setCurrentPage(p as number)}>
+                    {p}
+                  </Button>
+                )
+              )}
+            <Button variant="outline" size="icon" className="h-8 w-8" disabled={safePage >= totalPages} onClick={() => setCurrentPage(safePage + 1)}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -51,6 +51,7 @@ export default function Settings() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
   const cloudBackup = useCloudBackup();
   const { customCategories, setCustomCategories } = useUserSettingsCloud();
 
@@ -74,6 +75,7 @@ export default function Settings() {
 
   // Export state
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const handleSave = async () => {
     let logoUrl = form.logoUrl || "";
@@ -232,6 +234,52 @@ export default function Settings() {
       toast.success("Full backup exported!");
     } catch (err: any) { toast.error("Export failed: " + err.message); }
     setExporting(false);
+  };
+
+  // Import full backup from JSON file
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      if (!backup || typeof backup !== "object") { toast.error("Invalid backup file"); setImporting(false); return; }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Not authenticated"); setImporting(false); return; }
+
+      // Map backup keys to supabase tables
+      const tableMap: Record<string, string> = {
+        inventory: "inventory",
+        invoices: "invoices",
+        customers: "customers",
+        suppliers: "suppliers",
+        sales_orders: "sales_orders",
+        quotations: "quotations",
+        receipts: "receipts",
+        expenses: "expenses",
+        purchase_orders: "purchase_orders",
+        bills: "bills",
+        purchase_payments: "purchase_payments",
+        stock_adjustments: "stock_adjustments",
+      };
+
+      let imported = 0;
+      for (const [key, tableName] of Object.entries(tableMap)) {
+        const rows = backup[key];
+        if (!Array.isArray(rows) || rows.length === 0) continue;
+        // Ensure user_id is set
+        const prepared = rows.map((row: any) => ({ ...row, user_id: session.user.id }));
+        const { error } = await supabase.from(tableName as any).upsert(prepared as any, { onConflict: "id" });
+        if (!error) imported += prepared.length;
+      }
+
+      toast.success(`Backup imported! ${imported} records restored. Reloading...`);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err: any) { toast.error("Import failed: " + err.message); }
+    setImporting(false);
+    e.target.value = "";
   };
 
   return (
@@ -408,14 +456,21 @@ export default function Settings() {
               <h2 className="font-semibold text-lg">Backup & Restore</h2>
             </div>
 
-            {/* One-Click Full Export */}
+            {/* One-Click Full Export & Import */}
             <div className="border rounded-lg p-4 space-y-3 bg-primary/5">
               <h3 className="font-medium flex items-center gap-2"><Download className="w-4 h-4" /> One-Click Full Backup</h3>
-              <p className="text-sm text-muted-foreground">Download complete backup of all data: Products, Invoices, Customers, Suppliers, Sales Orders, Quotations, Receipts, Expenses, Purchase Orders, Bills, and Payments.</p>
-              <Button size="sm" className="gap-2" disabled={exporting} onClick={handleFullExport}>
-                {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                Export Full Backup
-              </Button>
+              <p className="text-sm text-muted-foreground">Download or restore complete backup of all data: Products, Invoices, Customers, Suppliers, Sales Orders, Quotations, Receipts, Expenses, Purchase Orders, Bills, and Payments.</p>
+              <div className="flex gap-2">
+                <Button size="sm" className="gap-2" disabled={exporting} onClick={handleFullExport}>
+                  {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  Export Full Backup
+                </Button>
+                <Button size="sm" variant="outline" className="gap-2" disabled={importing} onClick={() => importFileRef.current?.click()}>
+                  {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  Import Full Backup
+                </Button>
+                <input ref={importFileRef} type="file" accept=".json" className="hidden" onChange={handleImportBackup} />
+              </div>
             </div>
 
             {/* Auto Cloud Backup */}

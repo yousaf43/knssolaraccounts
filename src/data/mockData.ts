@@ -15,6 +15,7 @@ export type InvoiceItem = {
   rate: number;
   amount: number;
   inventoryItemId?: string;
+  discount?: number;
 };
 
 export type Invoice = {
@@ -30,6 +31,7 @@ export type Invoice = {
   items: InvoiceItem[];
   notes?: string;
   tax?: number;
+  discount?: number;
   payments?: { date: string; amount: number; method: string; reference?: string }[];
 };
 

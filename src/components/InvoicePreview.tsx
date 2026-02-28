@@ -55,9 +55,12 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   const printRef = useRef<HTMLDivElement>(null);
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
+  const discountRate = invoice.discount ?? 0;
+  const discountAmount = subtotal * (discountRate / 100);
+  const afterDiscount = subtotal - discountAmount;
   const taxRate = invoice.tax ?? 0;
-  const taxAmount = subtotal * (taxRate / 100);
-  const total = subtotal + taxAmount;
+  const taxAmount = afterDiscount * (taxRate / 100);
+  const total = afterDiscount + taxAmount;
 
   // Calculate paid and balance
   const invReceipts = receipts.filter((r) => r.invoiceNumber === invoice.number);
@@ -210,16 +213,24 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
 
           {/* Totals Box */}
           <div className="totals-box w-64 border border-gray-300 rounded p-3 text-sm">
-            {taxRate > 0 && (
+            {(taxRate > 0 || discountRate > 0) && (
               <>
                 <div className="total-row flex justify-between py-1">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
-                <div className="total-row flex justify-between py-1">
-                  <span className="text-gray-600">{settings.taxLabel || "Tax"} ({taxRate}%)</span>
-                  <span className="font-medium">{formatCurrency(taxAmount)}</span>
-                </div>
+                {discountRate > 0 && (
+                  <div className="total-row flex justify-between py-1">
+                    <span className="text-green-600">Discount ({discountRate}%)</span>
+                    <span className="font-medium text-green-600">-{formatCurrency(discountAmount)}</span>
+                  </div>
+                )}
+                {taxRate > 0 && (
+                  <div className="total-row flex justify-between py-1">
+                    <span className="text-gray-600">{settings.taxLabel || "Tax"} ({taxRate}%)</span>
+                    <span className="font-medium">{formatCurrency(taxAmount)}</span>
+                  </div>
+                )}
               </>
             )}
             <div className="grand-total flex justify-between py-2 border-t-2 border-blue-900 mt-1 text-base font-bold text-blue-900">
