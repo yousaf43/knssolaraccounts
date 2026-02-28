@@ -30,6 +30,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
   const [status, setStatus] = useState<Invoice["status"]>(editInvoice?.status || "pending");
   const [tax, setTax] = useState(editInvoice?.tax ?? 0);
+  const [discount, setDiscount] = useState(editInvoice?.discount ?? 0);
   const [notes, setNotes] = useState(editInvoice?.notes || "");
   const [items, setItems] = useState<InvoiceItem[]>(
     editInvoice?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]
@@ -92,8 +93,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const taxAmount = subtotal * (tax / 100);
-  const total = subtotal + taxAmount;
+  const discountAmount = subtotal * (discount / 100);
+  const afterDiscount = subtotal - discountAmount;
+  const taxAmount = afterDiscount * (tax / 100);
+  const total = afterDiscount + taxAmount;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +118,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       items: validItems,
       notes: notes.trim(),
       tax,
+      discount,
     }, advanceAmount > 0 ? advanceAmount : undefined, advanceMethod, advanceRef.trim() || undefined);
   };
 
@@ -195,9 +199,13 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             </SelectContent>
           </Select>
         </div>
-        <div>
+         <div>
           <Label>Tax Rate (%)</Label>
           <Input type="number" min={0} max={100} value={tax} onChange={(e) => setTax(Number(e.target.value))} className="mt-1" />
+        </div>
+        <div>
+          <Label>Discount (%)</Label>
+          <Input type="number" min={0} max={100} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="mt-1" />
         </div>
       </div>
 
@@ -277,6 +285,12 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             <span className="text-muted-foreground">Subtotal</span>
             <span className="font-medium">{formatCurrency(subtotal)}</span>
           </div>
+          {discount > 0 && (
+            <div className="flex justify-between text-success">
+              <span>Discount ({discount}%)</span>
+              <span className="font-medium">-{formatCurrency(discountAmount)}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-muted-foreground">Tax ({tax}%)</span>
             <span className="font-medium">{formatCurrency(taxAmount)}</span>
