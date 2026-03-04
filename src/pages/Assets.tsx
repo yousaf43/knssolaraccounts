@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Building, Package, X, Save } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Badge } from "@/components/ui/badge";
 
 export type CompanyAsset = {
@@ -237,7 +238,9 @@ export default function Assets() {
                      <td className="px-4 py-3 text-right">
                        <div className="flex justify-end gap-1">
                          <Button variant="ghost" size="sm" onClick={() => openEdit(a)}><Pencil className="w-3.5 h-3.5" /></Button>
-                         <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(a.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                         <ConfirmDeleteDialog onConfirm={() => handleDelete(a.id)} title="Delete Asset?" description={`Delete asset "${a.name}"?`}>
+                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                         </ConfirmDeleteDialog>
                        </div>
                      </td>
                    </tr>

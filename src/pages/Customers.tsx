@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Mail, Phone, Edit, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -115,7 +116,9 @@ export default function Customers() {
                   </div>
                   <div className="flex gap-1">
                     <button className="p-1 rounded hover:bg-muted" onClick={() => openEdit(c)}><Edit className="w-3.5 h-3.5 text-muted-foreground" /></button>
-                    <button className="p-1 rounded hover:bg-destructive/10" onClick={() => handleDelete(c.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+                    <ConfirmDeleteDialog onConfirm={() => handleDelete(c.id)} title="Delete Customer?" description={`Are you sure you want to delete "${c.name}"? It will be moved to trash.`}>
+                      <button className="p-1 rounded hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
+                    </ConfirmDeleteDialog>
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">

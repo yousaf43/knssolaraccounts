@@ -517,25 +517,102 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         </div>
       )}
 
-      {/* Inventory chart Reports (non-table ones) */}
-      {["173", "180", "366", "230", "231", "232"].includes(report.code) && (
-        <div className="bg-card rounded-lg border p-6">
-          <h2 className="text-lg font-semibold mb-4">Stock Overview</h2>
-          {filteredData.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">No data available.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={filteredData.map(m => ({ month: m.month, stock: Math.round(m.sales / 100) }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                <Bar dataKey="stock" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Stock Units" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      )}
+      {/* Inventory chart Reports - Category-wise stock data */}
+      {["173", "180", "366", "230", "231", "232"].includes(report.code) && (() => {
+        // Build category-wise stock data from actual inventory
+        const categoryData: Record<string, { qty: number; value: number; items: number }> = {};
+        inventory.forEach(item => {
+          const cat = item.category || "Uncategorized";
+          if (!categoryData[cat]) categoryData[cat] = { qty: 0, value: 0, items: 0 };
+          categoryData[cat].qty += item.qty;
+          categoryData[cat].value += item.qty * item.costPrice;
+          categoryData[cat].items += 1;
+        });
+        const chartData = Object.entries(categoryData).map(([name, d]) => ({ name, qty: d.qty, value: d.value, items: d.items }));
+        const totalQty = inventory.reduce((s, i) => s + i.qty, 0);
+        const totalValue = inventory.reduce((s, i) => s + i.qty * i.costPrice, 0);
+
+        return (
+          <div className="space-y-6">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Total Products</p>
+                <p className="text-2xl font-bold">{inventory.length}</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Total Stock Qty</p>
+                <p className="text-2xl font-bold">{totalQty}</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Total Stock Value</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(totalValue)}</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">Categories</p>
+                <p className="text-2xl font-bold">{chartData.length}</p>
+              </div>
+            </div>
+
+            {/* Category Chart */}
+            <div className="bg-card rounded-lg border p-6">
+              <h2 className="text-lg font-semibold mb-4">Stock by Category</h2>
+              {chartData.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">No inventory data. Add products to see stock reports.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                    <Legend />
+                    <Bar dataKey="qty" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Quantity" />
+                    <Bar dataKey="items" fill="hsl(var(--accent-foreground))" radius={[4, 4, 0, 0]} name="Products" opacity={0.5} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Category Table */}
+            {chartData.length > 0 && (
+              <div className="bg-card rounded-lg border p-6">
+                <h2 className="text-lg font-semibold mb-4">Category-wise Stock Detail</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Products</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chartData.map(cat => (
+                        <tr key={cat.name} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 font-medium">{cat.name}</td>
+                          <td className="px-3 py-2 text-right">{cat.items}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{cat.qty}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(cat.value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold">
+                        <td className="px-3 py-2">Total</td>
+                        <td className="px-3 py-2 text-right">{inventory.length}</td>
+                        <td className="px-3 py-2 text-right">{totalQty}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(totalValue)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Tax & Other */}
       {["100", "101", "102", "050", "051", "052", "062", "063", "135", "244", "258", "381", "383", "241", "242"].includes(report.code) && (

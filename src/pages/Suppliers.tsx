@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2, X, Loader2 } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -108,7 +109,7 @@ export default function Suppliers() {
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1">
                     <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(s)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                    <button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                    <ConfirmDeleteDialog onConfirm={() => handleDelete(s.id)} title="Delete Supplier?" description={`Are you sure you want to delete "${s.name}"? It will be moved to trash.`} />
                   </div>
                 </td>
               </tr>

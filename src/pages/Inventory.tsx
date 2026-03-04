@@ -3,6 +3,7 @@ import StockAdjustmentSection from "@/components/StockAdjustmentSection";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2 } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -560,7 +561,7 @@ export default function Inventory() {
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(item)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                      <button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                      <ConfirmDeleteDialog onConfirm={() => handleDelete(item.id)} title="Delete Product?" description={`Are you sure you want to delete "${item.name}"? It will be moved to trash.`} />
                     </div>
                   </td>
                 </tr>
