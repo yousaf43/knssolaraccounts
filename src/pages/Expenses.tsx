@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, X } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -156,7 +157,7 @@ export default function Expenses() {
                 <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1">
                     <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(e)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                    <button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDelete(e.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                    <ConfirmDeleteDialog onConfirm={() => handleDelete(e.id)} title="Delete Expense?" description={`Are you sure you want to delete this expense of ${formatCurrency(e.amount)}?`} />
                   </div>
                 </td>
               </tr>

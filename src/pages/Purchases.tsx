@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, X, Upload, Download, UserPlus } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
@@ -516,7 +517,7 @@ export default function Purchases() {
                     <td className="px-4 py-3">{p.deliveryDate}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.status]}`}>{p.status}</span></td>
-                    <td className="px-4 py-3 text-center"><button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDeletePO(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></button></td>
+                    <td className="px-4 py-3 text-center"><ConfirmDeleteDialog onConfirm={() => handleDeletePO(p.id)} title="Delete Purchase Order?" description={`Delete PO ${p.number}?`} /></td>
                   </tr>
                 ))}
                 {filteredPO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
@@ -595,7 +596,7 @@ export default function Purchases() {
                     <td className="px-4 py-3">{b.dueDate}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(b.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[b.status]}`}>{b.status}</span></td>
-                    <td className="px-4 py-3 text-center"><button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDeleteBill(b.id)}><Trash2 className="w-4 h-4 text-destructive" /></button></td>
+                    <td className="px-4 py-3 text-center"><ConfirmDeleteDialog onConfirm={() => handleDeleteBill(b.id)} title="Delete Bill?" description={`Delete bill ${b.number}?`} /></td>
                   </tr>
                 ))}
                 {filteredBills.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No bills found.</td></tr>}
@@ -680,7 +681,7 @@ export default function Purchases() {
                     <td className="px-4 py-3">{p.billNumber}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-3">{p.paymentMethod}</td>
-                    <td className="px-4 py-3 text-center"><button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDeletePayment(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></button></td>
+                    <td className="px-4 py-3 text-center"><ConfirmDeleteDialog onConfirm={() => handleDeletePayment(p.id)} title="Delete Payment?" description={`Delete payment ${p.number}?`} /></td>
                   </tr>
                 ))}
                 {filteredPayments.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No payments found.</td></tr>}
@@ -770,7 +771,7 @@ export default function Purchases() {
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEditSupplier(s)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                        <button className="p-1.5 rounded hover:bg-destructive/10" onClick={() => handleDeleteSupplier(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                        <ConfirmDeleteDialog onConfirm={() => handleDeleteSupplier(s.id)} title="Delete Supplier?" description={`Delete supplier "${s.name}"?`} />
                       </div>
                     </td>
                   </tr>

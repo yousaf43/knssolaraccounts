@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderPreview } from "@/components/SalesOrderPreview";
@@ -647,7 +648,7 @@ export default function Invoices() {
                             </button>
                           )}
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditQuotation(q); setView("quotation-form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteQuotation(q.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                          <ConfirmDeleteDialog onConfirm={() => handleDeleteQuotation(q.id)} title="Delete Quotation?" description={`Delete quotation ${q.number}?`} />
                         </div>
                       </td>
                     </tr>
@@ -698,7 +699,7 @@ export default function Invoices() {
                           <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Print with Prices" onClick={() => { setPreviewSO({ order: so, showPrices: true }); setView("so-preview"); }}><Printer className="w-4 h-4 text-primary" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Delivery Challan (no prices)" onClick={() => { setPreviewSO({ order: so, showPrices: false }); setView("so-preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditOrder(so); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteSO(so.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                          <ConfirmDeleteDialog onConfirm={() => handleDeleteSO(so.id)} title="Delete Sales Order?" description={`Delete sales order ${so.number}?`} />
                         </div>
                       </td>
                     </tr>
@@ -759,7 +760,7 @@ export default function Invoices() {
                                 {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                               </button>
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditInvoice(inv); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                              <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteInvoice(inv.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                              <ConfirmDeleteDialog onConfirm={() => handleDeleteInvoice(inv.id)} title="Delete Invoice?" description={`Delete invoice ${inv.number}?`} />
                             </div>
                           </td>
                         </tr>
@@ -824,7 +825,7 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditReceipt(r); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-destructive/10 transition-colors" title="Delete" onClick={() => handleDeleteReceipt(r.id)}><Trash2 className="w-4 h-4 text-destructive" /></button>
+                          <ConfirmDeleteDialog onConfirm={() => handleDeleteReceipt(r.id)} title="Delete Receipt?" description={`Delete receipt ${r.number}?`} />
                         </div>
                       </td>
                     </tr>
