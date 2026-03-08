@@ -898,7 +898,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               <div className="bg-card rounded-lg border p-6">
                 <h2 className="text-lg font-semibold mb-4">Category-wise Stock Detail</h2>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table id="report-print-table" className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
