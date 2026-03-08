@@ -38,6 +38,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickCompany, setQuickCompany] = useState("");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [advanceMethod, setAdvanceMethod] = useState("Cash");
@@ -50,15 +52,15 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       name: quickName.trim(),
       company: quickCompany.trim(),
       email: quickEmail.trim(),
-      phone: "",
-      address: "",
+      phone: quickPhone.trim(),
+      address: quickCNIC.trim() ? `CNIC: ${quickCNIC.trim()}` : "",
       totalBilled: 0,
       outstanding: 0,
     };
     onAddCustomer?.(newCustomer);
     setCustomer(newCustomer.name);
     setShowQuickAdd(false);
-    setQuickName(""); setQuickCompany(""); setQuickEmail("");
+    setQuickName(""); setQuickCompany(""); setQuickPhone(""); setQuickCNIC(""); setQuickEmail("");
   };
 
   const selectInventoryItem = (index: number, itemId: string) => {
@@ -170,6 +172,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
               <p className="text-xs font-medium text-muted-foreground">Quick Add Customer</p>
               <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="Name *" className="h-8" />
               <Input value={quickCompany} onChange={e => setQuickCompany(e.target.value)} placeholder="Company *" className="h-8" />
+              <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="Phone Number *" className="h-8" />
+              <Input value={quickCNIC} onChange={e => setQuickCNIC(e.target.value)} placeholder="CNIC / ID Card Number" className="h-8" />
               <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="Email" className="h-8" />
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>Cancel</Button>

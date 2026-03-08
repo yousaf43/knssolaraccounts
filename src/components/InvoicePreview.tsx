@@ -111,6 +111,10 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         .sig-box { text-align: center; }
         .sig-box .sig-name { font-weight: bold; font-size: 13px; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 4px; min-width: 120px; }
         .sig-box .sig-label { font-size: 10px; color: #666; }
+        .terms-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+        .terms-section p { font-size: 11px; font-weight: bold; color: #333; margin-bottom: 8px; }
+        .terms-section ol { font-size: 9px; color: #666; padding-left: 16px; line-height: 1.6; }
+        .terms-section li { margin-bottom: 2px; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
         img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
@@ -275,6 +279,19 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
             <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
             <div className="sig-label text-xs text-gray-500">Stamp:</div>
           </div>
+        </div>
+
+        {/* Terms & Conditions */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <p className="text-xs font-bold text-gray-700 mb-2">Terms & Conditions:</p>
+          <ol className="text-[10px] text-gray-500 space-y-1 list-decimal list-inside leading-relaxed">
+            <li>Payment is due within the specified due date mentioned above.</li>
+            <li>Goods once sold will not be taken back or exchanged.</li>
+            <li>All disputes are subject to local jurisdiction only.</li>
+            <li>Warranty claims must be reported within 7 days of delivery with proof of purchase.</li>
+            <li>Installation charges are not included unless specifically mentioned in the invoice.</li>
+            <li>Any delay in payment may attract additional charges as per company policy.</li>
+          </ol>
         </div>
 
         {/* Footer bar */}

@@ -28,9 +28,12 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
   const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Cash");
   const [reference, setReference] = useState(editReceipt?.reference || "");
   const [notes, setNotes] = useState(editReceipt?.notes || "");
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickCompany, setQuickCompany] = useState("");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
 
   const handleQuickAddCustomer = () => {
@@ -40,15 +43,15 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
       name: quickName.trim(),
       company: quickCompany.trim(),
       email: quickEmail.trim(),
-      phone: "",
-      address: "",
+      phone: quickPhone.trim(),
+      address: quickCNIC.trim() ? `CNIC: ${quickCNIC.trim()}` : "",
       totalBilled: 0,
       outstanding: 0,
     };
     onAddCustomer?.(newCustomer);
     setCustomer(newCustomer.name);
     setShowQuickAdd(false);
-    setQuickName(""); setQuickCompany(""); setQuickEmail("");
+    setQuickName(""); setQuickCompany(""); setQuickPhone(""); setQuickCNIC(""); setQuickEmail("");
   };
 
   // Calculate remaining for selected invoice
@@ -58,8 +61,8 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
     const paidSoFar = receipts
       .filter((r) => r.invoiceNumber === invoiceNumber && r.id !== editReceipt?.id)
       .reduce((s, r) => s + r.amount, 0);
-    return Math.max(0, selectedInvoice.amount - paidSoFar);
-  }, [selectedInvoice, invoiceNumber, receipts, editReceipt]);
+    return Math.max(0, selectedInvoice.amount - paidSoFar - discountAmount);
+  }, [selectedInvoice, invoiceNumber, receipts, editReceipt, discountAmount]);
 
   const isOverpay = selectedInvoice && amount > invoiceRemaining;
 
@@ -77,7 +80,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
       amount,
       paymentMethod,
       reference: reference.trim(),
-      notes: notes.trim(),
+      notes: discountAmount > 0 ? `${notes.trim()} | Discount: ${discountAmount}`.trim() : notes.trim(),
     });
   };
 
@@ -115,6 +118,8 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
               <p className="text-xs font-medium text-muted-foreground">Quick Add Customer</p>
               <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="Name *" className="h-8" />
               <Input value={quickCompany} onChange={e => setQuickCompany(e.target.value)} placeholder="Company *" className="h-8" />
+              <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="Phone Number *" className="h-8" />
+              <Input value={quickCNIC} onChange={e => setQuickCNIC(e.target.value)} placeholder="CNIC / ID Card Number" className="h-8" />
               <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="Email" className="h-8" />
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
@@ -171,6 +176,13 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
         <div>
           <Label>Reference / Transaction ID</Label>
           <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="TXN-12345" className="mt-1" />
+        </div>
+        <div>
+          <Label>Discount (Amount)</Label>
+          <Input type="number" min={0} step={0.01} value={discountAmount || ""} onChange={(e) => setDiscountAmount(Number(e.target.value))} placeholder="0.00" className="mt-1" />
+          {discountAmount > 0 && selectedInvoice && (
+            <p className="text-xs text-success mt-1">Discount of {formatCurrency(discountAmount)} applied. New remaining: {formatCurrency(invoiceRemaining)}</p>
+          )}
         </div>
       </div>
 
