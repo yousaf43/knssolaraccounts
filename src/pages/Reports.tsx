@@ -327,6 +327,16 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportPDF(report, filteredData, dateRange)}>
             <FileText className="w-3.5 h-3.5" /> PDF
           </Button>
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
+            const tableEl = document.getElementById("report-print-table");
+            if (tableEl) {
+              exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName);
+            } else {
+              exportPDF(report, filteredData, dateRange);
+            }
+          }}>
+            <FileText className="w-3.5 h-3.5" /> Print
+          </Button>
         </div>
       </div>
 
