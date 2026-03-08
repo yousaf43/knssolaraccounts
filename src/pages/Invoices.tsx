@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
@@ -26,6 +26,7 @@ const invoiceStatusStyles: Record<string, string> = {
   pending: "bg-warning/10 text-warning hover:bg-warning/20 border-0",
   overdue: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
   approved: "bg-primary/10 text-primary hover:bg-primary/20 border-0",
+  returned: "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-0",
 };
 
 const soStatusStyles: Record<string, string> = {
@@ -142,6 +143,51 @@ export default function Invoices() {
     await upsertInvoice({ ...inv, status: "approved" });
     await log("edit", "invoice", inv.id, inv.number, `Approved — inventory deducted`);
     toast.success(`${inv.number} approved — stock deducted`);
+  };
+
+  // Return Sale Invoice → Restore inventory stock + create return invoice
+  const handleReturnInvoice = async (inv: Invoice) => {
+    // Restore inventory stock
+    for (const item of inv.items) {
+      if (item.inventoryItemId) {
+        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+        if (invItem && invItem.productType !== "non-stock") {
+          await upsertInventory({ ...invItem, qty: invItem.qty + item.qty });
+        }
+      }
+    }
+    // Create return credit note
+    const returnInvoice: Invoice = {
+      id: crypto.randomUUID(),
+      number: `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`,
+      customer: inv.customer,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: inv.dueDate,
+      amount: -inv.amount,
+      status: "paid",
+      items: inv.items.map(item => ({ ...item, amount: -item.amount })),
+      notes: `Return against ${inv.number}`,
+      tax: inv.tax,
+      returnedFrom: inv.number,
+      isReturn: true,
+      projectName: inv.projectName,
+    };
+    await upsertInvoice(returnInvoice);
+    // Mark original as returned
+    await upsertInvoice({ ...inv, status: "returned" });
+    // Create outgoing ledger entry for refund
+    const refundEntry: LedgerEntry = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+      date: returnInvoice.date,
+      bank: "Cash on Hand",
+      type: "outgoing",
+      amount: inv.amount,
+      description: `Return refund to ${inv.customer} against ${inv.number}`,
+      reference: returnInvoice.number,
+    };
+    setLedger((prev: LedgerEntry[]) => [refundEntry, ...prev]);
+    await log("create", "invoice", returnInvoice.id, returnInvoice.number, `Return against ${inv.number} — stock restored`);
+    toast.success(`${inv.number} returned → ${returnInvoice.number} created, stock restored`);
   };
 
   // --- Sales Order handlers ---
@@ -787,6 +833,9 @@ export default function Invoices() {
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
                               {inv.status !== "approved" && inv.status !== "paid" && (
                                 <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve — Deduct Stock" onClick={() => handleApproveInvoice(inv)}><CheckCircle className="w-4 h-4 text-success" /></button>
+                              )}
+                              {(inv.status === "approved" || inv.status === "paid") && !inv.isReturn && (
+                                <button className="p-1.5 rounded hover:bg-orange-500/10 transition-colors" title="Return Sale Invoice" onClick={() => handleReturnInvoice(inv)}><RotateCcw className="w-4 h-4 text-orange-600" /></button>
                               )}
                               <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Receive Payment" onClick={() => { setReceivePaymentInvoice(inv); setView("form-receipt-for-invoice"); }}><CreditCard className="w-4 h-4 text-primary" /></button>
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Payment History" onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}>
