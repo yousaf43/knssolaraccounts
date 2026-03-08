@@ -541,103 +541,189 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           </div>
 
           {/* Invoice Data Table (028, 037) */}
-          {["028", "037"].includes(report.code) && (
-            <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-lg font-semibold mb-4">
-                {report.code === "037" ? "Unpaid Invoices" : "All Invoices"} ({(report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices).length})
-              </h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Due Date</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paid</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Remaining</th>
-                      <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices).map(inv => {
-                      const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-                      const remaining = Math.max(0, inv.amount - paid);
-                      return (
-                        <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
-                          <td className="px-3 py-2 font-medium">{inv.number}</td>
-                          <td className="px-3 py-2">{inv.customer}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{inv.date}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{inv.dueDate}</td>
-                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
-                          <td className="px-3 py-2 text-right text-success">{formatCurrency(paid)}</td>
-                          <td className={`px-3 py-2 text-right font-medium ${remaining > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(remaining)}</td>
-                          <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{inv.status}</Badge></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 font-bold">
-                      <td className="px-3 py-2" colSpan={4}>Total</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency((report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices).reduce((s, i) => s + i.amount, 0))}</td>
-                      <td className="px-3 py-2 text-right text-success">{formatCurrency(receipts.reduce((s, r) => s + r.amount, 0))}</td>
-                      <td colSpan={2}></td>
-                    </tr>
-                  </tfoot>
-                </table>
+          {["028", "037"].includes(report.code) && (() => {
+            const invList = report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices;
+            const filtered = invList.filter(inv => {
+              if (!inv.date) return true;
+              const d = new Date(inv.date);
+              if (fromDate && d < fromDate) return false;
+              if (toDate && d > toDate) return false;
+              return true;
+            });
+            const today = new Date();
+
+            return (
+              <div className="bg-card rounded-lg border p-6">
+                <h2 className="text-lg font-semibold mb-4">
+                  {report.code === "037" ? "Unpaid Sale Invoices/Credits" : "Sale Invoices/Credits"} (By Date) — {filtered.length} records
+                </h2>
+                <div className="overflow-x-auto">
+                  <table id="report-print-table" className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc No.</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sub Total</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Tax</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
+                        <th className="text-center px-3 py-2 font-medium text-muted-foreground">Age Days</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Contact</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Mobile</th>
+                        <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map(inv => {
+                        const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
+                        const balance = Math.max(0, inv.amount - paid);
+                        const invDate = new Date(inv.date);
+                        const ageDays = Math.floor((today.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
+                        const cust = customers.find(c => c.name === inv.customer);
+                        const subTotal = inv.items?.reduce((s: number, it: any) => s + (it.amount || 0), 0) || inv.amount;
+                        const tax = inv.tax || 0;
+                        return (
+                          <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
+                            <td className="px-3 py-2 font-medium">{inv.customer}</td>
+                            <td className="px-3 py-2">{inv.documentNumber || inv.number}</td>
+                            <td className="px-3 py-2 text-right">{formatCurrency(subTotal)}</td>
+                            <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(tax)}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
+                            <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(balance)}</td>
+                            <td className="px-3 py-2 text-center">{ageDays}</td>
+                            <td className="px-3 py-2 text-muted-foreground text-xs">{cust ? `Mr ${cust.name}` : inv.customer}</td>
+                            <td className="px-3 py-2 text-muted-foreground text-xs">{cust?.phone || "—"}</td>
+                            <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{inv.status}</Badge></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold bg-muted/30">
+                        <td className="px-3 py-2" colSpan={3}>Total ({filtered.length} invoices)</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.items?.reduce((ss: number, it: any) => ss + (it.amount || 0), 0) || i.amount), 0))}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.tax || 0), 0))}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
+                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(filtered.reduce((s, inv) => {
+                          const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((ss, r) => ss + r.amount, 0);
+                          return s + Math.max(0, inv.amount - paid);
+                        }, 0))}</td>
+                        <td colSpan={4}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Customer-wise Summary (029, 034, 201) */}
-          {["029", "034", "201"].includes(report.code) && (
-            <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-lg font-semibold mb-4">Customer-wise {report.code === "034" ? "Statement" : "Summary"}</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Company</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Invoices</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Billed</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Paid</th>
-                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Outstanding</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customers.map(cust => {
-                      const custInv = invoices.filter(i => i.customer === cust.name);
-                      const custRec = receipts.filter(r => r.customer === cust.name);
-                      const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
-                      const totalPaid = custRec.reduce((s, r) => s + r.amount, 0);
-                      if (totalBilled === 0) return null;
-                      return (
+          {["029", "034", "201"].includes(report.code) && (() => {
+            const custData = customers.map(cust => {
+              const custInv = invoices.filter(i => i.customer === cust.name);
+              const custRec = receipts.filter(r => r.customer === cust.name);
+              const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
+              const totalPaid = custRec.reduce((s, r) => s + r.amount, 0);
+              const outstanding = Math.max(0, totalBilled - totalPaid);
+              return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, invoices: custInv, receipts: custRec };
+            }).filter(c => c.totalBilled > 0);
+
+            return (
+              <div className="bg-card rounded-lg border p-6">
+                <h2 className="text-lg font-semibold mb-4">
+                  {report.code === "034" ? "Customer Statement" : "Sale Invoices/Credits (By Customer)"} — {custData.length} customers
+                </h2>
+                <div className="overflow-x-auto">
+                  <table id="report-print-table" className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Company</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Phone</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Invoices</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Billed</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Paid</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Outstanding</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {custData.map(cust => (
                         <tr key={cust.id} className="border-b last:border-0 hover:bg-muted/30">
                           <td className="px-3 py-2 font-medium">{cust.name}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{cust.company}</td>
-                          <td className="px-3 py-2 text-right">{custInv.length}</td>
-                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(totalBilled)}</td>
-                          <td className="px-3 py-2 text-right text-success">{formatCurrency(totalPaid)}</td>
-                          <td className={`px-3 py-2 text-right font-medium ${totalBilled - totalPaid > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(Math.max(0, totalBilled - totalPaid))}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
+                          <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
+                          <td className="px-3 py-2 text-right">{cust.invoiceCount}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(cust.totalBilled)}</td>
+                          <td className="px-3 py-2 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
+                          <td className={`px-3 py-2 text-right font-medium ${cust.outstanding > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(cust.outstanding)}</td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 font-bold">
-                      <td className="px-3 py-2" colSpan={3}>Total</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(invoices.reduce((s, i) => s + i.amount, 0))}</td>
-                      <td className="px-3 py-2 text-right text-success">{formatCurrency(receipts.reduce((s, r) => s + r.amount, 0))}</td>
-                      <td className="px-3 py-2 text-right text-warning">{formatCurrency(Math.max(0, invoices.reduce((s, i) => s + i.amount, 0) - receipts.reduce((s, r) => s + r.amount, 0)))}</td>
-                    </tr>
-                  </tfoot>
-                </table>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold bg-muted/30">
+                        <td className="px-3 py-2" colSpan={4}>Total</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(custData.reduce((s, c) => s + c.totalBilled, 0))}</td>
+                        <td className="px-3 py-2 text-right text-success">{formatCurrency(custData.reduce((s, c) => s + c.totalPaid, 0))}</td>
+                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(custData.reduce((s, c) => s + c.outstanding, 0))}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/* Detailed Customer Statement - show each customer's invoices */}
+                {report.code === "034" && custData.map(cust => (
+                  <div key={cust.id} className="mt-6 border rounded-lg p-4">
+                    <h3 className="font-semibold text-sm mb-1">{cust.name} {cust.company && `— ${cust.company}`}</h3>
+                    <p className="text-xs text-muted-foreground mb-3">{cust.phone || ""} {cust.email ? `| ${cust.email}` : ""}</p>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b bg-muted/30">
+                          <th className="text-left px-2 py-1.5">Date</th>
+                          <th className="text-left px-2 py-1.5">Invoice #</th>
+                          <th className="text-left px-2 py-1.5">Project</th>
+                          <th className="text-right px-2 py-1.5">Amount</th>
+                          <th className="text-right px-2 py-1.5">Paid</th>
+                          <th className="text-right px-2 py-1.5">Balance</th>
+                          <th className="text-center px-2 py-1.5">Age Days</th>
+                          <th className="text-center px-2 py-1.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cust.invoices.map(inv => {
+                          const paid = cust.receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
+                          const balance = Math.max(0, inv.amount - paid);
+                          const ageDays = Math.floor((new Date().getTime() - new Date(inv.date).getTime()) / (1000 * 60 * 60 * 24));
+                          return (
+                            <tr key={inv.id} className="border-b last:border-0">
+                              <td className="px-2 py-1.5">{inv.date}</td>
+                              <td className="px-2 py-1.5">{inv.number}</td>
+                              <td className="px-2 py-1.5">{inv.projectName || "—"}</td>
+                              <td className="px-2 py-1.5 text-right">{formatCurrency(inv.amount)}</td>
+                              <td className="px-2 py-1.5 text-right text-success">{formatCurrency(paid)}</td>
+                              <td className={`px-2 py-1.5 text-right ${balance > 0 ? "text-destructive font-medium" : ""}`}>{formatCurrency(balance)}</td>
+                              <td className="px-2 py-1.5 text-center">{ageDays}</td>
+                              <td className="px-2 py-1.5 text-center"><Badge variant="outline" className="text-[10px] px-1.5 py-0">{inv.status}</Badge></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="font-semibold border-t">
+                          <td className="px-2 py-1.5" colSpan={3}>Sub Total</td>
+                          <td className="px-2 py-1.5 text-right">{formatCurrency(cust.totalBilled)}</td>
+                          <td className="px-2 py-1.5 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
+                          <td className="px-2 py-1.5 text-right text-destructive">{formatCurrency(cust.outstanding)}</td>
+                          <td colSpan={2}></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Product Sale Detail (084, 085, 088, 235, 203) */}
           {["084", "085", "088", "235", "203"].includes(report.code) && (() => {
