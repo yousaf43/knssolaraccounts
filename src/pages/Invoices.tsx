@@ -189,8 +189,26 @@ export default function Invoices() {
   };
 
   // --- Receipt handlers ---
+  // Helper: create ledger entry for payment received
+  const createLedgerEntry = (receipt: Receipt) => {
+    const entry: LedgerEntry = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+      date: receipt.date,
+      bank: receipt.paymentMethod || "Cash on Hand",
+      type: "incoming",
+      amount: receipt.amount,
+      description: `Payment from ${receipt.customer} against ${receipt.invoiceNumber}`,
+      reference: receipt.reference || receipt.number,
+    };
+    setLedger((prev: LedgerEntry[]) => [entry, ...prev]);
+  };
+
   const handleSaveReceipt = async (receipt: Receipt) => {
     await upsertReceipt(receipt);
+    // Auto-create ledger entry in accounts
+    if (!editReceipt) {
+      createLedgerEntry(receipt);
+    }
     goList();
     await log(editReceipt ? "edit" : "create", "receipt", receipt.id, receipt.number, `Customer: ${receipt.customer}, Amount: ${receipt.amount}`);
     toast.success(editReceipt ? "Receipt updated" : "Receipt created");
