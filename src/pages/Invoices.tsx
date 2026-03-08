@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+
+type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
 const invoiceStatusStyles: Record<string, string> = {
   paid: "bg-success/10 text-success hover:bg-success/20 border-0",
