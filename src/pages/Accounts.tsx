@@ -10,7 +10,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
 
-type Expense = { id: string; date: string; category: string; description: string; amount: number; paymentMethod: string };
+
 
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
