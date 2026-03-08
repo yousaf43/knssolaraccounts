@@ -807,10 +807,11 @@ export default function Invoices() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className="w-4 h-4" />Quotations</TabsTrigger>
           <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Sales Orders</TabsTrigger>
           <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
+          <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className="w-4 h-4" />Returns</TabsTrigger>
           <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
           <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
         </TabsList>
