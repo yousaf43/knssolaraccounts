@@ -676,10 +676,11 @@ export default function Invoices() {
 
   const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status));
 
-  const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : "New Invoice";
+  const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
     setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null);
     if (activeTab === "quotations") { setView("quotation-form"); }
+    else if (activeTab === "returns") { setView("return-form"); }
     else { setView("form"); }
   };
 
