@@ -785,9 +785,10 @@ export default function Invoices() {
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
-                              {remaining > 0 && (
-                                <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Receive Payment" onClick={() => { setReceivePaymentInvoice(inv); setView("form-receipt-for-invoice"); }}><CreditCard className="w-4 h-4 text-success" /></button>
+                              {inv.status !== "approved" && inv.status !== "paid" && (
+                                <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve — Deduct Stock" onClick={() => handleApproveInvoice(inv)}><CheckCircle className="w-4 h-4 text-success" /></button>
                               )}
+                              <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Receive Payment" onClick={() => { setReceivePaymentInvoice(inv); setView("form-receipt-for-invoice"); }}><CreditCard className="w-4 h-4 text-primary" /></button>
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Payment History" onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}>
                                 {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                               </button>
