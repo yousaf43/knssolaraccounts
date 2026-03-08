@@ -961,9 +961,6 @@ export default function Invoices() {
                               {inv.status !== "approved" && inv.status !== "paid" && (
                                 <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve — Deduct Stock" onClick={() => handleApproveInvoice(inv)}><CheckCircle className="w-4 h-4 text-success" /></button>
                               )}
-                              {(inv.status === "approved" || inv.status === "paid") && !inv.isReturn && (
-                                <button className="p-1.5 rounded hover:bg-orange-500/10 transition-colors" title="Return Sale Invoice" onClick={() => handleReturnInvoice(inv)}><RotateCcw className="w-4 h-4 text-orange-600" /></button>
-                              )}
                               <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Receive Payment" onClick={() => { setReceivePaymentInvoice(inv); setView("form-receipt-for-invoice"); }}><CreditCard className="w-4 h-4 text-primary" /></button>
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Payment History" onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}>
                                 {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
