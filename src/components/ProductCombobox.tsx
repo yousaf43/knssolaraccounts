@@ -67,7 +67,7 @@ export function ProductCombobox({ inventory, selectedItemId, onSelect }: Props) 
         />
       </div>
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-[320px] overflow-y-auto bg-popover border rounded-md shadow-md">
+        <div className="absolute z-50 mt-1 w-[360px] min-w-full max-h-[320px] overflow-y-auto bg-popover border rounded-md shadow-md">
           {filtered.length === 0 ? (
             <div className="text-xs text-muted-foreground p-3 text-center">No products found</div>
           ) : (

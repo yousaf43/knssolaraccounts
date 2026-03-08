@@ -306,7 +306,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-success">
-              <span>Discount ({discount}%)</span>
+              <span>Discount</span>
               <span className="font-medium">-{formatCurrency(discountAmount)}</span>
             </div>
           )}
