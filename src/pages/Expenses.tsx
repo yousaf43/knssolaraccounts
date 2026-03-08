@@ -115,8 +115,8 @@ export default function Expenses() {
             <PiggyBank className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Cash on Hand (Petty Cash)</p>
-            <p className="text-xl font-bold">{formatCurrency(pettyCashBalance)}</p>
+            <p className="text-xs text-muted-foreground">Petty Cash Budget</p>
+            <p className="text-xl font-bold">{formatCurrency(pettyCashBudget)}</p>
           </div>
         </div>
         <div className="bg-card rounded-lg border p-4 flex items-center gap-3">
