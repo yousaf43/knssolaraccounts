@@ -255,13 +255,17 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders }: {
   report: Report; onBack: () => void;
   monthlySales: { month: string; sales: number; expenses: number }[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
   expenseBreakdown: { name: string; value: number; color: string }[];
   inventory: InventoryItem[];
   assets: CompanyAsset[];
+  invoices: Invoice[];
+  customers: Customer[];
+  receipts: Receipt[];
+  salesOrders: SalesOrder[];
 }) {
   const { formatCurrency } = useSettings();
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
