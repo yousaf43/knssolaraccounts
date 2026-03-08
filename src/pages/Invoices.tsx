@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw, ArrowLeftRight } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
@@ -14,6 +14,7 @@ import { SalesOrderPreview } from "@/components/SalesOrderPreview";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { ReceiptForm } from "@/components/ReceiptForm";
 import { toast } from "sonner";
+import { ReturnInvoiceForm } from "@/components/ReturnInvoiceForm";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
@@ -68,7 +69,7 @@ export default function Invoices() {
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
   const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
   const [activeTab, setActiveTab] = useState("invoices");
-  const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form">("list");
+  const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
@@ -188,6 +189,116 @@ export default function Invoices() {
     setLedger((prev: LedgerEntry[]) => [refundEntry, ...prev]);
     await log("create", "invoice", returnInvoice.id, returnInvoice.number, `Return against ${inv.number} — stock restored`);
     toast.success(`${inv.number} returned → ${returnInvoice.number} created, stock restored`);
+  };
+
+  // Handle Return/Exchange from the dedicated form
+  const handleProcessReturn = async (data: {
+    originalInvoice: Invoice;
+    returnType: "return" | "exchange";
+    returnItems: (import("@/data/mockData").InvoiceItem & { returnQty: number })[];
+    exchangeItems: import("@/data/mockData").InvoiceItem[];
+    refundAmount: number;
+    refundMethod: string;
+    notes: string;
+  }) => {
+    const { originalInvoice, returnType, returnItems: retItems, exchangeItems: exchItems, refundAmount, refundMethod, notes: retNotes } = data;
+    const retNumber = `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`;
+
+    // 1. Restore stock for returned items
+    for (const item of retItems) {
+      if (item.inventoryItemId) {
+        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+        if (invItem && invItem.productType !== "non-stock") {
+          await upsertInventory({ ...invItem, qty: invItem.qty + item.returnQty });
+        }
+      }
+    }
+
+    // Calculate return value
+    const returnValue = retItems.reduce((s, ri) => s + ri.returnQty * ri.rate, 0);
+
+    // 2. Create return credit note
+    const returnInvoice: Invoice = {
+      id: crypto.randomUUID(),
+      number: retNumber,
+      customer: originalInvoice.customer,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: originalInvoice.dueDate,
+      amount: -returnValue,
+      status: "paid",
+      items: retItems.map((item) => ({
+        description: item.description,
+        qty: item.returnQty,
+        rate: item.rate,
+        amount: -(item.returnQty * item.rate),
+        inventoryItemId: item.inventoryItemId,
+      })),
+      notes: retNotes || `${returnType === "exchange" ? "Exchange" : "Return"} against ${originalInvoice.number}`,
+      tax: originalInvoice.tax,
+      returnedFrom: originalInvoice.number,
+      isReturn: true,
+      projectName: originalInvoice.projectName,
+    };
+    await upsertInvoice(returnInvoice);
+
+    // 3. Check if all items are fully returned → mark original as returned
+    const allItemsReturned = originalInvoice.items.every((origItem, idx) => {
+      const retItem = retItems.find((ri) => ri.description === origItem.description && ri.inventoryItemId === origItem.inventoryItemId);
+      return retItem && retItem.returnQty >= origItem.qty;
+    });
+    if (allItemsReturned) {
+      await upsertInvoice({ ...originalInvoice, status: "returned" });
+    }
+
+    // 4. If exchange: create a new invoice for exchange items + deduct stock
+    if (returnType === "exchange" && exchItems.length > 0) {
+      const exchTotal = exchItems.reduce((s, i) => s + i.amount, 0);
+      const exchInvoice: Invoice = {
+        id: crypto.randomUUID(),
+        number: `INV-${String(invoices.length + 2).padStart(3, "0")}`,
+        customer: originalInvoice.customer,
+        date: new Date().toISOString().split("T")[0],
+        dueDate: originalInvoice.dueDate,
+        amount: exchTotal,
+        status: "approved",
+        items: exchItems,
+        notes: `Exchange against ${originalInvoice.number} (${retNumber})`,
+        projectName: originalInvoice.projectName,
+      };
+      // Deduct stock for exchange items
+      for (const item of exchItems) {
+        if (item.inventoryItemId) {
+          const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+          if (invItem && invItem.productType !== "non-stock") {
+            await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+          }
+        }
+      }
+      await upsertInvoice(exchInvoice);
+      await log("create", "invoice", exchInvoice.id, exchInvoice.number, `Exchange invoice from ${originalInvoice.number}`);
+    }
+
+    // 5. Create refund ledger entry if there's a refund
+    if (refundAmount > 0) {
+      const refundEntry: LedgerEntry = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+        date: returnInvoice.date,
+        bank: refundMethod,
+        type: "outgoing",
+        amount: refundAmount,
+        description: `${returnType === "exchange" ? "Exchange" : "Return"} refund to ${originalInvoice.customer} against ${originalInvoice.number}`,
+        reference: retNumber,
+      };
+      setLedger((prev: LedgerEntry[]) => [refundEntry, ...prev]);
+    }
+
+    goList();
+    await log("create", "invoice", returnInvoice.id, retNumber, `${returnType === "exchange" ? "Exchange" : "Return"} against ${originalInvoice.number} — stock restored`);
+    toast.success(
+      returnType === "exchange"
+        ? `Exchange processed → ${retNumber} created, new invoice issued`
+        : `Return processed → ${retNumber} created, stock restored`
+    );
   };
 
   // --- Sales Order handlers ---
@@ -441,6 +552,20 @@ export default function Invoices() {
   };
 
   // --- Form views ---
+  if (view === "return-form") {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <ReturnInvoiceForm
+          invoices={invoices}
+          inventory={inventory}
+          onSaveReturn={handleProcessReturn}
+          onCancel={goList}
+          nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`}
+        />
+      </div>
+    );
+  }
+
   if (view === "quotation-form") {
     return (
       <div className="max-w-4xl mx-auto">
@@ -551,10 +676,11 @@ export default function Invoices() {
 
   const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status));
 
-  const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : "New Invoice";
+  const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
     setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null);
     if (activeTab === "quotations") { setView("quotation-form"); }
+    else if (activeTab === "returns") { setView("return-form"); }
     else { setView("form"); }
   };
 
@@ -681,10 +807,11 @@ export default function Invoices() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className="w-4 h-4" />Quotations</TabsTrigger>
           <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Sales Orders</TabsTrigger>
           <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
+          <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className="w-4 h-4" />Returns</TabsTrigger>
           <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
           <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
         </TabsList>
@@ -875,7 +1002,71 @@ export default function Invoices() {
           </div>
         </TabsContent>
 
-        {/* Receipts Tab */}
+        {/* Returns Tab */}
+        <TabsContent value="returns">
+          <FilterBar />
+          {(() => {
+            const returnInvoices = invoices.filter((inv) => inv.isReturn);
+            const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date));
+            return (
+              <>
+                <div className="flex items-center justify-end px-4 py-2">
+                  <span className="text-xs text-muted-foreground">{filteredReturns.length} return(s)</span>
+                </div>
+                <div className="bg-card rounded-lg border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Return #</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Original Invoice</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                          <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
+                          <th className="text-center px-4 py-3 font-medium text-muted-foreground">Type</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Items</th>
+                          <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredReturns.map((ret) => {
+                          const isExchange = ret.notes?.toLowerCase().includes("exchange");
+                          return (
+                            <tr key={ret.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                              <td className="px-4 py-3 font-medium">{ret.number}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{ret.returnedFrom || "—"}</td>
+                              <td className="px-4 py-3">{ret.customer}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{ret.date}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-destructive">{formatCurrency(ret.amount)}</td>
+                              <td className="px-4 py-3 text-center">
+                                <Badge variant="outline" className={isExchange ? "border-primary text-primary" : "border-destructive text-destructive"}>
+                                  {isExchange ? <><ArrowLeftRight className="w-3 h-3 mr-1 inline" />Exchange</> : <><RotateCcw className="w-3 h-3 mr-1 inline" />Return</>}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate">
+                                {ret.items.map((i) => `${i.description} x${Math.abs(i.qty)}`).join(", ")}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(ret); setView("preview"); }}>
+                                    <Eye className="w-4 h-4 text-muted-foreground" />
+                                  </button>
+                                  <ConfirmDeleteDialog onConfirm={() => handleDeleteInvoice(ret.id)} title="Delete Return?" description={`Delete return ${ret.number}?`} />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {filteredReturns.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No returns found. Click "New Return" to process a return or exchange.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </TabsContent>
+
         <TabsContent value="receipts">
           <FilterBar />
           <div className="flex items-center justify-end px-4 py-2">
