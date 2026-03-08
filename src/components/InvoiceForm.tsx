@@ -208,8 +208,23 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           <Input type="number" min={0} max={100} value={tax} onChange={(e) => setTax(Number(e.target.value))} className="mt-1" />
         </div>
         <div>
-          <Label>Discount (%)</Label>
-          <Input type="number" min={0} max={100} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="mt-1" />
+          <Label>Discount (Amount)</Label>
+          <Input type="number" min={0} step={0.01} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} placeholder="0.00" className="mt-1" />
+        </div>
+        <div>
+          <Label>Payment Mode</Label>
+          <Select value={advanceMethod} onValueChange={setAdvanceMethod}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Cash">Cash</SelectItem>
+              <SelectItem value="Online">Online</SelectItem>
+              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+              <SelectItem value="Cheque">Cheque</SelectItem>
+              <SelectItem value="Credit Card">Credit Card</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
