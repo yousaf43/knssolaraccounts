@@ -177,6 +177,13 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
           <Label>Reference / Transaction ID</Label>
           <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="TXN-12345" className="mt-1" />
         </div>
+        <div>
+          <Label>Discount (Amount)</Label>
+          <Input type="number" min={0} step={0.01} value={discountAmount || ""} onChange={(e) => setDiscountAmount(Number(e.target.value))} placeholder="0.00" className="mt-1" />
+          {discountAmount > 0 && selectedInvoice && (
+            <p className="text-xs text-success mt-1">Discount of {formatCurrency(discountAmount)} applied. New remaining: {formatCurrency(invoiceRemaining)}</p>
+          )}
+        </div>
       </div>
 
       <div>

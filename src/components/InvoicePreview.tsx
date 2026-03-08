@@ -111,6 +111,10 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         .sig-box { text-align: center; }
         .sig-box .sig-name { font-weight: bold; font-size: 13px; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 4px; min-width: 120px; }
         .sig-box .sig-label { font-size: 10px; color: #666; }
+        .terms-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+        .terms-section p { font-size: 11px; font-weight: bold; color: #333; margin-bottom: 8px; }
+        .terms-section ol { font-size: 9px; color: #666; padding-left: 16px; line-height: 1.6; }
+        .terms-section li { margin-bottom: 2px; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
         img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
