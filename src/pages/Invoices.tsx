@@ -64,6 +64,7 @@ export default function Invoices() {
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
+  const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
