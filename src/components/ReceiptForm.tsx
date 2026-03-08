@@ -91,6 +91,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
     if (!customer.trim() || !date || !invoiceNumber || amount <= 0) return;
     if (isOverpay) return;
 
+    const displayMethod = paymentMethod.split("||")[0];
     onSave({
       id: editReceipt?.id || crypto.randomUUID(),
       number: editReceipt?.number || nextNumber,
@@ -98,7 +99,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
       date,
       invoiceNumber,
       amount,
-      paymentMethod,
+      paymentMethod: displayMethod,
       reference: reference.trim(),
       notes: discountAmount > 0 ? `${notes.trim()} | Discount: ${discountAmount}`.trim() : notes.trim(),
     });

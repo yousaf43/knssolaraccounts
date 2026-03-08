@@ -146,7 +146,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       notes: notes.trim(),
       tax,
       discount,
-    }, advanceAmount > 0 ? advanceAmount : undefined, advanceMethod, advanceRef.trim() || undefined);
+    }, advanceAmount > 0 ? advanceAmount : undefined, getPaymentDisplayName(advanceMethod), advanceRef.trim() || undefined);
   };
 
   const hasInventory = inventory.length > 0;
