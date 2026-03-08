@@ -80,7 +80,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
       amount,
       paymentMethod,
       reference: reference.trim(),
-      notes: notes.trim(),
+      notes: discountAmount > 0 ? `${notes.trim()} | Discount: ${discountAmount}`.trim() : notes.trim(),
     });
   };
 
