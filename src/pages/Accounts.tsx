@@ -83,7 +83,7 @@ export default function Accounts() {
   const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
   const [reconcile, setReconcile] = useLocalStorage<ReconcileEntry[]>("reconcileEntries", initialReconcile);
 
-  // Ledger
+   // Ledger
   const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
   const [ledgerForm, setLedgerForm] = useState({ date: "", bank: "", type: "incoming" as "incoming" | "outgoing", amount: "", description: "", reference: "" });
   const [showLedgerForm, setShowLedgerForm] = useState(false);
@@ -91,6 +91,40 @@ export default function Accounts() {
   const [ledgerMonth, setLedgerMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
   const [ledgerBank, setLedgerBank] = useState("all");
   const [ledgerPeriod, setLedgerPeriod] = useState<"month" | "year">("month");
+
+  // Expense transfer
+  const [expenses, setExpenses] = useLocalStorage<Expense[]>("expenses", []);
+  const [showExpenseTransfer, setShowExpenseTransfer] = useState(false);
+  const [expTransfer, setExpTransfer] = useState({ account: "", date: "", amount: "", category: "General", description: "" });
+
+  const handleExpenseTransfer = () => {
+    if (!expTransfer.account || !expTransfer.date || !expTransfer.amount || parseFloat(expTransfer.amount) <= 0) return;
+    const amt = parseFloat(expTransfer.amount);
+    // Add expense
+    const newExp: Expense = {
+      id: crypto.randomUUID(),
+      date: expTransfer.date,
+      category: expTransfer.category || "General",
+      description: expTransfer.description || `Transfer from ${expTransfer.account}`,
+      amount: amt,
+      paymentMethod: expTransfer.account,
+    };
+    setExpenses(prev => [newExp, ...prev]);
+    // Add outgoing ledger entry
+    const entry: LedgerEntry = {
+      id: Date.now().toString(),
+      date: expTransfer.date,
+      bank: expTransfer.account,
+      type: "outgoing",
+      amount: amt,
+      description: expTransfer.description || `Expense: ${expTransfer.category}`,
+      reference: `EXP-${(ledger.length + 1).toString().padStart(3, "0")}`,
+    };
+    setLedger(prev => [entry, ...prev]);
+    toast.success(`${formatCurrency(amt)} transferred from ${expTransfer.account} to Expenses`);
+    setExpTransfer({ account: "", date: "", amount: "", category: "General", description: "" });
+    setShowExpenseTransfer(false);
+  };
 
   // Payment form
   const emptyPay = { date: "", account: "", payee: "", amount: "", reference: "", description: "" };
