@@ -50,21 +50,25 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [advanceRef, setAdvanceRef] = useState("");
   const [paymentMode, setPaymentMode] = useState("Cash on Hand");
 
-  // Build payment options from accounts
+  // Build payment options from accounts (unique key using id)
   const paymentOptions = useMemo(() => {
     if (accounts.length > 0) {
       return accounts.map(a => ({
-        value: a.name,
+        value: `${a.name}||${a.accountTitle}||${a.id}`,
         label: a.accountTitle ? `${a.name} — ${a.accountTitle}` : a.name,
+        displayName: a.name,
       }));
     }
     return [
-      { value: "Cash on Hand", label: "Cash on Hand" },
-      { value: "Bank Transfer", label: "Bank Transfer" },
-      { value: "Online", label: "Online" },
-      { value: "Cheque", label: "Cheque" },
+      { value: "Cash on Hand||Cash on Hand||default", label: "Cash on Hand", displayName: "Cash on Hand" },
+      { value: "Bank Transfer||Bank Transfer||default2", label: "Bank Transfer", displayName: "Bank Transfer" },
+      { value: "Online||Online||default3", label: "Online", displayName: "Online" },
+      { value: "Cheque||Cheque||default4", label: "Cheque", displayName: "Cheque" },
     ];
   }, [accounts]);
+
+  // Extract display name from encoded value
+  const getPaymentDisplayName = (encoded: string) => encoded.split("||")[0];
 
   const handleQuickAddCustomer = () => {
     if (!quickName.trim() || !quickCompany.trim()) return;
