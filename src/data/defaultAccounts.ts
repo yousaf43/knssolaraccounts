@@ -2,6 +2,7 @@ export type Account = { id: string; name: string; accountTitle: string; code: st
 
 export const defaultAccounts: Account[] = [
   { id: "0", name: "Cash on Hand", accountTitle: "Cash on Hand", code: "100001", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
+  { id: "pc", name: "Petty Cash", accountTitle: "Petty Cash Fund", code: "100002", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
   { id: "1", name: "Faysal Bank", accountTitle: "K&S Solar Energy", code: "230901", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
   { id: "2", name: "Bank Al Habib", accountTitle: "K&S Solar Energy Pvt. Ltd.", code: "230902", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
   { id: "3", name: "Bank Islami Pakistan Limited", accountTitle: "K&S Solar Energy", code: "230903", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },

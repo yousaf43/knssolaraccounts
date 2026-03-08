@@ -50,11 +50,15 @@ export default function Expenses() {
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
-  // Cash on Hand account balance = petty cash budget
-  const cashAccount = accounts.find(a => a.name === "Cash on Hand");
-  const pettyCashBalance = cashAccount?.balance ?? 0;
+  // Petty Cash account balance
+  const pettyCashAccount = accounts.find(a => a.name === "Petty Cash");
+  const pettyCashOpeningBalance = pettyCashAccount?.balance ?? 0;
+  // Petty Cash ledger balance (transfers in/out)
+  const pettyCashLedgerEntries = JSON.parse(localStorage.getItem("ledgerEntries") || "[]") as { bank: string; type: string; amount: number }[];
+  const pettyCashLedgerBalance = pettyCashLedgerEntries.filter(e => e.bank === "Petty Cash").reduce((s, e) => s + (e.type === "incoming" ? e.amount : -e.amount), 0);
+  const pettyCashBudget = pettyCashOpeningBalance + pettyCashLedgerBalance;
   const cashExpenses = expenses.filter(e => e.paymentMethod === "Cash").reduce((s, e) => s + e.amount, 0);
-  const remainingPettyCash = pettyCashBalance - cashExpenses;
+  const remainingPettyCash = pettyCashBudget - cashExpenses;
 
   const openAdd = () => { setEditing(null); setForm(emptyExpense()); setShowForm(true); };
   const openEdit = (e: Expense) => { setEditing(e); setForm(e); setShowForm(true); };
@@ -111,8 +115,8 @@ export default function Expenses() {
             <PiggyBank className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Cash on Hand (Petty Cash)</p>
-            <p className="text-xl font-bold">{formatCurrency(pettyCashBalance)}</p>
+            <p className="text-xs text-muted-foreground">Petty Cash Budget</p>
+            <p className="text-xl font-bold">{formatCurrency(pettyCashBudget)}</p>
           </div>
         </div>
         <div className="bg-card rounded-lg border p-4 flex items-center gap-3">
