@@ -129,6 +129,21 @@ export default function Invoices() {
     toast.success("Invoice deleted");
   };
 
+  // Approve Invoice → Deduct inventory stock
+  const handleApproveInvoice = async (inv: Invoice) => {
+    for (const item of inv.items) {
+      if (item.inventoryItemId) {
+        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+        if (invItem && invItem.productType !== "non-stock") {
+          await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+        }
+      }
+    }
+    await upsertInvoice({ ...inv, status: "approved" });
+    await log("edit", "invoice", inv.id, inv.number, `Approved — inventory deducted`);
+    toast.success(`${inv.number} approved — stock deducted`);
+  };
+
   // --- Sales Order handlers ---
   const handleSaveSO = async (order: SalesOrder) => {
     await upsertSalesOrder(order);
