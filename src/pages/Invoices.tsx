@@ -1002,7 +1002,71 @@ export default function Invoices() {
           </div>
         </TabsContent>
 
-        {/* Receipts Tab */}
+        {/* Returns Tab */}
+        <TabsContent value="returns">
+          <FilterBar />
+          {(() => {
+            const returnInvoices = invoices.filter((inv) => inv.isReturn);
+            const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date));
+            return (
+              <>
+                <div className="flex items-center justify-end px-4 py-2">
+                  <span className="text-xs text-muted-foreground">{filteredReturns.length} return(s)</span>
+                </div>
+                <div className="bg-card rounded-lg border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Return #</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Original Invoice</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                          <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
+                          <th className="text-center px-4 py-3 font-medium text-muted-foreground">Type</th>
+                          <th className="text-left px-4 py-3 font-medium text-muted-foreground">Items</th>
+                          <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredReturns.map((ret) => {
+                          const isExchange = ret.notes?.toLowerCase().includes("exchange");
+                          return (
+                            <tr key={ret.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                              <td className="px-4 py-3 font-medium">{ret.number}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{ret.returnedFrom || "—"}</td>
+                              <td className="px-4 py-3">{ret.customer}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{ret.date}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-destructive">{formatCurrency(ret.amount)}</td>
+                              <td className="px-4 py-3 text-center">
+                                <Badge variant="outline" className={isExchange ? "border-primary text-primary" : "border-destructive text-destructive"}>
+                                  {isExchange ? <><ArrowLeftRight className="w-3 h-3 mr-1 inline" />Exchange</> : <><RotateCcw className="w-3 h-3 mr-1 inline" />Return</>}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate">
+                                {ret.items.map((i) => `${i.description} x${Math.abs(i.qty)}`).join(", ")}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(ret); setView("preview"); }}>
+                                    <Eye className="w-4 h-4 text-muted-foreground" />
+                                  </button>
+                                  <ConfirmDeleteDialog onConfirm={() => handleDeleteInvoice(ret.id)} title="Delete Return?" description={`Delete return ${ret.number}?`} />
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {filteredReturns.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No returns found. Click "New Return" to process a return or exchange.</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </TabsContent>
+
         <TabsContent value="receipts">
           <FilterBar />
           <div className="flex items-center justify-end px-4 py-2">
