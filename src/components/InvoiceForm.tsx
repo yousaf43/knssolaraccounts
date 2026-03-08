@@ -222,6 +222,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
               <SelectItem value="overdue">Overdue</SelectItem>
             </SelectContent>

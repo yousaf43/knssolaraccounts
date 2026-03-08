@@ -67,7 +67,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
     return Math.max(0, selectedInvoice.amount - paidSoFar - discountAmount);
   }, [selectedInvoice, invoiceNumber, receipts, editReceipt, discountAmount]);
 
-  const isOverpay = selectedInvoice && amount > invoiceRemaining;
+  const isOverpay = false; // Allow overpayment
 
   // Build payment options from accounts (unique key using id)
   const paymentOptions = useMemo(() => {

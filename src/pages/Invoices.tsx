@@ -25,6 +25,7 @@ const invoiceStatusStyles: Record<string, string> = {
   paid: "bg-success/10 text-success hover:bg-success/20 border-0",
   pending: "bg-warning/10 text-warning hover:bg-warning/20 border-0",
   overdue: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
+  approved: "bg-primary/10 text-primary hover:bg-primary/20 border-0",
 };
 
 const soStatusStyles: Record<string, string> = {
@@ -94,16 +95,8 @@ export default function Invoices() {
   // --- Invoice handlers ---
   const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => {
     await upsertInvoice(invoice);
-    // Deduct inventory stock for newly created invoices (not edits)
+    // Do NOT deduct inventory on creation — stock deducts only on Approve
     if (!editInvoice) {
-      for (const item of invoice.items) {
-        if (item.inventoryItemId) {
-          const invItem = inventory.find((inv) => inv.id === item.inventoryItemId);
-          if (invItem && invItem.productType !== "non-stock") {
-            await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
-          }
-        }
-      }
       // Create advance payment receipt if provided
       if (advanceAmount && advanceAmount > 0) {
         const advReceipt: Receipt = {
@@ -134,6 +127,21 @@ export default function Invoices() {
     }
     removeInvoice(id);
     toast.success("Invoice deleted");
+  };
+
+  // Approve Invoice → Deduct inventory stock
+  const handleApproveInvoice = async (inv: Invoice) => {
+    for (const item of inv.items) {
+      if (item.inventoryItemId) {
+        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+        if (invItem && invItem.productType !== "non-stock") {
+          await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+        }
+      }
+    }
+    await upsertInvoice({ ...inv, status: "approved" });
+    await log("edit", "invoice", inv.id, inv.number, `Approved — inventory deducted`);
+    toast.success(`${inv.number} approved — stock deducted`);
   };
 
   // --- Sales Order handlers ---
@@ -777,9 +785,10 @@ export default function Invoices() {
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View" onClick={() => { setPreviewInvoice(inv); setView("preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
-                              {remaining > 0 && (
-                                <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Receive Payment" onClick={() => { setReceivePaymentInvoice(inv); setView("form-receipt-for-invoice"); }}><CreditCard className="w-4 h-4 text-success" /></button>
+                              {inv.status !== "approved" && inv.status !== "paid" && (
+                                <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve — Deduct Stock" onClick={() => handleApproveInvoice(inv)}><CheckCircle className="w-4 h-4 text-success" /></button>
                               )}
+                              <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Receive Payment" onClick={() => { setReceivePaymentInvoice(inv); setView("form-receipt-for-invoice"); }}><CreditCard className="w-4 h-4 text-primary" /></button>
                               <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Payment History" onClick={() => setExpandedInvoice(isExpanded ? null : inv.id)}>
                                 {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                               </button>
