@@ -791,6 +791,11 @@ export default function Reports() {
   const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
   const [assets] = useLocalStorage<CompanyAsset[]>("cb-company-assets", []);
 
+  // Read additional data
+  const { data: customers } = useCustomersCloud();
+  const { data: receipts } = useReceiptsCloud();
+  const { data: salesOrders } = useSalesOrdersCloud();
+
   // Build monthly data from real data
   const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills), [invoices, expenses, bills]);
 
