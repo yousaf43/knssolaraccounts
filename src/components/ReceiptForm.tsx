@@ -6,7 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, UserPlus, AlertTriangle } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
+
+type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 
 type Props = {
   customers: Customer[];
@@ -21,11 +24,12 @@ type Props = {
 
 export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCancel, editReceipt, nextNumber, onAddCustomer }: Props) {
   const { formatCurrency } = useSettings();
+  const [accounts] = useLocalStorage<Account[]>("accounts", []);
   const [customer, setCustomer] = useState(editReceipt?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || "");
   const [amount, setAmount] = useState(editReceipt?.amount || 0);
-  const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Cash");
+  const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Cash on Hand");
   const [reference, setReference] = useState(editReceipt?.reference || "");
   const [notes, setNotes] = useState(editReceipt?.notes || "");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -65,6 +69,22 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
   }, [selectedInvoice, invoiceNumber, receipts, editReceipt, discountAmount]);
 
   const isOverpay = selectedInvoice && amount > invoiceRemaining;
+
+  // Build payment options from accounts
+  const paymentOptions = useMemo(() => {
+    if (accounts.length > 0) {
+      return accounts.map(a => ({
+        value: a.name,
+        label: a.accountTitle ? `${a.name} — ${a.accountTitle}` : a.name,
+      }));
+    }
+    return [
+      { value: "Cash on Hand", label: "Cash on Hand" },
+      { value: "Bank Transfer", label: "Bank Transfer" },
+      { value: "Online", label: "Online" },
+      { value: "Cheque", label: "Cheque" },
+    ];
+  }, [accounts]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,16 +180,13 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
           )}
         </div>
         <div>
-          <Label>Payment Method</Label>
+          <Label>Payment Account / Method</Label>
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Cash">Cash</SelectItem>
-              <SelectItem value="Online">Online</SelectItem>
-              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-              <SelectItem value="Cheque">Cheque</SelectItem>
-              <SelectItem value="Credit Card">Credit Card</SelectItem>
-              <SelectItem value="UPI">UPI</SelectItem>
+              {paymentOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

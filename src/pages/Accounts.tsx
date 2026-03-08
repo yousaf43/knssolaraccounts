@@ -17,6 +17,7 @@ type ReconcileEntry = { id: string; date: string; account: string; statementBala
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
 const initialAccounts: Account[] = [
+  { id: "0", name: "Cash on Hand", accountTitle: "Cash on Hand", code: "100001", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
   { id: "1", name: "Faysal Bank", accountTitle: "K&S Solar Energy", code: "230901", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
   { id: "2", name: "Bank Al Habib", accountTitle: "K&S Solar Energy Pvt. Ltd.", code: "230902", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },
   { id: "3", name: "Bank Islami Pakistan Limited", accountTitle: "K&S Solar Energy", code: "230903", reconcileDate: "", currency: "PKR", fxBalance: 0, balance: 0 },

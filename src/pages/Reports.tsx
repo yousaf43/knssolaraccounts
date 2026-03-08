@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
-import { type Invoice, type Expense, type InventoryItem, type Bill } from "@/data/mockData";
+import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder } from "@/data/mockData";
 import { type CompanyAsset } from "@/pages/Assets";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -15,7 +15,9 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
+  useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud,
 } from "@/hooks/useAppData";
+import { Badge } from "@/components/ui/badge";
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
@@ -253,13 +255,17 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders }: {
   report: Report; onBack: () => void;
   monthlySales: { month: string; sales: number; expenses: number }[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
   expenseBreakdown: { name: string; value: number; color: string }[];
   inventory: InventoryItem[];
   assets: CompanyAsset[];
+  invoices: Invoice[];
+  customers: Customer[];
+  receipts: Receipt[];
+  salesOrders: SalesOrder[];
 }) {
   const { formatCurrency } = useSettings();
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
@@ -479,20 +485,211 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
       {/* Sales Reports */}
       {["028", "029", "034", "037", "084", "085", "088", "235", "200", "201", "202", "203"].includes(report.code) && (
-        <div className="bg-card rounded-lg border p-6">
-          <h2 className="text-lg font-semibold mb-4">Monthly Sales Trend</h2>
-          {filteredData.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">No sales data. Add invoices to see trends.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Sales" />
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="space-y-6">
+          {/* Sales Trend Chart */}
+          <div className="bg-card rounded-lg border p-6">
+            <h2 className="text-lg font-semibold mb-4">Monthly Sales Trend</h2>
+            {filteredData.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-8">No sales data. Add invoices to see trends.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={filteredData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
+                  <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Sales" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Invoice Data Table (028, 037) */}
+          {["028", "037"].includes(report.code) && (
+            <div className="bg-card rounded-lg border p-6">
+              <h2 className="text-lg font-semibold mb-4">
+                {report.code === "037" ? "Unpaid Invoices" : "All Invoices"} ({(report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices).length})
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Due Date</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Paid</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Remaining</th>
+                      <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices).map(inv => {
+                      const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
+                      const remaining = Math.max(0, inv.amount - paid);
+                      return (
+                        <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 font-medium">{inv.number}</td>
+                          <td className="px-3 py-2">{inv.customer}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{inv.date}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{inv.dueDate}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
+                          <td className="px-3 py-2 text-right text-success">{formatCurrency(paid)}</td>
+                          <td className={`px-3 py-2 text-right font-medium ${remaining > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(remaining)}</td>
+                          <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{inv.status}</Badge></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 font-bold">
+                      <td className="px-3 py-2" colSpan={4}>Total</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency((report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices).reduce((s, i) => s + i.amount, 0))}</td>
+                      <td className="px-3 py-2 text-right text-success">{formatCurrency(receipts.reduce((s, r) => s + r.amount, 0))}</td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Customer-wise Summary (029, 034, 201) */}
+          {["029", "034", "201"].includes(report.code) && (
+            <div className="bg-card rounded-lg border p-6">
+              <h2 className="text-lg font-semibold mb-4">Customer-wise {report.code === "034" ? "Statement" : "Summary"}</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Company</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Invoices</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Billed</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Paid</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Outstanding</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customers.map(cust => {
+                      const custInv = invoices.filter(i => i.customer === cust.name);
+                      const custRec = receipts.filter(r => r.customer === cust.name);
+                      const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
+                      const totalPaid = custRec.reduce((s, r) => s + r.amount, 0);
+                      if (totalBilled === 0) return null;
+                      return (
+                        <tr key={cust.id} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 font-medium">{cust.name}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{cust.company}</td>
+                          <td className="px-3 py-2 text-right">{custInv.length}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(totalBilled)}</td>
+                          <td className="px-3 py-2 text-right text-success">{formatCurrency(totalPaid)}</td>
+                          <td className={`px-3 py-2 text-right font-medium ${totalBilled - totalPaid > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(Math.max(0, totalBilled - totalPaid))}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 font-bold">
+                      <td className="px-3 py-2" colSpan={3}>Total</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(invoices.reduce((s, i) => s + i.amount, 0))}</td>
+                      <td className="px-3 py-2 text-right text-success">{formatCurrency(receipts.reduce((s, r) => s + r.amount, 0))}</td>
+                      <td className="px-3 py-2 text-right text-warning">{formatCurrency(Math.max(0, invoices.reduce((s, i) => s + i.amount, 0) - receipts.reduce((s, r) => s + r.amount, 0)))}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Product Sale Detail (084, 085, 088, 235, 203) */}
+          {["084", "085", "088", "235", "203"].includes(report.code) && (() => {
+            const productMap: Record<string, { name: string; qty: number; revenue: number; count: number }> = {};
+            invoices.forEach(inv => {
+              inv.items.forEach(item => {
+                const key = item.description || "Unknown";
+                if (!productMap[key]) productMap[key] = { name: key, qty: 0, revenue: 0, count: 0 };
+                productMap[key].qty += item.qty;
+                productMap[key].revenue += item.amount;
+                productMap[key].count += 1;
+              });
+            });
+            const products = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+            return (
+              <div className="bg-card rounded-lg border p-6">
+                <h2 className="text-lg font-semibold mb-4">Product Sale Summary ({products.length} products)</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.map(p => (
+                        <tr key={p.name} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 font-medium">{p.name}</td>
+                          <td className="px-3 py-2 text-right">{p.count}</td>
+                          <td className="px-3 py-2 text-right">{p.qty}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.revenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold">
+                        <td className="px-3 py-2">Total</td>
+                        <td className="px-3 py-2 text-right">{products.reduce((s, p) => s + p.count, 0)}</td>
+                        <td className="px-3 py-2 text-right">{products.reduce((s, p) => s + p.qty, 0)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(products.reduce((s, p) => s + p.revenue, 0))}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Payment Receipts Summary (063) */}
+          {report.code === "063" && (
+            <div className="bg-card rounded-lg border p-6">
+              <h2 className="text-lg font-semibold mb-4">Payment Receipts ({receipts.length})</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Receipt #</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Account</th>
+                      <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {receipts.map(r => (
+                      <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-3 py-2 font-medium">{r.number}</td>
+                        <td className="px-3 py-2">{r.customer}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{r.date}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{r.invoiceNumber}</td>
+                        <td className="px-3 py-2">{r.paymentMethod}</td>
+                        <td className="px-3 py-2 text-right font-semibold text-success">{formatCurrency(r.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 font-bold">
+                      <td className="px-3 py-2" colSpan={5}>Total Received</td>
+                      <td className="px-3 py-2 text-right text-success">{formatCurrency(receipts.reduce((s, r) => s + r.amount, 0))}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -785,6 +982,11 @@ export default function Reports() {
   const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
   const [assets] = useLocalStorage<CompanyAsset[]>("cb-company-assets", []);
 
+  // Read additional data
+  const { data: customers } = useCustomersCloud();
+  const { data: receipts } = useReceiptsCloud();
+  const { data: salesOrders } = useSalesOrdersCloud();
+
   // Build monthly data from real data
   const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills), [invoices, expenses, bills]);
 
@@ -834,7 +1036,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} customers={customers} receipts={receipts} salesOrders={salesOrders} />;
   }
 
   return (
