@@ -41,7 +41,7 @@ export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel,
 
   // Only approved/paid invoices (not already returned, not return invoices)
   const eligibleInvoices = invoices.filter(
-    (inv) => (inv.status === "approved" || inv.status === "paid") && !inv.isReturn && inv.status !== "returned"
+    (inv) => (inv.status === "approved" || inv.status === "paid") && !inv.isReturn
   );
 
   const selectedInvoice = invoices.find((inv) => inv.id === selectedInvoiceId) || null;
