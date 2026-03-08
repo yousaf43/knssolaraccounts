@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
-import { type Invoice, type Expense, type InventoryItem, type Bill } from "@/data/mockData";
+import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder } from "@/data/mockData";
 import { type CompanyAsset } from "@/pages/Assets";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -15,7 +15,9 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
+  useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud,
 } from "@/hooks/useAppData";
+import { Badge } from "@/components/ui/badge";
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };

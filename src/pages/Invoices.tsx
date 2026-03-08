@@ -113,11 +113,13 @@ export default function Invoices() {
           date: invoice.date,
           invoiceNumber: invoice.number,
           amount: advanceAmount,
-          paymentMethod: advanceMethod || "Cash",
+          paymentMethod: advanceMethod || "Cash on Hand",
           reference: advanceRef || "",
           notes: `Advance payment for ${invoice.number}`,
         };
         await upsertReceipt(advReceipt);
+        // Auto-create ledger entry for advance payment
+        createLedgerEntry(advReceipt);
       }
     }
     goList();
