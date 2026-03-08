@@ -24,7 +24,7 @@ type Props = {
 
 export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
   const { formatCurrency } = useSettings();
-  const [accounts] = useLocalStorage<Account[]>("accounts", []);
+  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
