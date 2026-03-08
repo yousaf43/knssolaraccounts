@@ -56,8 +56,8 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
   const discountRate = invoice.discount ?? 0;
-  const discountAmount = subtotal * (discountRate / 100);
-  const afterDiscount = subtotal - discountAmount;
+  const discountAmount = discountRate; // flat amount
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
   const taxRate = invoice.tax ?? 0;
   const taxAmount = afterDiscount * (taxRate / 100);
   const total = afterDiscount + taxAmount;
