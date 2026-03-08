@@ -267,7 +267,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   receipts: Receipt[];
   salesOrders: SalesOrder[];
 }) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, settings } = useSettings();
+  const companyName = settings?.companyName || "K & S Solar";
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
 
