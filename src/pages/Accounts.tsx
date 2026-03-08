@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { recentTransactions } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
+import { toast } from "sonner";
+
+type Expense = { id: string; date: string; category: string; description: string; amount: number; paymentMethod: string };
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
