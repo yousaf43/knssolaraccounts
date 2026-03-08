@@ -7,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, UserPlus, AlertTriangle } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
-
-type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 
 type Props = {
   customers: Customer[];

@@ -8,10 +8,8 @@ import { Plus, Trash2, X, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
-
-type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 
 type Props = {
   customers: Customer[];
