@@ -41,7 +41,7 @@ export default function Customers() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name?.trim() || !form.email?.trim() || !form.company?.trim()) return;
+    if (!form.name?.trim()) return;
     if (editing) {
       await upsertCustomer({ ...editing, ...form } as Customer);
       await log("edit", "customer", editing.id, editing.name, `Company: ${form.company}`);
