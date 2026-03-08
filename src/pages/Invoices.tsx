@@ -145,6 +145,51 @@ export default function Invoices() {
     toast.success(`${inv.number} approved — stock deducted`);
   };
 
+  // Return Sale Invoice → Restore inventory stock + create return invoice
+  const handleReturnInvoice = async (inv: Invoice) => {
+    // Restore inventory stock
+    for (const item of inv.items) {
+      if (item.inventoryItemId) {
+        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+        if (invItem && invItem.productType !== "non-stock") {
+          await upsertInventory({ ...invItem, qty: invItem.qty + item.qty });
+        }
+      }
+    }
+    // Create return credit note
+    const returnInvoice: Invoice = {
+      id: crypto.randomUUID(),
+      number: `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`,
+      customer: inv.customer,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: inv.dueDate,
+      amount: -inv.amount,
+      status: "paid",
+      items: inv.items.map(item => ({ ...item, amount: -item.amount })),
+      notes: `Return against ${inv.number}`,
+      tax: inv.tax,
+      returnedFrom: inv.number,
+      isReturn: true,
+      projectName: inv.projectName,
+    };
+    await upsertInvoice(returnInvoice);
+    // Mark original as returned
+    await upsertInvoice({ ...inv, status: "returned" });
+    // Create outgoing ledger entry for refund
+    const refundEntry: LedgerEntry = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+      date: returnInvoice.date,
+      bank: "Cash on Hand",
+      type: "outgoing",
+      amount: inv.amount,
+      description: `Return refund to ${inv.customer} against ${inv.number}`,
+      reference: returnInvoice.number,
+    };
+    setLedger((prev: LedgerEntry[]) => [refundEntry, ...prev]);
+    await log("create", "invoice", returnInvoice.id, returnInvoice.number, `Return against ${inv.number} — stock restored`);
+    toast.success(`${inv.number} returned → ${returnInvoice.number} created, stock restored`);
+  };
+
   // --- Sales Order handlers ---
   const handleSaveSO = async (order: SalesOrder) => {
     await upsertSalesOrder(order);
