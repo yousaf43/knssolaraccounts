@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { type Expense } from "@/data/mockData";
 import { useExpensesCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, X } from "lucide-react";
+import { Plus, Edit, X, Wallet, TrendingDown, PiggyBank } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Other"];
 const paymentMethods = ["Credit Card", "Bank Transfer", "Auto-debit", "Cash", "Check"];
@@ -41,11 +43,18 @@ export default function Expenses() {
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
+  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  // Cash on Hand account balance = petty cash budget
+  const cashAccount = accounts.find(a => a.name === "Cash on Hand");
+  const pettyCashBalance = cashAccount?.balance ?? 0;
+  const cashExpenses = expenses.filter(e => e.paymentMethod === "Cash").reduce((s, e) => s + e.amount, 0);
+  const remainingPettyCash = pettyCashBalance - cashExpenses;
 
   const openAdd = () => { setEditing(null); setForm(emptyExpense()); setShowForm(true); };
   const openEdit = (e: Expense) => { setEditing(e); setForm(e); setShowForm(true); };
@@ -76,6 +85,13 @@ export default function Expenses() {
     toast.success("Expense deleted");
   };
 
+  // Category-wise breakdown
+  const categoryBreakdown = useMemo(() => {
+    const map: Record<string, number> = {};
+    expenses.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [expenses]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -87,6 +103,61 @@ export default function Expenses() {
           <Plus className="w-4 h-4 mr-2" /> Add Expense
         </Button>
       </div>
+
+      {/* Petty Cash & Budget Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-card rounded-lg border p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-full bg-primary/10">
+            <PiggyBank className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Cash on Hand (Petty Cash)</p>
+            <p className="text-xl font-bold">{formatCurrency(pettyCashBalance)}</p>
+          </div>
+        </div>
+        <div className="bg-card rounded-lg border p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-full bg-destructive/10">
+            <TrendingDown className="w-5 h-5 text-destructive" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Cash Expenses</p>
+            <p className="text-xl font-bold">{formatCurrency(cashExpenses)}</p>
+          </div>
+        </div>
+        <div className="bg-card rounded-lg border p-4 flex items-center gap-3">
+          <div className={`p-2.5 rounded-full ${remainingPettyCash >= 0 ? 'bg-green-500/10' : 'bg-destructive/10'}`}>
+            <Wallet className={`w-5 h-5 ${remainingPettyCash >= 0 ? 'text-green-600' : 'text-destructive'}`} />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Remaining Petty Cash</p>
+            <p className={`text-xl font-bold ${remainingPettyCash < 0 ? 'text-destructive' : ''}`}>{formatCurrency(remainingPettyCash)}</p>
+          </div>
+        </div>
+        <div className="bg-card rounded-lg border p-4 flex items-center gap-3">
+          <div className="p-2.5 rounded-full bg-accent/10">
+            <TrendingDown className="w-5 h-5 text-accent" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Total All Expenses</p>
+            <p className="text-xl font-bold">{formatCurrency(total)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Category Breakdown */}
+      {categoryBreakdown.length > 0 && (
+        <div className="bg-card rounded-lg border p-4">
+          <h3 className="text-sm font-semibold mb-3 text-muted-foreground">Category Breakdown</h3>
+          <div className="flex flex-wrap gap-3">
+            {categoryBreakdown.map(([cat, amt]) => (
+              <div key={cat} className="flex items-center gap-2">
+                <Badge className={`${categoryColors[cat] || "bg-muted text-muted-foreground"} border-0`}>{cat}</Badge>
+                <span className="text-sm font-semibold">{formatCurrency(amt)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-card rounded-lg border p-6">
@@ -126,11 +197,6 @@ export default function Expenses() {
           </form>
         </div>
       )}
-
-      <div className="kpi-card">
-        <p className="text-sm text-muted-foreground">Total Expenses (This Period)</p>
-        <p className="text-2xl font-bold">{formatCurrency(total)}</p>
-      </div>
 
       <div className="bg-card rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
