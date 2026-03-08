@@ -175,7 +175,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
               <Input value={quickCompany} onChange={e => setQuickCompany(e.target.value)} placeholder="Company *" className="h-8" />
               <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="Phone Number *" className="h-8" />
               <Input value={quickCNIC} onChange={e => setQuickCNIC(e.target.value)} placeholder="CNIC / ID Card Number" className="h-8" />
-              <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="Email" className="h-8" />
+              <Input value={quickEmail} onChange={e => setQuickEmail(e.target.value)} placeholder="Address" className="h-8" />
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowQuickAdd(false)}>Cancel</Button>
                 <Button type="button" size="sm" onClick={handleQuickAddCustomer}>Add</Button>
