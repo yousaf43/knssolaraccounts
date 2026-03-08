@@ -43,15 +43,15 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
       name: quickName.trim(),
       company: quickCompany.trim(),
       email: quickEmail.trim(),
-      phone: "",
-      address: "",
+      phone: quickPhone.trim(),
+      address: quickCNIC.trim() ? `CNIC: ${quickCNIC.trim()}` : "",
       totalBilled: 0,
       outstanding: 0,
     };
     onAddCustomer?.(newCustomer);
     setCustomer(newCustomer.name);
     setShowQuickAdd(false);
-    setQuickName(""); setQuickCompany(""); setQuickEmail("");
+    setQuickName(""); setQuickCompany(""); setQuickPhone(""); setQuickCNIC(""); setQuickEmail("");
   };
 
   // Calculate remaining for selected invoice
