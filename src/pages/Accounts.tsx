@@ -83,7 +83,7 @@ export default function Accounts() {
 
   const handlePettyCashTransfer = () => {
     if (!pettyCashForm.account || !pettyCashForm.date || !pettyCashForm.amount || parseFloat(pettyCashForm.amount) <= 0) return;
-    if (pettyCashForm.account === "Cash on Hand") { toast.error("Cannot transfer from Cash on Hand to itself"); return; }
+    if (pettyCashForm.account === "Petty Cash") { toast.error("Cannot transfer from Petty Cash to itself"); return; }
     const amt = parseFloat(pettyCashForm.amount);
     // Outgoing from source account
     const outEntry: LedgerEntry = {
@@ -95,11 +95,11 @@ export default function Accounts() {
       description: pettyCashForm.description || `Transfer to Petty Cash`,
       reference: `PC-${(ledger.length + 1).toString().padStart(3, "0")}`,
     };
-    // Incoming to Cash on Hand
+    // Incoming to Petty Cash
     const inEntry: LedgerEntry = {
       id: (Date.now() + 1).toString(),
       date: pettyCashForm.date,
-      bank: "Cash on Hand",
+      bank: "Petty Cash",
       type: "incoming",
       amount: amt,
       description: pettyCashForm.description || `Transfer from ${pettyCashForm.account}`,
