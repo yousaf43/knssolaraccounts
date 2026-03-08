@@ -172,7 +172,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
         </div>
         <div>
           <Label>Amount * {selectedInvoice && <span className="text-xs text-muted-foreground ml-1">(Remaining: {formatCurrency(invoiceRemaining)})</span>}</Label>
-          <Input type="number" min={0} max={invoiceRemaining || undefined} step={0.01} value={amount} onChange={(e) => setAmount(Number(e.target.value))} className={`mt-1 ${isOverpay ? "border-destructive" : ""}`} required />
+          <Input type="number" min={0} step={0.01} value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="mt-1" required />
           {isOverpay && (
             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" /> Amount exceeds remaining balance ({formatCurrency(invoiceRemaining)})
