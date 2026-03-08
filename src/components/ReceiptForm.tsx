@@ -28,9 +28,12 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
   const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Cash");
   const [reference, setReference] = useState(editReceipt?.reference || "");
   const [notes, setNotes] = useState(editReceipt?.notes || "");
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickCompany, setQuickCompany] = useState("");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
 
   const handleQuickAddCustomer = () => {
