@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,10 @@ import { Plus, Trash2, X, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
+
+type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 
 type Props = {
   customers: Customer[];
@@ -22,6 +25,7 @@ type Props = {
 
 export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
   const { formatCurrency } = useSettings();
+  const [accounts] = useLocalStorage<Account[]>("accounts", []);
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
@@ -42,8 +46,25 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
   const [advanceAmount, setAdvanceAmount] = useState(0);
-  const [advanceMethod, setAdvanceMethod] = useState("Cash");
+  const [advanceMethod, setAdvanceMethod] = useState("Cash on Hand");
   const [advanceRef, setAdvanceRef] = useState("");
+  const [paymentMode, setPaymentMode] = useState("Cash on Hand");
+
+  // Build payment options from accounts
+  const paymentOptions = useMemo(() => {
+    if (accounts.length > 0) {
+      return accounts.map(a => ({
+        value: a.name,
+        label: a.accountTitle ? `${a.name} — ${a.accountTitle}` : a.name,
+      }));
+    }
+    return [
+      { value: "Cash on Hand", label: "Cash on Hand" },
+      { value: "Bank Transfer", label: "Bank Transfer" },
+      { value: "Online", label: "Online" },
+      { value: "Cheque", label: "Cheque" },
+    ];
+  }, [accounts]);
 
   const handleQuickAddCustomer = () => {
     if (!quickName.trim() || !quickCompany.trim()) return;
@@ -95,7 +116,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const discountAmount = discount; // flat amount discount
+  const discountAmount = discount;
   const afterDiscount = Math.max(0, subtotal - discountAmount);
   const taxAmount = afterDiscount * (tax / 100);
   const total = afterDiscount + taxAmount;
@@ -213,16 +234,14 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
         </div>
         <div>
           <Label>Payment Mode</Label>
-          <Select value={advanceMethod} onValueChange={setAdvanceMethod}>
+          <Select value={paymentMode} onValueChange={setPaymentMode}>
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Cash">Cash</SelectItem>
-              <SelectItem value="Online">Online</SelectItem>
-              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-              <SelectItem value="Cheque">Cheque</SelectItem>
-              <SelectItem value="Credit Card">Credit Card</SelectItem>
+              {paymentOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -330,16 +349,15 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
               <Input type="number" min={0} step={0.01} value={advanceAmount || ""} onChange={(e) => setAdvanceAmount(Number(e.target.value))} placeholder="0.00" className="mt-1 h-8" />
             </div>
             <div>
-              <Label className="text-xs">Payment Method</Label>
+              <Label className="text-xs">Payment Account</Label>
               <Select value={advanceMethod} onValueChange={setAdvanceMethod}>
                 <SelectTrigger className="mt-1 h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Online">Online</SelectItem>
-                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="Cheque">Cheque</SelectItem>
+                  {paymentOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
