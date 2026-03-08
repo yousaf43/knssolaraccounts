@@ -95,8 +95,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const discountAmount = subtotal * (discount / 100);
-  const afterDiscount = subtotal - discountAmount;
+  const discountAmount = discount; // flat amount discount
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
   const taxAmount = afterDiscount * (tax / 100);
   const total = afterDiscount + taxAmount;
 
