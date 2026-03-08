@@ -48,7 +48,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [advanceAmount, setAdvanceAmount] = useState(0);
   const [advanceMethod, setAdvanceMethod] = useState("Cash on Hand");
   const [advanceRef, setAdvanceRef] = useState("");
-  const [paymentMode, setPaymentMode] = useState("Cash on Hand");
+  const [paymentMode, setPaymentMode] = useState("");
 
   // Build payment options from accounts (unique key using id)
   const paymentOptions = useMemo(() => {
