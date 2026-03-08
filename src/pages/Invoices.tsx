@@ -95,16 +95,8 @@ export default function Invoices() {
   // --- Invoice handlers ---
   const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => {
     await upsertInvoice(invoice);
-    // Deduct inventory stock for newly created invoices (not edits)
+    // Do NOT deduct inventory on creation — stock deducts only on Approve
     if (!editInvoice) {
-      for (const item of invoice.items) {
-        if (item.inventoryItemId) {
-          const invItem = inventory.find((inv) => inv.id === item.inventoryItemId);
-          if (invItem && invItem.productType !== "non-stock") {
-            await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
-          }
-        }
-      }
       // Create advance payment receipt if provided
       if (advanceAmount && advanceAmount > 0) {
         const advReceipt: Receipt = {

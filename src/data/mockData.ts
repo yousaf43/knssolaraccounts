@@ -27,7 +27,7 @@ export type Invoice = {
   date: string;
   dueDate: string;
   amount: number;
-  status: "paid" | "pending" | "overdue";
+  status: "paid" | "pending" | "overdue" | "approved";
   items: InvoiceItem[];
   notes?: string;
   tax?: number;
