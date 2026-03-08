@@ -95,8 +95,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const discountAmount = subtotal * (discount / 100);
-  const afterDiscount = subtotal - discountAmount;
+  const discountAmount = discount; // flat amount discount
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
   const taxAmount = afterDiscount * (tax / 100);
   const total = afterDiscount + taxAmount;
 
@@ -208,8 +208,23 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           <Input type="number" min={0} max={100} value={tax} onChange={(e) => setTax(Number(e.target.value))} className="mt-1" />
         </div>
         <div>
-          <Label>Discount (%)</Label>
-          <Input type="number" min={0} max={100} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} className="mt-1" />
+          <Label>Discount (Amount)</Label>
+          <Input type="number" min={0} step={0.01} value={discount} onChange={(e) => setDiscount(Number(e.target.value))} placeholder="0.00" className="mt-1" />
+        </div>
+        <div>
+          <Label>Payment Mode</Label>
+          <Select value={advanceMethod} onValueChange={setAdvanceMethod}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Cash">Cash</SelectItem>
+              <SelectItem value="Online">Online</SelectItem>
+              <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+              <SelectItem value="Cheque">Cheque</SelectItem>
+              <SelectItem value="Credit Card">Credit Card</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -291,7 +306,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-success">
-              <span>Discount ({discount}%)</span>
+              <span>Discount</span>
               <span className="font-medium">-{formatCurrency(discountAmount)}</span>
             </div>
           )}

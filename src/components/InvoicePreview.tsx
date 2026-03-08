@@ -56,8 +56,8 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
   const discountRate = invoice.discount ?? 0;
-  const discountAmount = subtotal * (discountRate / 100);
-  const afterDiscount = subtotal - discountAmount;
+  const discountAmount = discountRate; // flat amount
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
   const taxRate = invoice.tax ?? 0;
   const taxAmount = afterDiscount * (taxRate / 100);
   const total = afterDiscount + taxAmount;
@@ -223,9 +223,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
-                {discountRate > 0 && (
+                {discountAmount > 0 && (
                   <div className="total-row flex justify-between py-1">
-                    <span className="text-green-600">Discount ({discountRate}%)</span>
+                    <span className="text-green-600">Discount</span>
                     <span className="font-medium text-green-600">-{formatCurrency(discountAmount)}</span>
                   </div>
                 )}
