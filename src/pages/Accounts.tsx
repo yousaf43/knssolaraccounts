@@ -346,7 +346,7 @@ export default function Accounts() {
                   <Select value={pettyCashForm.account} onValueChange={v => setPettyCashForm({ ...pettyCashForm, account: v })}>
                     <SelectTrigger className="mt-1"><SelectValue placeholder="Select account" /></SelectTrigger>
                     <SelectContent>
-                      {accounts.filter(a => a.name !== "Cash on Hand").map(a => <SelectItem key={a.id} value={a.name}>{a.name} — {a.accountTitle}</SelectItem>)}
+                      {accounts.filter(a => a.name !== "Petty Cash").map(a => <SelectItem key={a.id} value={a.name}>{a.name} — {a.accountTitle}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
