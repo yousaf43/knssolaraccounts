@@ -59,7 +59,7 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
 
 export default function Accounts() {
   const { formatCurrency, settings } = useSettings();
-  const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
+  const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
   const [showAccForm, setShowAccForm] = useState(false);
   const [editAccId, setEditAccId] = useState<string | null>(null);
   const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
