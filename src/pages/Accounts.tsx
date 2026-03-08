@@ -334,42 +334,38 @@ export default function Accounts() {
               </div>
             </div>
           )}
-          {showExpenseTransfer && (
+          {showPettyCashTransfer && (
             <div className="bg-card border rounded-lg p-4 space-y-3 mb-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold flex items-center gap-2"><SendHorizontal className="w-4 h-4 text-warning" /> Transfer to Expense</h3>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowExpenseTransfer(false)}><X className="w-4 h-4" /></Button>
+                <h3 className="text-sm font-semibold flex items-center gap-2"><SendHorizontal className="w-4 h-4 text-warning" /> Transfer to Petty Cash</h3>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowPettyCashTransfer(false)}><X className="w-4 h-4" /></Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
                   <label className="text-xs font-medium">From Account</label>
-                  <Select value={expTransfer.account} onValueChange={v => setExpTransfer({ ...expTransfer, account: v })}>
+                  <Select value={pettyCashForm.account} onValueChange={v => setPettyCashForm({ ...pettyCashForm, account: v })}>
                     <SelectTrigger className="mt-1"><SelectValue placeholder="Select account" /></SelectTrigger>
                     <SelectContent>
-                      {accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name} — {a.accountTitle}</SelectItem>)}
+                      {accounts.filter(a => a.name !== "Cash on Hand").map(a => <SelectItem key={a.id} value={a.name}>{a.name} — {a.accountTitle}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <label className="text-xs font-medium">Date</label>
-                  <Input type="date" value={expTransfer.date} onChange={e => setExpTransfer({ ...expTransfer, date: e.target.value })} className="mt-1" />
+                  <Input type="date" value={pettyCashForm.date} onChange={e => setPettyCashForm({ ...pettyCashForm, date: e.target.value })} className="mt-1" />
                 </div>
                 <div>
                   <label className="text-xs font-medium">Amount</label>
-                  <Input type="number" min={0} step={0.01} value={expTransfer.amount} onChange={e => setExpTransfer({ ...expTransfer, amount: e.target.value })} placeholder="0.00" className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium">Category</label>
-                  <Input value={expTransfer.category} onChange={e => setExpTransfer({ ...expTransfer, category: e.target.value })} placeholder="General" className="mt-1" />
+                  <Input type="number" min={0} step={0.01} value={pettyCashForm.amount} onChange={e => setPettyCashForm({ ...pettyCashForm, amount: e.target.value })} placeholder="0.00" className="mt-1" />
                 </div>
                 <div>
                   <label className="text-xs font-medium">Description</label>
-                  <Input value={expTransfer.description} onChange={e => setExpTransfer({ ...expTransfer, description: e.target.value })} placeholder="Expense description" className="mt-1" />
+                  <Input value={pettyCashForm.description} onChange={e => setPettyCashForm({ ...pettyCashForm, description: e.target.value })} placeholder="Transfer description" className="mt-1" />
                 </div>
               </div>
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" size="sm" onClick={() => setShowExpenseTransfer(false)}>Cancel</Button>
-                <Button size="sm" onClick={handleExpenseTransfer}><SendHorizontal className="w-3.5 h-3.5 mr-1" /> Transfer</Button>
+                <Button variant="outline" size="sm" onClick={() => setShowPettyCashTransfer(false)}>Cancel</Button>
+                <Button size="sm" onClick={handlePettyCashTransfer}><SendHorizontal className="w-3.5 h-3.5 mr-1" /> Transfer to Petty Cash</Button>
               </div>
             </div>
           )}
