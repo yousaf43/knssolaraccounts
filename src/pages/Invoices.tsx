@@ -191,6 +191,116 @@ export default function Invoices() {
     toast.success(`${inv.number} returned → ${returnInvoice.number} created, stock restored`);
   };
 
+  // Handle Return/Exchange from the dedicated form
+  const handleProcessReturn = async (data: {
+    originalInvoice: Invoice;
+    returnType: "return" | "exchange";
+    returnItems: (import("@/data/mockData").InvoiceItem & { returnQty: number })[];
+    exchangeItems: import("@/data/mockData").InvoiceItem[];
+    refundAmount: number;
+    refundMethod: string;
+    notes: string;
+  }) => {
+    const { originalInvoice, returnType, returnItems: retItems, exchangeItems: exchItems, refundAmount, refundMethod, notes: retNotes } = data;
+    const retNumber = `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`;
+
+    // 1. Restore stock for returned items
+    for (const item of retItems) {
+      if (item.inventoryItemId) {
+        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+        if (invItem && invItem.productType !== "non-stock") {
+          await upsertInventory({ ...invItem, qty: invItem.qty + item.returnQty });
+        }
+      }
+    }
+
+    // Calculate return value
+    const returnValue = retItems.reduce((s, ri) => s + ri.returnQty * ri.rate, 0);
+
+    // 2. Create return credit note
+    const returnInvoice: Invoice = {
+      id: crypto.randomUUID(),
+      number: retNumber,
+      customer: originalInvoice.customer,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: originalInvoice.dueDate,
+      amount: -returnValue,
+      status: "paid",
+      items: retItems.map((item) => ({
+        description: item.description,
+        qty: item.returnQty,
+        rate: item.rate,
+        amount: -(item.returnQty * item.rate),
+        inventoryItemId: item.inventoryItemId,
+      })),
+      notes: retNotes || `${returnType === "exchange" ? "Exchange" : "Return"} against ${originalInvoice.number}`,
+      tax: originalInvoice.tax,
+      returnedFrom: originalInvoice.number,
+      isReturn: true,
+      projectName: originalInvoice.projectName,
+    };
+    await upsertInvoice(returnInvoice);
+
+    // 3. Check if all items are fully returned → mark original as returned
+    const allItemsReturned = originalInvoice.items.every((origItem, idx) => {
+      const retItem = retItems.find((ri) => ri.description === origItem.description && ri.inventoryItemId === origItem.inventoryItemId);
+      return retItem && retItem.returnQty >= origItem.qty;
+    });
+    if (allItemsReturned) {
+      await upsertInvoice({ ...originalInvoice, status: "returned" });
+    }
+
+    // 4. If exchange: create a new invoice for exchange items + deduct stock
+    if (returnType === "exchange" && exchItems.length > 0) {
+      const exchTotal = exchItems.reduce((s, i) => s + i.amount, 0);
+      const exchInvoice: Invoice = {
+        id: crypto.randomUUID(),
+        number: `INV-${String(invoices.length + 2).padStart(3, "0")}`,
+        customer: originalInvoice.customer,
+        date: new Date().toISOString().split("T")[0],
+        dueDate: originalInvoice.dueDate,
+        amount: exchTotal,
+        status: "approved",
+        items: exchItems,
+        notes: `Exchange against ${originalInvoice.number} (${retNumber})`,
+        projectName: originalInvoice.projectName,
+      };
+      // Deduct stock for exchange items
+      for (const item of exchItems) {
+        if (item.inventoryItemId) {
+          const invItem = inventory.find((i) => i.id === item.inventoryItemId);
+          if (invItem && invItem.productType !== "non-stock") {
+            await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+          }
+        }
+      }
+      await upsertInvoice(exchInvoice);
+      await log("create", "invoice", exchInvoice.id, exchInvoice.number, `Exchange invoice from ${originalInvoice.number}`);
+    }
+
+    // 5. Create refund ledger entry if there's a refund
+    if (refundAmount > 0) {
+      const refundEntry: LedgerEntry = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+        date: returnInvoice.date,
+        bank: refundMethod,
+        type: "outgoing",
+        amount: refundAmount,
+        description: `${returnType === "exchange" ? "Exchange" : "Return"} refund to ${originalInvoice.customer} against ${originalInvoice.number}`,
+        reference: retNumber,
+      };
+      setLedger((prev: LedgerEntry[]) => [refundEntry, ...prev]);
+    }
+
+    goList();
+    await log("create", "invoice", returnInvoice.id, retNumber, `${returnType === "exchange" ? "Exchange" : "Return"} against ${originalInvoice.number} — stock restored`);
+    toast.success(
+      returnType === "exchange"
+        ? `Exchange processed → ${retNumber} created, new invoice issued`
+        : `Return processed → ${retNumber} created, stock restored`
+    );
+  };
+
   // --- Sales Order handlers ---
   const handleSaveSO = async (order: SalesOrder) => {
     await upsertSalesOrder(order);
