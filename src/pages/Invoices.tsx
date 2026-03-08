@@ -26,6 +26,7 @@ const invoiceStatusStyles: Record<string, string> = {
   pending: "bg-warning/10 text-warning hover:bg-warning/20 border-0",
   overdue: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
   approved: "bg-primary/10 text-primary hover:bg-primary/20 border-0",
+  returned: "bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-0",
 };
 
 const soStatusStyles: Record<string, string> = {
