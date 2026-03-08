@@ -40,6 +40,8 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickCompany, setQuickCompany] = useState("");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
 
   // Advance payment
