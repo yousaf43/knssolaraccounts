@@ -223,9 +223,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
-                {discountRate > 0 && (
+                {discountAmount > 0 && (
                   <div className="total-row flex justify-between py-1">
-                    <span className="text-green-600">Discount ({discountRate}%)</span>
+                    <span className="text-green-600">Discount</span>
                     <span className="font-medium text-green-600">-{formatCurrency(discountAmount)}</span>
                   </div>
                 )}
