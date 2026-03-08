@@ -373,7 +373,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             <p className="text-muted-foreground text-sm text-center py-8">No items found for this report.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table id="report-print-table" className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Item</th>

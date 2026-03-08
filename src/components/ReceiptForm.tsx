@@ -45,9 +45,9 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
       id: crypto.randomUUID(),
       name: quickName.trim(),
       company: quickCompany.trim(),
-      email: quickEmail.trim(),
+      email: "",
       phone: quickPhone.trim(),
-      address: quickCNIC.trim() ? `CNIC: ${quickCNIC.trim()}` : "",
+      address: [quickCNIC.trim() ? `CNIC: ${quickCNIC.trim()}` : "", quickEmail.trim()].filter(Boolean).join(" | "),
       totalBilled: 0,
       outstanding: 0,
     };

@@ -122,7 +122,7 @@ export default function Customers() {
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /><span className="truncate">{c.email}</span></div>
+                  {c.email && <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /><span className="truncate">{c.email}</span></div>}
                   <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" /><span>{c.phone}</span></div>
                   {c.address && <p className="text-muted-foreground text-xs truncate">{c.address}</p>}
                 </div>
