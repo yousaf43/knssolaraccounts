@@ -61,7 +61,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
     const paidSoFar = receipts
       .filter((r) => r.invoiceNumber === invoiceNumber && r.id !== editReceipt?.id)
       .reduce((s, r) => s + r.amount, 0);
-    return Math.max(0, selectedInvoice.amount - paidSoFar);
+    return Math.max(0, selectedInvoice.amount - paidSoFar - discountAmount);
   }, [selectedInvoice, invoiceNumber, receipts, editReceipt]);
 
   const isOverpay = selectedInvoice && amount > invoiceRemaining;
