@@ -77,38 +77,38 @@ export default function Accounts() {
   const [ledgerBank, setLedgerBank] = useState("all");
   const [ledgerPeriod, setLedgerPeriod] = useState<"month" | "year">("month");
 
-  // Expense transfer
-  const [expenses, setExpenses] = useLocalStorage<Expense[]>("expenses", []);
-  const [showExpenseTransfer, setShowExpenseTransfer] = useState(false);
-  const [expTransfer, setExpTransfer] = useState({ account: "", date: "", amount: "", category: "General", description: "" });
+  // Petty Cash transfer
+  const [showPettyCashTransfer, setShowPettyCashTransfer] = useState(false);
+  const [pettyCashForm, setPettyCashForm] = useState({ account: "", date: new Date().toISOString().split("T")[0], amount: "", description: "" });
 
-  const handleExpenseTransfer = () => {
-    if (!expTransfer.account || !expTransfer.date || !expTransfer.amount || parseFloat(expTransfer.amount) <= 0) return;
-    const amt = parseFloat(expTransfer.amount);
-    // Add expense
-    const newExp: Expense = {
-      id: crypto.randomUUID(),
-      date: expTransfer.date,
-      category: expTransfer.category || "General",
-      description: expTransfer.description || `Transfer from ${expTransfer.account}`,
-      amount: amt,
-      paymentMethod: expTransfer.account,
-    };
-    setExpenses(prev => [newExp, ...prev]);
-    // Add outgoing ledger entry
-    const entry: LedgerEntry = {
+  const handlePettyCashTransfer = () => {
+    if (!pettyCashForm.account || !pettyCashForm.date || !pettyCashForm.amount || parseFloat(pettyCashForm.amount) <= 0) return;
+    if (pettyCashForm.account === "Cash on Hand") { toast.error("Cannot transfer from Cash on Hand to itself"); return; }
+    const amt = parseFloat(pettyCashForm.amount);
+    // Outgoing from source account
+    const outEntry: LedgerEntry = {
       id: Date.now().toString(),
-      date: expTransfer.date,
-      bank: expTransfer.account,
+      date: pettyCashForm.date,
+      bank: pettyCashForm.account,
       type: "outgoing",
       amount: amt,
-      description: expTransfer.description || `Expense: ${expTransfer.category}`,
-      reference: `EXP-${(ledger.length + 1).toString().padStart(3, "0")}`,
+      description: pettyCashForm.description || `Transfer to Petty Cash`,
+      reference: `PC-${(ledger.length + 1).toString().padStart(3, "0")}`,
     };
-    setLedger(prev => [entry, ...prev]);
-    toast.success(`${formatCurrency(amt)} transferred from ${expTransfer.account} to Expenses`);
-    setExpTransfer({ account: "", date: "", amount: "", category: "General", description: "" });
-    setShowExpenseTransfer(false);
+    // Incoming to Cash on Hand
+    const inEntry: LedgerEntry = {
+      id: (Date.now() + 1).toString(),
+      date: pettyCashForm.date,
+      bank: "Cash on Hand",
+      type: "incoming",
+      amount: amt,
+      description: pettyCashForm.description || `Transfer from ${pettyCashForm.account}`,
+      reference: `PC-${(ledger.length + 2).toString().padStart(3, "0")}`,
+    };
+    setLedger(prev => [inEntry, outEntry, ...prev]);
+    toast.success(`${formatCurrency(amt)} transferred to Petty Cash from ${pettyCashForm.account}`);
+    setPettyCashForm({ account: "", date: new Date().toISOString().split("T")[0], amount: "", description: "" });
+    setShowPettyCashTransfer(false);
   };
 
   // Payment form
