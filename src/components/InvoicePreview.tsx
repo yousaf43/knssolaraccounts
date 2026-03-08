@@ -65,10 +65,10 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   // Calculate paid and balance
   const invReceipts = receipts.filter((r) => r.invoiceNumber === invoice.number);
   const totalPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
-  const invoiceBalance = Math.max(0, total - totalPaid);
+  const invoiceBalance = total - totalPaid;
 
   // Account balance = customer's total outstanding (passed in, or fallback to invoice balance)
-  const accountBalance = customerOutstanding || invoiceBalance;
+  const accountBalance = customerOutstanding !== undefined ? customerOutstanding : invoiceBalance;
 
   const amountInWords = numberToWords(Math.round(accountBalance));
 

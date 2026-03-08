@@ -644,7 +644,7 @@ export default function Invoices() {
     const customerInvoices = invoices.filter((inv) => inv.customer === previewInvoice.customer);
     const customerOutstanding = customerInvoices.reduce((sum, inv) => {
       const paid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-      return sum + Math.max(0, inv.amount - paid);
+      return sum + (inv.amount - paid);
     }, 0);
     const cust = customers.find((c) => c.name === previewInvoice.customer || `${c.name} [${c.company}]` === previewInvoice.customer);
     return (
