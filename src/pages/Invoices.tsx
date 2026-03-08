@@ -552,6 +552,20 @@ export default function Invoices() {
   };
 
   // --- Form views ---
+  if (view === "return-form") {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <ReturnInvoiceForm
+          invoices={invoices}
+          inventory={inventory}
+          onSaveReturn={handleProcessReturn}
+          onCancel={goList}
+          nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`}
+        />
+      </div>
+    );
+  }
+
   if (view === "quotation-form") {
     return (
       <div className="max-w-4xl mx-auto">
