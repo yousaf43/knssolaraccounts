@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X } from "lucide-react";
+import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X, SendHorizontal } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { recentTransactions } from "@/data/mockData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
+import { toast } from "sonner";
+
+type Expense = { id: string; date: string; category: string; description: string; amount: number; paymentMethod: string };
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
@@ -80,7 +83,7 @@ export default function Accounts() {
   const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
   const [reconcile, setReconcile] = useLocalStorage<ReconcileEntry[]>("reconcileEntries", initialReconcile);
 
-  // Ledger
+   // Ledger
   const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
   const [ledgerForm, setLedgerForm] = useState({ date: "", bank: "", type: "incoming" as "incoming" | "outgoing", amount: "", description: "", reference: "" });
   const [showLedgerForm, setShowLedgerForm] = useState(false);
@@ -88,6 +91,40 @@ export default function Accounts() {
   const [ledgerMonth, setLedgerMonth] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; });
   const [ledgerBank, setLedgerBank] = useState("all");
   const [ledgerPeriod, setLedgerPeriod] = useState<"month" | "year">("month");
+
+  // Expense transfer
+  const [expenses, setExpenses] = useLocalStorage<Expense[]>("expenses", []);
+  const [showExpenseTransfer, setShowExpenseTransfer] = useState(false);
+  const [expTransfer, setExpTransfer] = useState({ account: "", date: "", amount: "", category: "General", description: "" });
+
+  const handleExpenseTransfer = () => {
+    if (!expTransfer.account || !expTransfer.date || !expTransfer.amount || parseFloat(expTransfer.amount) <= 0) return;
+    const amt = parseFloat(expTransfer.amount);
+    // Add expense
+    const newExp: Expense = {
+      id: crypto.randomUUID(),
+      date: expTransfer.date,
+      category: expTransfer.category || "General",
+      description: expTransfer.description || `Transfer from ${expTransfer.account}`,
+      amount: amt,
+      paymentMethod: expTransfer.account,
+    };
+    setExpenses(prev => [newExp, ...prev]);
+    // Add outgoing ledger entry
+    const entry: LedgerEntry = {
+      id: Date.now().toString(),
+      date: expTransfer.date,
+      bank: expTransfer.account,
+      type: "outgoing",
+      amount: amt,
+      description: expTransfer.description || `Expense: ${expTransfer.category}`,
+      reference: `EXP-${(ledger.length + 1).toString().padStart(3, "0")}`,
+    };
+    setLedger(prev => [entry, ...prev]);
+    toast.success(`${formatCurrency(amt)} transferred from ${expTransfer.account} to Expenses`);
+    setExpTransfer({ account: "", date: "", amount: "", category: "General", description: "" });
+    setShowExpenseTransfer(false);
+  };
 
   // Payment form
   const emptyPay = { date: "", account: "", payee: "", amount: "", reference: "", description: "" };
@@ -312,6 +349,45 @@ export default function Accounts() {
               </div>
             </div>
           )}
+          {showExpenseTransfer && (
+            <div className="bg-card border rounded-lg p-4 space-y-3 mb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold flex items-center gap-2"><SendHorizontal className="w-4 h-4 text-warning" /> Transfer to Expense</h3>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowExpenseTransfer(false)}><X className="w-4 h-4" /></Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div>
+                  <label className="text-xs font-medium">From Account</label>
+                  <Select value={expTransfer.account} onValueChange={v => setExpTransfer({ ...expTransfer, account: v })}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select account" /></SelectTrigger>
+                    <SelectContent>
+                      {accounts.map(a => <SelectItem key={a.id} value={a.name}>{a.name} — {a.accountTitle}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Date</label>
+                  <Input type="date" value={expTransfer.date} onChange={e => setExpTransfer({ ...expTransfer, date: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Amount</label>
+                  <Input type="number" min={0} step={0.01} value={expTransfer.amount} onChange={e => setExpTransfer({ ...expTransfer, amount: e.target.value })} placeholder="0.00" className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Category</label>
+                  <Input value={expTransfer.category} onChange={e => setExpTransfer({ ...expTransfer, category: e.target.value })} placeholder="General" className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Description</label>
+                  <Input value={expTransfer.description} onChange={e => setExpTransfer({ ...expTransfer, description: e.target.value })} placeholder="Expense description" className="mt-1" />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setShowExpenseTransfer(false)}>Cancel</Button>
+                <Button size="sm" onClick={handleExpenseTransfer}><SendHorizontal className="w-3.5 h-3.5 mr-1" /> Transfer</Button>
+              </div>
+            </div>
+          )}
           <div className="bg-card border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -343,6 +419,7 @@ export default function Accounts() {
                       <td className={`p-3 text-right font-bold ${total >= 0 ? "text-primary" : "text-destructive"}`}>{formatCurrency(total)}</td>
                       <td className="p-3 text-center">
                         <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => { setExpTransfer({ ...expTransfer, account: acc.name }); setShowExpenseTransfer(true); }} title="Transfer to Expense"><SendHorizontal className="w-3.5 h-3.5 text-warning" /></Button>
                           <Button variant="ghost" size="sm" onClick={() => openEditAccount(acc)}><Pencil className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteAccount(acc.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>

@@ -29,7 +29,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || "");
   const [amount, setAmount] = useState(editReceipt?.amount || 0);
-  const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "Cash on Hand");
+  const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "");
   const [reference, setReference] = useState(editReceipt?.reference || "");
   const [notes, setNotes] = useState(editReceipt?.notes || "");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -70,19 +70,19 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
 
   const isOverpay = selectedInvoice && amount > invoiceRemaining;
 
-  // Build payment options from accounts
+  // Build payment options from accounts (unique key using id)
   const paymentOptions = useMemo(() => {
     if (accounts.length > 0) {
       return accounts.map(a => ({
-        value: a.name,
+        value: `${a.name}||${a.accountTitle}||${a.id}`,
         label: a.accountTitle ? `${a.name} — ${a.accountTitle}` : a.name,
       }));
     }
     return [
-      { value: "Cash on Hand", label: "Cash on Hand" },
-      { value: "Bank Transfer", label: "Bank Transfer" },
-      { value: "Online", label: "Online" },
-      { value: "Cheque", label: "Cheque" },
+      { value: "Cash on Hand||Cash on Hand||default", label: "Cash on Hand" },
+      { value: "Bank Transfer||Bank Transfer||default2", label: "Bank Transfer" },
+      { value: "Online||Online||default3", label: "Online" },
+      { value: "Cheque||Cheque||default4", label: "Cheque" },
     ];
   }, [accounts]);
 
@@ -91,6 +91,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
     if (!customer.trim() || !date || !invoiceNumber || amount <= 0) return;
     if (isOverpay) return;
 
+    const displayMethod = paymentMethod.split("||")[0];
     onSave({
       id: editReceipt?.id || crypto.randomUUID(),
       number: editReceipt?.number || nextNumber,
@@ -98,7 +99,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
       date,
       invoiceNumber,
       amount,
-      paymentMethod,
+      paymentMethod: displayMethod,
       reference: reference.trim(),
       notes: discountAmount > 0 ? `${notes.trim()} | Discount: ${discountAmount}`.trim() : notes.trim(),
     });
