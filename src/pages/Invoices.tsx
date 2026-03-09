@@ -80,6 +80,7 @@ export default function Invoices() {
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
   // Filters
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterCustomer, setFilterCustomer] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterDateRange, setFilterDateRange] = useState("all");
