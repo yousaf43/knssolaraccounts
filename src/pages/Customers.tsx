@@ -25,6 +25,7 @@ export default function Customers() {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<Partial<Customer>>(emptyCustomer());
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const openAdd = () => { setEditing(null); setForm(emptyCustomer()); setShowForm(true); };
   const openEdit = (c: Customer) => { setEditing(c); setForm(c); setShowForm(true); };

@@ -703,6 +703,10 @@ export default function Invoices() {
   // Filter bar component matching reference design
   const FilterBar = ({ showType }: { showType?: boolean }) => (
     <div className="flex flex-wrap items-end gap-3 py-3 px-4 border-b bg-muted/30">
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Search</span>
+        <Input placeholder="Search by number, customer..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-[200px] h-8 text-sm" />
+      </div>
       {showType && (
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">Type</span>
