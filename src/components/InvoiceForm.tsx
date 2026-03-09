@@ -4,8 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, X, UserPlus } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Plus, Trash2, X, UserPlus, ChevronsUpDown, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -175,16 +178,30 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
         <div className="md:col-span-2">
           <Label>Customer *</Label>
           <div className="flex gap-2 mt-1">
-            <Select value={customer} onValueChange={setCustomer}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>{c.name} ({c.company})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="flex-1 justify-between font-normal">
+                  {customer ? customers.find(c => c.name === customer)?.name ? `${customer} (${customers.find(c => c.name === customer)?.company || ""})` : customer : "Select customer"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search customer..." />
+                  <CommandList>
+                    <CommandEmpty>No customer found.</CommandEmpty>
+                    <CommandGroup>
+                      {customers.map((c) => (
+                        <CommandItem key={c.id} value={`${c.name} ${c.company}`} onSelect={() => setCustomer(c.name)}>
+                          <Check className={cn("mr-2 h-4 w-4", customer === c.name ? "opacity-100" : "opacity-0")} />
+                          {c.name} ({c.company})
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             {onAddCustomer && (
               <Button type="button" variant="outline" size="icon" onClick={() => setShowQuickAdd(!showQuickAdd)} title="Add new customer">
                 <UserPlus className="w-4 h-4" />
