@@ -234,7 +234,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       {/* Line Items with Inventory Dropdown + Search */}
       <div>
         <Label className="mb-2 block">Line Items (from Inventory)</Label>
-        <div className="bg-muted/30 rounded-lg border overflow-hidden">
+        <div className="bg-muted/30 rounded-lg border overflow-visible">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">

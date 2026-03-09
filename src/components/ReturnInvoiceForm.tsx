@@ -230,7 +230,7 @@ export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel,
       {selectedInvoice && (
         <div>
           <Label className="mb-2 block">Select Items to Return</Label>
-          <div className="bg-muted/30 rounded-lg border overflow-hidden">
+          <div className="bg-muted/30 rounded-lg border overflow-visible">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
