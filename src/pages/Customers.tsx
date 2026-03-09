@@ -25,6 +25,7 @@ export default function Customers() {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<Partial<Customer>>(emptyCustomer());
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const openAdd = () => { setEditing(null); setForm(emptyCustomer()); setShowForm(true); };
   const openEdit = (c: Customer) => { setEditing(c); setForm(c); setShowForm(true); };
@@ -97,8 +98,16 @@ export default function Customers() {
         </div>
       )}
 
+      <div className="flex items-center gap-3">
+        <Input placeholder="Search customers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="max-w-sm h-9" />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {customers.map((c) => {
+        {customers.filter((c) => {
+          if (!searchQuery.trim()) return true;
+          const q = searchQuery.toLowerCase();
+          return c.name.toLowerCase().includes(q) || (c.company || "").toLowerCase().includes(q) || (c.phone || "").toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.address || "").toLowerCase().includes(q);
+        }).map((c) => {
           const { totalBilled, totalPaid, outstanding, custInvoices, custReceipts } = getCustomerTotals(c.name);
           const isExpanded = expandedCustomer === c.id;
           return (

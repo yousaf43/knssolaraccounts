@@ -80,6 +80,7 @@ export default function Invoices() {
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
 
   // Filters
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterCustomer, setFilterCustomer] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterDateRange, setFilterDateRange] = useState("all");
@@ -517,13 +518,20 @@ export default function Invoices() {
     ...receipts.map((r) => r.paymentMethod),
   ])).sort();
 
-  // --- Filtered data ---
-  const filteredInvoices = invoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status));
-  const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status));
-  const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod));
+  // --- Search helper ---
+  const matchSearch = (text: string) => {
+    if (!searchQuery.trim()) return true;
+    return text.toLowerCase().includes(searchQuery.toLowerCase());
+  };
+  const matchSearchFields = (...fields: string[]) => fields.some(f => matchSearch(f));
 
-  const clearFilters = () => { setFilterCustomer("all"); setFilterType("all"); setFilterDateRange("all"); setFilterStatus("all"); setCustomDateFrom(""); setCustomDateTo(""); };
-  const hasActiveFilters = filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all" || filterStatus !== "all";
+  // --- Filtered data ---
+  const filteredInvoices = invoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
+  const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status) && matchSearchFields(s.number, s.customer, s.notes || "", s.projectName || ""));
+  const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
+
+  const clearFilters = () => { setSearchQuery(""); setFilterCustomer("all"); setFilterType("all"); setFilterDateRange("all"); setFilterStatus("all"); setCustomDateFrom(""); setCustomDateTo(""); };
+  const hasActiveFilters = searchQuery.trim() !== "" || filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all" || filterStatus !== "all";
 
   // --- Export CSV ---
   const exportCSV = (headers: string[], rows: string[][], filename: string) => {
@@ -670,11 +678,11 @@ export default function Invoices() {
     ...quotations.map((q) => ({ id: q.id, number: q.number, customer: q.customer, date: q.date, dueDate: q.dueDate, amount: q.amount, status: q.status, type: "Quotation" as const, statusStyle: quotationStatusStyles[q.status] || "" })),
   ];
   const allSalesData = allSalesDataRaw
-    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status))
+    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status) && matchSearchFields(item.number, item.customer))
     .filter((item) => filterType === "all" || item.type === filterType)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status));
+  const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
 
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
@@ -695,6 +703,10 @@ export default function Invoices() {
   // Filter bar component matching reference design
   const FilterBar = ({ showType }: { showType?: boolean }) => (
     <div className="flex flex-wrap items-end gap-3 py-3 px-4 border-b bg-muted/30">
+      <div className="flex flex-col gap-1">
+        <span className="text-xs font-medium text-muted-foreground">Search</span>
+        <Input placeholder="Search by number, customer..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-[200px] h-8 text-sm" />
+      </div>
       {showType && (
         <div className="flex flex-col gap-1">
           <span className="text-xs font-medium text-muted-foreground">Type</span>
