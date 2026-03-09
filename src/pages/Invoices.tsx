@@ -678,11 +678,11 @@ export default function Invoices() {
     ...quotations.map((q) => ({ id: q.id, number: q.number, customer: q.customer, date: q.date, dueDate: q.dueDate, amount: q.amount, status: q.status, type: "Quotation" as const, statusStyle: quotationStatusStyles[q.status] || "" })),
   ];
   const allSalesData = allSalesDataRaw
-    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status))
+    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status) && matchSearchFields(item.number, item.customer))
     .filter((item) => filterType === "all" || item.type === filterType)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status));
+  const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
 
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
