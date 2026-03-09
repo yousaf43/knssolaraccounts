@@ -254,7 +254,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       {/* Line Items */}
       <div>
         <Label className="mb-2 block">Line Items</Label>
-        <div className="bg-muted/30 rounded-lg border overflow-hidden">
+        <div className="bg-muted/30 rounded-lg border overflow-visible">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
