@@ -210,18 +210,14 @@ export default function Accounts() {
   // ---- Receipts ----
   const addOrUpdateReceipt = () => {
     if (!recForm.date || !recForm.receivedFrom || !recForm.amount) return;
-    if (editRecId) {
-      setReceipts(receipts.map(r => r.id === editRecId ? { ...r, ...recForm, amount: parseFloat(recForm.amount) } : r));
-      setEditRecId(null);
-    } else {
-      const newR: OtherReceipt = {
-        id: Date.now().toString(), date: recForm.date, account: recForm.account || accounts[0]?.name || "",
-        receivedFrom: recForm.receivedFrom, amount: parseFloat(recForm.amount),
-        reference: recForm.reference || `REC-${(receipts.length + 1).toString().padStart(3, "0")}`,
-        description: recForm.description,
-      };
-      setReceipts([newR, ...receipts]);
-    }
+    const r: OtherReceipt = {
+      id: editRecId || crypto.randomUUID(), date: recForm.date, account: recForm.account || accounts[0]?.name || "",
+      receivedFrom: recForm.receivedFrom, amount: parseFloat(recForm.amount),
+      reference: recForm.reference || `REC-${(receipts.length + 1).toString().padStart(3, "0")}`,
+      description: recForm.description,
+    };
+    upsertReceipt(r);
+    setEditRecId(null);
     setRecForm(emptyRec);
     setShowRecForm(false);
   };
@@ -232,7 +228,7 @@ export default function Accounts() {
     setShowRecForm(true);
   };
 
-  const deleteReceipt = (id: string) => setReceipts(receipts.filter(r => r.id !== id));
+  const deleteReceipt = (id: string) => removeReceipt(id);
 
   // ---- Transfers ----
   const addOrUpdateTransfer = () => {
