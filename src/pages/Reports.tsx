@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
   useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud,
+  useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
 

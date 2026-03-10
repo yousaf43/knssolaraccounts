@@ -2,15 +2,13 @@ import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMemo } from "react";
 import { type Invoice, type InventoryItem, type Expense, type Bill } from "@/data/mockData";
 import {
   useInvoicesCloud, useInventoryCloud, useExpensesCloud, useBillsCloud,
+  useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
 
-type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
-type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
 const agingColors = [
   { name: "Older", color: "hsl(0, 72%, 51%)" },
