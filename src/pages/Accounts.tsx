@@ -233,16 +233,12 @@ export default function Accounts() {
   // ---- Transfers ----
   const addOrUpdateTransfer = () => {
     if (!trfForm.date || !trfForm.fromAccount || !trfForm.toAccount || !trfForm.amount) return;
-    if (editTrfId) {
-      setTransfers(transfers.map(t => t.id === editTrfId ? { ...t, ...trfForm, amount: parseFloat(trfForm.amount) } : t));
-      setEditTrfId(null);
-    } else {
-      const newT: Transfer = {
-        id: Date.now().toString(), date: trfForm.date, fromAccount: trfForm.fromAccount, toAccount: trfForm.toAccount,
-        amount: parseFloat(trfForm.amount), reference: trfForm.reference || `TRF-${(transfers.length + 1).toString().padStart(3, "0")}`,
-      };
-      setTransfers([newT, ...transfers]);
-    }
+    const t: Transfer = {
+      id: editTrfId || crypto.randomUUID(), date: trfForm.date, fromAccount: trfForm.fromAccount, toAccount: trfForm.toAccount,
+      amount: parseFloat(trfForm.amount), reference: trfForm.reference || `TRF-${(transfers.length + 1).toString().padStart(3, "0")}`,
+    };
+    upsertTransfer(t);
+    setEditTrfId(null);
     setTrfForm(emptyTrf);
     setShowTrfForm(false);
   };
@@ -253,7 +249,7 @@ export default function Accounts() {
     setShowTrfForm(true);
   };
 
-  const deleteTransfer = (id: string) => setTransfers(transfers.filter(t => t.id !== id));
+  const deleteTransfer = (id: string) => removeTransfer(id);
 
   // ---- Account management ----
   const addOrUpdateAccount = () => {
