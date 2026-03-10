@@ -18,7 +18,6 @@ import { ReturnInvoiceForm } from "@/components/ReturnInvoiceForm";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
