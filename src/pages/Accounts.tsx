@@ -187,18 +187,14 @@ export default function Accounts() {
   // ---- Payments ----
   const addOrUpdatePayment = () => {
     if (!payForm.date || !payForm.payee || !payForm.amount) return;
-    if (editPayId) {
-      setPayments(payments.map(p => p.id === editPayId ? { ...p, ...payForm, amount: parseFloat(payForm.amount) } : p));
-      setEditPayId(null);
-    } else {
-      const newP: OtherPayment = {
-        id: Date.now().toString(), date: payForm.date, account: payForm.account || accounts[0]?.name || "",
-        payee: payForm.payee, amount: parseFloat(payForm.amount),
-        reference: payForm.reference || `PAY-${(payments.length + 1).toString().padStart(3, "0")}`,
-        description: payForm.description,
-      };
-      setPayments([newP, ...payments]);
-    }
+    const p: OtherPayment = {
+      id: editPayId || crypto.randomUUID(), date: payForm.date, account: payForm.account || accounts[0]?.name || "",
+      payee: payForm.payee, amount: parseFloat(payForm.amount),
+      reference: payForm.reference || `PAY-${(payments.length + 1).toString().padStart(3, "0")}`,
+      description: payForm.description,
+    };
+    upsertPayment(p);
+    setEditPayId(null);
     setPayForm(emptyPay);
     setShowPayForm(false);
   };
@@ -209,7 +205,7 @@ export default function Accounts() {
     setShowPayForm(true);
   };
 
-  const deletePayment = (id: string) => setPayments(payments.filter(p => p.id !== id));
+  const deletePayment = (id: string) => removePayment(id);
 
   // ---- Receipts ----
   const addOrUpdateReceipt = () => {
