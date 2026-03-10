@@ -1102,7 +1102,7 @@ export default function Reports() {
   const { data: inventory } = useInventoryCloud();
   const { data: accounts } = useAccountsCloud();
   const { data: ledger } = useLedgerEntriesCloud();
-  const [assets] = useLocalStorage<CompanyAsset[]>("cb-company-assets", []);
+  const [assets] = useState<CompanyAsset[]>([]);
 
   // Read additional data
   const { data: customers } = useCustomersCloud();
