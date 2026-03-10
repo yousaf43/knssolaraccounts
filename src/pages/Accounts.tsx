@@ -57,17 +57,17 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
 
 export default function Accounts() {
   const { formatCurrency, settings } = useSettings();
-  const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const { data: accounts, setData: setAccounts, upsert: upsertAccount, remove: removeAccount, loading: accountsLoading } = useAccountsCloud();
   const [showAccForm, setShowAccForm] = useState(false);
   const [editAccId, setEditAccId] = useState<string | null>(null);
   const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
-  const [payments, setPayments] = useLocalStorage<OtherPayment[]>("otherPayments", initialPayments);
-  const [receipts, setReceipts] = useLocalStorage<OtherReceipt[]>("otherReceipts", initialReceipts);
-  const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
-  const [reconcile, setReconcile] = useLocalStorage<ReconcileEntry[]>("reconcileEntries", initialReconcile);
+  const { data: payments, setData: setPayments, upsert: upsertPayment, remove: removePayment } = useOtherPaymentsCloud();
+  const { data: receipts, setData: setReceipts, upsert: upsertReceipt, remove: removeReceipt } = useOtherReceiptsCloud();
+  const { data: transfers, setData: setTransfers, upsert: upsertTransfer, remove: removeTransfer } = useTransfersCloud();
+  const { data: reconcile, setData: setReconcile, upsert: upsertReconcile } = useReconcileEntriesCloud();
 
    // Ledger
-  const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+  const { data: ledger, setData: setLedger, upsert: upsertLedger, remove: removeLedger } = useLedgerEntriesCloud();
   const [ledgerForm, setLedgerForm] = useState({ date: "", bank: "", type: "incoming" as "incoming" | "outgoing", amount: "", description: "", reference: "" });
   const [showLedgerForm, setShowLedgerForm] = useState(false);
   const [editLedgerId, setEditLedgerId] = useState<string | null>(null);
