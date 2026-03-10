@@ -138,8 +138,8 @@ export default function Dashboard() {
   const { data: bills } = useBillsCloud();
   const { data: inventory } = useInventoryCloud();
   const { data: expenses } = useExpensesCloud();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
-  const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+  const { data: accounts } = useAccountsCloud();
+  const { data: ledger } = useLedgerEntriesCloud();
 
   // Compute receivable aging from unpaid invoices
   const receivableAging = useMemo(() => {

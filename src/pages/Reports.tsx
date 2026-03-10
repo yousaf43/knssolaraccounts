@@ -1100,8 +1100,8 @@ export default function Reports() {
   const { data: expenses } = useExpensesCloud();
   const { data: bills } = useBillsCloud();
   const { data: inventory } = useInventoryCloud();
-  const [accounts] = useLocalStorage<Account[]>("accounts", []);
-  const [ledger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+  const { data: accounts } = useAccountsCloud();
+  const { data: ledger } = useLedgerEntriesCloud();
   const [assets] = useLocalStorage<CompanyAsset[]>("cb-company-assets", []);
 
   // Read additional data
