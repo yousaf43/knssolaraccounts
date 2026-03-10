@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X, SendHorizontal } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { recentTransactions } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useAccountsCloud, useLedgerEntriesCloud, useOtherPaymentsCloud, useOtherReceiptsCloud, useTransfersCloud, useReconcileEntriesCloud } from "@/hooks/useAppData";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
-
-
 
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
