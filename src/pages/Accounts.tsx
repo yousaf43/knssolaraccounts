@@ -251,20 +251,15 @@ export default function Accounts() {
 
   const deleteTransfer = (id: string) => removeTransfer(id);
 
-  // ---- Account management ----
   const addOrUpdateAccount = () => {
     if (!accForm.name || !accForm.code) return;
-    if (editAccId) {
-      setAccounts(accounts.map(a => a.id === editAccId ? { ...a, name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code, currency: accForm.currency || "PKR", balance: parseFloat(accForm.balance) || 0 } : a));
-      setEditAccId(null);
-    } else {
-      const newAcc: Account = {
-        id: Date.now().toString(), name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code,
-        reconcileDate: "", currency: accForm.currency || "PKR",
-        fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
-      };
-      setAccounts([...accounts, newAcc]);
-    }
+    const acc: Account = {
+      id: editAccId || crypto.randomUUID(), name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code,
+      reconcileDate: "", currency: accForm.currency || "PKR",
+      fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
+    };
+    upsertAccount(acc);
+    setEditAccId(null);
     setAccForm({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
     setShowAccForm(false);
   };
@@ -275,10 +270,11 @@ export default function Accounts() {
     setShowAccForm(true);
   };
 
-  const deleteAccount = (id: string) => setAccounts(accounts.filter(a => a.id !== id));
+  const deleteAccount = (id: string) => removeAccount(id);
 
   const markReconciled = (id: string) => {
-    setReconcile(reconcile.map(r => r.id === id ? { ...r, status: "reconciled" as const, difference: 0 } : r));
+    const entry = reconcile.find(r => r.id === id);
+    if (entry) upsertReconcile({ ...entry, status: "reconciled", difference: 0 });
   };
 
   return (
