@@ -1088,7 +1088,7 @@ export default function Reports() {
   const [generalTab, setGeneralTab] = useState("Favourites");
   const [analyticalTab, setAnalyticalTab] = useState("Favourites");
   const [searchQuery, setSearchQuery] = useState("");
-  const [favorites, setFavorites] = useLocalStorage<string[]>("report-favorites", [
+  const [favorites, setFavorites] = useState<string[]>([
     "028", "029", "034", "037", "084", "085", "088", "235",
     "078", "080", "082", "083", "148", "180",
     "121", "123", "125", "127", "129", "135", "258", "307", "381", "383",
