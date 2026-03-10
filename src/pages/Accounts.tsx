@@ -162,7 +162,7 @@ export default function Accounts() {
     setShowLedgerForm(true);
   };
 
-  const deleteLedger = (id: string) => setLedger(ledger.filter(e => e.id !== id));
+  const deleteLedger = (id: string) => removeLedger(id);
 
   const filteredLedger = useMemo(() => {
     const prefix = ledgerPeriod === "year" ? ledgerMonth.substring(0, 4) : ledgerMonth;
