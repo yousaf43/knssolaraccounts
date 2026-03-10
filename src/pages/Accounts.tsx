@@ -140,19 +140,18 @@ export default function Accounts() {
 
   const addOrUpdateLedgerEntry = () => {
     if (!ledgerForm.date || !ledgerForm.bank || !ledgerForm.amount) return;
-    if (editLedgerId) {
-      setLedger(ledger.map(e => e.id === editLedgerId ? { ...e, ...ledgerForm, amount: parseFloat(ledgerForm.amount) } : e));
-      setEditLedgerId(null);
-    } else {
-      const entry: LedgerEntry = {
-        id: Date.now().toString(), date: ledgerForm.date, bank: ledgerForm.bank, type: ledgerForm.type,
-        amount: parseFloat(ledgerForm.amount), description: ledgerForm.description,
-        reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
-      };
-      setLedger([entry, ...ledger]);
+    const entry: LedgerEntry = {
+      id: editLedgerId || crypto.randomUUID(),
+      date: ledgerForm.date, bank: ledgerForm.bank, type: ledgerForm.type,
+      amount: parseFloat(ledgerForm.amount), description: ledgerForm.description,
+      reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
+    };
+    upsertLedger(entry);
+    if (!editLedgerId) {
       const entryMonth = entry.date.substring(0, 7);
       if (entryMonth !== ledgerMonth) setLedgerMonth(entryMonth);
     }
+    setEditLedgerId(null);
     setLedgerForm({ date: "", bank: "", type: "incoming", amount: "", description: "", reference: "" });
     setShowLedgerForm(false);
   };
