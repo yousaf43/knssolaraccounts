@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem, type Quotation } from "@/data/mockData";
-import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud, useQuotationsCloud } from "@/hooks/useAppData";
+import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud, useQuotationsCloud, useLedgerEntriesCloud } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +18,6 @@ import { ReturnInvoiceForm } from "@/components/ReturnInvoiceForm";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -67,7 +66,7 @@ export default function Invoices() {
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
-  const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+  const { data: ledger, setData: setLedger, upsert: upsertLedger } = useLedgerEntriesCloud();
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
@@ -360,7 +359,7 @@ export default function Invoices() {
   // Helper: create ledger entry for payment received
   const createLedgerEntry = (receipt: Receipt) => {
     const entry: LedgerEntry = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+      id: crypto.randomUUID(),
       date: receipt.date,
       bank: receipt.paymentMethod || "Cash on Hand",
       type: "incoming",
@@ -368,7 +367,7 @@ export default function Invoices() {
       description: `Payment from ${receipt.customer} against ${receipt.invoiceNumber}`,
       reference: receipt.reference || receipt.number,
     };
-    setLedger((prev: LedgerEntry[]) => [entry, ...prev]);
+    upsertLedger(entry);
   };
 
   const handleSaveReceipt = async (receipt: Receipt) => {
@@ -651,8 +650,9 @@ export default function Invoices() {
     // Calculate customer account balance (sum of all unpaid invoices for this customer)
     const customerInvoices = invoices.filter((inv) => inv.customer === previewInvoice.customer);
     const customerOutstanding = customerInvoices.reduce((sum, inv) => {
-      const paid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-      return sum + (inv.amount - paid);
+      const receiptsPaid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
+      const embeddedPaid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
+      return sum + (inv.amount - receiptsPaid - embeddedPaid);
     }, 0);
     const cust = customers.find((c) => c.name === previewInvoice.customer || `${c.name} [${c.company}]` === previewInvoice.customer);
     return (
@@ -953,8 +953,10 @@ export default function Invoices() {
                 <tbody>
                   {filteredInvoices.map((inv) => {
                     const invReceipts = receipts.filter((r) => r.invoiceNumber === inv.number);
-                    const totalPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
-                    const remaining = Math.max(0, inv.amount - totalPaid);
+                    const receiptsPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
+                    const embeddedPaid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
+                    const totalPaid = receiptsPaid + embeddedPaid;
+                    const remaining = inv.amount - totalPaid;
                     const isExpanded = expandedInvoice === inv.id;
                     return (
                       <React.Fragment key={inv.id}>

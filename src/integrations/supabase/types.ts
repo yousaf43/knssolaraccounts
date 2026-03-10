@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_title: string | null
+          balance: number | null
+          code: string | null
+          created_at: string
+          currency: string | null
+          fx_balance: number | null
+          id: string
+          name: string
+          reconcile_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_title?: string | null
+          balance?: number | null
+          code?: string | null
+          created_at?: string
+          currency?: string | null
+          fx_balance?: number | null
+          id?: string
+          name?: string
+          reconcile_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_title?: string | null
+          balance?: number | null
+          code?: string | null
+          created_at?: string
+          currency?: string | null
+          fx_balance?: number | null
+          id?: string
+          name?: string
+          reconcile_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       activity_logs: {
         Row: {
           action: string
@@ -323,6 +365,114 @@ export type Database = {
         }
         Relationships: []
       }
+      ledger_entries: {
+        Row: {
+          amount: number | null
+          bank: string | null
+          created_at: string
+          date: string | null
+          description: string | null
+          id: string
+          reference: string | null
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          bank?: string | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          reference?: string | null
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          bank?: string | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          reference?: string | null
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      other_payments: {
+        Row: {
+          account: string | null
+          amount: number | null
+          created_at: string
+          date: string | null
+          description: string | null
+          id: string
+          payee: string | null
+          reference: string | null
+          user_id: string
+        }
+        Insert: {
+          account?: string | null
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          payee?: string | null
+          reference?: string | null
+          user_id: string
+        }
+        Update: {
+          account?: string | null
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          payee?: string | null
+          reference?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      other_receipts: {
+        Row: {
+          account: string | null
+          amount: number | null
+          created_at: string
+          date: string | null
+          description: string | null
+          id: string
+          received_from: string | null
+          reference: string | null
+          user_id: string
+        }
+        Insert: {
+          account?: string | null
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          received_from?: string | null
+          reference?: string | null
+          user_id: string
+        }
+        Update: {
+          account?: string | null
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          id?: string
+          received_from?: string | null
+          reference?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -548,6 +698,42 @@ export type Database = {
         }
         Relationships: []
       }
+      reconcile_entries: {
+        Row: {
+          account: string | null
+          book_balance: number | null
+          created_at: string
+          date: string | null
+          difference: number | null
+          id: string
+          statement_balance: number | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          account?: string | null
+          book_balance?: number | null
+          created_at?: string
+          date?: string | null
+          difference?: number | null
+          id?: string
+          statement_balance?: number | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          account?: string | null
+          book_balance?: number | null
+          created_at?: string
+          date?: string | null
+          difference?: number | null
+          id?: string
+          statement_balance?: number | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       sales_orders: {
         Row: {
           advance_payment: number | null
@@ -685,6 +871,39 @@ export type Database = {
           phone?: string | null
           total_paid?: number | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transfers: {
+        Row: {
+          amount: number | null
+          created_at: string
+          date: string | null
+          from_account: string | null
+          id: string
+          reference: string | null
+          to_account: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          from_account?: string | null
+          id?: string
+          reference?: string | null
+          to_account?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          date?: string | null
+          from_account?: string | null
+          id?: string
+          reference?: string | null
+          to_account?: string | null
           user_id?: string
         }
         Relationships: []

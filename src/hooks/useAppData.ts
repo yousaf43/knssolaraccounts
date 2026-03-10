@@ -254,6 +254,73 @@ function useTable<T extends { id: string }>(
   return { data, setData, loading, fetch, upsert, remove, replaceAll };
 }
 
+// =================== ACCOUNTS MAPPERS ===================
+
+type CloudAccount = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
+const accountFromDb = (r: Record<string, unknown>): CloudAccount => ({
+  id: r.id as string, name: (r.name as string) || "", accountTitle: (r.account_title as string) || "",
+  code: (r.code as string) || "", reconcileDate: (r.reconcile_date as string) || "",
+  currency: (r.currency as string) || "PKR", fxBalance: Number(r.fx_balance) || 0, balance: Number(r.balance) || 0,
+});
+const accountToDb = (a: CloudAccount, userId: string) => ({
+  id: a.id, user_id: userId, name: a.name, account_title: a.accountTitle, code: a.code,
+  reconcile_date: a.reconcileDate, currency: a.currency, fx_balance: a.fxBalance, balance: a.balance,
+});
+
+type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
+const ledgerFromDb = (r: Record<string, unknown>): LedgerEntry => ({
+  id: r.id as string, date: (r.date as string) || "", bank: (r.bank as string) || "",
+  type: (r.type as "incoming" | "outgoing") || "incoming", amount: Number(r.amount) || 0,
+  description: (r.description as string) || "", reference: (r.reference as string) || "",
+});
+const ledgerToDb = (e: LedgerEntry, userId: string) => ({
+  id: e.id, user_id: userId, date: e.date, bank: e.bank, type: e.type,
+  amount: e.amount, description: e.description, reference: e.reference,
+});
+
+type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
+const otherPaymentFromDb = (r: Record<string, unknown>): OtherPayment => ({
+  id: r.id as string, date: (r.date as string) || "", account: (r.account as string) || "",
+  payee: (r.payee as string) || "", amount: Number(r.amount) || 0,
+  reference: (r.reference as string) || "", description: (r.description as string) || "",
+});
+const otherPaymentToDb = (p: OtherPayment, userId: string) => ({
+  id: p.id, user_id: userId, date: p.date, account: p.account, payee: p.payee,
+  amount: p.amount, reference: p.reference, description: p.description,
+});
+
+type OtherReceipt = { id: string; date: string; account: string; receivedFrom: string; amount: number; reference: string; description: string };
+const otherReceiptFromDb = (r: Record<string, unknown>): OtherReceipt => ({
+  id: r.id as string, date: (r.date as string) || "", account: (r.account as string) || "",
+  receivedFrom: (r.received_from as string) || "", amount: Number(r.amount) || 0,
+  reference: (r.reference as string) || "", description: (r.description as string) || "",
+});
+const otherReceiptToDb = (r: OtherReceipt, userId: string) => ({
+  id: r.id, user_id: userId, date: r.date, account: r.account, received_from: r.receivedFrom,
+  amount: r.amount, reference: r.reference, description: r.description,
+});
+
+type Transfer = { id: string; date: string; fromAccount: string; toAccount: string; amount: number; reference: string };
+const transferFromDb = (r: Record<string, unknown>): Transfer => ({
+  id: r.id as string, date: (r.date as string) || "", fromAccount: (r.from_account as string) || "",
+  toAccount: (r.to_account as string) || "", amount: Number(r.amount) || 0, reference: (r.reference as string) || "",
+});
+const transferToDb = (t: Transfer, userId: string) => ({
+  id: t.id, user_id: userId, date: t.date, from_account: t.fromAccount, to_account: t.toAccount,
+  amount: t.amount, reference: t.reference,
+});
+
+type ReconcileEntry = { id: string; date: string; account: string; statementBalance: number; bookBalance: number; difference: number; status: "reconciled" | "pending" };
+const reconcileFromDb = (r: Record<string, unknown>): ReconcileEntry => ({
+  id: r.id as string, date: (r.date as string) || "", account: (r.account as string) || "",
+  statementBalance: Number(r.statement_balance) || 0, bookBalance: Number(r.book_balance) || 0,
+  difference: Number(r.difference) || 0, status: (r.status as "reconciled" | "pending") || "pending",
+});
+const reconcileToDb = (e: ReconcileEntry, userId: string) => ({
+  id: e.id, user_id: userId, date: e.date, account: e.account, statement_balance: e.statementBalance,
+  book_balance: e.bookBalance, difference: e.difference, status: e.status,
+});
+
 // =================== EXPORTS ===================
 
 export const useCustomersCloud = () => useTable("customers", customerFromDb, customerToDb);
@@ -268,6 +335,12 @@ export const useBillsCloud = () => useTable("bills", billFromDb, billToDb);
 export const usePurchasePaymentsCloud = () => useTable("purchase_payments", purchasePaymentFromDb, purchasePaymentToDb);
 export const useStockAdjustmentsCloud = () => useTable("stock_adjustments", stockAdjFromDb, stockAdjToDb, "created_at");
 export const useQuotationsCloud = () => useTable("quotations", quotationFromDb, quotationToDb);
+export const useAccountsCloud = () => useTable("accounts", accountFromDb, accountToDb);
+export const useLedgerEntriesCloud = () => useTable("ledger_entries", ledgerFromDb, ledgerToDb);
+export const useOtherPaymentsCloud = () => useTable("other_payments", otherPaymentFromDb, otherPaymentToDb);
+export const useOtherReceiptsCloud = () => useTable("other_receipts", otherReceiptFromDb, otherReceiptToDb);
+export const useTransfersCloud = () => useTable("transfers", transferFromDb, transferToDb);
+export const useReconcileEntriesCloud = () => useTable("reconcile_entries", reconcileFromDb, reconcileToDb);
 
 // User Settings
 export function useUserSettingsCloud() {

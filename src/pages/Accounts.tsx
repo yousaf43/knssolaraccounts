@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X, SendHorizontal } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { recentTransactions } from "@/data/mockData";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useAccountsCloud, useLedgerEntriesCloud, useOtherPaymentsCloud, useOtherReceiptsCloud, useTransfersCloud, useReconcileEntriesCloud } from "@/hooks/useAppData";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
-
-
 
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
@@ -59,17 +57,26 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
 
 export default function Accounts() {
   const { formatCurrency, settings } = useSettings();
-  const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const { data: accounts, setData: setAccounts, upsert: upsertAccount, remove: removeAccount, loading: accountsLoading } = useAccountsCloud();
   const [showAccForm, setShowAccForm] = useState(false);
   const [editAccId, setEditAccId] = useState<string | null>(null);
   const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
-  const [payments, setPayments] = useLocalStorage<OtherPayment[]>("otherPayments", initialPayments);
-  const [receipts, setReceipts] = useLocalStorage<OtherReceipt[]>("otherReceipts", initialReceipts);
-  const [transfers, setTransfers] = useLocalStorage<Transfer[]>("transfers", initialTransfers);
-  const [reconcile, setReconcile] = useLocalStorage<ReconcileEntry[]>("reconcileEntries", initialReconcile);
+  const { data: payments, setData: setPayments, upsert: upsertPayment, remove: removePayment } = useOtherPaymentsCloud();
+  const { data: receipts, setData: setReceipts, upsert: upsertReceipt, remove: removeReceipt } = useOtherReceiptsCloud();
+  const { data: transfers, setData: setTransfers, upsert: upsertTransfer, remove: removeTransfer } = useTransfersCloud();
+  const { data: reconcile, setData: setReconcile, upsert: upsertReconcile } = useReconcileEntriesCloud();
+
+  // Seed default accounts if none exist
+  const [seeded, setSeeded] = useState(false);
+  useEffect(() => {
+    if (!accountsLoading && accounts.length === 0 && !seeded) {
+      setSeeded(true);
+      defaultAccounts.forEach(a => upsertAccount({ ...a, id: crypto.randomUUID() }));
+    }
+  }, [accountsLoading, accounts.length]);
 
    // Ledger
-  const [ledger, setLedger] = useLocalStorage<LedgerEntry[]>("ledgerEntries", []);
+  const { data: ledger, setData: setLedger, upsert: upsertLedger, remove: removeLedger } = useLedgerEntriesCloud();
   const [ledgerForm, setLedgerForm] = useState({ date: "", bank: "", type: "incoming" as "incoming" | "outgoing", amount: "", description: "", reference: "" });
   const [showLedgerForm, setShowLedgerForm] = useState(false);
   const [editLedgerId, setEditLedgerId] = useState<string | null>(null);
@@ -87,7 +94,7 @@ export default function Accounts() {
     const amt = parseFloat(pettyCashForm.amount);
     // Outgoing from source account
     const outEntry: LedgerEntry = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       date: pettyCashForm.date,
       bank: pettyCashForm.account,
       type: "outgoing",
@@ -95,9 +102,8 @@ export default function Accounts() {
       description: pettyCashForm.description || `Transfer to Petty Cash`,
       reference: `PC-${(ledger.length + 1).toString().padStart(3, "0")}`,
     };
-    // Incoming to Petty Cash
     const inEntry: LedgerEntry = {
-      id: (Date.now() + 1).toString(),
+      id: crypto.randomUUID(),
       date: pettyCashForm.date,
       bank: "Petty Cash",
       type: "incoming",
@@ -105,7 +111,8 @@ export default function Accounts() {
       description: pettyCashForm.description || `Transfer from ${pettyCashForm.account}`,
       reference: `PC-${(ledger.length + 2).toString().padStart(3, "0")}`,
     };
-    setLedger(prev => [inEntry, outEntry, ...prev]);
+    upsertLedger(outEntry);
+    upsertLedger(inEntry);
     toast.success(`${formatCurrency(amt)} transferred to Petty Cash from ${pettyCashForm.account}`);
     setPettyCashForm({ account: "", date: new Date().toISOString().split("T")[0], amount: "", description: "" });
     setShowPettyCashTransfer(false);
@@ -142,19 +149,18 @@ export default function Accounts() {
 
   const addOrUpdateLedgerEntry = () => {
     if (!ledgerForm.date || !ledgerForm.bank || !ledgerForm.amount) return;
-    if (editLedgerId) {
-      setLedger(ledger.map(e => e.id === editLedgerId ? { ...e, ...ledgerForm, amount: parseFloat(ledgerForm.amount) } : e));
-      setEditLedgerId(null);
-    } else {
-      const entry: LedgerEntry = {
-        id: Date.now().toString(), date: ledgerForm.date, bank: ledgerForm.bank, type: ledgerForm.type,
-        amount: parseFloat(ledgerForm.amount), description: ledgerForm.description,
-        reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
-      };
-      setLedger([entry, ...ledger]);
+    const entry: LedgerEntry = {
+      id: editLedgerId || crypto.randomUUID(),
+      date: ledgerForm.date, bank: ledgerForm.bank, type: ledgerForm.type,
+      amount: parseFloat(ledgerForm.amount), description: ledgerForm.description,
+      reference: ledgerForm.reference || `LED-${(ledger.length + 1).toString().padStart(3, "0")}`,
+    };
+    upsertLedger(entry);
+    if (!editLedgerId) {
       const entryMonth = entry.date.substring(0, 7);
       if (entryMonth !== ledgerMonth) setLedgerMonth(entryMonth);
     }
+    setEditLedgerId(null);
     setLedgerForm({ date: "", bank: "", type: "incoming", amount: "", description: "", reference: "" });
     setShowLedgerForm(false);
   };
@@ -165,7 +171,7 @@ export default function Accounts() {
     setShowLedgerForm(true);
   };
 
-  const deleteLedger = (id: string) => setLedger(ledger.filter(e => e.id !== id));
+  const deleteLedger = (id: string) => removeLedger(id);
 
   const filteredLedger = useMemo(() => {
     const prefix = ledgerPeriod === "year" ? ledgerMonth.substring(0, 4) : ledgerMonth;
@@ -190,18 +196,14 @@ export default function Accounts() {
   // ---- Payments ----
   const addOrUpdatePayment = () => {
     if (!payForm.date || !payForm.payee || !payForm.amount) return;
-    if (editPayId) {
-      setPayments(payments.map(p => p.id === editPayId ? { ...p, ...payForm, amount: parseFloat(payForm.amount) } : p));
-      setEditPayId(null);
-    } else {
-      const newP: OtherPayment = {
-        id: Date.now().toString(), date: payForm.date, account: payForm.account || accounts[0]?.name || "",
-        payee: payForm.payee, amount: parseFloat(payForm.amount),
-        reference: payForm.reference || `PAY-${(payments.length + 1).toString().padStart(3, "0")}`,
-        description: payForm.description,
-      };
-      setPayments([newP, ...payments]);
-    }
+    const p: OtherPayment = {
+      id: editPayId || crypto.randomUUID(), date: payForm.date, account: payForm.account || accounts[0]?.name || "",
+      payee: payForm.payee, amount: parseFloat(payForm.amount),
+      reference: payForm.reference || `PAY-${(payments.length + 1).toString().padStart(3, "0")}`,
+      description: payForm.description,
+    };
+    upsertPayment(p);
+    setEditPayId(null);
     setPayForm(emptyPay);
     setShowPayForm(false);
   };
@@ -212,23 +214,19 @@ export default function Accounts() {
     setShowPayForm(true);
   };
 
-  const deletePayment = (id: string) => setPayments(payments.filter(p => p.id !== id));
+  const deletePayment = (id: string) => removePayment(id);
 
   // ---- Receipts ----
   const addOrUpdateReceipt = () => {
     if (!recForm.date || !recForm.receivedFrom || !recForm.amount) return;
-    if (editRecId) {
-      setReceipts(receipts.map(r => r.id === editRecId ? { ...r, ...recForm, amount: parseFloat(recForm.amount) } : r));
-      setEditRecId(null);
-    } else {
-      const newR: OtherReceipt = {
-        id: Date.now().toString(), date: recForm.date, account: recForm.account || accounts[0]?.name || "",
-        receivedFrom: recForm.receivedFrom, amount: parseFloat(recForm.amount),
-        reference: recForm.reference || `REC-${(receipts.length + 1).toString().padStart(3, "0")}`,
-        description: recForm.description,
-      };
-      setReceipts([newR, ...receipts]);
-    }
+    const r: OtherReceipt = {
+      id: editRecId || crypto.randomUUID(), date: recForm.date, account: recForm.account || accounts[0]?.name || "",
+      receivedFrom: recForm.receivedFrom, amount: parseFloat(recForm.amount),
+      reference: recForm.reference || `REC-${(receipts.length + 1).toString().padStart(3, "0")}`,
+      description: recForm.description,
+    };
+    upsertReceipt(r);
+    setEditRecId(null);
     setRecForm(emptyRec);
     setShowRecForm(false);
   };
@@ -239,21 +237,17 @@ export default function Accounts() {
     setShowRecForm(true);
   };
 
-  const deleteReceipt = (id: string) => setReceipts(receipts.filter(r => r.id !== id));
+  const deleteReceipt = (id: string) => removeReceipt(id);
 
   // ---- Transfers ----
   const addOrUpdateTransfer = () => {
     if (!trfForm.date || !trfForm.fromAccount || !trfForm.toAccount || !trfForm.amount) return;
-    if (editTrfId) {
-      setTransfers(transfers.map(t => t.id === editTrfId ? { ...t, ...trfForm, amount: parseFloat(trfForm.amount) } : t));
-      setEditTrfId(null);
-    } else {
-      const newT: Transfer = {
-        id: Date.now().toString(), date: trfForm.date, fromAccount: trfForm.fromAccount, toAccount: trfForm.toAccount,
-        amount: parseFloat(trfForm.amount), reference: trfForm.reference || `TRF-${(transfers.length + 1).toString().padStart(3, "0")}`,
-      };
-      setTransfers([newT, ...transfers]);
-    }
+    const t: Transfer = {
+      id: editTrfId || crypto.randomUUID(), date: trfForm.date, fromAccount: trfForm.fromAccount, toAccount: trfForm.toAccount,
+      amount: parseFloat(trfForm.amount), reference: trfForm.reference || `TRF-${(transfers.length + 1).toString().padStart(3, "0")}`,
+    };
+    upsertTransfer(t);
+    setEditTrfId(null);
     setTrfForm(emptyTrf);
     setShowTrfForm(false);
   };
@@ -264,22 +258,17 @@ export default function Accounts() {
     setShowTrfForm(true);
   };
 
-  const deleteTransfer = (id: string) => setTransfers(transfers.filter(t => t.id !== id));
+  const deleteTransfer = (id: string) => removeTransfer(id);
 
-  // ---- Account management ----
   const addOrUpdateAccount = () => {
     if (!accForm.name || !accForm.code) return;
-    if (editAccId) {
-      setAccounts(accounts.map(a => a.id === editAccId ? { ...a, name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code, currency: accForm.currency || "PKR", balance: parseFloat(accForm.balance) || 0 } : a));
-      setEditAccId(null);
-    } else {
-      const newAcc: Account = {
-        id: Date.now().toString(), name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code,
-        reconcileDate: "", currency: accForm.currency || "PKR",
-        fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
-      };
-      setAccounts([...accounts, newAcc]);
-    }
+    const acc: Account = {
+      id: editAccId || crypto.randomUUID(), name: accForm.name, accountTitle: accForm.accountTitle, code: accForm.code,
+      reconcileDate: "", currency: accForm.currency || "PKR",
+      fxBalance: 0, balance: parseFloat(accForm.balance) || 0,
+    };
+    upsertAccount(acc);
+    setEditAccId(null);
     setAccForm({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
     setShowAccForm(false);
   };
@@ -290,10 +279,11 @@ export default function Accounts() {
     setShowAccForm(true);
   };
 
-  const deleteAccount = (id: string) => setAccounts(accounts.filter(a => a.id !== id));
+  const deleteAccount = (id: string) => removeAccount(id);
 
   const markReconciled = (id: string) => {
-    setReconcile(reconcile.map(r => r.id === id ? { ...r, status: "reconciled" as const, difference: 0 } : r));
+    const entry = reconcile.find(r => r.id === id);
+    if (entry) upsertReconcile({ ...entry, status: "reconciled", difference: 0 });
   };
 
   return (
