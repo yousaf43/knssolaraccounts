@@ -359,7 +359,7 @@ export default function Invoices() {
   // Helper: create ledger entry for payment received
   const createLedgerEntry = (receipt: Receipt) => {
     const entry: LedgerEntry = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+      id: crypto.randomUUID(),
       date: receipt.date,
       bank: receipt.paymentMethod || "Cash on Hand",
       type: "incoming",
@@ -367,7 +367,7 @@ export default function Invoices() {
       description: `Payment from ${receipt.customer} against ${receipt.invoiceNumber}`,
       reference: receipt.reference || receipt.number,
     };
-    setLedger((prev: LedgerEntry[]) => [entry, ...prev]);
+    upsertLedger(entry);
   };
 
   const handleSaveReceipt = async (receipt: Receipt) => {
