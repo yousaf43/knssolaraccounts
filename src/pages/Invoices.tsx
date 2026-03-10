@@ -650,8 +650,9 @@ export default function Invoices() {
     // Calculate customer account balance (sum of all unpaid invoices for this customer)
     const customerInvoices = invoices.filter((inv) => inv.customer === previewInvoice.customer);
     const customerOutstanding = customerInvoices.reduce((sum, inv) => {
-      const paid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-      return sum + (inv.amount - paid);
+      const receiptsPaid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
+      const embeddedPaid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
+      return sum + (inv.amount - receiptsPaid - embeddedPaid);
     }, 0);
     const cust = customers.find((c) => c.name === previewInvoice.customer || `${c.name} [${c.company}]` === previewInvoice.customer);
     return (
