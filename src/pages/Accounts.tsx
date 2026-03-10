@@ -85,7 +85,7 @@ export default function Accounts() {
     const amt = parseFloat(pettyCashForm.amount);
     // Outgoing from source account
     const outEntry: LedgerEntry = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       date: pettyCashForm.date,
       bank: pettyCashForm.account,
       type: "outgoing",
@@ -93,9 +93,8 @@ export default function Accounts() {
       description: pettyCashForm.description || `Transfer to Petty Cash`,
       reference: `PC-${(ledger.length + 1).toString().padStart(3, "0")}`,
     };
-    // Incoming to Petty Cash
     const inEntry: LedgerEntry = {
-      id: (Date.now() + 1).toString(),
+      id: crypto.randomUUID(),
       date: pettyCashForm.date,
       bank: "Petty Cash",
       type: "incoming",
@@ -103,7 +102,8 @@ export default function Accounts() {
       description: pettyCashForm.description || `Transfer from ${pettyCashForm.account}`,
       reference: `PC-${(ledger.length + 2).toString().padStart(3, "0")}`,
     };
-    setLedger(prev => [inEntry, outEntry, ...prev]);
+    upsertLedger(outEntry);
+    upsertLedger(inEntry);
     toast.success(`${formatCurrency(amt)} transferred to Petty Cash from ${pettyCashForm.account}`);
     setPettyCashForm({ account: "", date: new Date().toISOString().split("T")[0], amount: "", description: "" });
     setShowPettyCashTransfer(false);
