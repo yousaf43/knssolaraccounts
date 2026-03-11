@@ -1019,7 +1019,7 @@ export default function Invoices() {
           <FilterBar />
           {(() => {
             const returnInvoices = invoices.filter((inv) => inv.isReturn);
-            const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date));
+            const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchSearchFields(i.number, i.customer, i.returnedFrom || "", i.notes || ""));
             return (
               <>
                 <div className="flex items-center justify-end px-4 py-2">
