@@ -623,7 +623,7 @@ export default function Invoices() {
       };
       return (
         <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} />
+          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
         </div>
       );
     }
