@@ -965,6 +965,7 @@ export default function Invoices() {
                       <React.Fragment key={inv.id}>
                         <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-medium">{inv.number}</td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{inv.documentNumber || "—"}</td>
                           <td className="px-4 py-3">{inv.customer}</td>
                           <td className="px-4 py-3 text-muted-foreground">{inv.date}</td>
                           <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
