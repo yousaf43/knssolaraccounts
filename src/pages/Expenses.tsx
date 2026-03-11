@@ -42,7 +42,8 @@ export default function Expenses() {
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const { data: cloudAccounts } = useAccountsCloud();
+  const accounts = cloudAccounts.length > 0 ? cloudAccounts : defaultAccounts;
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
