@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { X, Plus, Trash2, RotateCcw, ArrowLeftRight } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, InventoryItem } from "@/data/mockData";
 
