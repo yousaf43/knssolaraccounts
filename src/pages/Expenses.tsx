@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { type Expense } from "@/data/mockData";
-import { useExpensesCloud } from "@/hooks/useAppData";
+import { useExpensesCloud, useAccountsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Other"];
@@ -43,7 +42,8 @@ export default function Expenses() {
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const { data: cloudAccounts } = useAccountsCloud();
+  const accounts = cloudAccounts.length > 0 ? cloudAccounts : defaultAccounts;
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());

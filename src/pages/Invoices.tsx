@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem, type Quotation } from "@/data/mockData";
-import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud, useQuotationsCloud, useLedgerEntriesCloud } from "@/hooks/useAppData";
+import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud, useQuotationsCloud, useLedgerEntriesCloud, useAccountsCloud } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -67,6 +67,7 @@ export default function Invoices() {
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
   const { data: ledger, setData: setLedger, upsert: upsertLedger } = useLedgerEntriesCloud();
+  const { data: cloudAccounts } = useAccountsCloud();
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
@@ -568,6 +569,7 @@ export default function Invoices() {
           onSaveReturn={handleProcessReturn}
           onCancel={goList}
           nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`}
+          accounts={cloudAccounts}
         />
       </div>
     );
@@ -621,7 +623,7 @@ export default function Invoices() {
       };
       return (
         <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} />
+          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
         </div>
       );
     }
@@ -635,13 +637,13 @@ export default function Invoices() {
     if (activeTab === "receipts") {
       return (
         <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
+          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
         </div>
       );
     }
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
+        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
       </div>
     );
   }
@@ -939,14 +941,16 @@ export default function Invoices() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Invoice #</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Paid</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Remaining</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Invoice #</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Doc No.</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
+                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
+                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Paid</th>
+                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Remaining</th>
+                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
+                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -962,6 +966,7 @@ export default function Invoices() {
                       <React.Fragment key={inv.id}>
                         <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-medium">{inv.number}</td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{inv.documentNumber || "—"}</td>
                           <td className="px-4 py-3">{inv.customer}</td>
                           <td className="px-4 py-3 text-muted-foreground">{inv.date}</td>
                           <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
@@ -986,7 +991,7 @@ export default function Invoices() {
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={9} className="px-4 py-2 bg-muted/20">
+                            <td colSpan={10} className="px-4 py-2 bg-muted/20">
                               <div className="text-xs space-y-1">
                                 <p className="font-semibold text-muted-foreground mb-1">Payment History for {inv.number}</p>
                                 {invReceipts.length > 0 ? invReceipts.map((r) => (
@@ -1006,7 +1011,7 @@ export default function Invoices() {
                       </React.Fragment>
                     );
                   })}
-                  {filteredInvoices.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No invoices found.</td></tr>}
+                  {filteredInvoices.length === 0 && <tr><td colSpan={10} className="text-center py-8 text-muted-foreground">No invoices found.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -1018,7 +1023,7 @@ export default function Invoices() {
           <FilterBar />
           {(() => {
             const returnInvoices = invoices.filter((inv) => inv.isReturn);
-            const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date));
+            const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchSearchFields(i.number, i.customer, i.returnedFrom || "", i.notes || ""));
             return (
               <>
                 <div className="flex items-center justify-end px-4 py-2">

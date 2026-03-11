@@ -57,10 +57,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         .totals-box { width: 260px; border: 1px solid #ddd; padding: 10px; }
         .totals-box .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
         .totals-box .grand-total { display: flex; justify-content: space-between; padding: 6px 0; font-size: 15px; font-weight: bold; border-top: 2px solid #1e3a8a; margin-top: 4px; color: #1e3a8a; }
-        .signature-section { display: flex; justify-content: space-between; margin-top: 32px; border-top: 1px solid #ddd; padding-top: 16px; }
-        .sig-box { text-align: center; }
-        .sig-box .sig-name { font-weight: bold; font-size: 13px; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 4px; min-width: 120px; }
-        .sig-box .sig-label { font-size: 10px; color: #666; }
+        .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
         img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
@@ -191,25 +188,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
           </div>
         )}
 
-        {/* Signature Section */}
-        <div className="signature-section flex justify-between mt-8 pt-4 border-t border-gray-200">
-          <div className="sig-box text-center">
-            <div className="sig-name font-bold text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[120px]">{settings.companyName || ""}</div>
-            <div className="sig-label text-xs text-gray-500">Prepared by:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Date:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Received by:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Stamp:</div>
-          </div>
-        </div>
+        {/* Footer bar */}
 
         {/* Footer bar */}
         <div className="footer-bar mt-6 h-3 rounded bg-blue-900"></div>

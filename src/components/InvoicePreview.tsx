@@ -107,10 +107,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         .totals-box .balance-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; color: #444; border-top: 1px solid #ddd; margin-top: 4px; }
         .words-line { font-size: 11px; margin-top: 10px; font-style: italic; }
         .words-line strong { font-style: normal; }
-        .signature-section { display: flex; justify-content: space-between; margin-top: 32px; border-top: 1px solid #ddd; padding-top: 16px; }
-        .sig-box { text-align: center; }
-        .sig-box .sig-name { font-weight: bold; font-size: 13px; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 4px; min-width: 120px; }
-        .sig-box .sig-label { font-size: 10px; color: #666; }
+        .words-line { font-size: 11px; margin-top: 10px; font-style: italic; }
+        .words-line strong { font-style: normal; }
+        .terms-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
         .terms-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
         .terms-section p { font-size: 11px; font-weight: bold; color: #333; margin-bottom: 8px; }
         .terms-section ol { font-size: 9px; color: #666; padding-left: 16px; line-height: 1.6; }
@@ -261,27 +260,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
           <strong>A/C Balance in Words</strong> {amountInWords}.
         </div>
 
-        {/* Signature Section */}
-        <div className="signature-section flex justify-between mt-8 pt-4 border-t border-gray-200">
-          <div className="sig-box text-center">
-            <div className="sig-name font-bold text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[120px]">{settings.companyName || ""}</div>
-            <div className="sig-label text-xs text-gray-500">Recieved by:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Date:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Signature:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Stamp:</div>
-          </div>
-        </div>
-
-        {/* Terms & Conditions */}
+        {/* Footer bar */}
         <div className="mt-6 pt-4 border-t border-gray-200">
           <p className="text-xs font-bold text-gray-700 mb-2">Terms & Conditions:</p>
           <ol className="text-[10px] text-gray-500 space-y-1 list-decimal list-inside leading-relaxed">

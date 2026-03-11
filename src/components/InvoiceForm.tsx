@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
 
@@ -23,11 +22,12 @@ type Props = {
   editInvoice?: Invoice | null;
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
+  accounts?: Account[];
 };
 
-export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
   const { formatCurrency } = useSettings();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");

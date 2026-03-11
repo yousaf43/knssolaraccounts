@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, UserPlus, AlertTriangle } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
 
@@ -19,11 +18,12 @@ type Props = {
   editReceipt?: Receipt | null;
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
+  accounts?: Account[];
 };
 
-export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCancel, editReceipt, nextNumber, onAddCustomer }: Props) {
+export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCancel, editReceipt, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
   const { formatCurrency } = useSettings();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customer, setCustomer] = useState(editReceipt?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || "");

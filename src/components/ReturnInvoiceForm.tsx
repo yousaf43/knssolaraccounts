@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { X, Plus, Trash2, RotateCcw, ArrowLeftRight } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, InventoryItem } from "@/data/mockData";
 
@@ -27,11 +26,12 @@ type Props = {
   }) => void;
   onCancel: () => void;
   nextReturnNumber: string;
+  accounts?: Account[];
 };
 
-export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel, nextReturnNumber }: Props) {
+export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel, nextReturnNumber, accounts: propAccounts }: Props) {
   const { formatCurrency } = useSettings();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
   const [returnType, setReturnType] = useState<"return" | "exchange">("return");
   const [returnItems, setReturnItems] = useState<{ index: number; returnQty: number; selected: boolean }[]>([]);
