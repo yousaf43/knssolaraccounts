@@ -940,14 +940,16 @@ export default function Invoices() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Invoice #</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Paid</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">Remaining</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Invoice #</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Doc No.</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Due Date</th>
+                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
+                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Paid</th>
+                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">Remaining</th>
+                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
+                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
                     <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
