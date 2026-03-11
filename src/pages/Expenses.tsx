@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Other"];
