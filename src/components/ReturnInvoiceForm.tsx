@@ -26,11 +26,12 @@ type Props = {
   }) => void;
   onCancel: () => void;
   nextReturnNumber: string;
+  accounts?: Account[];
 };
 
-export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel, nextReturnNumber }: Props) {
+export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel, nextReturnNumber, accounts: propAccounts }: Props) {
   const { formatCurrency } = useSettings();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
   const [returnType, setReturnType] = useState<"return" | "exchange">("return");
   const [returnItems, setReturnItems] = useState<{ index: number; returnQty: number; selected: boolean }[]>([]);
