@@ -21,9 +21,9 @@ type Props = {
   accounts?: Account[];
 };
 
-export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCancel, editReceipt, nextNumber, onAddCustomer }: Props) {
+export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCancel, editReceipt, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
   const { formatCurrency } = useSettings();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customer, setCustomer] = useState(editReceipt?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || "");

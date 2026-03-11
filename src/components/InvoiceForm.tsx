@@ -25,9 +25,9 @@ type Props = {
   accounts?: Account[];
 };
 
-export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer }: Props) {
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
   const { formatCurrency } = useSettings();
-  const [accounts] = useLocalStorage<Account[]>("accounts", defaultAccounts);
+  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
