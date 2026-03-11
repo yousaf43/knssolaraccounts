@@ -1010,7 +1010,7 @@ export default function Invoices() {
                       </React.Fragment>
                     );
                   })}
-                  {filteredInvoices.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No invoices found.</td></tr>}
+                  {filteredInvoices.length === 0 && <tr><td colSpan={10} className="text-center py-8 text-muted-foreground">No invoices found.</td></tr>}
                 </tbody>
               </table>
             </div>
