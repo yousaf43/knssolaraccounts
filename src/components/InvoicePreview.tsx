@@ -261,27 +261,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
           <strong>A/C Balance in Words</strong> {amountInWords}.
         </div>
 
-        {/* Signature Section */}
-        <div className="signature-section flex justify-between mt-8 pt-4 border-t border-gray-200">
-          <div className="sig-box text-center">
-            <div className="sig-name font-bold text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[120px]">{settings.companyName || ""}</div>
-            <div className="sig-label text-xs text-gray-500">Recieved by:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Date:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Signature:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Stamp:</div>
-          </div>
-        </div>
-
-        {/* Terms & Conditions */}
+        {/* Footer bar */}
         <div className="mt-6 pt-4 border-t border-gray-200">
           <p className="text-xs font-bold text-gray-700 mb-2">Terms & Conditions:</p>
           <ol className="text-[10px] text-gray-500 space-y-1 list-decimal list-inside leading-relaxed">

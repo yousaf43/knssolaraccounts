@@ -191,25 +191,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
           </div>
         )}
 
-        {/* Signature Section */}
-        <div className="signature-section flex justify-between mt-8 pt-4 border-t border-gray-200">
-          <div className="sig-box text-center">
-            <div className="sig-name font-bold text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[120px]">{settings.companyName || ""}</div>
-            <div className="sig-label text-xs text-gray-500">Prepared by:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Date:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Received by:</div>
-          </div>
-          <div className="sig-box text-center">
-            <div className="sig-name text-sm border-b-2 border-gray-800 pb-1 mb-1 min-w-[100px]">&nbsp;</div>
-            <div className="sig-label text-xs text-gray-500">Stamp:</div>
-          </div>
-        </div>
+        {/* Footer bar */}
 
         {/* Footer bar */}
         <div className="footer-bar mt-6 h-3 rounded bg-blue-900"></div>
