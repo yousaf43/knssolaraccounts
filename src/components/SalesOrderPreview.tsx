@@ -57,10 +57,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         .totals-box { width: 260px; border: 1px solid #ddd; padding: 10px; }
         .totals-box .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
         .totals-box .grand-total { display: flex; justify-content: space-between; padding: 6px 0; font-size: 15px; font-weight: bold; border-top: 2px solid #1e3a8a; margin-top: 4px; color: #1e3a8a; }
-        .signature-section { display: flex; justify-content: space-between; margin-top: 32px; border-top: 1px solid #ddd; padding-top: 16px; }
-        .sig-box { text-align: center; }
-        .sig-box .sig-name { font-weight: bold; font-size: 13px; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 4px; min-width: 120px; }
-        .sig-box .sig-label { font-size: 10px; color: #666; }
+        .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
         img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }

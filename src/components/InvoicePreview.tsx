@@ -107,10 +107,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         .totals-box .balance-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; color: #444; border-top: 1px solid #ddd; margin-top: 4px; }
         .words-line { font-size: 11px; margin-top: 10px; font-style: italic; }
         .words-line strong { font-style: normal; }
-        .signature-section { display: flex; justify-content: space-between; margin-top: 32px; border-top: 1px solid #ddd; padding-top: 16px; }
-        .sig-box { text-align: center; }
-        .sig-box .sig-name { font-weight: bold; font-size: 13px; border-bottom: 2px solid #333; padding-bottom: 4px; margin-bottom: 4px; min-width: 120px; }
-        .sig-box .sig-label { font-size: 10px; color: #666; }
+        .words-line { font-size: 11px; margin-top: 10px; font-style: italic; }
+        .words-line strong { font-style: normal; }
+        .terms-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
         .terms-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
         .terms-section p { font-size: 11px; font-weight: bold; color: #333; margin-bottom: 8px; }
         .terms-section ol { font-size: 9px; color: #666; padding-left: 16px; line-height: 1.6; }
