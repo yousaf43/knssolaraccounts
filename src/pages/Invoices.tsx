@@ -990,7 +990,7 @@ export default function Invoices() {
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={9} className="px-4 py-2 bg-muted/20">
+                            <td colSpan={10} className="px-4 py-2 bg-muted/20">
                               <div className="text-xs space-y-1">
                                 <p className="font-semibold text-muted-foreground mb-1">Payment History for {inv.number}</p>
                                 {invReceipts.length > 0 ? invReceipts.map((r) => (
