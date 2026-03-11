@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { type Expense } from "@/data/mockData";
-import { useExpensesCloud } from "@/hooks/useAppData";
+import { useExpensesCloud, useAccountsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
