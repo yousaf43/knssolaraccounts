@@ -569,6 +569,7 @@ export default function Invoices() {
           onSaveReturn={handleProcessReturn}
           onCancel={goList}
           nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`}
+          accounts={cloudAccounts}
         />
       </div>
     );
