@@ -643,7 +643,7 @@ export default function Invoices() {
     }
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
+        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
       </div>
     );
   }
