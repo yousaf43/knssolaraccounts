@@ -692,7 +692,7 @@ export default function Purchases() {
 
         {/* Purchases All */}
         <TabsContent value="purchases-all">
-          <FilterBar />
+          {FilterBar()}
           <p className="text-xs text-muted-foreground mb-2">{allPurchasesData.length} record(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
             <table className="w-full text-sm">

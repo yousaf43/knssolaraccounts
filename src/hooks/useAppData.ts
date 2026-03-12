@@ -39,6 +39,7 @@ const supplierToDb = (s: Supplier, userId: string) => ({
 // Inventory
 const inventoryFromDb = (r: Record<string, unknown>): InventoryItem => ({
   id: r.id as string, name: r.name as string, sku: (r.sku as string) || "",
+  model: (r.model as string) || "", uniqueCode: (r.unique_code as string) || "",
   qty: Number(r.qty) || 0, reorderLevel: Number(r.reorder_level) || 5,
   price: Number(r.price) || 0, category: (r.category as string) || "",
   date: (r.date as string) || "", costPrice: Number(r.cost_price) || 0,
@@ -49,7 +50,8 @@ const inventoryFromDb = (r: Record<string, unknown>): InventoryItem => ({
   bundleItems: (r.bundle_items as InventoryItem["bundleItems"]) || [],
 });
 const inventoryToDb = (i: InventoryItem, userId: string) => ({
-  id: i.id, user_id: userId, name: i.name, sku: i.sku, qty: i.qty, reorder_level: i.reorderLevel,
+  id: i.id, user_id: userId, name: i.name, sku: i.sku, model: i.model || "", unique_code: i.uniqueCode || "",
+  qty: i.qty, reorder_level: i.reorderLevel,
   price: i.price, category: i.category, date: i.date, cost_price: i.costPrice,
   sale_price: i.salePrice, unit: i.unit, weight: i.weight, stock_asset_account: i.stockAssetAccount,
   sale_discount: i.saleDiscount, purchase_discount: i.purchaseDiscount,

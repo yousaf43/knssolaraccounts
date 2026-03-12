@@ -155,6 +155,8 @@ export type InventoryItem = {
   id: string;
   name: string;
   sku: string;
+  model?: string;
+  uniqueCode?: string;
   qty: number;
   reorderLevel: number;
   price: number;
