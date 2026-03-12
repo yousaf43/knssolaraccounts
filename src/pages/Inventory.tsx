@@ -23,7 +23,7 @@ const DEFAULT_ACCOUNTS = ["Inventory Asset", "Stock on Hand", "Raw Materials", "
 const DEFAULT_CATEGORIES = ["Electronics", "Office Supplies", "Raw Materials", "Packaging", "Tools"];
 
 const emptyItem = (): Partial<InventoryItem> => ({
-  name: "", sku: "", qty: 0, reorderLevel: 5, price: 0, category: "",
+  name: "", sku: "", model: "", uniqueCode: "", qty: 0, reorderLevel: 5, price: 0, category: "",
   date: new Date().toISOString().split("T")[0], costPrice: 0, salePrice: 0,
   unit: "pcs", weight: 0, stockAssetAccount: "Inventory Asset",
   saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [],
