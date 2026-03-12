@@ -832,7 +832,7 @@ export default function Invoices() {
 
         {/* Quotations Tab */}
         <TabsContent value="quotations">
-          <FilterBar />
+          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredQuotations.length} quotation(s)</span>
           </div>
