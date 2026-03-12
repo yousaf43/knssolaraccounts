@@ -24,7 +24,9 @@ export function ProductCombobox({ inventory, selectedItemId, onSelect }: Props) 
         return (
           inv.name.toLowerCase().includes(q) ||
           inv.sku.toLowerCase().includes(q) ||
-          inv.category.toLowerCase().includes(q)
+          inv.category.toLowerCase().includes(q) ||
+          (inv.model || "").toLowerCase().includes(q) ||
+          (inv.uniqueCode || "").toLowerCase().includes(q)
         );
       })
     : inventory;
