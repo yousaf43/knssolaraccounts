@@ -70,7 +70,7 @@ export default function Inventory() {
     return inventory.filter((item) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        if (!item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q)) return false;
+        if (!item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q) && !(item.model || "").toLowerCase().includes(q) && !(item.uniqueCode || "").toLowerCase().includes(q)) return false;
       }
       if (filterCategory !== "__all__" && item.category !== filterCategory) return false;
       if (filterStatus === "low" && item.qty > item.reorderLevel) return false;
