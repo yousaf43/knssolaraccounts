@@ -516,15 +516,14 @@ export default function Inventory() {
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Item</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Type</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">SKU</th>
+              <th className="text-left px-3 py-3 font-medium text-muted-foreground">Model</th>
+              <th className="text-left px-3 py-3 font-medium text-muted-foreground">Unique Code</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Category</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Date</th>
               <th className="text-right px-3 py-3 font-medium text-muted-foreground">Cost</th>
               <th className="text-right px-3 py-3 font-medium text-muted-foreground">Sale</th>
               <th className="text-center px-3 py-3 font-medium text-muted-foreground">Unit</th>
-              <th className="text-right px-3 py-3 font-medium text-muted-foreground">Weight</th>
               <th className="text-right px-3 py-3 font-medium text-muted-foreground">Qty</th>
-              <th className="text-right px-3 py-3 font-medium text-muted-foreground">Sale Disc%</th>
-              <th className="text-right px-3 py-3 font-medium text-muted-foreground">Purch Disc%</th>
               <th className="text-center px-3 py-3 font-medium text-muted-foreground">Status</th>
               <th className="text-center px-3 py-3 font-medium text-muted-foreground">Actions</th>
             </tr>
