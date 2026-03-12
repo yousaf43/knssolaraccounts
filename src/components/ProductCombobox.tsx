@@ -88,6 +88,7 @@ export function ProductCombobox({ inventory, selectedItemId, onSelect }: Props) 
                   <span className="flex items-center gap-2 min-w-0">
                     <span className="font-medium truncate">{inv.name}</span>
                     <span className="text-muted-foreground shrink-0">({inv.sku})</span>
+                    {inv.model && <span className="text-muted-foreground text-[10px] shrink-0">{inv.model}</span>}
                     {typeLabel && (
                       <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">{typeLabel}</Badge>
                     )}
