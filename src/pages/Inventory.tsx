@@ -541,15 +541,14 @@ export default function Inventory() {
                   <td className="px-3 py-3 font-medium">{item.name}</td>
                   <td className="px-3 py-3"><Badge variant={typeVariant} className="text-xs">{typeLabel}</Badge></td>
                   <td className="px-3 py-3 text-muted-foreground">{item.sku}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.model || "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.uniqueCode || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{item.category}</td>
                   <td className="px-3 py-3 text-muted-foreground">{item.date || "—"}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
                   <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>
-                  <td className="px-3 py-3 text-right">{item.weight || 0}</td>
                   <td className="px-3 py-3 text-right">{item.productType === "non-stock" ? "∞" : item.qty}</td>
-                  <td className="px-3 py-3 text-right">{item.saleDiscount || 0}%</td>
-                  <td className="px-3 py-3 text-right">{item.purchaseDiscount || 0}%</td>
                   <td className="px-3 py-3 text-center">
                     {item.productType === "non-stock" ? (
                       <Badge className="bg-primary/10 text-primary border-0">Service</Badge>
