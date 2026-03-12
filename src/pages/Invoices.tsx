@@ -1020,7 +1020,7 @@ export default function Invoices() {
 
         {/* Returns Tab */}
         <TabsContent value="returns">
-          <FilterBar />
+          {FilterBar({})}
           {(() => {
             const returnInvoices = invoices.filter((inv) => inv.isReturn);
             const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchSearchFields(i.number, i.customer, i.returnedFrom || "", i.notes || ""));
