@@ -374,6 +374,8 @@ export default function Inventory() {
             </div>
             <div><Label>Item Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" maxLength={100} required /></div>
             <div><Label>SKU *</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" maxLength={20} required /></div>
+            <div><Label>Model</Label><Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} className="mt-1" maxLength={50} placeholder="e.g. LONGi Hi-MO 6" /></div>
+            <div><Label>Unique Code</Label><Input value={form.uniqueCode || ""} onChange={(e) => setForm({ ...form, uniqueCode: e.target.value })} className="mt-1" maxLength={50} placeholder="e.g. SN-12345" /></div>
             <div>
               <Label>Category</Label>
               {addingCategory ? (
