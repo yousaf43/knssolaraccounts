@@ -23,7 +23,7 @@ const DEFAULT_ACCOUNTS = ["Inventory Asset", "Stock on Hand", "Raw Materials", "
 const DEFAULT_CATEGORIES = ["Electronics", "Office Supplies", "Raw Materials", "Packaging", "Tools"];
 
 const emptyItem = (): Partial<InventoryItem> => ({
-  name: "", sku: "", qty: 0, reorderLevel: 5, price: 0, category: "",
+  name: "", sku: "", model: "", uniqueCode: "", qty: 0, reorderLevel: 5, price: 0, category: "",
   date: new Date().toISOString().split("T")[0], costPrice: 0, salePrice: 0,
   unit: "pcs", weight: 0, stockAssetAccount: "Inventory Asset",
   saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [],
@@ -70,7 +70,7 @@ export default function Inventory() {
     return inventory.filter((item) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        if (!item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q)) return false;
+        if (!item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q) && !(item.model || "").toLowerCase().includes(q) && !(item.uniqueCode || "").toLowerCase().includes(q)) return false;
       }
       if (filterCategory !== "__all__" && item.category !== filterCategory) return false;
       if (filterStatus === "low" && item.qty > item.reorderLevel) return false;
@@ -374,6 +374,8 @@ export default function Inventory() {
             </div>
             <div><Label>Item Name *</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" maxLength={100} required /></div>
             <div><Label>SKU *</Label><Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" maxLength={20} required /></div>
+            <div><Label>Model</Label><Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} className="mt-1" maxLength={50} placeholder="e.g. LONGi Hi-MO 6" /></div>
+            <div><Label>Unique Code</Label><Input value={form.uniqueCode || ""} onChange={(e) => setForm({ ...form, uniqueCode: e.target.value })} className="mt-1" maxLength={50} placeholder="e.g. SN-12345" /></div>
             <div>
               <Label>Category</Label>
               {addingCategory ? (
@@ -514,15 +516,14 @@ export default function Inventory() {
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Item</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Type</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">SKU</th>
+              <th className="text-left px-3 py-3 font-medium text-muted-foreground">Model</th>
+              <th className="text-left px-3 py-3 font-medium text-muted-foreground">Unique Code</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Category</th>
               <th className="text-left px-3 py-3 font-medium text-muted-foreground">Date</th>
               <th className="text-right px-3 py-3 font-medium text-muted-foreground">Cost</th>
               <th className="text-right px-3 py-3 font-medium text-muted-foreground">Sale</th>
               <th className="text-center px-3 py-3 font-medium text-muted-foreground">Unit</th>
-              <th className="text-right px-3 py-3 font-medium text-muted-foreground">Weight</th>
               <th className="text-right px-3 py-3 font-medium text-muted-foreground">Qty</th>
-              <th className="text-right px-3 py-3 font-medium text-muted-foreground">Sale Disc%</th>
-              <th className="text-right px-3 py-3 font-medium text-muted-foreground">Purch Disc%</th>
               <th className="text-center px-3 py-3 font-medium text-muted-foreground">Status</th>
               <th className="text-center px-3 py-3 font-medium text-muted-foreground">Actions</th>
             </tr>
@@ -540,15 +541,14 @@ export default function Inventory() {
                   <td className="px-3 py-3 font-medium">{item.name}</td>
                   <td className="px-3 py-3"><Badge variant={typeVariant} className="text-xs">{typeLabel}</Badge></td>
                   <td className="px-3 py-3 text-muted-foreground">{item.sku}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.model || "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.uniqueCode || "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{item.category}</td>
                   <td className="px-3 py-3 text-muted-foreground">{item.date || "—"}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
                   <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>
-                  <td className="px-3 py-3 text-right">{item.weight || 0}</td>
                   <td className="px-3 py-3 text-right">{item.productType === "non-stock" ? "∞" : item.qty}</td>
-                  <td className="px-3 py-3 text-right">{item.saleDiscount || 0}%</td>
-                  <td className="px-3 py-3 text-right">{item.purchaseDiscount || 0}%</td>
                   <td className="px-3 py-3 text-center">
                     {item.productType === "non-stock" ? (
                       <Badge className="bg-primary/10 text-primary border-0">Service</Badge>

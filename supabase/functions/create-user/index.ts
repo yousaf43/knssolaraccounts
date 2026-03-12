@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
 
     // EXPORT ALL DATA
     if (action === "export") {
-      const tables = ["customers", "suppliers", "inventory", "invoices", "sales_orders", "quotations", "receipts", "expenses", "purchase_orders", "bills", "purchase_payments", "stock_adjustments"];
+      const tables = ["customers", "suppliers", "inventory", "invoices", "sales_orders", "quotations", "receipts", "expenses", "purchase_orders", "bills", "purchase_payments", "stock_adjustments", "accounts", "ledger_entries", "other_payments", "other_receipts", "transfers", "reconcile_entries", "user_settings"];
       const exportData: Record<string, unknown[]> = {};
       for (const table of tables) {
         const { data } = await adminClient.from(table).select("*");

@@ -832,7 +832,7 @@ export default function Invoices() {
 
         {/* Quotations Tab */}
         <TabsContent value="quotations">
-          <FilterBar />
+          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredQuotations.length} quotation(s)</span>
           </div>
@@ -881,7 +881,7 @@ export default function Invoices() {
 
         {/* Sales Orders Tab */}
         <TabsContent value="sales-orders">
-          <FilterBar />
+          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
           </div>
@@ -932,7 +932,7 @@ export default function Invoices() {
 
         {/* Invoices Tab */}
         <TabsContent value="invoices">
-          <FilterBar />
+          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredInvoices.length} invoice(s)</span>
           </div>
@@ -1020,7 +1020,7 @@ export default function Invoices() {
 
         {/* Returns Tab */}
         <TabsContent value="returns">
-          <FilterBar />
+          {FilterBar({})}
           {(() => {
             const returnInvoices = invoices.filter((inv) => inv.isReturn);
             const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchSearchFields(i.number, i.customer, i.returnedFrom || "", i.notes || ""));
@@ -1084,7 +1084,7 @@ export default function Invoices() {
         </TabsContent>
 
         <TabsContent value="receipts">
-          <FilterBar />
+          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
           </div>
@@ -1128,7 +1128,7 @@ export default function Invoices() {
 
         {/* Sales All Tab */}
         <TabsContent value="all">
-          <FilterBar showType />
+          {FilterBar({ showType: true })}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
           </div>

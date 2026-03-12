@@ -495,7 +495,7 @@ export default function Purchases() {
               </form>
             </div>
           )}
-          <FilterBar />
+          {FilterBar()}
           <p className="text-xs text-muted-foreground mb-2">{filteredPO.length} purchase order(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
             <table className="w-full text-sm">
@@ -574,7 +574,7 @@ export default function Purchases() {
               </form>
             </div>
           )}
-          <FilterBar />
+          {FilterBar()}
           <p className="text-xs text-muted-foreground mb-2">{filteredBills.length} bill(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
             <table className="w-full text-sm">
@@ -659,7 +659,7 @@ export default function Purchases() {
               </form>
             </div>
           )}
-          <FilterBar />
+          {FilterBar()}
           <p className="text-xs text-muted-foreground mb-2">{filteredPayments.length} payment(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
             <table className="w-full text-sm">
@@ -692,7 +692,7 @@ export default function Purchases() {
 
         {/* Purchases All */}
         <TabsContent value="purchases-all">
-          <FilterBar />
+          {FilterBar()}
           <p className="text-xs text-muted-foreground mb-2">{allPurchasesData.length} record(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
             <table className="w-full text-sm">
