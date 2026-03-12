@@ -1084,7 +1084,7 @@ export default function Invoices() {
         </TabsContent>
 
         <TabsContent value="receipts">
-          <FilterBar />
+          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
           </div>
