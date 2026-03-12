@@ -495,7 +495,7 @@ export default function Purchases() {
               </form>
             </div>
           )}
-          <FilterBar />
+          {FilterBar()}
           <p className="text-xs text-muted-foreground mb-2">{filteredPO.length} purchase order(s)</p>
           <div className="bg-card rounded-lg border overflow-auto">
             <table className="w-full text-sm">
