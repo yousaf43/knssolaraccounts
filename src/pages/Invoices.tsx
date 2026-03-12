@@ -881,7 +881,7 @@ export default function Invoices() {
 
         {/* Sales Orders Tab */}
         <TabsContent value="sales-orders">
-          <FilterBar />
+          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
           </div>
