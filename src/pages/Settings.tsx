@@ -263,6 +263,13 @@ export default function Settings() {
         bills: "bills",
         purchase_payments: "purchase_payments",
         stock_adjustments: "stock_adjustments",
+        accounts: "accounts",
+        ledger_entries: "ledger_entries",
+        other_payments: "other_payments",
+        other_receipts: "other_receipts",
+        transfers: "transfers",
+        reconcile_entries: "reconcile_entries",
+        user_settings: "user_settings",
       };
 
       let imported = 0;
