@@ -247,6 +247,7 @@ export type Database = {
           created_at: string
           date: string | null
           id: string
+          model: string | null
           name: string
           price: number | null
           product_type: string | null
@@ -257,6 +258,7 @@ export type Database = {
           sale_price: number | null
           sku: string | null
           stock_asset_account: string | null
+          unique_code: string | null
           unit: string | null
           updated_at: string
           user_id: string
@@ -269,6 +271,7 @@ export type Database = {
           created_at?: string
           date?: string | null
           id?: string
+          model?: string | null
           name?: string
           price?: number | null
           product_type?: string | null
@@ -279,6 +282,7 @@ export type Database = {
           sale_price?: number | null
           sku?: string | null
           stock_asset_account?: string | null
+          unique_code?: string | null
           unit?: string | null
           updated_at?: string
           user_id: string
@@ -291,6 +295,7 @@ export type Database = {
           created_at?: string
           date?: string | null
           id?: string
+          model?: string | null
           name?: string
           price?: number | null
           product_type?: string | null
@@ -301,6 +306,7 @@ export type Database = {
           sale_price?: number | null
           sku?: string | null
           stock_asset_account?: string | null
+          unique_code?: string | null
           unit?: string | null
           updated_at?: string
           user_id?: string

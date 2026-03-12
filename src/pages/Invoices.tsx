@@ -1128,7 +1128,7 @@ export default function Invoices() {
 
         {/* Sales All Tab */}
         <TabsContent value="all">
-          <FilterBar showType />
+          {FilterBar({ showType: true })}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
           </div>
