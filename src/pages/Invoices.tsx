@@ -667,7 +667,7 @@ export default function Invoices() {
   if (view === "so-preview" && previewSO) {
     return (
       <div className="max-w-4xl mx-auto">
-        <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} customers={customers} />
+        <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} customers={customers} inventory={inventory} />
       </div>
     );
   }

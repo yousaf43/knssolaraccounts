@@ -409,8 +409,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 </tbody>
                 {report.code === "148" && (
                   <tfoot>
-                    <tr className="border-t-2 font-bold">
-                      <td className="px-3 py-2" colSpan={7}>Total Stock Valuation</td>
+                     <tr className="border-t-2 font-bold">
+                       <td className="px-3 py-2" colSpan={8}>Total Stock Valuation</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + i.qty * i.costPrice, 0))}</td>
                     </tr>
                   </tfoot>
