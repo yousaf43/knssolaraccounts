@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import type { SalesOrder, Customer, InventoryItem } from "@/data/mockData";
