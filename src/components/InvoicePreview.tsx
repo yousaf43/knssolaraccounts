@@ -185,6 +185,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
               <th className="bg-blue-900 text-white px-3 py-2 text-center w-16">Unit</th>
               <th className="bg-blue-900 text-white px-3 py-2 text-right w-20">Quantity</th>
               <th className="bg-blue-900 text-white px-3 py-2 text-right w-24">UM Rate</th>
+              {invoice.items.some(it => (it.discount || 0) > 0) && (
+                <th className="bg-blue-900 text-white px-3 py-2 text-right w-16">Disc%</th>
+              )}
               <th className="bg-blue-900 text-white px-3 py-2 text-right w-28">Amount</th>
             </tr>
           </thead>
@@ -196,6 +199,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
                 <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
                 <td className="px-3 py-2 text-right">{item.qty}</td>
                 <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
+                {invoice.items.some(it => (it.discount || 0) > 0) && (
+                  <td className="px-3 py-2 text-right text-green-600">{(item.discount || 0) > 0 ? `${item.discount}%` : "—"}</td>
+                )}
                 <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
               </tr>
             ))}

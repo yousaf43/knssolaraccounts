@@ -378,6 +378,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Item</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">SKU</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
@@ -395,6 +396,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 font-medium">{item.name}</td>
                         <td className="px-3 py-2 text-muted-foreground">{item.sku}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{item.model || "—"}</td>
                         <td className="px-3 py-2">{item.category}</td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>
@@ -407,8 +409,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 </tbody>
                 {report.code === "148" && (
                   <tfoot>
-                    <tr className="border-t-2 font-bold">
-                      <td className="px-3 py-2" colSpan={7}>Total Stock Valuation</td>
+                     <tr className="border-t-2 font-bold">
+                       <td className="px-3 py-2" colSpan={8}>Total Stock Valuation</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + i.qty * i.costPrice, 0))}</td>
                     </tr>
                   </tfoot>

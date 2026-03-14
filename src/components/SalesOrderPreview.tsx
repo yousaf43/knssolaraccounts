@@ -1,7 +1,7 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
-import type { SalesOrder, Customer } from "@/data/mockData";
+import type { SalesOrder, Customer, InventoryItem } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
 import ksLogo from "@/assets/ks-logo.png";
 
@@ -10,9 +10,10 @@ type Props = {
   onClose: () => void;
   showPrices?: boolean; // false = delivery challan / packing slip
   customers?: Customer[];
+  inventory?: InventoryItem[];
 };
 
-export function SalesOrderPreview({ order, onClose, showPrices = false, customers = [] }: Props) {
+export function SalesOrderPreview({ order, onClose, showPrices = false, customers = [], inventory = [] }: Props) {
   const { formatCurrency, settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +59,8 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         .totals-box .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
         .totals-box .grand-total { display: flex; justify-content: space-between; padding: 6px 0; font-size: 15px; font-weight: bold; border-top: 2px solid #1e3a8a; margin-top: 4px; color: #1e3a8a; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
-        .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
+        .bundle-row { background: #f9fafb; }
+        .bundle-row td { padding: 3px 10px; font-size: 11px; color: #666; border-bottom: 1px solid #f0f0f0; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
         img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
         th { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -134,18 +136,42 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
             </tr>
           </thead>
           <tbody>
-            {order.items.map((item, i) => (
-              <tr key={i} className="border-b border-gray-200">
-                <td className="px-3 py-2 text-center text-gray-600">{i + 1}</td>
-                <td className="px-3 py-2">{item.description}</td>
-                <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
-                <td className="px-3 py-2 text-right">{item.qty}</td>
-                {showPrices && <>
-                  <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
-                </>}
-              </tr>
-            ))}
+            {order.items.map((item, i) => {
+              // Find inventory item to check if it's a bundle
+              const invItem = item.inventoryItemId ? inventory.find(inv => inv.id === item.inventoryItemId) : null;
+              const isBundleItem = invItem?.productType === "bundle" && invItem.bundleItems && invItem.bundleItems.length > 0;
+              return (
+                <React.Fragment key={i}>
+                  <tr className="border-b border-gray-200">
+                    <td className="px-3 py-2 text-center text-gray-600">{i + 1}</td>
+                    <td className="px-3 py-2">{item.description}</td>
+                    <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
+                    <td className="px-3 py-2 text-right">{item.qty}</td>
+                    {showPrices && <>
+                      <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
+                    </>}
+                  </tr>
+                  {/* Show bundle components in delivery order */}
+                  {isBundleItem && invItem.bundleItems!.map((bi, bIdx) => {
+                    const compItem = inventory.find(inv => inv.id === bi.itemId);
+                    if (!compItem) return null;
+                    return (
+                      <tr key={`${i}-bundle-${bIdx}`} className="border-b border-gray-100 bg-gray-50">
+                        <td className="px-3 py-1 text-center text-gray-400 text-xs"></td>
+                        <td className="px-3 py-1 text-xs text-gray-600 pl-8">↳ {compItem.name} {compItem.model ? `(${compItem.model})` : ""}</td>
+                        <td className="px-3 py-1 text-center text-gray-400 text-xs">{compItem.unit || "pcs"}</td>
+                        <td className="px-3 py-1 text-right text-xs text-gray-600">{bi.qty * item.qty}</td>
+                        {showPrices && <>
+                          <td className="px-3 py-1"></td>
+                          <td className="px-3 py-1"></td>
+                        </>}
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
 
