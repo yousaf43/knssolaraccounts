@@ -135,18 +135,42 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
             </tr>
           </thead>
           <tbody>
-            {order.items.map((item, i) => (
-              <tr key={i} className="border-b border-gray-200">
-                <td className="px-3 py-2 text-center text-gray-600">{i + 1}</td>
-                <td className="px-3 py-2">{item.description}</td>
-                <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
-                <td className="px-3 py-2 text-right">{item.qty}</td>
-                {showPrices && <>
-                  <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
-                </>}
-              </tr>
-            ))}
+            {order.items.map((item, i) => {
+              // Find inventory item to check if it's a bundle
+              const invItem = item.inventoryItemId ? inventory.find(inv => inv.id === item.inventoryItemId) : null;
+              const isBundleItem = invItem?.productType === "bundle" && invItem.bundleItems && invItem.bundleItems.length > 0;
+              return (
+                <React.Fragment key={i}>
+                  <tr className="border-b border-gray-200">
+                    <td className="px-3 py-2 text-center text-gray-600">{i + 1}</td>
+                    <td className="px-3 py-2">{item.description}</td>
+                    <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
+                    <td className="px-3 py-2 text-right">{item.qty}</td>
+                    {showPrices && <>
+                      <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
+                    </>}
+                  </tr>
+                  {/* Show bundle components in delivery order */}
+                  {isBundleItem && invItem.bundleItems!.map((bi, bIdx) => {
+                    const compItem = inventory.find(inv => inv.id === bi.itemId);
+                    if (!compItem) return null;
+                    return (
+                      <tr key={`${i}-bundle-${bIdx}`} className="border-b border-gray-100 bg-gray-50">
+                        <td className="px-3 py-1 text-center text-gray-400 text-xs"></td>
+                        <td className="px-3 py-1 text-xs text-gray-600 pl-8">↳ {compItem.name} {compItem.model ? `(${compItem.model})` : ""}</td>
+                        <td className="px-3 py-1 text-center text-gray-400 text-xs">{compItem.unit || "pcs"}</td>
+                        <td className="px-3 py-1 text-right text-xs text-gray-600">{bi.qty * item.qty}</td>
+                        {showPrices && <>
+                          <td className="px-3 py-1"></td>
+                          <td className="px-3 py-1"></td>
+                        </>}
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
 
