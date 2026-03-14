@@ -93,14 +93,19 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const selectInventoryItem = (index: number, itemId: string) => {
     const invItem = inventory.find((i) => i.id === itemId);
     if (!invItem) return;
+    const rate = invItem.salePrice || invItem.price;
+    const itemDiscount = invItem.saleDiscount || 0;
+    const qty = items[index]?.qty || 1;
+    const discountedRate = rate - (rate * itemDiscount / 100);
     setItems((prev) => {
       const updated = [...prev];
       updated[index] = {
         ...updated[index],
         inventoryItemId: itemId,
         description: invItem.name,
-        rate: invItem.salePrice || invItem.price,
-        amount: (updated[index].qty || 1) * (invItem.salePrice || invItem.price),
+        rate,
+        discount: itemDiscount,
+        amount: qty * discountedRate,
       };
       return updated;
     });
@@ -110,8 +115,11 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     setItems((prev) => {
       const updated = [...prev];
       const item = { ...updated[index], [field]: value };
-      if (field === "qty" || field === "rate") {
-        item.amount = Number(item.qty) * Number(item.rate);
+      if (field === "qty" || field === "rate" || field === "discount") {
+        const disc = Number(item.discount || 0);
+        const rate = Number(item.rate);
+        const discountedRate = rate - (rate * disc / 100);
+        item.amount = Number(item.qty) * discountedRate;
       }
       updated[index] = item;
       return updated;
