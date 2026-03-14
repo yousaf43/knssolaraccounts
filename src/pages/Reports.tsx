@@ -396,6 +396,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 font-medium">{item.name}</td>
                         <td className="px-3 py-2 text-muted-foreground">{item.sku}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{item.model || "—"}</td>
                         <td className="px-3 py-2">{item.category}</td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>
