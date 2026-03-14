@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import StockAdjustmentSection from "@/components/StockAdjustmentSection";
+import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2 } from "lucide-react";
@@ -459,18 +460,15 @@ export default function Inventory() {
                     const bundledItem = inventory.find((inv) => inv.id === bi.itemId);
                     return (
                       <div key={idx} className="flex items-center gap-2">
-                        <Select value={bi.itemId} onValueChange={(v) => {
-                          const updated = [...(form.bundleItems || [])];
-                          updated[idx] = { ...updated[idx], itemId: v };
-                          setForm({ ...form, bundleItems: updated });
-                        }}>
-                          <SelectTrigger className="flex-1 h-8 text-xs"><SelectValue placeholder="Select component product" /></SelectTrigger>
-                          <SelectContent>
-                            {inventory.filter((inv) => inv.id !== editing?.id && inv.productType !== "bundle").map((inv) => (
-                              <SelectItem key={inv.id} value={inv.id}>{inv.name} ({inv.sku})</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <BundleComponentSearch
+                          inventory={inventory.filter((inv) => inv.id !== editing?.id && inv.productType !== "bundle")}
+                          selectedItemId={bi.itemId}
+                          onSelect={(v) => {
+                            const updated = [...(form.bundleItems || [])];
+                            updated[idx] = { ...updated[idx], itemId: v };
+                            setForm({ ...form, bundleItems: updated });
+                          }}
+                        />
                         <Input
                           type="number" min={1} value={bi.qty}
                           onChange={(e) => {
