@@ -13,7 +13,7 @@ type Props = {
   inventory?: InventoryItem[];
 };
 
-export function SalesOrderPreview({ order, onClose, showPrices = false, customers = [] }: Props) {
+export function SalesOrderPreview({ order, onClose, showPrices = false, customers = [], inventory = [] }: Props) {
   const { formatCurrency, settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
