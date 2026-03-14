@@ -10,6 +10,7 @@ type Props = {
   onClose: () => void;
   showPrices?: boolean; // false = delivery challan / packing slip
   customers?: Customer[];
+  inventory?: InventoryItem[];
 };
 
 export function SalesOrderPreview({ order, onClose, showPrices = false, customers = [] }: Props) {
