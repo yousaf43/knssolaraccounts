@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import StockAdjustmentSection from "@/components/StockAdjustmentSection";
+import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2 } from "lucide-react";
