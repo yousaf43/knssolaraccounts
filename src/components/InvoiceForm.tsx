@@ -288,6 +288,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">Qty</th>
                 {hasInventory && <th className="text-center px-3 py-2 font-medium text-muted-foreground w-20">Stock</th>}
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Rate</th>
+                <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">Disc%</th>
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Amount</th>
                 <th className="w-10"></th>
               </tr>
