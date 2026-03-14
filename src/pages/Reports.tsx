@@ -378,6 +378,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Item</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">SKU</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
