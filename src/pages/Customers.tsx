@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
-import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud } from "@/hooks/useAppData";
+import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud, useSalesOrdersCloud, useQuotationsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
