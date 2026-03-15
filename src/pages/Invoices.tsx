@@ -79,6 +79,7 @@ export default function Invoices() {
   const [previewSO, setPreviewSO] = useState<{ order: SalesOrder; showPrices: boolean } | null>(null);
   const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
+  const [confirmApproveSO, setConfirmApproveSO] = useState<SalesOrder | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
