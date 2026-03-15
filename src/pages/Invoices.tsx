@@ -1167,6 +1167,28 @@ export default function Invoices() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog for SO → Invoice */}
+      <AlertDialog open={!!confirmApproveSO} onOpenChange={(open) => { if (!open) setConfirmApproveSO(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Convert to Invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to approve <strong>{confirmApproveSO?.number}</strong> and convert it to an Invoice? 
+              This will deduct inventory stock and create a new invoice for <strong>{confirmApproveSO?.customer}</strong>.
+              {confirmApproveSO?.advancePayment && confirmApproveSO.advancePayment > 0 && (
+                <> A receipt of <strong>{formatCurrency(confirmApproveSO.advancePayment)}</strong> (advance payment) will also be created.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (confirmApproveSO) { handleApproveSO(confirmApproveSO); setConfirmApproveSO(null); } }}>
+              Yes, Convert to Invoice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
