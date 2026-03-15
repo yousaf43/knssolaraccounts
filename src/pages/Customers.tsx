@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
-import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud } from "@/hooks/useAppData";
+import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud, useSalesOrdersCloud, useQuotationsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,8 +19,10 @@ export default function Customers() {
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: customers, upsert: upsertCustomer, remove: removeCustomer } = useCustomersCloud();
-  const { data: invoices } = useInvoicesCloud();
-  const { data: receipts } = useReceiptsCloud();
+  const { data: invoices, upsert: upsertInvoice } = useInvoicesCloud();
+  const { data: receipts, upsert: upsertReceipt } = useReceiptsCloud();
+  const { data: salesOrders, upsert: upsertSalesOrder } = useSalesOrdersCloud();
+  const { data: quotations, upsert: upsertQuotation } = useQuotationsCloud();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<Partial<Customer>>(emptyCustomer());
@@ -44,8 +46,25 @@ export default function Customers() {
     e.preventDefault();
     if (!form.name?.trim()) return;
     if (editing) {
+      const oldName = editing.name;
+      const newName = form.name!.trim();
       await upsertCustomer({ ...editing, ...form } as Customer);
-      await log("edit", "customer", editing.id, editing.name, `Company: ${form.company}`);
+      // Cascade name change across all documents
+      if (oldName !== newName) {
+        for (const inv of invoices.filter(i => i.customer === oldName)) {
+          await upsertInvoice({ ...inv, customer: newName });
+        }
+        for (const so of salesOrders.filter(s => s.customer === oldName)) {
+          await upsertSalesOrder({ ...so, customer: newName });
+        }
+        for (const r of receipts.filter(r => r.customer === oldName)) {
+          await upsertReceipt({ ...r, customer: newName });
+        }
+        for (const q of quotations.filter(q => q.customer === oldName)) {
+          await upsertQuotation({ ...q, customer: newName });
+        }
+      }
+      await log("edit", "customer", editing.id, newName, `Company: ${form.company}`);
       toast.success("Customer updated");
     } else {
       const id = crypto.randomUUID();

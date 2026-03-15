@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw, ArrowLeftRight } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import { SalesOrderPreview } from "@/components/SalesOrderPreview";
@@ -78,6 +79,7 @@ export default function Invoices() {
   const [previewSO, setPreviewSO] = useState<{ order: SalesOrder; showPrices: boolean } | null>(null);
   const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
+  const [confirmApproveSO, setConfirmApproveSO] = useState<SalesOrder | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -911,7 +913,7 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {so.status !== "approved" && so.status !== "cancelled" && (
-                            <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve → Convert to Invoice" onClick={() => handleApproveSO(so)}>
+                            <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve → Convert to Invoice" onClick={() => setConfirmApproveSO(so)}>
                               <CheckCircle className="w-4 h-4 text-success" />
                             </button>
                           )}
@@ -1165,6 +1167,28 @@ export default function Invoices() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog for SO → Invoice */}
+      <AlertDialog open={!!confirmApproveSO} onOpenChange={(open) => { if (!open) setConfirmApproveSO(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Convert to Invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to approve <strong>{confirmApproveSO?.number}</strong> and convert it to an Invoice? 
+              This will deduct inventory stock and create a new invoice for <strong>{confirmApproveSO?.customer}</strong>.
+              {confirmApproveSO?.advancePayment && confirmApproveSO.advancePayment > 0 && (
+                <> A receipt of <strong>{formatCurrency(confirmApproveSO.advancePayment)}</strong> (advance payment) will also be created.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (confirmApproveSO) { handleApproveSO(confirmApproveSO); setConfirmApproveSO(null); } }}>
+              Yes, Convert to Invoice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
