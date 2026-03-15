@@ -913,7 +913,7 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {so.status !== "approved" && so.status !== "cancelled" && (
-                            <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve → Convert to Invoice" onClick={() => handleApproveSO(so)}>
+                            <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve → Convert to Invoice" onClick={() => setConfirmApproveSO(so)}>
                               <CheckCircle className="w-4 h-4 text-success" />
                             </button>
                           )}
