@@ -46,8 +46,25 @@ export default function Customers() {
     e.preventDefault();
     if (!form.name?.trim()) return;
     if (editing) {
+      const oldName = editing.name;
+      const newName = form.name!.trim();
       await upsertCustomer({ ...editing, ...form } as Customer);
-      await log("edit", "customer", editing.id, editing.name, `Company: ${form.company}`);
+      // Cascade name change across all documents
+      if (oldName !== newName) {
+        for (const inv of invoices.filter(i => i.customer === oldName)) {
+          await upsertInvoice({ ...inv, customer: newName });
+        }
+        for (const so of salesOrders.filter(s => s.customer === oldName)) {
+          await upsertSalesOrder({ ...so, customer: newName });
+        }
+        for (const r of receipts.filter(r => r.customer === oldName)) {
+          await upsertReceipt({ ...r, customer: newName });
+        }
+        for (const q of quotations.filter(q => q.customer === oldName)) {
+          await upsertQuotation({ ...q, customer: newName });
+        }
+      }
+      await log("edit", "customer", editing.id, newName, `Company: ${form.company}`);
       toast.success("Customer updated");
     } else {
       const id = crypto.randomUUID();
