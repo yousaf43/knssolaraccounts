@@ -19,8 +19,10 @@ export default function Customers() {
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: customers, upsert: upsertCustomer, remove: removeCustomer } = useCustomersCloud();
-  const { data: invoices } = useInvoicesCloud();
-  const { data: receipts } = useReceiptsCloud();
+  const { data: invoices, upsert: upsertInvoice } = useInvoicesCloud();
+  const { data: receipts, upsert: upsertReceipt } = useReceiptsCloud();
+  const { data: salesOrders, upsert: upsertSalesOrder } = useSalesOrdersCloud();
+  const { data: quotations, upsert: upsertQuotation } = useQuotationsCloud();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState<Partial<Customer>>(emptyCustomer());
