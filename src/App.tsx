@@ -18,6 +18,7 @@ import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import ActivityLogs from "@/pages/ActivityLogs";
 import TrashPage from "@/pages/Trash";
+import SolarWashing from "@/pages/SolarWashing";
 import Auth from "@/pages/Auth";
 import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "./pages/NotFound";
