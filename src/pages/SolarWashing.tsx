@@ -16,7 +16,7 @@ const emptyRecord: SolarWashing = { id: "", date: new Date().toISOString().slice
 export default function SolarWashingPage() {
   const { formatCurrency } = useSettings();
   const { data: records, upsert, remove } = useSolarWashingCloud();
-  const { logActivity } = useActivityLog();
+  const { log } = useActivityLog();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<SolarWashing>(emptyRecord);
