@@ -54,6 +54,7 @@ function ProtectedRoutes() {
         {!isSales && <Route path="/assets" element={<Assets />} />}
         {!isSales && <Route path="/reports" element={<Reports />} />}
         <Route path="/activity-logs" element={<ActivityLogs />} />
+        <Route path="/solar-washing" element={<SolarWashing />} />
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
