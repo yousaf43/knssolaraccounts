@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const BACKUP_KEYS = [
-  "cb-settings-v2", "cb-invoices", "cb-sales-orders", "cb-receipts",
-  "cb-customers", "cb-suppliers", "cb-expenses", "cb-inventory",
-  "cb-stock-adjustments", "cb-purchase-orders", "cb-bills", "cb-purchase-payments",
-  "cb-custom-units", "cb-custom-accounts", "cb-custom-categories",
-  "accounts", "otherPayments", "otherReceipts", "transfers", "reconcileEntries", "ledgerEntries"
-];
+const BACKUP_TABLES = [
+  "customers", "suppliers", "inventory", "invoices", "sales_orders",
+  "quotations", "receipts", "expenses", "purchase_orders", "bills",
+  "purchase_payments", "stock_adjustments", "accounts", "ledger_entries",
+  "other_payments", "other_receipts", "transfers", "reconcile_entries",
+  "user_settings", "activity_logs"
+] as const;
 
 export type CloudBackup = {
   id: string;
@@ -19,15 +19,35 @@ export type CloudBackup = {
 const AUTO_BACKUP_KEY = "cb-auto-backup-enabled";
 const AUTO_BACKUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-function collectBackupData() {
-  const data: Record<string, any> = {};
-  BACKUP_KEYS.forEach(key => {
-    const val = localStorage.getItem(key);
-    if (val) {
-      try { data[key] = JSON.parse(val); } catch { /* skip */ }
-    }
+async function collectBackupData(userId: string) {
+  const data: Record<string, any[]> = {};
+  const promises = BACKUP_TABLES.map(async (table) => {
+    const { data: rows } = await supabase
+      .from(table)
+      .select("*")
+      .eq("user_id", userId);
+    data[table] = rows || [];
   });
+  await Promise.all(promises);
   return data;
+}
+
+async function restoreBackupData(userId: string, backupData: Record<string, any[]>) {
+  for (const [table, rows] of Object.entries(backupData)) {
+    if (!rows || !Array.isArray(rows) || rows.length === 0) continue;
+    if (!BACKUP_TABLES.includes(table as any)) continue;
+
+    // Delete existing data for this user in this table
+    await supabase.from(table as any).delete().eq("user_id", userId);
+
+    // Insert backup data (ensure user_id is set)
+    const rowsWithUser = rows.map((r: any) => ({ ...r, user_id: userId }));
+    // Insert in batches of 100
+    for (let i = 0; i < rowsWithUser.length; i += 100) {
+      const batch = rowsWithUser.slice(i, i + 100);
+      await supabase.from(table as any).insert(batch);
+    }
+  }
 }
 
 export function useCloudBackup() {
@@ -63,50 +83,52 @@ export function useCloudBackup() {
   const saveToCloud = useCallback(async (label = "manual") => {
     if (!user) return;
     setSaving(true);
-    const backupData = collectBackupData();
+    try {
+      const backupData = await collectBackupData(user.id);
 
-    // Keep max 10 backups: delete oldest if needed
-    const { data: existing } = await supabase
-      .from("backups")
-      .select("id, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true });
+      // Keep max 10 backups: delete oldest if needed
+      const { data: existing } = await supabase
+        .from("backups")
+        .select("id, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
 
-    if (existing && existing.length >= 10) {
-      const toDelete = existing.slice(0, existing.length - 9);
-      await supabase.from("backups").delete().in("id", toDelete.map(b => b.id));
+      if (existing && existing.length >= 10) {
+        const toDelete = existing.slice(0, existing.length - 9);
+        await supabase.from("backups").delete().in("id", toDelete.map(b => b.id));
+      }
+
+      await supabase.from("backups").insert({
+        user_id: user.id,
+        backup_data: backupData,
+        label,
+      });
+
+      setLastAutoBackup(new Date().toISOString());
+      await fetchBackups();
+    } finally {
+      setSaving(false);
     }
-
-    await supabase.from("backups").insert({
-      user_id: user.id,
-      backup_data: backupData,
-      label,
-    });
-
-    setSaving(false);
-    setLastAutoBackup(new Date().toISOString());
-    await fetchBackups();
   }, [user, fetchBackups]);
 
   const restoreFromCloud = useCallback(async (backupId: string) => {
     if (!user) return false;
     setRestoring(true);
-    const { data } = await supabase
-      .from("backups")
-      .select("backup_data")
-      .eq("id", backupId)
-      .single();
+    try {
+      const { data } = await supabase
+        .from("backups")
+        .select("backup_data")
+        .eq("id", backupId)
+        .single();
 
-    if (data?.backup_data && typeof data.backup_data === "object") {
-      const entries = data.backup_data as Record<string, any>;
-      Object.entries(entries).forEach(([key, value]) => {
-        localStorage.setItem(key, JSON.stringify(value));
-      });
+      if (data?.backup_data && typeof data.backup_data === "object") {
+        await restoreBackupData(user.id, data.backup_data as Record<string, any[]>);
+        return true;
+      }
+      return false;
+    } finally {
       setRestoring(false);
-      return true;
     }
-    setRestoring(false);
-    return false;
   }, [user]);
 
   const deleteBackup = useCallback(async (backupId: string) => {
