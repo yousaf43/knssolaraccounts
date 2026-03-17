@@ -7,7 +7,7 @@ const BACKUP_TABLES = [
   "quotations", "receipts", "expenses", "purchase_orders", "bills",
   "purchase_payments", "stock_adjustments", "accounts", "ledger_entries",
   "other_payments", "other_receipts", "transfers", "reconcile_entries",
-  "user_settings", "activity_logs"
+  "user_settings", "activity_logs", "solar_washing"
 ] as const;
 
 export type CloudBackup = {

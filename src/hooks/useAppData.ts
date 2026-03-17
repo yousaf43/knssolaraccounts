@@ -324,6 +324,16 @@ const reconcileToDb = (e: ReconcileEntry, userId: string) => ({
   book_balance: e.bookBalance, difference: e.difference, status: e.status,
 });
 
+// Solar Washing
+export type SolarWashing = { id: string; date: string; customer: string; amount: number; notes: string };
+const solarWashingFromDb = (r: Record<string, unknown>): SolarWashing => ({
+  id: r.id as string, date: (r.date as string) || "", customer: (r.customer as string) || "",
+  amount: Number(r.amount) || 0, notes: (r.notes as string) || "",
+});
+const solarWashingToDb = (w: SolarWashing, userId: string) => ({
+  id: w.id, user_id: userId, date: w.date, customer: w.customer, amount: w.amount, notes: w.notes,
+});
+
 // =================== EXPORTS ===================
 
 export const useCustomersCloud = () => useTable("customers", customerFromDb, customerToDb);
@@ -344,6 +354,7 @@ export const useOtherPaymentsCloud = () => useTable("other_payments", otherPayme
 export const useOtherReceiptsCloud = () => useTable("other_receipts", otherReceiptFromDb, otherReceiptToDb);
 export const useTransfersCloud = () => useTable("transfers", transferFromDb, transferToDb);
 export const useReconcileEntriesCloud = () => useTable("reconcile_entries", reconcileFromDb, reconcileToDb);
+export const useSolarWashingCloud = () => useTable("solar_washing" as any, solarWashingFromDb, solarWashingToDb);
 
 // User Settings
 export function useUserSettingsCloud() {
