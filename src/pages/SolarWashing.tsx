@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useSolarWashingCloud, type SolarWashing } from "@/hooks/useAppData";
+import { useSolarWashingCloud } from "@/hooks/useAppData";
+import type { SolarWashing } from "@/hooks/useAppData";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { toast } from "@/hooks/use-toast";
 
