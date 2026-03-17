@@ -10,8 +10,6 @@ import { useSolarWashingCloud } from "@/hooks/useAppData";
 import type { SolarWashing } from "@/hooks/useAppData";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { toast } from "@/hooks/use-toast";
-import { useActivityLog } from "@/hooks/useActivityLog";
-import { toast } from "@/hooks/use-toast";
 
 const emptyRecord: SolarWashing = { id: "", date: new Date().toISOString().slice(0, 10), customer: "", amount: 0, notes: "" };
 
