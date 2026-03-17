@@ -354,6 +354,7 @@ export const useOtherPaymentsCloud = () => useTable("other_payments", otherPayme
 export const useOtherReceiptsCloud = () => useTable("other_receipts", otherReceiptFromDb, otherReceiptToDb);
 export const useTransfersCloud = () => useTable("transfers", transferFromDb, transferToDb);
 export const useReconcileEntriesCloud = () => useTable("reconcile_entries", reconcileFromDb, reconcileToDb);
+export const useSolarWashingCloud = () => useTable("solar_washing" as any, solarWashingFromDb, solarWashingToDb);
 
 // User Settings
 export function useUserSettingsCloud() {

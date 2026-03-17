@@ -67,7 +67,7 @@ export default function SolarWashingPage() {
     if (!deleteId) return;
     const rec = records.find(r => r.id === deleteId);
     await remove(deleteId);
-    logActivity("deleted", "solar_washing", deleteId, rec?.customer || "");
+    log("deleted", "solar_washing", deleteId, rec?.customer || "");
     toast({ title: "Record deleted" });
     setDeleteId(null);
   };
