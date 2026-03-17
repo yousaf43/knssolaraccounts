@@ -209,13 +209,6 @@ export default function SolarWashingPage() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDeleteDialog
-        open={!!deleteId}
-        onOpenChange={() => setDeleteId(null)}
-        onConfirm={handleDelete}
-        title="Delete Washing Record"
-        description="Are you sure? This action cannot be undone."
-      />
     </div>
   );
 }
