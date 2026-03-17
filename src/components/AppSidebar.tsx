@@ -13,6 +13,7 @@ import {
   ChevronRight,
   History,
   Trash2,
+  Droplets,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
