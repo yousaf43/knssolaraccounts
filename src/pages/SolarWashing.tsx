@@ -58,7 +58,7 @@ export default function SolarWashingPage() {
       return;
     }
     await upsert(form);
-    logActivity(editing ? "updated" : "created", "solar_washing", form.id, form.customer);
+    log(editing ? "updated" : "created", "solar_washing", form.id, form.customer);
     toast({ title: editing ? "Record updated" : "Record added" });
     setDialogOpen(false);
   };
