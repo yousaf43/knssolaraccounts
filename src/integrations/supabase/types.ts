@@ -803,6 +803,39 @@ export type Database = {
         }
         Relationships: []
       }
+      solar_washing: {
+        Row: {
+          amount: number | null
+          created_at: string
+          customer: string | null
+          date: string | null
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          customer?: string | null
+          date?: string | null
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_adjustments: {
         Row: {
           created_at: string
