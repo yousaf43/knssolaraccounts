@@ -297,8 +297,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             <tbody>
               {items.map((item, i) => {
                 const invItem = item.inventoryItemId ? inventory.find((inv) => inv.id === item.inventoryItemId) : null;
+                const totalCols = hasInventory ? 8 : 6;
                 return (
-                  <tr key={i} className="border-b last:border-0">
+                  <React.Fragment key={i}>
+                  <tr className="border-b last:border-0">
                     {hasInventory && (
                       <td className="px-3 py-2">
                         <ProductCombobox
@@ -338,6 +340,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                       )}
                     </td>
                   </tr>
+                  {hasInventory && <BundleItemsRow item={item} inventory={inventory} colSpan={totalCols} lineQty={item.qty} />}
+                  </React.Fragment>
                 );
               })}
             </tbody>

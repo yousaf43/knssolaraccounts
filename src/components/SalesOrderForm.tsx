@@ -253,7 +253,8 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                 const remaining = getRemainingStock(item.inventoryItemId);
                 const stockWarning = remaining !== null && remaining < 0;
                 return (
-                  <tr key={i} className="border-b last:border-0">
+                  <React.Fragment key={i}>
+                  <tr className="border-b last:border-0">
                     <td className="px-3 py-2">
                       <ProductCombobox
                         inventory={inventory}
@@ -282,6 +283,8 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                     <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
                     <td className="px-2 py-2">{items.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(i)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}</td>
                   </tr>
+                  <BundleItemsRow item={item} inventory={inventory} colSpan={7} lineQty={item.qty} />
+                  </React.Fragment>
                 );
               })}
             </tbody>
