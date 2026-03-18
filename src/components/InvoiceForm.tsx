@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Plus, Trash2, X, UserPlus, ChevronsUpDown, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProductCombobox } from "@/components/ProductCombobox";
+import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
@@ -296,8 +297,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             <tbody>
               {items.map((item, i) => {
                 const invItem = item.inventoryItemId ? inventory.find((inv) => inv.id === item.inventoryItemId) : null;
+                const totalCols = hasInventory ? 8 : 6;
                 return (
-                  <tr key={i} className="border-b last:border-0">
+                  <React.Fragment key={i}>
+                  <tr className="border-b last:border-0">
                     {hasInventory && (
                       <td className="px-3 py-2">
                         <ProductCombobox
@@ -337,6 +340,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                       )}
                     </td>
                   </tr>
+                  {hasInventory && <BundleItemsRow item={item} inventory={inventory} colSpan={totalCols} lineQty={item.qty} />}
+                  </React.Fragment>
                 );
               })}
             </tbody>
