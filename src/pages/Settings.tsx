@@ -13,6 +13,7 @@ import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield
 import { Badge } from "@/components/ui/badge";
 import { useCloudBackup } from "@/hooks/useCloudBackup";
 import { useUserSettingsCloud } from "@/hooks/useAppData";
+import { exportAsJson, exportAsCsvZip } from "@/utils/exportData";
 
 const currencies = [
   { code: "PKR", locale: "en-PK", label: "PKR - Pakistani Rupee (₨)" },
