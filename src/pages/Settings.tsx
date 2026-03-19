@@ -74,8 +74,8 @@ export default function Settings() {
   const [editingCatIdx, setEditingCatIdx] = useState<number | null>(null);
   const [editCatValue, setEditCatValue] = useState("");
 
-  // Export state
   const [exporting, setExporting] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const handleSave = async () => {
