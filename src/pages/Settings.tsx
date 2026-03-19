@@ -298,13 +298,14 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="company" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="company" className="gap-1.5 text-xs"><Building2 className="w-3.5 h-3.5" /> Company</TabsTrigger>
           <TabsTrigger value="currency" className="gap-1.5 text-xs"><Globe className="w-3.5 h-3.5" /> Currency</TabsTrigger>
           <TabsTrigger value="tax" className="gap-1.5 text-xs"><Receipt className="w-3.5 h-3.5" /> Tax</TabsTrigger>
           <TabsTrigger value="fiscal" className="gap-1.5 text-xs"><Calendar className="w-3.5 h-3.5" /> Fiscal Year</TabsTrigger>
           <TabsTrigger value="profile" className="gap-1.5 text-xs"><UserCircle className="w-3.5 h-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="backup" className="gap-1.5 text-xs"><Database className="w-3.5 h-3.5" /> Backup</TabsTrigger>
+          <TabsTrigger value="export" className="gap-1.5 text-xs"><FileDown className="w-3.5 h-3.5" /> Export</TabsTrigger>
           {role === "admin" && (
             <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={loadUsers}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
           )}
