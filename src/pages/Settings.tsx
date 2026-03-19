@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database, Cloud, Trash2, RotateCcw, Loader2, UserCircle, Edit, X, Check } from "lucide-react";
+import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database, Cloud, Trash2, RotateCcw, Loader2, UserCircle, Edit, X, Check, FileDown, FileSpreadsheet, FileJson } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCloudBackup } from "@/hooks/useCloudBackup";
 import { useUserSettingsCloud } from "@/hooks/useAppData";
+import { exportAsJson, exportAsCsvZip } from "@/utils/exportData";
 
 const currencies = [
   { code: "PKR", locale: "en-PK", label: "PKR - Pakistani Rupee (₨)" },
@@ -73,8 +74,8 @@ export default function Settings() {
   const [editingCatIdx, setEditingCatIdx] = useState<number | null>(null);
   const [editCatValue, setEditCatValue] = useState("");
 
-  // Export state
   const [exporting, setExporting] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const handleSave = async () => {
@@ -297,13 +298,14 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="company" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="company" className="gap-1.5 text-xs"><Building2 className="w-3.5 h-3.5" /> Company</TabsTrigger>
           <TabsTrigger value="currency" className="gap-1.5 text-xs"><Globe className="w-3.5 h-3.5" /> Currency</TabsTrigger>
           <TabsTrigger value="tax" className="gap-1.5 text-xs"><Receipt className="w-3.5 h-3.5" /> Tax</TabsTrigger>
           <TabsTrigger value="fiscal" className="gap-1.5 text-xs"><Calendar className="w-3.5 h-3.5" /> Fiscal Year</TabsTrigger>
           <TabsTrigger value="profile" className="gap-1.5 text-xs"><UserCircle className="w-3.5 h-3.5" /> Profile</TabsTrigger>
           <TabsTrigger value="backup" className="gap-1.5 text-xs"><Database className="w-3.5 h-3.5" /> Backup</TabsTrigger>
+          <TabsTrigger value="export" className="gap-1.5 text-xs"><FileDown className="w-3.5 h-3.5" /> Export</TabsTrigger>
           {role === "admin" && (
             <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={loadUsers}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
           )}
@@ -527,6 +529,83 @@ export default function Settings() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Export Data */}
+        <TabsContent value="export">
+          <div className="bg-card border rounded-lg p-6 space-y-6">
+            <div className="flex items-center gap-2">
+              <FileDown className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold text-lg">Export Data</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Download your complete data for external use — import into cPanel, SQL database, Excel, or keep as offline backup. Data loss ka koi khatra nahi hai, ye sirf copy download karta hai.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* JSON Export */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileJson className="w-4 h-4 text-primary" />
+                  <h3 className="font-medium">JSON Export</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">Single JSON file with all 21 tables. Best for re-importing into databases or this app.</p>
+                <Button
+                  size="sm"
+                  className="gap-2 w-full"
+                  disabled={exporting}
+                  onClick={async () => {
+                    if (!user) return;
+                    setExporting(true);
+                    try {
+                      await exportAsJson(user.id);
+                      toast.success("JSON export downloaded!");
+                    } catch (err: any) {
+                      toast.error("Export failed: " + err.message);
+                    }
+                    setExporting(false);
+                  }}
+                >
+                  {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileJson className="w-4 h-4" />}
+                  Download JSON
+                </Button>
+              </div>
+
+              {/* CSV ZIP Export */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-primary" />
+                  <h3 className="font-medium">CSV Export (ZIP)</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">Each table as a separate CSV file in a ZIP archive. Best for Excel, Google Sheets, or cPanel phpMyAdmin import.</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 w-full"
+                  disabled={exportingCsv}
+                  onClick={async () => {
+                    if (!user) return;
+                    setExportingCsv(true);
+                    try {
+                      await exportAsCsvZip(user.id);
+                      toast.success("CSV ZIP export downloaded!");
+                    } catch (err: any) {
+                      toast.error("Export failed: " + err.message);
+                    }
+                    setExportingCsv(false);
+                  }}
+                >
+                  {exportingCsv ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                  Download CSV ZIP
+                </Button>
+              </div>
+            </div>
+
+            <div className="text-xs text-muted-foreground border-t pt-3 space-y-1">
+              <p><strong>Included Tables (21):</strong> Customers, Suppliers, Inventory, Invoices, Sales Orders, Quotations, Receipts, Expenses, Purchase Orders, Bills, Purchase Payments, Stock Adjustments, Accounts, Ledger Entries, Other Payments, Other Receipts, Transfers, Reconcile Entries, Solar Washing, Activity Logs, User Settings</p>
+              <p>⚠️ Export sirf aapka data download karta hai — original data safe rehta hai.</p>
             </div>
           </div>
         </TabsContent>
