@@ -13,7 +13,7 @@ import { ProductCombobox } from "@/components/ProductCombobox";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
-import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
+import type { Invoice, InvoiceItem, Customer, InventoryItem, Receipt } from "@/data/mockData";
 
 type Props = {
   customers: Customer[];
@@ -24,6 +24,7 @@ type Props = {
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
   accounts?: Account[];
+  receipts?: Receipt[];
 };
 
 export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
