@@ -639,13 +639,25 @@ export default function Invoices() {
     if (activeTab === "receipts") {
       return (
         <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
+          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={(() => {
+            const maxNum = receipts.reduce((max, r) => {
+              const match = r.number?.match(/RCP-(\d+)/);
+              return match ? Math.max(max, parseInt(match[1], 10)) : max;
+            }, 0);
+            return `RCP-${String(maxNum + 1).padStart(3, "0")}`;
+          })()} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
         </div>
       );
     }
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={`INV-${String(invoices.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
+        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={(() => {
+            const maxNum = invoices.reduce((max, inv) => {
+              const match = inv.number?.match(/INV-(\d+)/);
+              return match ? Math.max(max, parseInt(match[1], 10)) : max;
+            }, 0);
+            return `INV-${String(maxNum + 1).padStart(3, "0")}`;
+          })()}  onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
       </div>
     );
   }
