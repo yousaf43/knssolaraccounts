@@ -13,7 +13,7 @@ import { ProductCombobox } from "@/components/ProductCombobox";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
-import type { Invoice, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
+import type { Invoice, InvoiceItem, Customer, InventoryItem, Receipt } from "@/data/mockData";
 
 type Props = {
   customers: Customer[];
@@ -24,9 +24,10 @@ type Props = {
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
   accounts?: Account[];
+  receipts?: Receipt[];
 };
 
-export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [] }: Props) {
   const { formatCurrency } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
@@ -406,6 +407,45 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           </div>
         </div>
       )}
+
+      {/* Payment Summary when editing */}
+      {editInvoice && (() => {
+        const invoiceReceipts = receipts.filter(r => r.invoiceNumber === (editInvoice.number));
+        const embeddedPaid = (editInvoice.payments || []).reduce((s, p) => s + p.amount, 0);
+        const receiptsPaid = invoiceReceipts.reduce((s, r) => s + r.amount, 0);
+        const totalPaid = receiptsPaid + embeddedPaid;
+        const remaining = total - totalPaid;
+        if (invoiceReceipts.length === 0 && embeddedPaid === 0) return null;
+        return (
+          <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+            <Label className="font-medium text-sm">Payment History</Label>
+            {invoiceReceipts.length > 0 && (
+              <div className="space-y-1">
+                {invoiceReceipts.map(r => (
+                  <div key={r.id} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{r.number} — {r.date} ({r.paymentMethod})</span>
+                    <span className="font-medium text-success">{formatCurrency(r.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {embeddedPaid > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Advance Payment</span>
+                <span className="font-medium text-success">{formatCurrency(embeddedPaid)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t pt-2 text-sm font-bold">
+              <span>Total Paid</span>
+              <span className="text-success">{formatCurrency(totalPaid)}</span>
+            </div>
+            <div className="flex justify-between text-sm font-bold">
+              <span>Remaining Balance</span>
+              <span className={remaining > 0 ? "text-destructive" : "text-success"}>{formatCurrency(Math.max(0, remaining))}</span>
+            </div>
+          </div>
+        );
+      })()}
 
       <div>
         <Label>Notes</Label>

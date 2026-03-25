@@ -87,7 +87,7 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customer.trim() || !date || !invoiceNumber || amount <= 0) return;
+    if (!customer.trim() || !date || !invoiceNumber || (amount <= 0 && discountAmount <= 0)) return;
     if (isOverpay) return;
 
     const displayMethod = paymentMethod.split("||")[0];

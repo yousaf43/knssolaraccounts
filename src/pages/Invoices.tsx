@@ -651,7 +651,7 @@ export default function Invoices() {
     }
     return (
       <div className="max-w-4xl mx-auto">
-        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} nextNumber={(() => {
+        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} receipts={receipts} nextNumber={(() => {
             const maxNum = invoices.reduce((max, inv) => {
               const match = inv.number?.match(/INV-(\d+)/);
               return match ? Math.max(max, parseInt(match[1], 10)) : max;
