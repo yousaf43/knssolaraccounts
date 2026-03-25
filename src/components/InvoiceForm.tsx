@@ -27,7 +27,7 @@ type Props = {
   receipts?: Receipt[];
 };
 
-export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [] }: Props) {
   const { formatCurrency } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
