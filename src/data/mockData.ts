@@ -170,7 +170,7 @@ export type InventoryItem = {
   saleDiscount: number;
   purchaseDiscount: number;
   productType?: "stock" | "non-stock" | "bundle";
-  bundleItems?: { itemId: string; qty: number }[];
+  bundleItems?: { itemId: string; qty: number; price?: number }[];
 };
 
 export type StockAdjustment = {

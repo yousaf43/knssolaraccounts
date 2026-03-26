@@ -464,8 +464,9 @@ export default function Inventory() {
                           inventory={inventory.filter((inv) => inv.id !== editing?.id && inv.productType !== "bundle")}
                           selectedItemId={bi.itemId}
                           onSelect={(v) => {
+                            const selectedInv = inventory.find((inv) => inv.id === v);
                             const updated = [...(form.bundleItems || [])];
-                            updated[idx] = { ...updated[idx], itemId: v };
+                            updated[idx] = { ...updated[idx], itemId: v, price: selectedInv?.salePrice || 0 };
                             setForm({ ...form, bundleItems: updated });
                           }}
                         />
@@ -478,7 +479,19 @@ export default function Inventory() {
                           }}
                           className="w-20 h-8 text-xs" placeholder="Qty"
                         />
-                        <span className="text-xs text-muted-foreground w-16 truncate">{bundledItem?.unit || ""}</span>
+                        <span className="text-xs text-muted-foreground w-8 truncate">{bundledItem?.unit || ""}</span>
+                        <Input
+                          type="number" min={0} value={bi.price ?? bundledItem?.salePrice ?? 0}
+                          onChange={(e) => {
+                            const updated = [...(form.bundleItems || [])];
+                            updated[idx] = { ...updated[idx], price: Number(e.target.value) };
+                            setForm({ ...form, bundleItems: updated });
+                          }}
+                          className="w-24 h-8 text-xs" placeholder="Price"
+                        />
+                        <span className="text-xs text-muted-foreground font-medium w-20 text-right">
+                          = {((bi.price ?? bundledItem?.salePrice ?? 0) * bi.qty).toLocaleString()}
+                        </span>
                         <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
                           const updated = (form.bundleItems || []).filter((_, i) => i !== idx);
                           setForm({ ...form, bundleItems: updated });
@@ -488,11 +501,39 @@ export default function Inventory() {
                       </div>
                     );
                   })}
-                  <Button type="button" variant="outline" size="sm" onClick={() => {
-                    setForm({ ...form, bundleItems: [...(form.bundleItems || []), { itemId: "", qty: 1 }] });
-                  }}>
-                    <Plus className="w-3 h-3 mr-1" /> Add Component
-                  </Button>
+                  {/* Bundle total */}
+                  {(form.bundleItems || []).length > 0 && (
+                    <div className="flex justify-between items-center pt-2 border-t mt-2">
+                      <span className="text-xs font-medium text-muted-foreground">Bundle Total Price:</span>
+                      <span className="text-sm font-bold text-primary">
+                        {(form.bundleItems || []).reduce((sum, bi) => {
+                          const bundledItem = inventory.find((inv) => inv.id === bi.itemId);
+                          return sum + (bi.price ?? bundledItem?.salePrice ?? 0) * bi.qty;
+                        }, 0).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => {
+                      setForm({ ...form, bundleItems: [...(form.bundleItems || []), { itemId: "", qty: 1, price: 0 }] });
+                    }}>
+                      <Plus className="w-3 h-3 mr-1" /> Add Component
+                    </Button>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => {
+                      const bundleTotal = (form.bundleItems || []).reduce((sum, bi) => {
+                        const bundledItem = inventory.find((inv) => inv.id === bi.itemId);
+                        return sum + (bi.price ?? bundledItem?.salePrice ?? 0) * bi.qty;
+                      }, 0);
+                      const bundleCost = (form.bundleItems || []).reduce((sum, bi) => {
+                        const bundledItem = inventory.find((inv) => inv.id === bi.itemId);
+                        return sum + (bundledItem?.costPrice ?? 0) * bi.qty;
+                      }, 0);
+                      setForm({ ...form, salePrice: bundleTotal, price: bundleTotal, costPrice: bundleCost });
+                      toast.success("Bundle prices updated from components");
+                    }}>
+                      Apply Prices to Bundle
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
