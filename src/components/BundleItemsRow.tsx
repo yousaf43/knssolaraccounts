@@ -1,38 +1,69 @@
 import { Package } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useSettings } from "@/contexts/SettingsContext";
 import type { InventoryItem } from "@/data/mockData";
 
 type Props = {
-  item: { inventoryItemId?: string };
+  item: { inventoryItemId?: string; bundleItemPrices?: { itemId: string; price: number }[] };
   inventory: InventoryItem[];
   colSpan: number;
   lineQty: number;
+  editable?: boolean;
+  onBundlePriceChange?: (itemId: string, price: number) => void;
 };
 
-export function BundleItemsRow({ item, inventory, colSpan, lineQty }: Props) {
+export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, onBundlePriceChange }: Props) {
+  const { formatCurrency } = useSettings();
+
   if (!item.inventoryItemId) return null;
 
   const invItem = inventory.find((i) => i.id === item.inventoryItemId);
   if (!invItem || invItem.productType !== "bundle" || !invItem.bundleItems?.length) return null;
+
+  const getPrice = (bi: { itemId: string; qty: number; price?: number }) => {
+    const override = item.bundleItemPrices?.find(p => p.itemId === bi.itemId);
+    if (override) return override.price;
+    return bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0;
+  };
+
+  const bundleTotal = invItem.bundleItems.reduce((sum, bi) => sum + getPrice(bi) * bi.qty * lineQty, 0);
 
   return (
     <tr className="bg-muted/20">
       <td colSpan={colSpan} className="px-6 py-1.5">
         <div className="flex items-start gap-2">
           <Package className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-          <div className="space-y-0.5">
+          <div className="space-y-0.5 w-full">
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Bundle Contents</span>
             {invItem.bundleItems.map((bi, idx) => {
               const subItem = inventory.find((i) => i.id === bi.itemId);
               if (!subItem) return null;
+              const price = getPrice(bi);
               return (
                 <div key={idx} className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="text-primary">↳</span>
-                  <span>{subItem.name}</span>
+                  <span className="flex-1">{subItem.name}</span>
                   <span className="text-[10px]">({subItem.sku})</span>
                   <span className="font-medium text-foreground">× {bi.qty * lineQty}</span>
+                  {editable ? (
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      value={price}
+                      onChange={(e) => onBundlePriceChange?.(bi.itemId, Number(e.target.value))}
+                      className="h-6 w-24 text-xs text-right"
+                    />
+                  ) : (
+                    <span className="text-foreground font-medium w-24 text-right">{formatCurrency(price)}</span>
+                  )}
+                  <span className="text-foreground font-medium w-20 text-right">{formatCurrency(price * bi.qty * lineQty)}</span>
                 </div>
               );
             })}
+            <div className="flex justify-end text-xs font-bold text-foreground pt-1 border-t border-border/50">
+              <span>Bundle Total: {formatCurrency(bundleTotal)}</span>
+            </div>
           </div>
         </div>
       </td>
