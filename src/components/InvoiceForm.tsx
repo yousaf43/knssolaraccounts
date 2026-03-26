@@ -393,7 +393,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                       )}
                     </td>
                   </tr>
-                  {hasInventory && <BundleItemsRow item={item} inventory={inventory} colSpan={totalCols} lineQty={item.qty} />}
+                  {hasInventory && <BundleItemsRow item={item} inventory={inventory} colSpan={totalCols} lineQty={item.qty} editable onBundlePriceChange={(subId, price) => handleBundlePriceChange(i, subId, price)} />}
                   </React.Fragment>
                 );
               })}
