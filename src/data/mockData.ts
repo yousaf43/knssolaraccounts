@@ -16,6 +16,7 @@ export type InvoiceItem = {
   amount: number;
   inventoryItemId?: string;
   discount?: number;
+  bundleItemPrices?: { itemId: string; price: number }[];
 };
 
 export type Invoice = {
