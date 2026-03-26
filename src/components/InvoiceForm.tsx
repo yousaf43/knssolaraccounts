@@ -95,20 +95,72 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const selectInventoryItem = (index: number, itemId: string) => {
     const invItem = inventory.find((i) => i.id === itemId);
     if (!invItem) return;
-    const rate = invItem.salePrice || invItem.price;
-    const itemDiscount = invItem.saleDiscount || 0;
     const qty = items[index]?.qty || 1;
-    const discountedRate = rate - (rate * itemDiscount / 100);
+
+    // If bundle, calculate rate from component prices
+    if (invItem.productType === "bundle" && invItem.bundleItems?.length) {
+      const bundlePrices = invItem.bundleItems.map(bi => ({
+        itemId: bi.itemId,
+        price: bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0,
+      }));
+      const rate = invItem.bundleItems.reduce((sum, bi) => {
+        const p = bundlePrices.find(bp => bp.itemId === bi.itemId)?.price ?? 0;
+        return sum + p * bi.qty;
+      }, 0);
+      setItems((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          inventoryItemId: itemId,
+          description: invItem.name,
+          rate,
+          discount: 0,
+          amount: qty * rate,
+          bundleItemPrices: bundlePrices,
+        };
+        return updated;
+      });
+    } else {
+      const rate = invItem.salePrice || invItem.price;
+      const itemDiscount = invItem.saleDiscount || 0;
+      const discountedRate = rate - (rate * itemDiscount / 100);
+      setItems((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          inventoryItemId: itemId,
+          description: invItem.name,
+          rate,
+          discount: itemDiscount,
+          amount: qty * discountedRate,
+        };
+        return updated;
+      });
+    }
+  };
+
+  const handleBundlePriceChange = (lineIndex: number, subItemId: string, price: number) => {
     setItems((prev) => {
       const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        inventoryItemId: itemId,
-        description: invItem.name,
-        rate,
-        discount: itemDiscount,
-        amount: qty * discountedRate,
-      };
+      const item = { ...updated[lineIndex] };
+      const prices = [...(item.bundleItemPrices || [])];
+      const idx = prices.findIndex(p => p.itemId === subItemId);
+      if (idx >= 0) prices[idx] = { ...prices[idx], price };
+      else prices.push({ itemId: subItemId, price });
+      item.bundleItemPrices = prices;
+
+      // Recalculate rate from bundle component prices
+      const invItem = inventory.find(i => i.id === item.inventoryItemId);
+      if (invItem?.bundleItems) {
+        const newRate = invItem.bundleItems.reduce((sum, bi) => {
+          const p = prices.find(bp => bp.itemId === bi.itemId)?.price ?? (bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0);
+          return sum + p * bi.qty;
+        }, 0);
+        item.rate = newRate;
+        const disc = Number(item.discount || 0);
+        item.amount = item.qty * (newRate - (newRate * disc / 100));
+      }
+      updated[lineIndex] = item;
       return updated;
     });
   };
