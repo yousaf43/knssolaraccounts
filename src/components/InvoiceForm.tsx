@@ -139,6 +139,20 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     }
   };
 
+  const recalcBundleRate = (item: InvoiceItem, prices: { itemId: string; price: number; qty?: number }[]) => {
+    const invItem = inventory.find(i => i.id === item.inventoryItemId);
+    if (!invItem?.bundleItems) return;
+    const newRate = invItem.bundleItems.reduce((sum, bi) => {
+      const override = prices.find(bp => bp.itemId === bi.itemId);
+      const p = override?.price ?? (bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0);
+      const q = override?.qty !== undefined ? override.qty : bi.qty;
+      return sum + p * q;
+    }, 0);
+    item.rate = newRate;
+    const disc = Number(item.discount || 0);
+    item.amount = item.qty * (newRate - (newRate * disc / 100));
+  };
+
   const handleBundlePriceChange = (lineIndex: number, subItemId: string, price: number) => {
     setItems((prev) => {
       const updated = [...prev];
@@ -148,18 +162,26 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       if (idx >= 0) prices[idx] = { ...prices[idx], price };
       else prices.push({ itemId: subItemId, price });
       item.bundleItemPrices = prices;
+      recalcBundleRate(item, prices);
+      updated[lineIndex] = item;
+      return updated;
+    });
+  };
 
-      // Recalculate rate from bundle component prices
-      const invItem = inventory.find(i => i.id === item.inventoryItemId);
-      if (invItem?.bundleItems) {
-        const newRate = invItem.bundleItems.reduce((sum, bi) => {
-          const p = prices.find(bp => bp.itemId === bi.itemId)?.price ?? (bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0);
-          return sum + p * bi.qty;
-        }, 0);
-        item.rate = newRate;
-        const disc = Number(item.discount || 0);
-        item.amount = item.qty * (newRate - (newRate * disc / 100));
+  const handleBundleQtyChange = (lineIndex: number, subItemId: string, qty: number) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      const item = { ...updated[lineIndex] };
+      const prices = [...(item.bundleItemPrices || [])];
+      const idx = prices.findIndex(p => p.itemId === subItemId);
+      if (idx >= 0) prices[idx] = { ...prices[idx], qty };
+      else {
+        const invItem = inventory.find(i => i.id === item.inventoryItemId);
+        const bi = invItem?.bundleItems?.find(b => b.itemId === subItemId);
+        prices.push({ itemId: subItemId, price: bi?.price ?? inventory.find(i => i.id === subItemId)?.salePrice ?? 0, qty });
       }
+      item.bundleItemPrices = prices;
+      recalcBundleRate(item, prices);
       updated[lineIndex] = item;
       return updated;
     });
@@ -393,7 +415,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                       )}
                     </td>
                   </tr>
-                  {hasInventory && <BundleItemsRow item={item} inventory={inventory} colSpan={totalCols} lineQty={item.qty} editable onBundlePriceChange={(subId, price) => handleBundlePriceChange(i, subId, price)} />}
+                  {hasInventory && <BundleItemsRow item={item} inventory={inventory} colSpan={totalCols} lineQty={item.qty} editable onBundlePriceChange={(subId, price) => handleBundlePriceChange(i, subId, price)} onBundleQtyChange={(subId, qty) => handleBundleQtyChange(i, subId, qty)} />}
                   </React.Fragment>
                 );
               })}

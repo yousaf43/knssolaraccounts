@@ -75,15 +75,88 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const selectInventoryItem = (index: number, itemId: string) => {
     const invItem = inventory.find((i) => i.id === itemId);
     if (!invItem) return;
+    const qty = items[index]?.qty || 1;
+
+    if (invItem.productType === "bundle" && invItem.bundleItems?.length) {
+      const bundlePrices = invItem.bundleItems.map(bi => ({
+        itemId: bi.itemId,
+        price: bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0,
+        qty: bi.qty,
+      }));
+      const rate = invItem.bundleItems.reduce((sum, bi) => {
+        const p = bundlePrices.find(bp => bp.itemId === bi.itemId)?.price ?? 0;
+        return sum + p * bi.qty;
+      }, 0);
+      setItems((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          inventoryItemId: itemId,
+          description: invItem.name,
+          rate,
+          amount: qty * rate,
+          bundleItemPrices: bundlePrices,
+        };
+        return updated;
+      });
+    } else {
+      setItems((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          inventoryItemId: itemId,
+          description: invItem.name,
+          rate: invItem.salePrice || invItem.price,
+          amount: (updated[index].qty || 1) * (invItem.salePrice || invItem.price),
+        };
+        return updated;
+      });
+    }
+  };
+
+  const recalcBundleRate = (item: InvoiceItem, prices: { itemId: string; price: number; qty?: number }[]) => {
+    const invItem = inventory.find(i => i.id === item.inventoryItemId);
+    if (!invItem?.bundleItems) return;
+    const newRate = invItem.bundleItems.reduce((sum, bi) => {
+      const override = prices.find(bp => bp.itemId === bi.itemId);
+      const p = override?.price ?? (bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0);
+      const q = override?.qty !== undefined ? override.qty : bi.qty;
+      return sum + p * q;
+    }, 0);
+    item.rate = newRate;
+    item.amount = item.qty * newRate;
+  };
+
+  const handleBundlePriceChange = (lineIndex: number, subItemId: string, price: number) => {
     setItems((prev) => {
       const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        inventoryItemId: itemId,
-        description: invItem.name,
-        rate: invItem.salePrice || invItem.price,
-        amount: (updated[index].qty || 1) * (invItem.salePrice || invItem.price),
-      };
+      const item = { ...updated[lineIndex] };
+      const prices = [...(item.bundleItemPrices || [])];
+      const idx = prices.findIndex(p => p.itemId === subItemId);
+      if (idx >= 0) prices[idx] = { ...prices[idx], price };
+      else prices.push({ itemId: subItemId, price });
+      item.bundleItemPrices = prices;
+      recalcBundleRate(item, prices);
+      updated[lineIndex] = item;
+      return updated;
+    });
+  };
+
+  const handleBundleQtyChange = (lineIndex: number, subItemId: string, qty: number) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      const item = { ...updated[lineIndex] };
+      const prices = [...(item.bundleItemPrices || [])];
+      const idx = prices.findIndex(p => p.itemId === subItemId);
+      if (idx >= 0) prices[idx] = { ...prices[idx], qty };
+      else {
+        const invItem = inventory.find(i => i.id === item.inventoryItemId);
+        const bi = invItem?.bundleItems?.find(b => b.itemId === subItemId);
+        prices.push({ itemId: subItemId, price: bi?.price ?? inventory.find(i => i.id === subItemId)?.salePrice ?? 0, qty });
+      }
+      item.bundleItemPrices = prices;
+      recalcBundleRate(item, prices);
+      updated[lineIndex] = item;
       return updated;
     });
   };
@@ -283,7 +356,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                     <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
                     <td className="px-2 py-2">{items.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(i)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}</td>
                   </tr>
-                  <BundleItemsRow item={item} inventory={inventory} colSpan={7} lineQty={item.qty} />
+                  <BundleItemsRow item={item} inventory={inventory} colSpan={7} lineQty={item.qty} editable onBundlePriceChange={(subId, price) => handleBundlePriceChange(i, subId, price)} onBundleQtyChange={(subId, qty) => handleBundleQtyChange(i, subId, qty)} />
                   </React.Fragment>
                 );
               })}
