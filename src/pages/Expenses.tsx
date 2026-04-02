@@ -51,6 +51,7 @@ export default function Expenses() {
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const pgExpenses = usePagination(expenses);
 
   // Petty Cash account balance
   const pettyCashAccount = accounts.find(a => a.name === "Petty Cash");
