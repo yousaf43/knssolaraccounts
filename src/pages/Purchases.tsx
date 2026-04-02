@@ -718,7 +718,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
               </tr></thead>
               <tbody>
-                {allPurchasesData.map((p, i) => (
+                {pgAllPurchases.paginatedItems.map((p, i) => (
                   <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-xs font-medium bg-muted">{p.type}</span></td>
                     <td className="px-4 py-3">{p.date}</td>
@@ -731,6 +731,7 @@ export default function Purchases() {
                 {allPurchasesData.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No records found.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgAllPurchases.currentPage} totalPages={pgAllPurchases.totalPages} totalItems={pgAllPurchases.totalItems} onPageChange={pgAllPurchases.goToPage} itemLabel="record" />
           </div>
         </TabsContent>
 
