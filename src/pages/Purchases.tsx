@@ -536,6 +536,9 @@ export default function Purchases() {
             <TablePagination currentPage={pgPO.currentPage} totalPages={pgPO.totalPages} totalItems={pgPO.totalItems} onPageChange={pgPO.goToPage} itemLabel="order" />
           </div>
         </TabsContent>
+
+        {/* Bills */}
+        <TabsContent value="bills">
           {showBillForm && (
             <div className="bg-card rounded-lg border p-6 mb-4">
               <div className="flex items-center justify-between mb-4">
