@@ -927,7 +927,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSO.map((so) => (
+                  {pgSO.paginatedItems.map((so) => (
                     <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{so.number}</td>
                       <td className="px-4 py-3">{so.customer}</td>
@@ -954,6 +954,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgSO.currentPage} totalPages={pgSO.totalPages} totalItems={pgSO.totalItems} onPageChange={pgSO.goToPage} itemLabel="order" />
           </div>
         </TabsContent>
 
