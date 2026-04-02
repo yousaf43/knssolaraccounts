@@ -1176,7 +1176,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {allSalesData.map((item) => (
+                  {pgAll.paginatedItems.map((item) => (
                     <tr key={`${item.type}-${item.id}`} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="text-xs">{item.type}</Badge>
@@ -1192,6 +1192,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgAll.currentPage} totalPages={pgAll.totalPages} totalItems={pgAll.totalItems} onPageChange={pgAll.goToPage} itemLabel="record" />
           </div>
         </TabsContent>
       </Tabs>
