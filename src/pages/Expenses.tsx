@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { type Expense } from "@/data/mockData";
 import { useExpensesCloud, useAccountsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
