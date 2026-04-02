@@ -1132,7 +1132,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReceipts.map((r) => (
+                  {pgReceipts.paginatedItems.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{r.number}</td>
                       <td className="px-4 py-3">{r.customer}</td>
@@ -1152,6 +1152,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgReceipts.currentPage} totalPages={pgReceipts.totalPages} totalItems={pgReceipts.totalItems} onPageChange={pgReceipts.goToPage} itemLabel="receipt" />
           </div>
         </TabsContent>
 
