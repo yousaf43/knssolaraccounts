@@ -983,7 +983,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInvoices.map((inv) => {
+                  {pgInvoices.paginatedItems.map((inv) => {
                     const invReceipts = receipts.filter((r) => r.invoiceNumber === inv.number);
                     const receiptsPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
                     const embeddedPaid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
@@ -1043,6 +1043,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgInvoices.currentPage} totalPages={pgInvoices.totalPages} totalItems={pgInvoices.totalItems} onPageChange={pgInvoices.goToPage} itemLabel="invoice" />
           </div>
         </TabsContent>
 
