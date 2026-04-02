@@ -685,7 +685,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr></thead>
               <tbody>
-                {filteredPayments.map(p => (
+                {pgPayments.paginatedItems.map(p => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{p.number}</td>
                     <td className="px-4 py-3">{p.date}</td>
@@ -699,6 +699,7 @@ export default function Purchases() {
                 {filteredPayments.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No payments found.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgPayments.currentPage} totalPages={pgPayments.totalPages} totalItems={pgPayments.totalItems} onPageChange={pgPayments.goToPage} itemLabel="payment" />
           </div>
         </TabsContent>
 
