@@ -133,7 +133,15 @@ export default function Purchases() {
     ...filteredPayments.map(p => ({ ...p, type: "Payment" as const, status: "paid" as const })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Export
+  // Pagination
+  const pgPO = usePagination(filteredPO);
+  const pgBills = usePagination(filteredBills);
+  const pgPayments = usePagination(filteredPayments);
+  const pgAllPurchases = usePagination(allPurchasesData);
+  const pgSuppliers = usePagination(suppliers);
+
+  useEffect(() => { pgPO.resetPage(); pgBills.resetPage(); pgPayments.resetPage(); pgAllPurchases.resetPage(); }, [filterSupplier, filterStatus, filterDateRange]);
+
   const handleExport = () => {
     let csv = "";
     if (tab === "purchase-orders") {
