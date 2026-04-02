@@ -1,4 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 import {
   type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem,
 } from "@/data/mockData";
