@@ -702,6 +702,16 @@ export default function Invoices() {
 
   const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
 
+  // Pagination hooks
+  const pgInvoices = usePagination(filteredInvoices);
+  const pgSO = usePagination(filteredSO);
+  const pgReceipts = usePagination(filteredReceipts);
+  const pgQuotations = usePagination(filteredQuotations);
+  const pgAll = usePagination(allSalesData);
+
+  // Reset pages when tab or filters change
+  useEffect(() => { pgInvoices.resetPage(); pgSO.resetPage(); pgReceipts.resetPage(); pgQuotations.resetPage(); pgAll.resetPage(); }, [searchQuery, filterCustomer, filterType, filterDateRange, filterStatus, activeTab]);
+
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
     setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null);
