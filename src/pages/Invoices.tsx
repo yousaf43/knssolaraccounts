@@ -530,7 +530,7 @@ export default function Invoices() {
   const matchSearchFields = (...fields: string[]) => fields.some(f => matchSearch(f));
 
   // --- Filtered data ---
-  const filteredInvoices = invoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
+  const filteredInvoices = invoices.filter((i) => !i.isReturn && matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
   const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status) && matchSearchFields(s.number, s.customer, s.notes || "", s.projectName || ""));
   const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
 
