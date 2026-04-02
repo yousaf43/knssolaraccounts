@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { type Expense } from "@/data/mockData";
 import { useExpensesCloud, useAccountsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
@@ -49,6 +51,7 @@ export default function Expenses() {
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const pgExpenses = usePagination(expenses);
 
   // Petty Cash account balance
   const pettyCashAccount = accounts.find(a => a.name === "Petty Cash");
@@ -216,7 +219,7 @@ export default function Expenses() {
             </tr>
           </thead>
           <tbody>
-            {expenses.map((e) => (
+            {pgExpenses.paginatedItems.map((e) => (
               <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="px-4 py-3 text-muted-foreground">{e.date}</td>
                 <td className="px-4 py-3"><Badge className={`${categoryColors[e.category] || "bg-muted text-muted-foreground"} border-0`}>{e.category}</Badge></td>
@@ -234,6 +237,7 @@ export default function Expenses() {
             ))}
           </tbody>
         </table>
+        <TablePagination currentPage={pgExpenses.currentPage} totalPages={pgExpenses.totalPages} totalItems={pgExpenses.totalItems} onPageChange={pgExpenses.goToPage} itemLabel="expense" />
       </div>
     </div>
   );

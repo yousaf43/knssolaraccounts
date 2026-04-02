@@ -1,4 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { getInitialInvoices, getInitialCustomers, getInitialSalesOrders, getInitialReceipts, getInitialInventory, type Invoice, type SalesOrder, type Receipt, type Customer, type InventoryItem, type Quotation } from "@/data/mockData";
 import { useInvoicesCloud, useSalesOrdersCloud, useReceiptsCloud, useCustomersCloud, useInventoryCloud, useQuotationsCloud, useLedgerEntriesCloud, useAccountsCloud } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
@@ -528,7 +530,7 @@ export default function Invoices() {
   const matchSearchFields = (...fields: string[]) => fields.some(f => matchSearch(f));
 
   // --- Filtered data ---
-  const filteredInvoices = invoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
+  const filteredInvoices = invoices.filter((i) => !i.isReturn && matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
   const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status) && matchSearchFields(s.number, s.customer, s.notes || "", s.projectName || ""));
   const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
 
@@ -700,6 +702,16 @@ export default function Invoices() {
 
   const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
 
+  // Pagination hooks
+  const pgInvoices = usePagination(filteredInvoices);
+  const pgSO = usePagination(filteredSO);
+  const pgReceipts = usePagination(filteredReceipts);
+  const pgQuotations = usePagination(filteredQuotations);
+  const pgAll = usePagination(allSalesData);
+
+  // Reset pages when tab or filters change
+  useEffect(() => { pgInvoices.resetPage(); pgSO.resetPage(); pgReceipts.resetPage(); pgQuotations.resetPage(); pgAll.resetPage(); }, [searchQuery, filterCustomer, filterType, filterDateRange, filterStatus, activeTab]);
+
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
     setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null);
@@ -865,7 +877,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredQuotations.map((q) => (
+                  {pgQuotations.paginatedItems.map((q) => (
                     <tr key={q.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{q.number}</td>
                       <td className="px-4 py-3">{q.customer}</td>
@@ -890,6 +902,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgQuotations.currentPage} totalPages={pgQuotations.totalPages} totalItems={pgQuotations.totalItems} onPageChange={pgQuotations.goToPage} itemLabel="quotation" />
           </div>
         </TabsContent>
 
@@ -914,7 +927,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSO.map((so) => (
+                  {pgSO.paginatedItems.map((so) => (
                     <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{so.number}</td>
                       <td className="px-4 py-3">{so.customer}</td>
@@ -941,6 +954,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgSO.currentPage} totalPages={pgSO.totalPages} totalItems={pgSO.totalItems} onPageChange={pgSO.goToPage} itemLabel="order" />
           </div>
         </TabsContent>
 
@@ -969,7 +983,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInvoices.map((inv) => {
+                  {pgInvoices.paginatedItems.map((inv) => {
                     const invReceipts = receipts.filter((r) => r.invoiceNumber === inv.number);
                     const receiptsPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
                     const embeddedPaid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
@@ -1029,6 +1043,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgInvoices.currentPage} totalPages={pgInvoices.totalPages} totalItems={pgInvoices.totalItems} onPageChange={pgInvoices.goToPage} itemLabel="invoice" />
           </div>
         </TabsContent>
 
@@ -1117,7 +1132,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredReceipts.map((r) => (
+                  {pgReceipts.paginatedItems.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{r.number}</td>
                       <td className="px-4 py-3">{r.customer}</td>
@@ -1137,6 +1152,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgReceipts.currentPage} totalPages={pgReceipts.totalPages} totalItems={pgReceipts.totalItems} onPageChange={pgReceipts.goToPage} itemLabel="receipt" />
           </div>
         </TabsContent>
 
@@ -1160,7 +1176,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {allSalesData.map((item) => (
+                  {pgAll.paginatedItems.map((item) => (
                     <tr key={`${item.type}-${item.id}`} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3">
                         <Badge variant="outline" className="text-xs">{item.type}</Badge>
@@ -1176,6 +1192,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgAll.currentPage} totalPages={pgAll.totalPages} totalItems={pgAll.totalItems} onPageChange={pgAll.goToPage} itemLabel="record" />
           </div>
         </TabsContent>
       </Tabs>

@@ -1,4 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 import {
   type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem,
 } from "@/data/mockData";
@@ -131,7 +133,15 @@ export default function Purchases() {
     ...filteredPayments.map(p => ({ ...p, type: "Payment" as const, status: "paid" as const })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Export
+  // Pagination
+  const pgPO = usePagination(filteredPO);
+  const pgBills = usePagination(filteredBills);
+  const pgPayments = usePagination(filteredPayments);
+  const pgAllPurchases = usePagination(allPurchasesData);
+  const pgSuppliers = usePagination(suppliers);
+
+  useEffect(() => { pgPO.resetPage(); pgBills.resetPage(); pgPayments.resetPage(); pgAllPurchases.resetPage(); }, [filterSupplier, filterStatus, filterDateRange]);
+
   const handleExport = () => {
     let csv = "";
     if (tab === "purchase-orders") {
@@ -509,7 +519,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr></thead>
               <tbody>
-                {filteredPO.map(p => (
+                {pgPO.paginatedItems.map(p => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{p.number}</td>
                     <td className="px-4 py-3">{p.date}</td>
@@ -523,6 +533,7 @@ export default function Purchases() {
                 {filteredPO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgPO.currentPage} totalPages={pgPO.totalPages} totalItems={pgPO.totalItems} onPageChange={pgPO.goToPage} itemLabel="order" />
           </div>
         </TabsContent>
 
@@ -588,7 +599,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr></thead>
               <tbody>
-                {filteredBills.map(b => (
+                {pgBills.paginatedItems.map(b => (
                   <tr key={b.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{b.number}</td>
                     <td className="px-4 py-3">{b.date}</td>
@@ -602,6 +613,7 @@ export default function Purchases() {
                 {filteredBills.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No bills found.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgBills.currentPage} totalPages={pgBills.totalPages} totalItems={pgBills.totalItems} onPageChange={pgBills.goToPage} itemLabel="bill" />
           </div>
         </TabsContent>
 
@@ -673,7 +685,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr></thead>
               <tbody>
-                {filteredPayments.map(p => (
+                {pgPayments.paginatedItems.map(p => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{p.number}</td>
                     <td className="px-4 py-3">{p.date}</td>
@@ -687,6 +699,7 @@ export default function Purchases() {
                 {filteredPayments.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No payments found.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgPayments.currentPage} totalPages={pgPayments.totalPages} totalItems={pgPayments.totalItems} onPageChange={pgPayments.goToPage} itemLabel="payment" />
           </div>
         </TabsContent>
 
@@ -705,7 +718,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
               </tr></thead>
               <tbody>
-                {allPurchasesData.map((p, i) => (
+                {pgAllPurchases.paginatedItems.map((p, i) => (
                   <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-xs font-medium bg-muted">{p.type}</span></td>
                     <td className="px-4 py-3">{p.date}</td>
@@ -718,6 +731,7 @@ export default function Purchases() {
                 {allPurchasesData.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No records found.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgAllPurchases.currentPage} totalPages={pgAllPurchases.totalPages} totalItems={pgAllPurchases.totalItems} onPageChange={pgAllPurchases.goToPage} itemLabel="record" />
           </div>
         </TabsContent>
 
@@ -760,7 +774,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr></thead>
               <tbody>
-                {suppliers.map(s => (
+                {pgSuppliers.paginatedItems.map(s => (
                   <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{s.company}</td>
                     <td className="px-4 py-3">{s.name}</td>
@@ -779,6 +793,7 @@ export default function Purchases() {
                 {suppliers.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No suppliers yet.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgSuppliers.currentPage} totalPages={pgSuppliers.totalPages} totalItems={pgSuppliers.totalItems} onPageChange={pgSuppliers.goToPage} itemLabel="supplier" />
           </div>
         </TabsContent>
       </Tabs>
