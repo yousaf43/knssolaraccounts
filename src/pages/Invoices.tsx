@@ -877,7 +877,7 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredQuotations.map((q) => (
+                  {pgQuotations.paginatedItems.map((q) => (
                     <tr key={q.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{q.number}</td>
                       <td className="px-4 py-3">{q.customer}</td>
@@ -902,6 +902,7 @@ export default function Invoices() {
                 </tbody>
               </table>
             </div>
+            <TablePagination currentPage={pgQuotations.currentPage} totalPages={pgQuotations.totalPages} totalItems={pgQuotations.totalItems} onPageChange={pgQuotations.goToPage} itemLabel="quotation" />
           </div>
         </TabsContent>
 
