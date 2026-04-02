@@ -519,7 +519,7 @@ export default function Purchases() {
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
               </tr></thead>
               <tbody>
-                {filteredPO.map(p => (
+                {pgPO.paginatedItems.map(p => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{p.number}</td>
                     <td className="px-4 py-3">{p.date}</td>
@@ -533,11 +533,9 @@ export default function Purchases() {
                 {filteredPO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
               </tbody>
             </table>
+            <TablePagination currentPage={pgPO.currentPage} totalPages={pgPO.totalPages} totalItems={pgPO.totalItems} onPageChange={pgPO.goToPage} itemLabel="order" />
           </div>
         </TabsContent>
-
-        {/* Bills */}
-        <TabsContent value="bills">
           {showBillForm && (
             <div className="bg-card rounded-lg border p-6 mb-4">
               <div className="flex items-center justify-between mb-4">
