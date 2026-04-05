@@ -854,7 +854,6 @@ export default function Invoices() {
                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Remaining</th>
                      <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
                      <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
