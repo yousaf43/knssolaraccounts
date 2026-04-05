@@ -534,6 +534,30 @@ export default function Invoices() {
   const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status) && matchSearchFields(s.number, s.customer, s.notes || "", s.projectName || ""));
   const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
 
+  const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
+
+  // --- All Sales data combined ---
+  const allSalesDataRaw = [
+    ...invoices.map((inv) => ({ ...inv, type: "Invoice" as const, statusStyle: invoiceStatusStyles[inv.status] })),
+    ...salesOrders.map((so) => ({ id: so.id, number: so.number, customer: so.customer, date: so.date, dueDate: so.deliveryDate, amount: so.amount, status: so.status, type: "Sales Order" as const, statusStyle: soStatusStyles[so.status] })),
+    ...receipts.map((r) => ({ id: r.id, number: r.number, customer: r.customer, date: r.date, dueDate: r.invoiceNumber, amount: r.amount, status: r.paymentMethod, type: "Receipt" as const, statusStyle: "bg-primary/10 text-primary hover:bg-primary/20 border-0" })),
+    ...quotations.map((q) => ({ id: q.id, number: q.number, customer: q.customer, date: q.date, dueDate: q.dueDate, amount: q.amount, status: q.status, type: "Quotation" as const, statusStyle: quotationStatusStyles[q.status] || "" })),
+  ];
+  const allSalesData = allSalesDataRaw
+    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status) && matchSearchFields(item.number, item.customer))
+    .filter((item) => filterType === "all" || item.type === filterType)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  // Pagination hooks - MUST be before any early returns
+  const pgInvoices = usePagination(filteredInvoices);
+  const pgSO = usePagination(filteredSO);
+  const pgReceipts = usePagination(filteredReceipts);
+  const pgQuotations = usePagination(filteredQuotations);
+  const pgAll = usePagination(allSalesData);
+
+  // Reset pages when tab or filters change
+  useEffect(() => { pgInvoices.resetPage(); pgSO.resetPage(); pgReceipts.resetPage(); pgQuotations.resetPage(); pgAll.resetPage(); }, [searchQuery, filterCustomer, filterType, filterDateRange, filterStatus, activeTab]);
+
   const clearFilters = () => { setSearchQuery(""); setFilterCustomer("all"); setFilterType("all"); setFilterDateRange("all"); setFilterStatus("all"); setCustomDateFrom(""); setCustomDateTo(""); };
   const hasActiveFilters = searchQuery.trim() !== "" || filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all" || filterStatus !== "all";
 
@@ -562,155 +586,6 @@ export default function Invoices() {
         allSalesData.map((i) => [i.type, i.number, i.customer, i.date, String(i.amount), i.status]), "sales-all.csv");
     }
   };
-
-  // --- Form views ---
-  if (view === "return-form") {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <ReturnInvoiceForm
-          invoices={invoices}
-          inventory={inventory}
-          onSaveReturn={handleProcessReturn}
-          onCancel={goList}
-          nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`}
-          accounts={cloudAccounts}
-        />
-      </div>
-    );
-  }
-
-  if (view === "quotation-form") {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <SalesOrderForm customers={customers} inventory={inventory} onSave={(order) => {
-          const q: Quotation = {
-            id: editQuotation?.id || crypto.randomUUID(),
-            number: editQuotation?.number || `QTN-${String(quotations.length + 1).padStart(3, "0")}`,
-            projectName: order.projectName,
-            documentNumber: (order as any).documentNumber,
-            customer: order.customer,
-            date: order.date,
-            dueDate: order.deliveryDate,
-            amount: order.amount,
-            status: editQuotation?.status || "draft",
-            items: order.items,
-            notes: order.notes,
-            tax: order.tax,
-          };
-          handleSaveQuotation(q);
-        }} onCancel={goList} editOrder={editQuotation ? {
-          id: editQuotation.id,
-          number: editQuotation.number,
-          projectName: editQuotation.projectName,
-          customer: editQuotation.customer,
-          date: editQuotation.date,
-          deliveryDate: editQuotation.dueDate,
-          amount: editQuotation.amount,
-          status: "pending" as const,
-          items: editQuotation.items,
-          notes: editQuotation.notes,
-          tax: editQuotation.tax,
-        } : null} nextNumber={`QTN-${String(quotations.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
-      </div>
-    );
-  }
-  if (view === "form" || view === "form-receipt-for-invoice") {
-    if (view === "form-receipt-for-invoice" && receivePaymentInvoice) {
-      const prefillReceipt: Receipt = {
-        id: "",
-        number: `RCP-${String(receipts.length + 1).padStart(3, "0")}`,
-        customer: receivePaymentInvoice.customer,
-        date: new Date().toISOString().split("T")[0],
-        invoiceNumber: receivePaymentInvoice.number,
-        amount: 0,
-        paymentMethod: "Cash",
-      };
-      return (
-        <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={prefillReceipt} nextNumber={prefillReceipt.number} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
-        </div>
-      );
-    }
-    if (activeTab === "sales-orders") {
-      return (
-        <div className="max-w-4xl mx-auto">
-          <SalesOrderForm customers={customers} inventory={inventory} onSave={handleSaveSO} onCancel={goList} editOrder={editOrder} nextNumber={`SO-${String(salesOrders.length + 1).padStart(3, "0")}`} onAddCustomer={handleAddCustomer} />
-        </div>
-      );
-    }
-    if (activeTab === "receipts") {
-      return (
-        <div className="max-w-4xl mx-auto">
-          <ReceiptForm customers={customers} invoices={invoices} receipts={receipts} onSave={handleSaveReceipt} onCancel={goList} editReceipt={editReceipt} nextNumber={(() => {
-            const maxNum = receipts.reduce((max, r) => {
-              const match = r.number?.match(/RCP-(\d+)/);
-              return match ? Math.max(max, parseInt(match[1], 10)) : max;
-            }, 0);
-            return `RCP-${String(maxNum + 1).padStart(3, "0")}`;
-          })()} onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
-        </div>
-      );
-    }
-    return (
-      <div className="max-w-4xl mx-auto">
-        <InvoiceForm customers={customers} inventory={inventory} onSave={handleSaveInvoice} onCancel={goList} editInvoice={editInvoice} receipts={receipts} nextNumber={(() => {
-            const maxNum = invoices.reduce((max, inv) => {
-              const match = inv.number?.match(/INV-(\d+)/);
-              return match ? Math.max(max, parseInt(match[1], 10)) : max;
-            }, 0);
-            return `INV-${String(maxNum + 1).padStart(3, "0")}`;
-          })()}  onAddCustomer={handleAddCustomer} accounts={cloudAccounts} />
-      </div>
-    );
-  }
-
-  if (view === "preview" && previewInvoice) {
-    // Calculate customer account balance (sum of all unpaid invoices for this customer)
-    const customerInvoices = invoices.filter((inv) => inv.customer === previewInvoice.customer);
-    const customerOutstanding = customerInvoices.reduce((sum, inv) => {
-      const receiptsPaid = receipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-      const embeddedPaid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
-      return sum + (inv.amount - receiptsPaid - embeddedPaid);
-    }, 0);
-    const cust = customers.find((c) => c.name === previewInvoice.customer || `${c.name} [${c.company}]` === previewInvoice.customer);
-    return (
-      <div className="max-w-4xl mx-auto">
-        <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} customerOutstanding={customerOutstanding} customerPhone={cust?.phone} customerAddress={cust?.address} />
-      </div>
-    );
-  }
-
-  if (view === "so-preview" && previewSO) {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} customers={customers} inventory={inventory} />
-      </div>
-    );
-  }
-
-  // --- All Sales data combined ---
-  const allSalesDataRaw = [
-    ...invoices.map((inv) => ({ ...inv, type: "Invoice" as const, statusStyle: invoiceStatusStyles[inv.status] })),
-    ...salesOrders.map((so) => ({ id: so.id, number: so.number, customer: so.customer, date: so.date, dueDate: so.deliveryDate, amount: so.amount, status: so.status, type: "Sales Order" as const, statusStyle: soStatusStyles[so.status] })),
-    ...receipts.map((r) => ({ id: r.id, number: r.number, customer: r.customer, date: r.date, dueDate: r.invoiceNumber, amount: r.amount, status: r.paymentMethod, type: "Receipt" as const, statusStyle: "bg-primary/10 text-primary hover:bg-primary/20 border-0" })),
-    ...quotations.map((q) => ({ id: q.id, number: q.number, customer: q.customer, date: q.date, dueDate: q.dueDate, amount: q.amount, status: q.status, type: "Quotation" as const, statusStyle: quotationStatusStyles[q.status] || "" })),
-  ];
-  const allSalesData = allSalesDataRaw
-    .filter((item) => matchCustomer(item.customer) && isInDateRange(item.date) && matchStatus(item.status) && matchSearchFields(item.number, item.customer))
-    .filter((item) => filterType === "all" || item.type === filterType)
-    .sort((a, b) => b.date.localeCompare(a.date));
-
-  const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
-
-  // Pagination hooks
-  const pgInvoices = usePagination(filteredInvoices);
-  const pgSO = usePagination(filteredSO);
-  const pgReceipts = usePagination(filteredReceipts);
-  const pgQuotations = usePagination(filteredQuotations);
-  const pgAll = usePagination(allSalesData);
-
-  // Reset pages when tab or filters change
-  useEffect(() => { pgInvoices.resetPage(); pgSO.resetPage(); pgReceipts.resetPage(); pgQuotations.resetPage(); pgAll.resetPage(); }, [searchQuery, filterCustomer, filterType, filterDateRange, filterStatus, activeTab]);
 
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
@@ -979,7 +854,6 @@ export default function Invoices() {
                      <th className="text-right px-4 py-3 font-medium text-muted-foreground">Remaining</th>
                      <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
                      <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
-                    <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
