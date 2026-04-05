@@ -558,6 +558,35 @@ export default function Invoices() {
   // Reset pages when tab or filters change
   useEffect(() => { pgInvoices.resetPage(); pgSO.resetPage(); pgReceipts.resetPage(); pgQuotations.resetPage(); pgAll.resetPage(); }, [searchQuery, filterCustomer, filterType, filterDateRange, filterStatus, activeTab]);
 
+  const clearFilters = () => { setSearchQuery(""); setFilterCustomer("all"); setFilterType("all"); setFilterDateRange("all"); setFilterStatus("all"); setCustomDateFrom(""); setCustomDateTo(""); };
+  const hasActiveFilters = searchQuery.trim() !== "" || filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all" || filterStatus !== "all";
+
+  // --- Export CSV ---
+  const exportCSV = (headers: string[], rows: string[][], filename: string) => {
+    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} row(s)`);
+  };
+
+  const handleExport = () => {
+    if (activeTab === "invoices") {
+      exportCSV(["Number", "Customer", "Date", "Due Date", "Amount", "Status"],
+        filteredInvoices.map((i) => [i.number, i.customer, i.date, i.dueDate, String(i.amount), i.status]), "invoices.csv");
+    } else if (activeTab === "sales-orders") {
+      exportCSV(["Number", "Customer", "Date", "Delivery Date", "Amount", "Status"],
+        filteredSO.map((s) => [s.number, s.customer, s.date, s.deliveryDate, String(s.amount), s.status]), "sales-orders.csv");
+    } else if (activeTab === "receipts") {
+      exportCSV(["Number", "Customer", "Date", "Invoice", "Amount", "Payment Method"],
+        filteredReceipts.map((r) => [r.number, r.customer, r.date, r.invoiceNumber, String(r.amount), r.paymentMethod]), "receipts.csv");
+    } else {
+      exportCSV(["Type", "Number", "Customer", "Date", "Amount", "Status"],
+        allSalesData.map((i) => [i.type, i.number, i.customer, i.date, String(i.amount), i.status]), "sales-all.csv");
+    }
+  };
+
   const newButtonLabel = activeTab === "sales-orders" ? "New Sales Order" : activeTab === "receipts" ? "New Receipt" : activeTab === "quotations" ? "New Quotation" : activeTab === "returns" ? "New Return" : "New Invoice";
   const handleNewClick = () => {
     setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null);
