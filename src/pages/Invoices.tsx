@@ -563,29 +563,29 @@ export default function Invoices() {
 
   // ========== EARLY RETURNS FOR FORM / PREVIEW VIEWS ==========
   if (view === "preview" && previewInvoice) {
-    return <InvoicePreview invoice={previewInvoice} onBack={goList} receipts={receipts} />;
+    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} />;
   }
   if (view === "so-preview" && previewSO) {
-    return <SalesOrderPreview order={previewSO.order} onBack={goList} showPrices={previewSO.showPrices} />;
+    return <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} />;
   }
   if (view === "return-form") {
-    return <ReturnInvoiceForm invoices={invoices.filter(i => !i.isReturn)} onProcessReturn={handleProcessReturn} onCancel={goList} />;
+    return <ReturnInvoiceForm invoices={invoices.filter(i => !i.isReturn)} inventory={inventory} onSaveReturn={handleProcessReturn} onCancel={goList} nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
   }
   if (view === "form-receipt-for-invoice" && receivePaymentInvoice) {
     const invReceipts = receipts.filter((r) => r.invoiceNumber === receivePaymentInvoice.number);
     const totalPaid = invReceipts.reduce((s, r) => s + r.amount, 0) + (receivePaymentInvoice.payments || []).reduce((s, p) => s + p.amount, 0);
     const remaining = receivePaymentInvoice.amount - totalPaid;
-    return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} editReceipt={null} prefillCustomer={receivePaymentInvoice.customer} prefillInvoice={receivePaymentInvoice.number} prefillAmount={remaining > 0 ? remaining : undefined} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts.map(a => a.name)} />;
+    return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
   }
   if (view === "quotation-form") {
-    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} isQuotation nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} />;
+    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} />;
   }
   if (view === "form") {
     if (activeTab === "sales-orders" || editOrder) {
       return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={inventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />;
     }
     if (activeTab === "receipts" || editReceipt) {
-      return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts.map(a => a.name)} />;
+      return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
     return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} />;
   }
