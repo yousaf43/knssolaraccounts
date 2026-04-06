@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import type { Invoice, Receipt } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
+import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import ksLogo from "@/assets/ks-logo.png";
 
 type Props = {
@@ -63,8 +64,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   const total = afterDiscount + taxAmount;
 
   // Calculate paid and balance
-  const invReceipts = receipts.filter((r) => r.invoiceNumber === invoice.number);
-  const totalPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
+  const { totalPaid } = getInvoicePaymentSummary(invoice, receipts);
   const invoiceBalance = total - totalPaid;
 
   // Account balance = customer's total outstanding (passed in, or fallback to invoice balance)
