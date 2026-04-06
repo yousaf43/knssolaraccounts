@@ -14,6 +14,7 @@ import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, Customer, InventoryItem, Receipt } from "@/data/mockData";
+import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 
 type Props = {
   customers: Customer[];
