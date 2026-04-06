@@ -573,7 +573,7 @@ export default function Invoices() {
     return <ReturnInvoiceForm invoices={invoices.filter(i => !i.isReturn)} inventory={inventory} onSaveReturn={handleProcessReturn} onCancel={goList} nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
   }
   if (view === "form-receipt-for-invoice" && receivePaymentInvoice) {
-    return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} prefillInvoice={receivePaymentInvoice} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+    return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
   }
   if (view === "quotation-form") {
     return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} />;
@@ -885,11 +885,7 @@ export default function Invoices() {
                 </thead>
                 <tbody>
                   {pgInvoices.paginatedItems.map((inv) => {
-                    const invReceipts = receipts.filter((r) => r.invoiceNumber && r.invoiceNumber === inv.number);
-                    const receiptsPaid = invReceipts.reduce((s, r) => s + (r.amount || 0), 0);
-                    const embeddedPaid = (inv.payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
-                    const totalPaid = receiptsPaid + embeddedPaid;
-                    const remaining = inv.amount - totalPaid;
+                    const { invoiceReceipts: invReceipts, totalPaid, remaining } = getInvoicePaymentSummary(inv, receipts);
                     const isExpanded = expandedInvoice === inv.id;
                     return (
                       <React.Fragment key={inv.id}>

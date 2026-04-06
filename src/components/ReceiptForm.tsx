@@ -8,6 +8,7 @@ import { X, UserPlus, AlertTriangle } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
+import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 
 type Props = {
   customers: Customer[];
@@ -19,14 +20,26 @@ type Props = {
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
   accounts?: Account[];
+  prefillInvoice?: Invoice | null;
 };
 
-export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCancel, editReceipt, nextNumber, onAddCustomer, accounts: propAccounts }: Props) {
+export function ReceiptForm({
+  customers,
+  invoices,
+  receipts = [],
+  onSave,
+  onCancel,
+  editReceipt,
+  nextNumber,
+  onAddCustomer,
+  accounts: propAccounts,
+  prefillInvoice,
+}: Props) {
   const { formatCurrency } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
-  const [customer, setCustomer] = useState(editReceipt?.customer || "");
+  const [customer, setCustomer] = useState(editReceipt?.customer || prefillInvoice?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
-  const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || "");
+  const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || prefillInvoice?.number || "");
   const [amount, setAmount] = useState(editReceipt?.amount || 0);
   const [paymentMethod, setPaymentMethod] = useState(editReceipt?.paymentMethod || "");
   const [reference, setReference] = useState(editReceipt?.reference || "");
@@ -38,6 +51,24 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
   const [quickPhone, setQuickPhone] = useState("");
   const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
+
+  const selectedInvoice = useMemo(() => {
+    if (prefillInvoice && invoiceNumber === prefillInvoice.number && customer === prefillInvoice.customer) {
+      return prefillInvoice;
+    }
+
+    return (
+      invoices.find((invoice) => invoice.number === invoiceNumber && invoice.customer === customer) ||
+      invoices.find((invoice) => invoice.number === invoiceNumber) ||
+      null
+    );
+  }, [prefillInvoice, invoices, invoiceNumber, customer]);
+
+  const invoiceRemaining = useMemo(() => {
+    if (!selectedInvoice) return 0;
+    const { remaining } = getInvoicePaymentSummary(selectedInvoice, receipts, editReceipt?.id);
+    return Math.max(0, remaining - discountAmount);
+  }, [selectedInvoice, receipts, editReceipt?.id, discountAmount]);
 
   const handleQuickAddCustomer = () => {
     if (!quickName.trim() || !quickCompany.trim()) return;
@@ -54,25 +85,18 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
     onAddCustomer?.(newCustomer);
     setCustomer(newCustomer.name);
     setShowQuickAdd(false);
-    setQuickName(""); setQuickCompany(""); setQuickPhone(""); setQuickCNIC(""); setQuickEmail("");
+    setQuickName("");
+    setQuickCompany("");
+    setQuickPhone("");
+    setQuickCNIC("");
+    setQuickEmail("");
   };
 
-  // Calculate remaining for selected invoice
-  const selectedInvoice = invoices.find((i) => i.number === invoiceNumber);
-  const invoiceRemaining = useMemo(() => {
-    if (!selectedInvoice) return 0;
-    const paidSoFar = receipts
-      .filter((r) => r.invoiceNumber === invoiceNumber && r.id !== editReceipt?.id)
-      .reduce((s, r) => s + r.amount, 0);
-    return Math.max(0, selectedInvoice.amount - paidSoFar - discountAmount);
-  }, [selectedInvoice, invoiceNumber, receipts, editReceipt, discountAmount]);
+  const isOverpay = false;
 
-  const isOverpay = false; // Allow overpayment
-
-  // Build payment options from accounts (unique key using id)
   const paymentOptions = useMemo(() => {
     if (accounts.length > 0) {
-      return accounts.map(a => ({
+      return accounts.map((a) => ({
         value: `${a.name}||${a.accountTitle}||${a.id}`,
         label: a.accountTitle ? `${a.name} — ${a.accountTitle}` : a.name,
       }));
@@ -154,12 +178,12 @@ export function ReceiptForm({ customers, invoices, receipts = [], onSave, onCanc
         </div>
         <div>
           <Label>Against Invoice *</Label>
-          <Select value={invoiceNumber} onValueChange={(v) => {
-            setInvoiceNumber(v);
-            const inv = invoices.find((i) => i.number === v);
-            if (inv) {
-              const paid = receipts.filter((r) => r.invoiceNumber === v && r.id !== editReceipt?.id).reduce((s, r) => s + r.amount, 0);
-              setAmount(Math.max(0, inv.amount - paid));
+          <Select value={invoiceNumber} onValueChange={(value) => {
+            setInvoiceNumber(value);
+            const invoice = customerInvoices.find((inv) => inv.number === value) || invoices.find((inv) => inv.number === value && inv.customer === customer) || invoices.find((inv) => inv.number === value);
+            if (invoice) {
+              const { remaining } = getInvoicePaymentSummary(invoice, receipts, editReceipt?.id);
+              setAmount(Math.max(0, remaining));
             }
           }}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="Select invoice" /></SelectTrigger>
