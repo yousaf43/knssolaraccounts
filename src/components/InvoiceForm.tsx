@@ -14,6 +14,7 @@ import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, Customer, InventoryItem, Receipt } from "@/data/mockData";
+import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 
 type Props = {
   customers: Customer[];
@@ -484,11 +485,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
 
       {/* Payment Summary when editing */}
       {editInvoice && (() => {
-        const invoiceReceipts = receipts.filter(r => r.invoiceNumber === (editInvoice.number));
-        const embeddedPaid = (editInvoice.payments || []).reduce((s, p) => s + p.amount, 0);
-        const receiptsPaid = invoiceReceipts.reduce((s, r) => s + r.amount, 0);
-        const totalPaid = receiptsPaid + embeddedPaid;
-        const remaining = total - totalPaid;
+        const { invoiceReceipts, totalPaid, remaining, embeddedPaid } = getInvoicePaymentSummary(editInvoice, receipts);
         if (invoiceReceipts.length === 0 && embeddedPaid === 0) return null;
         return (
           <div className="border rounded-lg p-4 bg-muted/30 space-y-3">

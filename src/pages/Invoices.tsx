@@ -21,6 +21,7 @@ import { ReturnInvoiceForm } from "@/components/ReturnInvoiceForm";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
+import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -572,10 +573,7 @@ export default function Invoices() {
     return <ReturnInvoiceForm invoices={invoices.filter(i => !i.isReturn)} inventory={inventory} onSaveReturn={handleProcessReturn} onCancel={goList} nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
   }
   if (view === "form-receipt-for-invoice" && receivePaymentInvoice) {
-    const invReceipts = receipts.filter((r) => r.invoiceNumber === receivePaymentInvoice.number);
-    const totalPaid = invReceipts.reduce((s, r) => s + r.amount, 0) + (receivePaymentInvoice.payments || []).reduce((s, p) => s + p.amount, 0);
-    const remaining = receivePaymentInvoice.amount - totalPaid;
-    return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+    return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
   }
   if (view === "quotation-form") {
     return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} />;
@@ -585,7 +583,7 @@ export default function Invoices() {
       return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={inventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />;
     }
     if (activeTab === "receipts" || editReceipt) {
-      return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+      return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
     return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} />;
   }
@@ -887,11 +885,7 @@ export default function Invoices() {
                 </thead>
                 <tbody>
                   {pgInvoices.paginatedItems.map((inv) => {
-                    const invReceipts = receipts.filter((r) => r.invoiceNumber && r.invoiceNumber === inv.number);
-                    const receiptsPaid = invReceipts.reduce((s, r) => s + (r.amount || 0), 0);
-                    const embeddedPaid = (inv.payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
-                    const totalPaid = receiptsPaid + embeddedPaid;
-                    const remaining = inv.amount - totalPaid;
+                    const { invoiceReceipts: invReceipts, totalPaid, remaining } = getInvoicePaymentSummary(inv, receipts);
                     const isExpanded = expandedInvoice === inv.id;
                     return (
                       <React.Fragment key={inv.id}>
