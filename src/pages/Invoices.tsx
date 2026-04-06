@@ -887,9 +887,9 @@ export default function Invoices() {
                 </thead>
                 <tbody>
                   {pgInvoices.paginatedItems.map((inv) => {
-                    const invReceipts = receipts.filter((r) => r.invoiceNumber === inv.number);
-                    const receiptsPaid = invReceipts.reduce((s, r) => s + r.amount, 0);
-                    const embeddedPaid = (inv.payments || []).reduce((s, p) => s + p.amount, 0);
+                    const invReceipts = receipts.filter((r) => r.invoiceNumber && r.invoiceNumber === inv.number);
+                    const receiptsPaid = invReceipts.reduce((s, r) => s + (r.amount || 0), 0);
+                    const embeddedPaid = (inv.payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
                     const totalPaid = receiptsPaid + embeddedPaid;
                     const remaining = inv.amount - totalPaid;
                     const isExpanded = expandedInvoice === inv.id;
