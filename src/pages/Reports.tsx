@@ -563,7 +563,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice Date</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc No.</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sub Total</th>
@@ -587,9 +588,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         const tax = inv.tax || 0;
                         return (
                           <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 font-medium whitespace-nowrap">{inv.number}</td>
                             <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
                             <td className="px-3 py-2 font-medium">{inv.customer}</td>
-                            <td className="px-3 py-2">{inv.documentNumber || inv.number}</td>
+                            <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
                             <td className="px-3 py-2 text-right">{formatCurrency(subTotal)}</td>
                             <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(tax)}</td>
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
@@ -604,7 +606,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
-                        <td className="px-3 py-2" colSpan={3}>Total ({filtered.length} invoices)</td>
+                        <td className="px-3 py-2" colSpan={4}>Total ({filtered.length} invoices)</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.items?.reduce((ss: number, it: any) => ss + (it.amount || 0), 0) || i.amount), 0))}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.tax || 0), 0))}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
