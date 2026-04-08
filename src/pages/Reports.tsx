@@ -563,7 +563,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
-                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice Date</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc No.</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sub Total</th>
