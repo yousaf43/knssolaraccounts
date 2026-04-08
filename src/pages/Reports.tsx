@@ -588,9 +588,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         const tax = inv.tax || 0;
                         return (
                           <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 font-medium whitespace-nowrap">{inv.number}</td>
                             <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
                             <td className="px-3 py-2 font-medium">{inv.customer}</td>
-                            <td className="px-3 py-2">{inv.documentNumber || inv.number}</td>
+                            <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
                             <td className="px-3 py-2 text-right">{formatCurrency(subTotal)}</td>
                             <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(tax)}</td>
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
