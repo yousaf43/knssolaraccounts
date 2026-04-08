@@ -644,30 +644,53 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <thead>
                       <tr className="border-b bg-muted/50">
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice Date</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc No.</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Company</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Phone</th>
-                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Invoices</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Billed</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Paid</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Outstanding</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {custData.map(cust => (
-                        <tr key={cust.id} className="border-b last:border-0 hover:bg-muted/30">
-                          <td className="px-3 py-2 font-medium">{cust.name}</td>
-                          <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
-                          <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
-                          <td className="px-3 py-2 text-right">{cust.invoiceCount}</td>
-                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(cust.totalBilled)}</td>
-                          <td className="px-3 py-2 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
-                          <td className={`px-3 py-2 text-right font-medium ${cust.outstanding > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(cust.outstanding)}</td>
-                        </tr>
-                      ))}
+                      {custData.flatMap(cust => 
+                        cust.invoices.length > 0 ? cust.invoices.map((inv, idx) => {
+                          const invPaid = cust.receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + (r.amount || 0), 0)
+                            + (inv.payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
+                          const invOutstanding = Math.max(0, inv.amount - invPaid);
+                          return (
+                            <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
+                              <td className="px-3 py-2 font-medium">{idx === 0 ? cust.name : ""}</td>
+                              <td className="px-3 py-2 whitespace-nowrap">{inv.number}</td>
+                              <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
+                              <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{idx === 0 ? (cust.company || "—") : ""}</td>
+                              <td className="px-3 py-2 text-muted-foreground text-xs">{idx === 0 ? (cust.phone || "—") : ""}</td>
+                              <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
+                              <td className="px-3 py-2 text-right text-success">{formatCurrency(invPaid)}</td>
+                              <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(invOutstanding)}</td>
+                            </tr>
+                          );
+                        }) : [(
+                          <tr key={cust.id} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 font-medium">{cust.name}</td>
+                            <td className="px-3 py-2">—</td>
+                            <td className="px-3 py-2">—</td>
+                            <td className="px-3 py-2">—</td>
+                            <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
+                            <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{formatCurrency(cust.totalBilled)}</td>
+                            <td className="px-3 py-2 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
+                            <td className={`px-3 py-2 text-right font-medium ${cust.outstanding > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(cust.outstanding)}</td>
+                          </tr>
+                        )]
+                      )}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
-                        <td className="px-3 py-2" colSpan={4}>Total</td>
+                        <td className="px-3 py-2" colSpan={6}>Total</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(custData.reduce((s, c) => s + c.totalBilled, 0))}</td>
                         <td className="px-3 py-2 text-right text-success">{formatCurrency(custData.reduce((s, c) => s + c.totalPaid, 0))}</td>
                         <td className="px-3 py-2 text-right text-destructive">{formatCurrency(custData.reduce((s, c) => s + c.outstanding, 0))}</td>
