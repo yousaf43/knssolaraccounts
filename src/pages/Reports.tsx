@@ -690,7 +690,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
-                        <td className="px-3 py-2" colSpan={4}>Total</td>
+                        <td className="px-3 py-2" colSpan={6}>Total</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(custData.reduce((s, c) => s + c.totalBilled, 0))}</td>
                         <td className="px-3 py-2 text-right text-success">{formatCurrency(custData.reduce((s, c) => s + c.totalPaid, 0))}</td>
                         <td className="px-3 py-2 text-right text-destructive">{formatCurrency(custData.reduce((s, c) => s + c.outstanding, 0))}</td>
