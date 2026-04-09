@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
+import { AiAssistant } from "@/components/AiAssistant";
 import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,7 @@ export function AppLayout() {
         <footer className="py-2 text-center text-[10px] text-muted-foreground/60 bg-background border-t border-border/30">
           Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
         </footer>
+        <AiAssistant />
       </div>
     </div>
   );
