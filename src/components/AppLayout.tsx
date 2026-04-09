@@ -83,6 +83,7 @@ export function AppLayout() {
         <footer className="py-2 text-center text-[10px] text-muted-foreground/60 bg-background border-t border-border/30">
           Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
         </footer>
+        <AiAssistant />
       </div>
     </div>
   );
