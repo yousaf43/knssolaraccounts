@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Bot, X, Send, Loader2, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Bot, X, Send, Loader2, Trash2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,13 +16,42 @@ const SUGGESTIONS = [
   "Aaj ka sale summary",
 ];
 
+// Speech synthesis helper
+function speakText(text: string, onEnd?: () => void) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  // Strip markdown for cleaner speech
+  const cleanText = text
+    .replace(/[#*_`~\[\]()>|-]/g, "")
+    .replace(/\n+/g, ". ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleanText) return;
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = "ur-PK";
+  // Fallback to English if Urdu not available
+  const voices = window.speechSynthesis.getVoices();
+  const urduVoice = voices.find(v => v.lang.startsWith("ur"));
+  const hindiVoice = voices.find(v => v.lang.startsWith("hi"));
+  const englishVoice = voices.find(v => v.lang.startsWith("en"));
+  utterance.voice = urduVoice || hindiVoice || englishVoice || null;
+  if (!urduVoice && !hindiVoice) utterance.lang = "en-US";
+  utterance.rate = 0.95;
+  if (onEnd) utterance.onend = onEnd;
+  window.speechSynthesis.speak(utterance);
+}
+
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,6 +63,56 @@ export function AiAssistant() {
     if (open && inputRef.current) inputRef.current.focus();
   }, [open]);
 
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      if (recognitionRef.current) recognitionRef.current.abort();
+    };
+  }, []);
+
+  const toggleListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support speech recognition.");
+      return;
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ur-PK";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+      // If final result, auto-send
+      if (event.results[event.results.length - 1].isFinal) {
+        setTimeout(() => {
+          if (transcript.trim()) {
+            sendMessage(transcript.trim());
+          }
+        }, 300);
+      }
+    };
+
+    recognition.start();
+  }, [isListening]);
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
     const userMsg: Msg = { role: "user", content: text.trim() };
@@ -41,6 +120,10 @@ export function AiAssistant() {
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
+
+    // Stop any ongoing speech
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setIsSpeaking(false);
 
     let assistantSoFar = "";
 
@@ -102,11 +185,22 @@ export function AiAssistant() {
           }
         }
       }
+
+      // Auto-speak the response if voice is enabled
+      if (voiceEnabled && assistantSoFar) {
+        setIsSpeaking(true);
+        speakText(assistantSoFar, () => setIsSpeaking(false));
+      }
     } catch (e: any) {
       setMessages(prev => [...prev, { role: "assistant", content: `❌ ${e.message || "Something went wrong"}` }]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const stopSpeaking = () => {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    setIsSpeaking(false);
   };
 
   return (
@@ -115,7 +209,8 @@ export function AiAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-105"
+          className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all hover:scale-105 animate-bounce"
+          style={{ animationDuration: "2s", animationIterationCount: 3 }}
         >
           <Bot className="w-6 h-6" />
         </button>
@@ -123,18 +218,30 @@ export function AiAssistant() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-4 right-4 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-2rem)] bg-card border rounded-xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-4 right-4 z-[9999] w-[390px] max-w-[calc(100vw-2rem)] h-[580px] max-h-[calc(100vh-2rem)] bg-card border rounded-xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground rounded-t-xl">
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
               <span className="font-semibold text-sm">AI Assistant</span>
+              {isSpeaking && (
+                <span className="flex items-center gap-1 text-[10px] opacity-80">
+                  <Volume2 className="w-3 h-3 animate-pulse" /> Speaking...
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1">
-              <button onClick={() => setMessages([])} className="p-1.5 rounded-md hover:bg-primary-foreground/20 transition-colors" title="Clear chat">
+              <button
+                onClick={() => { setVoiceEnabled(!voiceEnabled); if (isSpeaking) stopSpeaking(); }}
+                className="p-1.5 rounded-md hover:bg-primary-foreground/20 transition-colors"
+                title={voiceEnabled ? "Disable voice" : "Enable voice"}
+              >
+                {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </button>
+              <button onClick={() => { setMessages([]); stopSpeaking(); }} className="p-1.5 rounded-md hover:bg-primary-foreground/20 transition-colors" title="Clear chat">
                 <Trash2 className="w-4 h-4" />
               </button>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-primary-foreground/20 transition-colors">
+              <button onClick={() => { setOpen(false); stopSpeaking(); }} className="p-1.5 rounded-md hover:bg-primary-foreground/20 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -145,7 +252,8 @@ export function AiAssistant() {
             {messages.length === 0 && (
               <div className="text-center py-6">
                 <Bot className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">Mujhse kuch bhi poochein! Sales, inventory, invoices ya koi bhi sawal.</p>
+                <p className="text-sm text-muted-foreground mb-1 font-medium">K&S Solar AI Assistant</p>
+                <p className="text-xs text-muted-foreground mb-4">Type ya mic button dabayein aur bolein!</p>
                 <div className="space-y-2">
                   {SUGGESTIONS.map((s, i) => (
                     <button
@@ -196,19 +304,35 @@ export function AiAssistant() {
               }}
               className="flex gap-2"
             >
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isLoading}
+                className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                  isListening
+                    ? "bg-destructive text-destructive-foreground animate-pulse"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+                title={isListening ? "Stop listening" : "Start voice input"}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
               <input
                 ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Apna sawal likhein..."
+                placeholder={isListening ? "Bol rahay hain..." : "Apna sawal likhein..."}
                 className="flex-1 bg-muted rounded-lg px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
                 disabled={isLoading}
               />
-              <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="rounded-lg shrink-0">
+              <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="rounded-lg shrink-0 h-9 w-9">
                 <Send className="w-4 h-4" />
               </Button>
             </form>
+            {isListening && (
+              <p className="text-[10px] text-destructive mt-1 text-center animate-pulse">🎤 Listening... bolein aur automatically send ho jayega</p>
+            )}
           </div>
         </div>
       )}
