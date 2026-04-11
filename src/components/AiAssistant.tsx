@@ -14,31 +14,109 @@ const SUGGESTIONS = [
   "Pending invoices kitni hain?",
   "Top 5 customers by sales",
   "Aaj ka sale summary",
+  "Solar washing ki total earning?",
+  "Bank accounts ka balance batao",
+  "Supplier payments ka summary do",
 ];
 
-// Speech synthesis helper
+// Improved speech synthesis - female voice with natural speech
 function speakText(text: string, onEnd?: () => void) {
   if (!("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
+
   // Strip markdown for cleaner speech
   const cleanText = text
-    .replace(/[#*_`~\[\]()>|-]/g, "")
-    .replace(/\n+/g, ". ")
-    .replace(/\s+/g, " ")
+    .replace(/#{1,6}\s*/g, "")
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[~|>\-]/g, "")
+    .replace(/\n{2,}/g, ". ")
+    .replace(/\n/g, ". ")
+    .replace(/•/g, "")
+    .replace(/\d+\.\s/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\.\s*\./g, ".")
     .trim();
+
   if (!cleanText) return;
-  const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.lang = "ur-PK";
-  // Fallback to English if Urdu not available
-  const voices = window.speechSynthesis.getVoices();
-  const urduVoice = voices.find(v => v.lang.startsWith("ur"));
-  const hindiVoice = voices.find(v => v.lang.startsWith("hi"));
-  const englishVoice = voices.find(v => v.lang.startsWith("en"));
-  utterance.voice = urduVoice || hindiVoice || englishVoice || null;
-  if (!urduVoice && !hindiVoice) utterance.lang = "en-US";
-  utterance.rate = 0.95;
-  if (onEnd) utterance.onend = onEnd;
-  window.speechSynthesis.speak(utterance);
+
+  // Split into sentences for more natural speech
+  const sentences = cleanText
+    .split(/(?<=[.!?؟۔])\s+/)
+    .filter(s => s.trim().length > 0);
+
+  let currentIndex = 0;
+
+  const speakNext = () => {
+    if (currentIndex >= sentences.length) {
+      if (onEnd) onEnd();
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(sentences[currentIndex]);
+
+    // Try to find a good female voice
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Priority: Female English voices that sound natural
+    const preferredVoices = [
+      // Google female voices (best quality)
+      voices.find(v => v.name.includes("Google") && v.name.includes("Female") && v.lang.startsWith("en")),
+      voices.find(v => v.name.includes("Google UK English Female")),
+      voices.find(v => v.name.includes("Google US English")),
+      // Microsoft female voices
+      voices.find(v => v.name.includes("Zira")),
+      voices.find(v => v.name.includes("Jenny")),
+      voices.find(v => v.name.includes("Aria")),
+      voices.find(v => v.name.includes("Sara")),
+      // Apple female voices
+      voices.find(v => v.name.includes("Samantha")),
+      voices.find(v => v.name.includes("Karen")),
+      voices.find(v => v.name.includes("Victoria")),
+      // Any female English voice
+      voices.find(v => v.lang.startsWith("en") && v.name.toLowerCase().includes("female")),
+      // Hindi female (good for Urdu/Roman Urdu)
+      voices.find(v => v.lang.startsWith("hi") && v.name.toLowerCase().includes("female")),
+      voices.find(v => v.lang.startsWith("hi")),
+      // Fallback: any English voice
+      voices.find(v => v.lang.startsWith("en-US")),
+      voices.find(v => v.lang.startsWith("en")),
+    ];
+
+    const selectedVoice = preferredVoices.find(v => v != null) || null;
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
+    } else {
+      utterance.lang = "en-US";
+    }
+
+    utterance.rate = 0.92;
+    utterance.pitch = 1.1; // Slightly higher pitch for female voice
+    utterance.volume = 1.0;
+
+    utterance.onend = () => {
+      currentIndex++;
+      speakNext();
+    };
+
+    utterance.onerror = () => {
+      currentIndex++;
+      speakNext();
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Ensure voices are loaded
+  if (window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      speakNext();
+    };
+  } else {
+    speakNext();
+  }
 }
 
 export function AiAssistant() {
@@ -63,8 +141,14 @@ export function AiAssistant() {
     if (open && inputRef.current) inputRef.current.focus();
   }, [open]);
 
-  // Cleanup speech on unmount
+  // Preload voices
   useEffect(() => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
     return () => {
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       if (recognitionRef.current) recognitionRef.current.abort();
@@ -100,7 +184,6 @@ export function AiAssistant() {
         transcript += event.results[i][0].transcript;
       }
       setInput(transcript);
-      // If final result, auto-send
       if (event.results[event.results.length - 1].isFinal) {
         setTimeout(() => {
           if (transcript.trim()) {
@@ -121,7 +204,6 @@ export function AiAssistant() {
     setInput("");
     setIsLoading(true);
 
-    // Stop any ongoing speech
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     setIsSpeaking(false);
 
@@ -205,7 +287,6 @@ export function AiAssistant() {
 
   return (
     <>
-      {/* Floating button */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -216,19 +297,20 @@ export function AiAssistant() {
         </button>
       )}
 
-      {/* Chat panel */}
       {open && (
         <div className="fixed bottom-4 right-4 z-[9999] w-[390px] max-w-[calc(100vw-2rem)] h-[580px] max-h-[calc(100vh-2rem)] bg-card border rounded-xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground rounded-t-xl">
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
-              <span className="font-semibold text-sm">AI Assistant</span>
-              {isSpeaking && (
-                <span className="flex items-center gap-1 text-[10px] opacity-80">
-                  <Volume2 className="w-3 h-3 animate-pulse" /> Speaking...
-                </span>
-              )}
+              <div>
+                <span className="font-semibold text-sm">Aisha - AI Assistant</span>
+                {isSpeaking && (
+                  <span className="flex items-center gap-1 text-[10px] opacity-80">
+                    <Volume2 className="w-3 h-3 animate-pulse" /> Speaking...
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -252,14 +334,15 @@ export function AiAssistant() {
             {messages.length === 0 && (
               <div className="text-center py-6">
                 <Bot className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground mb-1 font-medium">K&S Solar AI Assistant</p>
-                <p className="text-xs text-muted-foreground mb-4">Type ya mic button dabayein aur bolein!</p>
-                <div className="space-y-2">
+                <p className="text-sm text-muted-foreground mb-1 font-medium">Aisha - K&S Solar AI Assistant</p>
+                <p className="text-xs text-muted-foreground mb-1">Mujhe business data, reports, accounts sab ka access hai!</p>
+                <p className="text-xs text-muted-foreground mb-4">General questions bhi pooch saktay hain 🌐</p>
+                <div className="grid grid-cols-2 gap-2">
                   {SUGGESTIONS.map((s, i) => (
                     <button
                       key={i}
                       onClick={() => sendMessage(s)}
-                      className="block w-full text-left text-xs px-3 py-2 rounded-lg border hover:bg-muted transition-colors text-muted-foreground"
+                      className="text-left text-xs px-3 py-2 rounded-lg border hover:bg-muted transition-colors text-muted-foreground"
                     >
                       {s}
                     </button>
