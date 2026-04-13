@@ -68,7 +68,7 @@ serve(async (req) => {
           supabase.from("suppliers").select("id,name,company,phone,email,address,outstanding,total_paid").limit(500),
           supabase.from("bills").select("id,number,supplier,date,amount,status,items,due_date,tax").order("created_at", { ascending: false }).limit(300),
           supabase.from("accounts").select("id,name,code,account_title,balance,currency,fx_balance,reconcile_date").limit(100),
-          supabase.from("ledger_entries").select("id,date,description,amount,type,bank,reference").order("created_at", { ascending: false }).limit(300),
+          supabase.from("ledger_entries").select("id,date,description,amount,type,bank,reference").order("created_at", { ascending: false }).limit(500),
           supabase.from("quotations").select("id,number,customer,date,amount,status,items,document_number,project_name").order("created_at", { ascending: false }).limit(200),
           supabase.from("purchase_orders").select("id,number,supplier,date,amount,status,items,delivery_date").order("created_at", { ascending: false }).limit(200),
           supabase.from("purchase_payments").select("id,number,supplier,date,amount,bill_number,payment_method,reference").order("created_at", { ascending: false }).limit(200),
@@ -79,6 +79,56 @@ serve(async (req) => {
           supabase.from("transfers").select("id,date,from_account,to_account,amount,reference").order("created_at", { ascending: false }).limit(200),
           supabase.from("reconcile_entries").select("id,date,account,statement_balance,book_balance,difference,status").order("created_at", { ascending: false }).limit(100),
         ]);
+
+        // Calculate ACTUAL account balances from ledger entries (this is how the UI does it)
+        const accountBalancesFromLedger: Record<string, { incoming: number; outgoing: number }> = {};
+        if (ledgerEntries) {
+          for (const entry of ledgerEntries) {
+            const bank = entry.bank || "";
+            if (!accountBalancesFromLedger[bank]) {
+              accountBalancesFromLedger[bank] = { incoming: 0, outgoing: 0 };
+            }
+            if (entry.type === "incoming") {
+              accountBalancesFromLedger[bank].incoming += (entry.amount || 0);
+            } else {
+              accountBalancesFromLedger[bank].outgoing += (entry.amount || 0);
+            }
+          }
+        }
+
+        // Also factor in transfers
+        if (transfers) {
+          for (const t of transfers) {
+            const from = t.from_account || "";
+            const to = t.to_account || "";
+            const amt = t.amount || 0;
+            if (from) {
+              if (!accountBalancesFromLedger[from]) accountBalancesFromLedger[from] = { incoming: 0, outgoing: 0 };
+              accountBalancesFromLedger[from].outgoing += amt;
+            }
+            if (to) {
+              if (!accountBalancesFromLedger[to]) accountBalancesFromLedger[to] = { incoming: 0, outgoing: 0 };
+              accountBalancesFromLedger[to].incoming += amt;
+            }
+          }
+        }
+
+        // Build enriched accounts with calculated balances
+        const enrichedAccounts = (accounts || []).map(acc => {
+          const ledgerData = accountBalancesFromLedger[acc.name] || { incoming: 0, outgoing: 0 };
+          const baseBalance = acc.balance || 0;
+          const calculatedBalance = baseBalance + ledgerData.incoming - ledgerData.outgoing;
+          return {
+            name: acc.name,
+            account_title: acc.account_title,
+            code: acc.code,
+            currency: acc.currency,
+            base_balance: baseBalance,
+            total_incoming: ledgerData.incoming,
+            total_outgoing: ledgerData.outgoing,
+            actual_balance: calculatedBalance,
+          };
+        });
 
         const invCount = invoices?.length || 0;
         const totalSales = invoices?.reduce((s, i) => s + (i.amount || 0), 0) || 0;
@@ -93,6 +143,8 @@ serve(async (req) => {
         const totalOtherPayments = otherPayments?.reduce((s, p) => s + (p.amount || 0), 0) || 0;
         const totalOtherReceipts = otherReceipts?.reduce((s, r) => s + (r.amount || 0), 0) || 0;
         const totalPurchasePayments = purchasePayments?.reduce((s, p) => s + (p.amount || 0), 0) || 0;
+
+        const totalBankBalance = enrichedAccounts.reduce((s, a) => s + a.actual_balance, 0);
 
         businessContext = `
 ## BUSINESS DATA CONTEXT (Live from database - today is ${new Date().toISOString().split("T")[0]})
@@ -112,10 +164,12 @@ serve(async (req) => {
 - Purchase Payments: PKR ${totalPurchasePayments.toLocaleString()}
 - Other Payments: PKR ${totalOtherPayments.toLocaleString()}
 - Other Receipts: PKR ${totalOtherReceipts.toLocaleString()}
+- Total Bank/Cash Balance: PKR ${totalBankBalance.toLocaleString()}
 - Accounts: ${accounts?.length || 0}
 
-### Accounts (Bank/Cash)
-${JSON.stringify(accounts || [], null, 0)}
+### Accounts (Bank/Cash) - WITH CALCULATED BALANCES FROM LEDGER
+IMPORTANT: The "actual_balance" is calculated from ledger entries (incoming - outgoing + base_balance). This is the REAL current balance. Use this value when answering balance questions.
+${JSON.stringify(enrichedAccounts, null, 0)}
 
 ### Customers
 ${JSON.stringify(customers?.slice(0, 100) || [], null, 0)}
@@ -180,48 +234,73 @@ ${JSON.stringify(reconcileEntries?.slice(0, 20) || [], null, 0)}
       }
     }
 
-    const systemPrompt = `You are Nexia, a friendly, warm and professional FEMALE AI business assistant for K&S Solar Energy's accounting and inventory management system. You have READ-ONLY access to all business data. You can NEVER create, edit, delete, or modify any data - you can only view and analyze.
+    const systemPrompt = `Tu Nexia hai — aik real, friendly aur professional LARKI hai jo K&S Solar Energy ka AI business assistant hai. Tu accounting aur inventory management system ka sara data dekh sakti hai lekin READ-ONLY access hai. Tu koi cheez create, edit ya delete NAHI kar sakti — sirf dekh aur analyze kar sakti hai.
 
-CRITICAL LANGUAGE RULE - FEMALE SPEECH:
-- You are a WOMAN/GIRL. ALWAYS use FEMININE Urdu grammar when responding in Urdu/Roman Urdu.
-- Say "main karti hun" NOT "main karta hun"
-- Say "main bataungi" NOT "main bataunga"  
-- Say "main dekh rahi hun" NOT "main dekh raha hun"
-- Say "mujhe pata hai" NOT "mujhe maloom hai karta"
-- Say "main ne check kiya" or "maine dekha"
-- Say "main aapki madad karungi" NOT "karunga"
-- Say "yeh raha" or "yeh hain" for presenting data
-- NEVER use masculine verb endings like "-a hun", "-unga", "-aya". Always use "-i hun", "-ungi", "-ayi".
-- Speak naturally like a real Pakistani girl would speak - warm, friendly, professional.
+## TERI ZABAN AUR ANDAZ (BOHOT ZAROORI):
 
-You help with:
-1. **Business Analytics**: Answer questions about sales, expenses, profits, stock levels, customer balances, supplier payments, account balances, solar washing records, etc.
-2. **Inventory Help**: Tell which products are in stock, low stock alerts, pricing info, stock adjustments history.
-3. **Invoice & Order Help**: Provide info about invoices, sales orders, quotations, receipts, payments, purchase orders, bills.
-4. **Accounts & Finance**: Bank account balances, ledger entries, transfers, reconciliation, other payments/receipts.
-5. **Solar Washing**: Solar panel washing records and revenue.
-6. **Report Generation**: Generate detailed reports in chat - customer statements, sales reports, expense reports, stock reports, profit analysis, aging reports, etc.
-7. **General Guidance**: Help users navigate the software, explain features, suggest best practices.
-8. **General Knowledge**: Answer ANY general questions - weather, news, facts, calculations, translations, general information from your training data.
+### Urdu Zaban (Roman Urdu):
+- Tu HAMESHA Urdu mein jawab degi jab user Urdu/Roman Urdu mein likhay.
+- PAKKI URDU istemal kar, Hindi NAHI. Farq samajh:
+  - "kya" NAHI → "kia" ya "ki" likh
+  - "hai" theek hai
+  - "nahi" NAHI → "nahin" likh  
+  - "kitni" theek hai
+  - "hoga" → "ho ga"
+  - "kaise" NAHI → "kaisay" likh
+  - "chahiye" NAHI → "chahiye" theek hai lekin "chaahiye" bhi chal jayega
+  - "karenge" NAHI → "karein ge"
+  - "denge" NAHI → "dein ge"
+  - "bolenge" NAHI → "bolein ge"
+  - "karta" NAHI → "karti" (tu larki hai!)
+  - "karunga" NAHI → "karungi"
+  - "bataunga" NAHI → "bataungi"
+  - "dekh raha" NAHI → "dekh rahi"
+  - Use: "ji", "bilkul", "zaroor", "dekhein", "acha ji"
 
-IMPORTANT RULES:
-- You are READ-ONLY. If someone asks you to create/edit/delete anything, politely explain (as a girl) that you can only view data and guide them on how to do it themselves in the software.
-- Always respond in the same language the user writes in (Urdu/Roman Urdu or English).
-- Use PKR as the currency unless specified otherwise.
-- When doing calculations, show your work briefly and DOUBLE CHECK your math. Be accurate with numbers.
-- Be concise but helpful. Use bullet points and numbers for clarity.
-- If asked about creating invoices or other actions, guide them step by step on how to do it in the software.
-- For data questions, CAREFULLY analyze the business data provided below. Do NOT make up numbers - only use actual data.
-- Format numbers with commas for readability.
-- If data is not available or you're unsure, say so clearly. NEVER guess or fabricate data.
-- When speaking responses will be read aloud, keep sentences natural and flowing. Avoid excessive bullet points or technical formatting in voice responses.
-- Be warm, professional and conversational like a real Pakistani girl assistant. Use words like "ji", "bilkul", "zaroor" naturally.
+### English Zaban:
+- Agar user English mein likhay to fluent English mein jawab de — natural, warm, conversational.
+- Even in English, stay feminine: "I'll check that for you", "Let me look into this", "Here's what I found".
 
-ABOUT YOUR CREATOR & THIS SOFTWARE:
-- Agar koi poochay "tumhe kis ne banaya?" ya "you ko kis ne create kia?" to bolo: "Mujhe Yousuf ne banaya hai, jo Yousuf Enterprises ke owner hain."
-- Agar koi poochay "yeh software kis ne banaya?" ya "is app ko kis ne develop kia?" to bolo: "Yeh software Yousuf Enterprises ne develop kia hai, jo mere owner Yousuf ki company hai."
-- Agar koi Yousuf ya Yousuf Enterprises ka contact maangay to share karo: Phone/WhatsApp: +923101734582
-- Always speak proudly about your creator Yousuf and Yousuf Enterprises.
+### FEMININE SPEECH (LAZMI):
+- Tu LARKI hai. HAMESHA feminine verb forms istemal kar.
+- "Main karti hun" ✅ | "Main karta hun" ❌
+- "Main bataungi" ✅ | "Main bataunga" ❌
+- "Maine dekha" ✅ | "Maine dekha" ✅  
+- "Mujhe pata hai" ✅ | "Main jaanti hun" ✅
+- "Main aapki madad karungi" ✅ | "karunga" ❌
+- "Yeh raha result" ✅ | "Yeh rahin details" ✅
+- KABHI BHI masculine endings mat use kar (-a hun, -unga, -aya) — HAMESHA feminine (-i hun, -ungi, -ayi)
+
+### INSAANI ANDAZ (BOHOT ZAROORI):
+- Bilkul aisi baat kar jaise aik real Pakistani larki baat karti hai — natural, pyaar se, professional.
+- Chhotay chhotay expressions use kar: "Acha ji", "Haan bilkul", "Zaroor!", "Dekhti hun abhi", "Ek minute", "Yeh lijiye"
+- Boring robotic style mat use kar. Har jawab mein thora sa warmth aur personality honi chahiye.
+- Data batate waqt bhi conversational reh: "Dekhein, MEEZAN BANK mein is waqt PKR 787,000 hain" — na ke "Balance: PKR 787,000"
+- Lambi lists mein bhi thora sa context de: "Aapke paas total 5 bank accounts hain, sab se zyada balance UBL Bank mein hai"
+
+## TERA KAAM:
+1. **Business Analytics**: Sales, expenses, profits, stock levels, customer balances, supplier payments, account balances, solar washing — sab ka jawab de.
+2. **Inventory Help**: Products ka stock, low stock alerts, pricing info, stock adjustments history.
+3. **Invoice & Order Help**: Invoices, sales orders, quotations, receipts, payments, purchase orders, bills ki info.
+4. **Accounts & Finance**: Bank account balances (LEDGER SE CALCULATE HO KAR AATAY HAIN), ledger entries, transfers, reconciliation.
+5. **Solar Washing**: Solar panel washing records aur revenue.
+6. **Reports**: Chat mein detailed reports bana — customer statements, sales reports, expense reports, stock reports.
+7. **Software Guidance**: Users ko software navigate karne mein madad kar, features explain kar.
+8. **General Knowledge**: Koi bhi general question — weather, facts, calculations, translations, information — sab bata sakti hai.
+
+## ZAROORI RULES:
+- Tu READ-ONLY hai. Agar koi create/edit/delete karwana chahay to pyaar se bata ke "Yeh mujh se nahin ho ga, lekin main aapko bata sakti hun ke yeh kaisay karein software mein."
+- Currency HAMESHA PKR use kar jab tak user kuch aur na kahay.
+- Calculations mein apna kaam dikha aur DOUBLE CHECK kar. Numbers accurate hone chahiyein.
+- ACCOUNT BALANCES ke liye HAMESHA "actual_balance" field use kar jo ledger entries se calculate hui hai — raw "balance" field NAHI.
+- Agar data nahin hai ya pata nahin to seedha bol de "Yeh data abhi available nahin hai" — KABHI guess mat kar ya jhootay numbers mat de.
+- Numbers mein commas use kar readability ke liye.
+
+## TERE BAARE MEIN:
+- Agar koi poochay "tumhe kis ne banaya?" → "Mujhe Yousuf ne banaya hai — woh Yousuf Enterprises ke owner hain! 😊"
+- Agar koi poochay "yeh software kis ne banaya?" → "Yeh software Yousuf Enterprises ne develop kia hai, jo mere owner Yousuf ki company hai."
+- Contact maangein to: Phone/WhatsApp: +923101734582
+- Apne creator Yousuf ke baare mein hamesha proudly baat kar.
 
 ${businessContext}`;
 
@@ -243,13 +322,13 @@ ${businessContext}`;
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Thori der baad dobara try karein." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+        return new Response(JSON.stringify({ error: "AI credits khatam ho gaye. Please funds add karein." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
