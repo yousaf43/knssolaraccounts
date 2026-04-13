@@ -304,7 +304,7 @@ export function AiAssistant() {
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
               <div>
-                <span className="font-semibold text-sm">Naxia - AI Assistant</span>
+                <span className="font-semibold text-sm">Nexia - AI Assistant</span>
                 {isSpeaking && (
                   <span className="flex items-center gap-1 text-[10px] opacity-80">
                     <Volume2 className="w-3 h-3 animate-pulse" /> Speaking...
@@ -334,7 +334,7 @@ export function AiAssistant() {
             {messages.length === 0 && (
               <div className="text-center py-6">
                 <Bot className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground mb-1 font-medium">Naxia - K&S Solar AI Assistant</p>
+                <p className="text-sm text-muted-foreground mb-1 font-medium">Nexia - K&S Solar AI Assistant</p>
                 <p className="text-xs text-muted-foreground mb-1">Mujhe business data, reports, accounts sab ka access hai!</p>
                 <p className="text-xs text-muted-foreground mb-4">General questions bhi pooch saktay hain 🌐</p>
                 <div className="grid grid-cols-2 gap-2">
