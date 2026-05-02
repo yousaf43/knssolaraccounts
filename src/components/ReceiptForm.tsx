@@ -153,12 +153,6 @@ export function ReceiptForm({
               </Button>
             )}
           </div>
-            {onAddCustomer && (
-              <Button type="button" variant="outline" size="icon" onClick={() => setShowQuickAdd(!showQuickAdd)} title="Add new customer">
-                <UserPlus className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
           {showQuickAdd && (
             <div className="mt-2 p-3 border rounded-lg bg-muted/30 space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Quick Add Customer</p>
