@@ -9,6 +9,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
+import { CustomerCombobox } from "@/components/CustomerCombobox";
 
 type Props = {
   customers: Customer[];
