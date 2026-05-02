@@ -146,12 +146,13 @@ export function ReceiptForm({
         <div>
           <Label>Customer *</Label>
           <div className="flex gap-2 mt-1">
-            <Select value={customer} onValueChange={setCustomer}>
-              <SelectTrigger className="flex-1"><SelectValue placeholder="Select customer" /></SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name} ({c.company})</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <CustomerCombobox customers={customers} selectedName={customer} onSelect={setCustomer} />
+            {onAddCustomer && (
+              <Button type="button" variant="outline" size="icon" onClick={() => setShowQuickAdd(!showQuickAdd)} title="Add new customer">
+                <UserPlus className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
             {onAddCustomer && (
               <Button type="button" variant="outline" size="icon" onClick={() => setShowQuickAdd(!showQuickAdd)} title="Add new customer">
                 <UserPlus className="w-4 h-4" />
