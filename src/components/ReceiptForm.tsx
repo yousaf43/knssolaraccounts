@@ -57,6 +57,7 @@ export function ReceiptForm({
   const [quickEmail, setQuickEmail] = useState("");
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkAmount, setBulkAmount] = useState(0);
+  const [manualAllocations, setManualAllocations] = useState<Record<string, number>>({});
 
   const selectedInvoice = useMemo(() => {
     if (prefillInvoice && invoiceNumber === prefillInvoice.number && customer === prefillInvoice.customer) {
