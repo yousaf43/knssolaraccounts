@@ -57,6 +57,7 @@ export function ReceiptForm({
   const [quickEmail, setQuickEmail] = useState("");
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkAmount, setBulkAmount] = useState(0);
+  const [manualAllocations, setManualAllocations] = useState<Record<string, number>>({});
 
   const selectedInvoice = useMemo(() => {
     if (prefillInvoice && invoiceNumber === prefillInvoice.number && customer === prefillInvoice.customer) {
@@ -93,11 +94,26 @@ export function ReceiptForm({
     [pendingInvoices]
   );
 
-  // Allocation preview (FIFO)
+  const isManualMode = useMemo(
+    () => Object.values(manualAllocations).some((v) => v > 0),
+    [manualAllocations]
+  );
+
+  // Allocation preview (FIFO or Manual)
   const allocations = useMemo(() => {
-    if (!bulkMode || bulkAmount <= 0) return [];
-    let remaining = bulkAmount;
+    if (!bulkMode) return [];
     const result: { invoice: Invoice; allocated: number; remainingAfter: number }[] = [];
+    if (isManualMode) {
+      for (const { invoice, remaining: invRem } of pendingInvoices) {
+        const allocated = Math.min(manualAllocations[invoice.id] || 0, invRem);
+        if (allocated > 0) {
+          result.push({ invoice, allocated, remainingAfter: invRem - allocated });
+        }
+      }
+      return result;
+    }
+    if (bulkAmount <= 0) return [];
+    let remaining = bulkAmount;
     for (const { invoice, remaining: invRem } of pendingInvoices) {
       if (remaining <= 0) break;
       const allocated = Math.min(remaining, invRem);
@@ -105,12 +121,17 @@ export function ReceiptForm({
       remaining -= allocated;
     }
     return result;
-  }, [bulkMode, bulkAmount, pendingInvoices]);
+  }, [bulkMode, bulkAmount, pendingInvoices, isManualMode, manualAllocations]);
+
+  const totalAllocated = useMemo(
+    () => allocations.reduce((s, a) => s + a.allocated, 0),
+    [allocations]
+  );
 
   const unallocated = useMemo(() => {
-    const allocated = allocations.reduce((s, a) => s + a.allocated, 0);
-    return Math.max(0, bulkAmount - allocated);
-  }, [bulkAmount, allocations]);
+    if (isManualMode) return 0;
+    return Math.max(0, bulkAmount - totalAllocated);
+  }, [isManualMode, bulkAmount, totalAllocated]);
 
   const handleQuickAddCustomer = () => {
     if (!quickName.trim() || !quickCompany.trim()) return;
@@ -153,7 +174,9 @@ export function ReceiptForm({
     e.preventDefault();
 
     if (bulkMode) {
-      if (!customer.trim() || !date || bulkAmount <= 0 || allocations.length === 0) return;
+      if (!customer.trim() || !date || allocations.length === 0) return;
+      const totalAmt = isManualMode ? totalAllocated : bulkAmount;
+      if (totalAmt <= 0) return;
       const displayMethod = paymentMethod.split("||")[0];
       const baseSeq = parseInt((nextNumber.match(/\d+/) || ["0"])[0], 10);
       const prefix = nextNumber.replace(/\d+$/, "");
@@ -167,7 +190,7 @@ export function ReceiptForm({
         amount: a.allocated,
         paymentMethod: displayMethod,
         reference: reference.trim(),
-        notes: notes.trim() ? `${notes.trim()} | Bulk allocation` : `Bulk allocation across ${allocations.length} invoice(s)`,
+        notes: notes.trim() ? `${notes.trim()} | ${isManualMode ? "Manual" : "Bulk"} allocation` : `${isManualMode ? "Manual" : "Bulk"} allocation across ${allocations.length} invoice(s)`,
       }));
       onSaveBulk?.(newReceipts);
       return;
@@ -197,13 +220,13 @@ export function ReceiptForm({
         <Button type="button" variant="ghost" size="icon" onClick={onCancel}><X className="w-5 h-5" /></Button>
       </div>
 
-      {!editReceipt && !prefillInvoice && onSaveBulk && (
+      {!editReceipt && onSaveBulk && (
         <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-primary" />
             <div>
               <Label className="cursor-pointer">Bulk Payment (Multiple Invoices)</Label>
-              <p className="text-xs text-muted-foreground">Aik amount enter karein — purani invoices se shuru hoke auto-allocate ho jaye gi</p>
+              <p className="text-xs text-muted-foreground">Auto FIFO allocate karein ya neeche table se khud invoices select karein</p>
             </div>
           </div>
           <Switch checked={bulkMode} onCheckedChange={setBulkMode} />
@@ -280,23 +303,29 @@ export function ReceiptForm({
         {bulkMode && (
           <div className="md:col-span-2">
             <Label>
-              Total Amount Received *{" "}
+              Total Amount Received{" "}
               {customer && <span className="text-xs text-muted-foreground ml-1">(Total Outstanding: {formatCurrency(totalOutstanding)})</span>}
+              {isManualMode && <span className="text-xs text-primary ml-2">— Manual mode (sum: {formatCurrency(totalAllocated)})</span>}
             </Label>
             <Input
               type="number"
               min={0}
               step={0.01}
-              value={bulkAmount || ""}
+              value={isManualMode ? totalAllocated : (bulkAmount || "")}
               onChange={(e) => setBulkAmount(Number(e.target.value))}
               className="mt-1"
               placeholder="0.00"
-              required
+              disabled={isManualMode}
             />
             <div className="flex gap-2 mt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setBulkAmount(totalOutstanding)}>
-                Pay All ({formatCurrency(totalOutstanding)})
+              <Button type="button" variant="outline" size="sm" onClick={() => { setManualAllocations({}); setBulkAmount(totalOutstanding); }}>
+                Pay All FIFO ({formatCurrency(totalOutstanding)})
               </Button>
+              {isManualMode && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setManualAllocations({})}>
+                  Clear Manual Selection
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -344,23 +373,64 @@ export function ReceiptForm({
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-xs">
                 <tr>
+                  <th className="text-left px-3 py-2 w-10">Pay</th>
                   <th className="text-left px-3 py-2">Invoice</th>
                   <th className="text-left px-3 py-2">Date</th>
                   <th className="text-right px-3 py-2">Outstanding</th>
-                  <th className="text-right px-3 py-2">Allocated</th>
+                  <th className="text-right px-3 py-2 w-32">Pay Amount</th>
                   <th className="text-right px-3 py-2">After</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingInvoices.map(({ invoice, remaining }) => {
                   const alloc = allocations.find((a) => a.invoice.id === invoice.id);
+                  const manualVal = manualAllocations[invoice.id] || 0;
+                  const checked = isManualMode ? manualVal > 0 : !!alloc;
                   return (
                     <tr key={invoice.id} className={alloc ? "bg-success/5" : ""}>
+                      <td className="px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setManualAllocations((prev) => {
+                              const next = { ...prev };
+                              if (e.target.checked) {
+                                next[invoice.id] = remaining;
+                              } else {
+                                delete next[invoice.id];
+                              }
+                              return next;
+                            });
+                          }}
+                        />
+                      </td>
                       <td className="px-3 py-2 font-medium">{invoice.number}</td>
                       <td className="px-3 py-2 text-muted-foreground">{invoice.date}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(remaining)}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-success">
-                        {alloc ? formatCurrency(alloc.allocated) : "—"}
+                      <td className="px-3 py-2 text-right">
+                        {isManualMode ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            max={remaining}
+                            step={0.01}
+                            value={manualVal || ""}
+                            onChange={(e) => {
+                              const v = Math.min(Number(e.target.value) || 0, remaining);
+                              setManualAllocations((prev) => {
+                                const next = { ...prev };
+                                if (v > 0) next[invoice.id] = v;
+                                else delete next[invoice.id];
+                                return next;
+                              });
+                            }}
+                            className="h-8 text-right"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <span className="font-semibold text-success">{alloc ? formatCurrency(alloc.allocated) : "—"}</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right text-muted-foreground">
                         {alloc ? formatCurrency(alloc.remainingAfter) : formatCurrency(remaining)}
@@ -381,7 +451,7 @@ export function ReceiptForm({
 
       <div className="flex gap-3 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={bulkMode && (allocations.length === 0 || bulkAmount <= 0)}>
+        <Button type="submit" disabled={bulkMode && (allocations.length === 0 || (!isManualMode && bulkAmount <= 0))}>
           {editReceipt ? "Update Receipt" : bulkMode ? `Create ${allocations.length} Receipt${allocations.length !== 1 ? "s" : ""}` : "Create Receipt"}
         </Button>
       </div>
