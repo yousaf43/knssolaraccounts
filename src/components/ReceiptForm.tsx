@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, UserPlus, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { X, UserPlus, AlertTriangle, Layers } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
@@ -16,6 +17,7 @@ type Props = {
   invoices: Invoice[];
   receipts?: Receipt[];
   onSave: (receipt: Receipt) => void;
+  onSaveBulk?: (receipts: Receipt[]) => void;
   onCancel: () => void;
   editReceipt?: Receipt | null;
   nextNumber: string;
@@ -29,6 +31,7 @@ export function ReceiptForm({
   invoices,
   receipts = [],
   onSave,
+  onSaveBulk,
   onCancel,
   editReceipt,
   nextNumber,
@@ -52,12 +55,13 @@ export function ReceiptForm({
   const [quickPhone, setQuickPhone] = useState("");
   const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkAmount, setBulkAmount] = useState(0);
 
   const selectedInvoice = useMemo(() => {
     if (prefillInvoice && invoiceNumber === prefillInvoice.number && customer === prefillInvoice.customer) {
       return prefillInvoice;
     }
-
     return (
       invoices.find((invoice) => invoice.number === invoiceNumber && invoice.customer === customer) ||
       invoices.find((invoice) => invoice.number === invoiceNumber) ||
@@ -70,6 +74,43 @@ export function ReceiptForm({
     const { remaining } = getInvoicePaymentSummary(selectedInvoice, receipts, editReceipt?.id);
     return Math.max(0, remaining - discountAmount);
   }, [selectedInvoice, receipts, editReceipt?.id, discountAmount]);
+
+  // Pending invoices for selected customer (oldest first - FIFO)
+  const pendingInvoices = useMemo(() => {
+    if (!customer) return [];
+    return invoices
+      .filter((inv) => inv.customer === customer && inv.status !== "returned")
+      .map((inv) => {
+        const { remaining } = getInvoicePaymentSummary(inv, receipts);
+        return { invoice: inv, remaining };
+      })
+      .filter((x) => x.remaining > 0.01)
+      .sort((a, b) => (a.invoice.date || "").localeCompare(b.invoice.date || ""));
+  }, [customer, invoices, receipts]);
+
+  const totalOutstanding = useMemo(
+    () => pendingInvoices.reduce((s, x) => s + x.remaining, 0),
+    [pendingInvoices]
+  );
+
+  // Allocation preview (FIFO)
+  const allocations = useMemo(() => {
+    if (!bulkMode || bulkAmount <= 0) return [];
+    let remaining = bulkAmount;
+    const result: { invoice: Invoice; allocated: number; remainingAfter: number }[] = [];
+    for (const { invoice, remaining: invRem } of pendingInvoices) {
+      if (remaining <= 0) break;
+      const allocated = Math.min(remaining, invRem);
+      result.push({ invoice, allocated, remainingAfter: invRem - allocated });
+      remaining -= allocated;
+    }
+    return result;
+  }, [bulkMode, bulkAmount, pendingInvoices]);
+
+  const unallocated = useMemo(() => {
+    const allocated = allocations.reduce((s, a) => s + a.allocated, 0);
+    return Math.max(0, bulkAmount - allocated);
+  }, [bulkAmount, allocations]);
 
   const handleQuickAddCustomer = () => {
     if (!quickName.trim() || !quickCompany.trim()) return;
@@ -105,16 +146,34 @@ export function ReceiptForm({
     return [
       { value: "Cash on Hand||Cash on Hand||default", label: "Cash on Hand" },
       { value: "Bank Transfer||Bank Transfer||default2", label: "Bank Transfer" },
-      { value: "Online||Online||default3", label: "Online" },
-      { value: "Cheque||Cheque||default4", label: "Cheque" },
     ];
   }, [accounts]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customer.trim() || !date || !invoiceNumber || (amount <= 0 && discountAmount <= 0)) return;
-    if (isOverpay) return;
 
+    if (bulkMode) {
+      if (!customer.trim() || !date || bulkAmount <= 0 || allocations.length === 0) return;
+      const displayMethod = paymentMethod.split("||")[0];
+      const baseSeq = parseInt((nextNumber.match(/\d+/) || ["0"])[0], 10);
+      const prefix = nextNumber.replace(/\d+$/, "");
+      const padLen = (nextNumber.match(/\d+$/) || ["001"])[0].length;
+      const newReceipts: Receipt[] = allocations.map((a, i) => ({
+        id: crypto.randomUUID(),
+        number: `${prefix}${String(baseSeq + i).padStart(padLen, "0")}`,
+        customer: customer.trim(),
+        date,
+        invoiceNumber: a.invoice.number,
+        amount: a.allocated,
+        paymentMethod: displayMethod,
+        reference: reference.trim(),
+        notes: notes.trim() ? `${notes.trim()} | Bulk allocation` : `Bulk allocation across ${allocations.length} invoice(s)`,
+      }));
+      onSaveBulk?.(newReceipts);
+      return;
+    }
+
+    if (!customer.trim() || !date || !invoiceNumber || (amount <= 0 && discountAmount <= 0)) return;
     const displayMethod = paymentMethod.split("||")[0];
     onSave({
       id: editReceipt?.id || crypto.randomUUID(),
@@ -138,10 +197,23 @@ export function ReceiptForm({
         <Button type="button" variant="ghost" size="icon" onClick={onCancel}><X className="w-5 h-5" /></Button>
       </div>
 
+      {!editReceipt && !prefillInvoice && onSaveBulk && (
+        <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-primary" />
+            <div>
+              <Label className="cursor-pointer">Bulk Payment (Multiple Invoices)</Label>
+              <p className="text-xs text-muted-foreground">Aik amount enter karein — purani invoices se shuru hoke auto-allocate ho jaye gi</p>
+            </div>
+          </div>
+          <Switch checked={bulkMode} onCheckedChange={setBulkMode} />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label>Receipt Number</Label>
-          <Input value={editReceipt?.number || nextNumber} disabled className="mt-1" />
+          <Input value={editReceipt?.number || (bulkMode ? `${nextNumber} (+${Math.max(0, allocations.length - 1)})` : nextNumber)} disabled className="mt-1" />
         </div>
         <div>
           <Label>Customer *</Label>
@@ -172,33 +244,63 @@ export function ReceiptForm({
           <Label>Receipt Date *</Label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" required />
         </div>
-        <div>
-          <Label>Against Invoice *</Label>
-          <Select value={invoiceNumber} onValueChange={(value) => {
-            setInvoiceNumber(value);
-            const invoice = customerInvoices.find((inv) => inv.number === value) || invoices.find((inv) => inv.number === value && inv.customer === customer) || invoices.find((inv) => inv.number === value);
-            if (invoice) {
-              const { remaining } = getInvoicePaymentSummary(invoice, receipts, editReceipt?.id);
-              setAmount(Math.max(0, remaining));
-            }
-          }}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Select invoice" /></SelectTrigger>
-            <SelectContent>
-              {(customer ? customerInvoices : invoices).map((inv) => (
-                <SelectItem key={inv.id} value={inv.number}>{inv.number} - {formatCurrency(inv.amount)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Amount * {selectedInvoice && <span className="text-xs text-muted-foreground ml-1">(Remaining: {formatCurrency(invoiceRemaining)})</span>}</Label>
-          <Input type="number" min={0} step={0.01} value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="mt-1" required />
-          {isOverpay && (
-            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> Amount exceeds remaining balance ({formatCurrency(invoiceRemaining)})
-            </p>
-          )}
-        </div>
+
+        {!bulkMode && (
+          <>
+            <div>
+              <Label>Against Invoice *</Label>
+              <Select value={invoiceNumber} onValueChange={(value) => {
+                setInvoiceNumber(value);
+                const invoice = customerInvoices.find((inv) => inv.number === value) || invoices.find((inv) => inv.number === value && inv.customer === customer) || invoices.find((inv) => inv.number === value);
+                if (invoice) {
+                  const { remaining } = getInvoicePaymentSummary(invoice, receipts, editReceipt?.id);
+                  setAmount(Math.max(0, remaining));
+                }
+              }}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select invoice" /></SelectTrigger>
+                <SelectContent>
+                  {(customer ? customerInvoices : invoices).map((inv) => (
+                    <SelectItem key={inv.id} value={inv.number}>{inv.number} - {formatCurrency(inv.amount)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Amount * {selectedInvoice && <span className="text-xs text-muted-foreground ml-1">(Remaining: {formatCurrency(invoiceRemaining)})</span>}</Label>
+              <Input type="number" min={0} step={0.01} value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="mt-1" required />
+              {isOverpay && (
+                <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Amount exceeds remaining balance ({formatCurrency(invoiceRemaining)})
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
+        {bulkMode && (
+          <div className="md:col-span-2">
+            <Label>
+              Total Amount Received *{" "}
+              {customer && <span className="text-xs text-muted-foreground ml-1">(Total Outstanding: {formatCurrency(totalOutstanding)})</span>}
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step={0.01}
+              value={bulkAmount || ""}
+              onChange={(e) => setBulkAmount(Number(e.target.value))}
+              className="mt-1"
+              placeholder="0.00"
+              required
+            />
+            <div className="flex gap-2 mt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setBulkAmount(totalOutstanding)}>
+                Pay All ({formatCurrency(totalOutstanding)})
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div>
           <Label>Payment Account / Method</Label>
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -214,14 +316,63 @@ export function ReceiptForm({
           <Label>Reference / Transaction ID</Label>
           <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="TXN-12345" className="mt-1" />
         </div>
-        <div>
-          <Label>Discount (Amount)</Label>
-          <Input type="number" min={0} step={0.01} value={discountAmount || ""} onChange={(e) => setDiscountAmount(Number(e.target.value))} placeholder="0.00" className="mt-1" />
-          {discountAmount > 0 && selectedInvoice && (
-            <p className="text-xs text-success mt-1">Discount of {formatCurrency(discountAmount)} applied. New remaining: {formatCurrency(invoiceRemaining)}</p>
+
+        {!bulkMode && (
+          <div>
+            <Label>Discount (Amount)</Label>
+            <Input type="number" min={0} step={0.01} value={discountAmount || ""} onChange={(e) => setDiscountAmount(Number(e.target.value))} placeholder="0.00" className="mt-1" />
+            {discountAmount > 0 && selectedInvoice && (
+              <p className="text-xs text-success mt-1">Discount of {formatCurrency(discountAmount)} applied. New remaining: {formatCurrency(invoiceRemaining)}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {bulkMode && customer && (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="px-4 py-2 bg-muted/50 text-sm font-semibold flex items-center justify-between">
+            <span>Allocation Preview ({allocations.length} invoice{allocations.length !== 1 ? "s" : ""})</span>
+            {unallocated > 0 && (
+              <span className="text-xs text-warning flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Unallocated: {formatCurrency(unallocated)}
+              </span>
+            )}
+          </div>
+          {pendingInvoices.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground text-center">Is customer ki koi pending invoice nahi hai</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 text-xs">
+                <tr>
+                  <th className="text-left px-3 py-2">Invoice</th>
+                  <th className="text-left px-3 py-2">Date</th>
+                  <th className="text-right px-3 py-2">Outstanding</th>
+                  <th className="text-right px-3 py-2">Allocated</th>
+                  <th className="text-right px-3 py-2">After</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingInvoices.map(({ invoice, remaining }) => {
+                  const alloc = allocations.find((a) => a.invoice.id === invoice.id);
+                  return (
+                    <tr key={invoice.id} className={alloc ? "bg-success/5" : ""}>
+                      <td className="px-3 py-2 font-medium">{invoice.number}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{invoice.date}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(remaining)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-success">
+                        {alloc ? formatCurrency(alloc.allocated) : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">
+                        {alloc ? formatCurrency(alloc.remainingAfter) : formatCurrency(remaining)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
         </div>
-      </div>
+      )}
 
       <div>
         <Label>Notes</Label>
@@ -230,7 +381,9 @@ export function ReceiptForm({
 
       <div className="flex gap-3 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={!!isOverpay}>{editReceipt ? "Update Receipt" : "Create Receipt"}</Button>
+        <Button type="submit" disabled={bulkMode && (allocations.length === 0 || bulkAmount <= 0)}>
+          {editReceipt ? "Update Receipt" : bulkMode ? `Create ${allocations.length} Receipt${allocations.length !== 1 ? "s" : ""}` : "Create Receipt"}
+        </Button>
       </div>
     </form>
   );
