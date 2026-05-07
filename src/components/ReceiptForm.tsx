@@ -303,23 +303,29 @@ export function ReceiptForm({
         {bulkMode && (
           <div className="md:col-span-2">
             <Label>
-              Total Amount Received *{" "}
+              Total Amount Received{" "}
               {customer && <span className="text-xs text-muted-foreground ml-1">(Total Outstanding: {formatCurrency(totalOutstanding)})</span>}
+              {isManualMode && <span className="text-xs text-primary ml-2">— Manual mode (sum: {formatCurrency(totalAllocated)})</span>}
             </Label>
             <Input
               type="number"
               min={0}
               step={0.01}
-              value={bulkAmount || ""}
+              value={isManualMode ? totalAllocated : (bulkAmount || "")}
               onChange={(e) => setBulkAmount(Number(e.target.value))}
               className="mt-1"
               placeholder="0.00"
-              required
+              disabled={isManualMode}
             />
             <div className="flex gap-2 mt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setBulkAmount(totalOutstanding)}>
-                Pay All ({formatCurrency(totalOutstanding)})
+              <Button type="button" variant="outline" size="sm" onClick={() => { setManualAllocations({}); setBulkAmount(totalOutstanding); }}>
+                Pay All FIFO ({formatCurrency(totalOutstanding)})
               </Button>
+              {isManualMode && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setManualAllocations({})}>
+                  Clear Manual Selection
+                </Button>
+              )}
             </div>
           </div>
         )}
