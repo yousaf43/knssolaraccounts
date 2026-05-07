@@ -174,7 +174,9 @@ export function ReceiptForm({
     e.preventDefault();
 
     if (bulkMode) {
-      if (!customer.trim() || !date || bulkAmount <= 0 || allocations.length === 0) return;
+      if (!customer.trim() || !date || allocations.length === 0) return;
+      const totalAmt = isManualMode ? totalAllocated : bulkAmount;
+      if (totalAmt <= 0) return;
       const displayMethod = paymentMethod.split("||")[0];
       const baseSeq = parseInt((nextNumber.match(/\d+/) || ["0"])[0], 10);
       const prefix = nextNumber.replace(/\d+$/, "");
@@ -188,7 +190,7 @@ export function ReceiptForm({
         amount: a.allocated,
         paymentMethod: displayMethod,
         reference: reference.trim(),
-        notes: notes.trim() ? `${notes.trim()} | Bulk allocation` : `Bulk allocation across ${allocations.length} invoice(s)`,
+        notes: notes.trim() ? `${notes.trim()} | ${isManualMode ? "Manual" : "Bulk"} allocation` : `${isManualMode ? "Manual" : "Bulk"} allocation across ${allocations.length} invoice(s)`,
       }));
       onSaveBulk?.(newReceipts);
       return;
