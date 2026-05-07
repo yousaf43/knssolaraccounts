@@ -386,6 +386,17 @@ export default function Invoices() {
     await log(editReceipt ? "edit" : "create", "receipt", receipt.id, receipt.number, `Customer: ${receipt.customer}, Amount: ${receipt.amount}`);
     toast.success(editReceipt ? "Receipt updated" : "Receipt created");
   };
+
+  const handleSaveBulkReceipts = async (newReceipts: Receipt[]) => {
+    for (const r of newReceipts) {
+      await upsertReceipt(r);
+      createLedgerEntry(r);
+      await log("create", "receipt", r.id, r.number, `Customer: ${r.customer}, Amount: ${r.amount} (bulk)`);
+    }
+    goList();
+    const total = newReceipts.reduce((s, r) => s + r.amount, 0);
+    toast.success(`${newReceipts.length} receipt(s) created • Total ${total.toLocaleString()} allocated across invoices`);
+  };
   const handleDeleteReceipt = async (id: string) => {
     const r = receipts.find(rc => rc.id === id);
     if (r) {
