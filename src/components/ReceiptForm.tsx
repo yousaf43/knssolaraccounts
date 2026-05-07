@@ -220,13 +220,13 @@ export function ReceiptForm({
         <Button type="button" variant="ghost" size="icon" onClick={onCancel}><X className="w-5 h-5" /></Button>
       </div>
 
-      {!editReceipt && !prefillInvoice && onSaveBulk && (
+      {!editReceipt && onSaveBulk && (
         <div className="flex items-center justify-between p-3 border rounded-lg bg-primary/5">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-primary" />
             <div>
               <Label className="cursor-pointer">Bulk Payment (Multiple Invoices)</Label>
-              <p className="text-xs text-muted-foreground">Aik amount enter karein — purani invoices se shuru hoke auto-allocate ho jaye gi</p>
+              <p className="text-xs text-muted-foreground">Auto FIFO allocate karein ya neeche table se khud invoices select karein</p>
             </div>
           </div>
           <Switch checked={bulkMode} onCheckedChange={setBulkMode} />
