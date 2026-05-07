@@ -386,6 +386,17 @@ export default function Invoices() {
     await log(editReceipt ? "edit" : "create", "receipt", receipt.id, receipt.number, `Customer: ${receipt.customer}, Amount: ${receipt.amount}`);
     toast.success(editReceipt ? "Receipt updated" : "Receipt created");
   };
+
+  const handleSaveBulkReceipts = async (newReceipts: Receipt[]) => {
+    for (const r of newReceipts) {
+      await upsertReceipt(r);
+      createLedgerEntry(r);
+      await log("create", "receipt", r.id, r.number, `Customer: ${r.customer}, Amount: ${r.amount} (bulk)`);
+    }
+    goList();
+    const total = newReceipts.reduce((s, r) => s + r.amount, 0);
+    toast.success(`${newReceipts.length} receipt(s) created • Total ${total.toLocaleString()} allocated across invoices`);
+  };
   const handleDeleteReceipt = async (id: string) => {
     const r = receipts.find(rc => rc.id === id);
     if (r) {
@@ -583,7 +594,7 @@ export default function Invoices() {
       return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={inventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />;
     }
     if (activeTab === "receipts" || editReceipt) {
-      return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+      return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
     return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} />;
   }
