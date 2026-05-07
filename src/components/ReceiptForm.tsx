@@ -373,23 +373,64 @@ export function ReceiptForm({
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-xs">
                 <tr>
+                  <th className="text-left px-3 py-2 w-10">Pay</th>
                   <th className="text-left px-3 py-2">Invoice</th>
                   <th className="text-left px-3 py-2">Date</th>
                   <th className="text-right px-3 py-2">Outstanding</th>
-                  <th className="text-right px-3 py-2">Allocated</th>
+                  <th className="text-right px-3 py-2 w-32">Pay Amount</th>
                   <th className="text-right px-3 py-2">After</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingInvoices.map(({ invoice, remaining }) => {
                   const alloc = allocations.find((a) => a.invoice.id === invoice.id);
+                  const manualVal = manualAllocations[invoice.id] || 0;
+                  const checked = isManualMode ? manualVal > 0 : !!alloc;
                   return (
                     <tr key={invoice.id} className={alloc ? "bg-success/5" : ""}>
+                      <td className="px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setManualAllocations((prev) => {
+                              const next = { ...prev };
+                              if (e.target.checked) {
+                                next[invoice.id] = remaining;
+                              } else {
+                                delete next[invoice.id];
+                              }
+                              return next;
+                            });
+                          }}
+                        />
+                      </td>
                       <td className="px-3 py-2 font-medium">{invoice.number}</td>
                       <td className="px-3 py-2 text-muted-foreground">{invoice.date}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(remaining)}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-success">
-                        {alloc ? formatCurrency(alloc.allocated) : "—"}
+                      <td className="px-3 py-2 text-right">
+                        {isManualMode ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            max={remaining}
+                            step={0.01}
+                            value={manualVal || ""}
+                            onChange={(e) => {
+                              const v = Math.min(Number(e.target.value) || 0, remaining);
+                              setManualAllocations((prev) => {
+                                const next = { ...prev };
+                                if (v > 0) next[invoice.id] = v;
+                                else delete next[invoice.id];
+                                return next;
+                              });
+                            }}
+                            className="h-8 text-right"
+                            placeholder="0"
+                          />
+                        ) : (
+                          <span className="font-semibold text-success">{alloc ? formatCurrency(alloc.allocated) : "—"}</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right text-muted-foreground">
                         {alloc ? formatCurrency(alloc.remainingAfter) : formatCurrency(remaining)}
