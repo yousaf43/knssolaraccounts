@@ -94,11 +94,26 @@ export function ReceiptForm({
     [pendingInvoices]
   );
 
-  // Allocation preview (FIFO)
+  const isManualMode = useMemo(
+    () => Object.values(manualAllocations).some((v) => v > 0),
+    [manualAllocations]
+  );
+
+  // Allocation preview (FIFO or Manual)
   const allocations = useMemo(() => {
-    if (!bulkMode || bulkAmount <= 0) return [];
-    let remaining = bulkAmount;
+    if (!bulkMode) return [];
     const result: { invoice: Invoice; allocated: number; remainingAfter: number }[] = [];
+    if (isManualMode) {
+      for (const { invoice, remaining: invRem } of pendingInvoices) {
+        const allocated = Math.min(manualAllocations[invoice.id] || 0, invRem);
+        if (allocated > 0) {
+          result.push({ invoice, allocated, remainingAfter: invRem - allocated });
+        }
+      }
+      return result;
+    }
+    if (bulkAmount <= 0) return [];
+    let remaining = bulkAmount;
     for (const { invoice, remaining: invRem } of pendingInvoices) {
       if (remaining <= 0) break;
       const allocated = Math.min(remaining, invRem);
@@ -106,12 +121,17 @@ export function ReceiptForm({
       remaining -= allocated;
     }
     return result;
-  }, [bulkMode, bulkAmount, pendingInvoices]);
+  }, [bulkMode, bulkAmount, pendingInvoices, isManualMode, manualAllocations]);
+
+  const totalAllocated = useMemo(
+    () => allocations.reduce((s, a) => s + a.allocated, 0),
+    [allocations]
+  );
 
   const unallocated = useMemo(() => {
-    const allocated = allocations.reduce((s, a) => s + a.allocated, 0);
-    return Math.max(0, bulkAmount - allocated);
-  }, [bulkAmount, allocations]);
+    if (isManualMode) return 0;
+    return Math.max(0, bulkAmount - totalAllocated);
+  }, [isManualMode, bulkAmount, totalAllocated]);
 
   const handleQuickAddCustomer = () => {
     if (!quickName.trim() || !quickCompany.trim()) return;
