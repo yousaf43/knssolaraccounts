@@ -594,7 +594,7 @@ export default function Invoices() {
       return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={inventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />;
     }
     if (activeTab === "receipts" || editReceipt) {
-      return <ReceiptForm onSave={handleSaveReceipt} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+      return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
     return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={inventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} />;
   }
