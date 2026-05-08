@@ -466,7 +466,7 @@ export function ReceiptForm({
       <div className="flex gap-3 justify-end">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={bulkMode && (allocations.length === 0 || (!isManualMode && bulkAmount <= 0))}>
-          {editReceipt ? "Update Receipt" : bulkMode ? `Create ${allocations.length} Receipt${allocations.length !== 1 ? "s" : ""}` : "Create Receipt"}
+          {editReceipt ? "Update Receipt" : bulkMode ? `Create Receipt (${allocations.length} invoice${allocations.length !== 1 ? "s" : ""})` : "Create Receipt"}
         </Button>
       </div>
     </form>
