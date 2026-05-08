@@ -547,7 +547,7 @@ export default function Invoices() {
     ...invoices.map((i) => i.status),
     ...salesOrders.map((s) => s.status),
     ...receipts.map((r) => r.paymentMethod),
-  ])).sort();
+  ].filter((s): s is string => !!s && s.trim() !== ""))).sort();
 
   // --- Search helper ---
   const matchSearch = (text: string) => {
