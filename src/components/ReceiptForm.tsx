@@ -250,7 +250,7 @@ export function ReceiptForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label>Receipt Number</Label>
-          <Input value={editReceipt?.number || (bulkMode ? `${nextNumber} (+${Math.max(0, allocations.length - 1)})` : nextNumber)} disabled className="mt-1" />
+          <Input value={editReceipt?.number || nextNumber} disabled className="mt-1" />
         </div>
         <div>
           <Label>Customer *</Label>
