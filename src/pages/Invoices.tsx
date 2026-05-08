@@ -559,7 +559,31 @@ export default function Invoices() {
   // --- Filtered data ---
   const filteredInvoices = invoices.filter((i) => !i.isReturn && matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
   const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status) && matchSearchFields(s.number, s.customer, s.notes || "", s.projectName || ""));
-  const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
+  const filteredReceiptsRaw = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
+  // Group rows that share the same receipt number (bulk allocations) into one display row
+  const filteredReceipts = React.useMemo(() => {
+    const groups = new Map<string, { rows: Receipt[]; total: number }>();
+    for (const r of filteredReceiptsRaw) {
+      const key = `${r.number}||${r.customer}||${r.date}`;
+      const g = groups.get(key) || { rows: [], total: 0 };
+      g.rows.push(r);
+      g.total += Number(r.amount) || 0;
+      groups.set(key, g);
+    }
+    return Array.from(groups.values()).map(({ rows, total }) => {
+      const first = rows[0];
+      const isBulk = rows.length > 1;
+      return {
+        ...first,
+        amount: total,
+        invoiceNumber: isBulk
+          ? rows.map(x => `${x.invoiceNumber}: ${formatCurrency(Number(x.amount) || 0)}`).join(" • ")
+          : first.invoiceNumber,
+        _isBulk: isBulk,
+        _allocations: rows,
+      } as Receipt & { _isBulk: boolean; _allocations: Receipt[] };
+    });
+  }, [filteredReceiptsRaw, formatCurrency]);
 
   const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
 
@@ -1055,18 +1079,32 @@ export default function Invoices() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pgReceipts.paginatedItems.map((r) => (
+                  {pgReceipts.paginatedItems.map((r: any) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{r.number}</td>
+                      <td className="px-4 py-3 font-medium">
+                        {r.number}
+                        {r._isBulk && <Badge className="ml-2 bg-primary/10 text-primary border-0 text-[10px]">Bulk × {r._allocations.length}</Badge>}
+                      </td>
                       <td className="px-4 py-3">{r.customer}</td>
                       <td className="px-4 py-3 text-muted-foreground">{r.date}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{r.invoiceNumber}</td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs">
+                        {r._isBulk ? (
+                          <div className="space-y-0.5">
+                            {r._allocations.map((a: Receipt) => (
+                              <div key={a.id} className="flex justify-between gap-3">
+                                <span className="font-medium">{a.invoiceNumber}</span>
+                                <span className="text-success">{formatCurrency(Number(a.amount) || 0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : r.invoiceNumber}
+                      </td>
                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(r.amount)}</td>
                       <td className="px-4 py-3 text-center"><Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0">{r.paymentMethod}</Badge></td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditReceipt(r); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                          <ConfirmDeleteDialog onConfirm={() => handleDeleteReceipt(r.id)} title="Delete Receipt?" description={`Delete receipt ${r.number}?`} />
+                          {!r._isBulk && <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditReceipt(r); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>}
+                          <ConfirmDeleteDialog onConfirm={async () => { for (const a of (r._allocations || [r])) { await handleDeleteReceipt(a.id); } }} title="Delete Receipt?" description={r._isBulk ? `Delete bulk receipt ${r.number} (${r._allocations.length} allocations)?` : `Delete receipt ${r.number}?`} />
                         </div>
                       </td>
                     </tr>
