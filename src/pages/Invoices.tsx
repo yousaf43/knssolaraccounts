@@ -559,7 +559,31 @@ export default function Invoices() {
   // --- Filtered data ---
   const filteredInvoices = invoices.filter((i) => !i.isReturn && matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
   const filteredSO = salesOrders.filter((s) => matchCustomer(s.customer) && isInDateRange(s.date) && matchStatus(s.status) && matchSearchFields(s.number, s.customer, s.notes || "", s.projectName || ""));
-  const filteredReceipts = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
+  const filteredReceiptsRaw = receipts.filter((r) => matchCustomer(r.customer) && isInDateRange(r.date) && matchStatus(r.paymentMethod) && matchSearchFields(r.number, r.customer, r.invoiceNumber, r.reference || ""));
+  // Group rows that share the same receipt number (bulk allocations) into one display row
+  const filteredReceipts = React.useMemo(() => {
+    const groups = new Map<string, { rows: Receipt[]; total: number }>();
+    for (const r of filteredReceiptsRaw) {
+      const key = `${r.number}||${r.customer}||${r.date}`;
+      const g = groups.get(key) || { rows: [], total: 0 };
+      g.rows.push(r);
+      g.total += Number(r.amount) || 0;
+      groups.set(key, g);
+    }
+    return Array.from(groups.values()).map(({ rows, total }) => {
+      const first = rows[0];
+      const isBulk = rows.length > 1;
+      return {
+        ...first,
+        amount: total,
+        invoiceNumber: isBulk
+          ? rows.map(x => `${x.invoiceNumber}: ${formatCurrency(Number(x.amount) || 0)}`).join(" • ")
+          : first.invoiceNumber,
+        _isBulk: isBulk,
+        _allocations: rows,
+      } as Receipt & { _isBulk: boolean; _allocations: Receipt[] };
+    });
+  }, [filteredReceiptsRaw, formatCurrency]);
 
   const filteredQuotations = quotations.filter((q) => matchCustomer(q.customer) && isInDateRange(q.date) && matchStatus(q.status) && matchSearchFields(q.number, q.customer, q.notes || "", q.projectName || ""));
 
