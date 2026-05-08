@@ -178,19 +178,33 @@ export function ReceiptForm({
       const totalAmt = isManualMode ? totalAllocated : bulkAmount;
       if (totalAmt <= 0) return;
       const displayMethod = paymentMethod.split("||")[0];
-      const baseSeq = parseInt((nextNumber.match(/\d+/) || ["0"])[0], 10);
-      const prefix = nextNumber.replace(/\d+$/, "");
-      const padLen = (nextNumber.match(/\d+$/) || ["001"])[0].length;
-      const newReceipts: Receipt[] = allocations.map((a, i) => ({
+
+      // Build breakdown line: include every pending invoice (even zero-allocation ones)
+      const breakdownLines = pendingInvoices.map(({ invoice, remaining: invRem }) => {
+        const a = allocations.find((x) => x.invoice.id === invoice.id);
+        const allocated = a?.allocated || 0;
+        return `${invoice.number}: ${allocated.toFixed(2)} / ${invRem.toFixed(2)}`;
+      });
+      const breakdown = breakdownLines.join(" | ");
+      const mode = isManualMode ? "Manual" : "Bulk FIFO";
+      const fullNotes = [
+        notes.trim(),
+        `${mode} payment of ${totalAmt.toFixed(2)} allocated across ${allocations.length} invoice(s)`,
+        `Breakdown — ${breakdown}`,
+      ].filter(Boolean).join(" | ");
+
+      // Single shared receipt number for all allocation rows so they appear as one receipt
+      const sharedNumber = nextNumber;
+      const newReceipts: Receipt[] = allocations.map((a) => ({
         id: crypto.randomUUID(),
-        number: `${prefix}${String(baseSeq + i).padStart(padLen, "0")}`,
+        number: sharedNumber,
         customer: customer.trim(),
         date,
         invoiceNumber: a.invoice.number,
         amount: a.allocated,
         paymentMethod: displayMethod,
         reference: reference.trim(),
-        notes: notes.trim() ? `${notes.trim()} | ${isManualMode ? "Manual" : "Bulk"} allocation` : `${isManualMode ? "Manual" : "Bulk"} allocation across ${allocations.length} invoice(s)`,
+        notes: fullNotes,
       }));
       onSaveBulk?.(newReceipts);
       return;
