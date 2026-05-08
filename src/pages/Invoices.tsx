@@ -390,12 +390,27 @@ export default function Invoices() {
   const handleSaveBulkReceipts = async (newReceipts: Receipt[]) => {
     for (const r of newReceipts) {
       await upsertReceipt(r);
-      createLedgerEntry(r);
       await log("create", "receipt", r.id, r.number, `Customer: ${r.customer}, Amount: ${r.amount} (bulk)`);
+    }
+    // Single consolidated ledger entry for the whole bulk receipt
+    if (newReceipts.length > 0) {
+      const total = newReceipts.reduce((s, r) => s + r.amount, 0);
+      const first = newReceipts[0];
+      const invoiceList = newReceipts.map((r) => `${r.invoiceNumber}:${r.amount.toFixed(2)}`).join(", ");
+      const entry: LedgerEntry = {
+        id: crypto.randomUUID(),
+        date: first.date,
+        bank: first.paymentMethod || "Cash on Hand",
+        type: "incoming",
+        amount: total,
+        description: `Bulk payment from ${first.customer} (${newReceipts.length} invoices) — ${invoiceList}`,
+        reference: first.reference || first.number,
+      };
+      upsertLedger(entry);
     }
     goList();
     const total = newReceipts.reduce((s, r) => s + r.amount, 0);
-    toast.success(`${newReceipts.length} receipt(s) created • Total ${total.toLocaleString()} allocated across invoices`);
+    toast.success(`Receipt ${newReceipts[0]?.number} created • Total ${total.toLocaleString()} across ${newReceipts.length} invoice(s)`);
   };
   const handleDeleteReceipt = async (id: string) => {
     const r = receipts.find(rc => rc.id === id);
