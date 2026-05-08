@@ -520,7 +520,7 @@ export default function Invoices() {
     ...salesOrders.map((s) => s.customer),
     ...receipts.map((r) => r.customer),
     ...quotations.map((q) => q.customer),
-  ])).sort();
+  ].filter((c): c is string => !!c && c.trim() !== ""))).sort();
 
   // Date range filter helper
   const isInDateRange = (dateStr: string) => {
