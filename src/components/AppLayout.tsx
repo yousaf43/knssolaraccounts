@@ -14,7 +14,7 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         {/* Desktop sidebar */}
         {!isMobile && <AppSidebar />}
 
@@ -77,7 +77,7 @@ export function AppLayout() {
             </div>
           </header>
           {/* Content */}
-          <main className="flex-1 overflow-auto p-3 sm:p-6 bg-background">
+          <main id="main-scroll" className="flex-1 overflow-auto p-3 sm:p-6 bg-background">
             <Outlet />
           </main>
           <footer className="py-2 text-center text-[10px] text-muted-foreground/60 bg-background border-t border-border/30">
