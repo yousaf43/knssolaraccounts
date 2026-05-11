@@ -95,6 +95,18 @@ export default function Invoices() {
 
   const invoiceFileRef = useRef<HTMLInputElement>(null);
   const soFileRef = useRef<HTMLInputElement>(null);
+  const savedScrollRef = useRef<number>(0);
+
+  useEffect(() => {
+    const el = document.getElementById("main-scroll");
+    if (!el) return;
+    if (view === "list") {
+      requestAnimationFrame(() => { el.scrollTop = savedScrollRef.current; });
+      const onScroll = () => { savedScrollRef.current = el.scrollTop; };
+      el.addEventListener("scroll", onScroll, { passive: true });
+      return () => el.removeEventListener("scroll", onScroll);
+    }
+  }, [view]);
 
   const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); };
 
