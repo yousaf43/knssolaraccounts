@@ -97,17 +97,14 @@ export default function Invoices() {
   const soFileRef = useRef<HTMLInputElement>(null);
   const savedScrollRef = useRef<number>(0);
 
-  const saveScroll = () => {
-    const el = document.getElementById("main-scroll");
-    savedScrollRef.current = el?.scrollTop || 0;
-  };
-
   useEffect(() => {
+    const el = document.getElementById("main-scroll");
+    if (!el) return;
     if (view === "list") {
-      const el = document.getElementById("main-scroll");
-      if (el) {
-        requestAnimationFrame(() => { el.scrollTop = savedScrollRef.current; });
-      }
+      requestAnimationFrame(() => { el.scrollTop = savedScrollRef.current; });
+      const onScroll = () => { savedScrollRef.current = el.scrollTop; };
+      el.addEventListener("scroll", onScroll, { passive: true });
+      return () => el.removeEventListener("scroll", onScroll);
     }
   }, [view]);
 
