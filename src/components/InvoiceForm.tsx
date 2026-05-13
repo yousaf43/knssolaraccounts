@@ -35,6 +35,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(() => {
+    if (!editInvoice?.customer) return "";
+    return customers.find(c => c.name === editInvoice.customer)?.id || "";
+  });
   const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
   const [status, setStatus] = useState<Invoice["status"]>(editInvoice?.status || "pending");
