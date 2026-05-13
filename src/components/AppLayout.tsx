@@ -18,7 +18,7 @@ export function AppLayout() {
         {/* Desktop sidebar */}
         {!isMobile && <AppSidebar />}
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex min-h-0 min-w-0 flex-col">
           {/* Top bar */}
           <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2">
             {/* Mobile menu button */}
@@ -77,10 +77,10 @@ export function AppLayout() {
             </div>
           </header>
           {/* Content */}
-          <main id="main-scroll" className="flex-1 overflow-auto p-3 sm:p-6 bg-background">
+          <main id="main-scroll" className="flex-1 min-h-0 overflow-auto bg-background p-3 sm:p-6">
             <Outlet />
           </main>
-          <footer className="py-2 text-center text-[10px] text-muted-foreground/60 bg-background border-t border-border/30">
+          <footer className="shrink-0 border-t border-border/30 bg-background py-2 text-center text-[10px] text-muted-foreground/60">
             Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
           </footer>
         </div>

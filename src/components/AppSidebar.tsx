@@ -53,13 +53,13 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
     <aside
       className={`flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ${
         isCollapsed ? "w-16" : "w-60"
-      } ${isMobile ? "h-full" : "h-screen"}`}
+      } ${isMobile ? "h-full" : "h-screen"} min-h-0 overflow-hidden`}
     >
       <div className="flex items-center justify-center px-2 py-3 border-b border-sidebar-border">
         <img src={ksLogo} alt="K&S Solar Energy" className={`${isCollapsed ? "w-10" : "h-12 w-full"} object-contain`} />
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 min-h-0 space-y-1 overflow-y-auto px-2 py-4">
         {navItems.map((item) => (
           <NavLink
             key={item.title}
