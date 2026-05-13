@@ -35,6 +35,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(() => {
+    if (!editInvoice?.customer) return "";
+    return customers.find(c => c.name === editInvoice.customer)?.id || "";
+  });
   const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
   const [status, setStatus] = useState<Invoice["status"]>(editInvoice?.status || "pending");
@@ -89,6 +93,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     };
     onAddCustomer?.(newCustomer);
     setCustomer(newCustomer.name);
+    setSelectedCustomerId(newCustomer.id);
     setShowQuickAdd(false);
     setQuickName(""); setQuickCompany(""); setQuickPhone(""); setQuickCNIC(""); setQuickEmail("");
   };
@@ -266,7 +271,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" className="flex-1 justify-between font-normal">
-                  {customer ? customers.find(c => c.name === customer)?.name ? `${customer} (${customers.find(c => c.name === customer)?.company || ""})` : customer : "Select customer"}
+                  {(() => {
+                    const sel = selectedCustomerId ? customers.find(c => c.id === selectedCustomerId) : customers.find(c => c.name === customer);
+                    return sel ? `${sel.name}${sel.company ? ` (${sel.company})` : ""}` : (customer || "Select customer");
+                  })()}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -277,8 +285,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                     <CommandEmpty>No customer found.</CommandEmpty>
                     <CommandGroup>
                       {customers.map((c) => (
-                        <CommandItem key={c.id} value={`${c.name} ${c.company}`} onSelect={() => setCustomer(c.name)}>
-                          <Check className={cn("mr-2 h-4 w-4", customer === c.name ? "opacity-100" : "opacity-0")} />
+                        <CommandItem key={c.id} value={`${c.id} ${c.name} ${c.company}`} onSelect={() => { setCustomer(c.name); setSelectedCustomerId(c.id); }}>
+                          <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === c.id ? "opacity-100" : "opacity-0")} />
                           {c.name} ({c.company})
                         </CommandItem>
                       ))}
