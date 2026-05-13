@@ -93,6 +93,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     };
     onAddCustomer?.(newCustomer);
     setCustomer(newCustomer.name);
+    setSelectedCustomerId(newCustomer.id);
     setShowQuickAdd(false);
     setQuickName(""); setQuickCompany(""); setQuickPhone(""); setQuickCNIC(""); setQuickEmail("");
   };
