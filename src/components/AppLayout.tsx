@@ -24,7 +24,7 @@ export function AppLayout() {
 
         <div className="flex-1 flex min-w-0 flex-col min-h-screen">
           {/* Top bar */}
-          <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2">
+          <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30">
             {/* Mobile menu button */}
             {isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
