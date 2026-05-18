@@ -81,7 +81,7 @@ export function AppLayout() {
             </div>
           </header>
           {/* Content */}
-          <main id="main-scroll" className="flex-1 min-h-0 overflow-auto bg-background p-3 sm:p-6">
+          <main id="main-scroll" className="flex-1 bg-background p-3 sm:p-6">
             <Outlet />
           </main>
           <footer className="shrink-0 border-t border-border/30 bg-background py-2 text-center text-[10px] text-muted-foreground/60">
