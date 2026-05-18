@@ -14,11 +14,15 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex h-screen w-full overflow-hidden">
+      <div className="flex min-h-screen w-full">
         {/* Desktop sidebar */}
-        {!isMobile && <AppSidebar />}
+        {!isMobile && (
+          <div className="sticky top-0 h-screen self-start flex-shrink-0">
+            <AppSidebar />
+          </div>
+        )}
 
-        <div className="flex-1 flex min-h-0 min-w-0 flex-col">
+        <div className="flex-1 flex min-w-0 flex-col min-h-screen">
           {/* Top bar */}
           <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2">
             {/* Mobile menu button */}
