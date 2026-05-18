@@ -14,13 +14,17 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex h-screen w-full overflow-hidden">
+      <div className="flex min-h-screen w-full">
         {/* Desktop sidebar */}
-        {!isMobile && <AppSidebar />}
+        {!isMobile && (
+          <div className="sticky top-0 h-screen self-start flex-shrink-0">
+            <AppSidebar />
+          </div>
+        )}
 
-        <div className="flex-1 flex min-h-0 min-w-0 flex-col">
+        <div className="flex-1 flex min-w-0 flex-col min-h-screen">
           {/* Top bar */}
-          <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2">
+          <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30">
             {/* Mobile menu button */}
             {isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -77,7 +81,7 @@ export function AppLayout() {
             </div>
           </header>
           {/* Content */}
-          <main id="main-scroll" className="flex-1 min-h-0 overflow-auto bg-background p-3 sm:p-6">
+          <main id="main-scroll" className="flex-1 bg-background p-3 sm:p-6">
             <Outlet />
           </main>
           <footer className="shrink-0 border-t border-border/30 bg-background py-2 text-center text-[10px] text-muted-foreground/60">
