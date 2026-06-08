@@ -81,7 +81,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`
-      <html><head><title>Invoice ${invoice.number}</title>
+      <html><head><title>${docLabel} ${invoice.number}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #111; font-size: 13px; }
