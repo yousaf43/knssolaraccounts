@@ -173,9 +173,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
           </div>
           <div className="text-right text-sm space-y-0.5">
             <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{invoice.date}</span></div>
-            <div className="flex justify-end gap-4"><span className="text-gray-500">Due Date</span><span className="font-medium">{invoice.dueDate}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">{isQuotation ? "Valid Until" : "Due Date"}</span><span className="font-medium">{invoice.dueDate}</span></div>
             {invoice.documentNumber && <div className="flex justify-end gap-4"><span className="text-gray-500">Doc No.</span><span className="font-medium">{invoice.documentNumber}</span></div>}
-            <div className="flex justify-end gap-4"><span className="text-gray-500">Invoice #</span><span className="font-medium">{invoice.number}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">{docLabel} #</span><span className="font-medium">{invoice.number}</span></div>
           </div>
         </div>
 
