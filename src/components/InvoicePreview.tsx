@@ -213,7 +213,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         {/* Totals + Notes */}
         <div className="totals-section flex justify-between mt-4 gap-6">
           {/* Notes */}
-          <div className="flex-1">
+          <div className="notes-box flex-1">
             {invoice.notes && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 mb-1">Notes</p>
