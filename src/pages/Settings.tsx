@@ -83,7 +83,7 @@ export default function Settings() {
     if (logoFile && user) {
       setUploading(true);
       const ext = logoFile.name.split(".").pop();
-      const path = `company-logo-${Date.now()}.${ext}`;
+      const path = `${user.id}/company-logo-${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("logos").upload(path, logoFile, { upsert: true });
       if (uploadError) { toast.error("Logo upload failed: " + uploadError.message); setUploading(false); return; }
       const { data: urlData } = await supabase.storage.from("logos").createSignedUrl(path, 60 * 60 * 24 * 365);
