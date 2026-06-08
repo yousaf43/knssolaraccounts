@@ -160,7 +160,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         </div>
 
         {/* Invoice Title */}
-        <div className="text-center text-2xl font-bold underline my-4 text-gray-900">Invoice</div>
+        <div className="text-center text-2xl font-bold underline my-4 text-gray-900">{docLabel}</div>
 
         {/* Customer + Meta Info */}
         <div className="flex justify-between mb-4">
