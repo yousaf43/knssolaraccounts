@@ -133,7 +133,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Invoice Preview</h2>
+        <h2 className="text-xl font-bold">{docLabel} Preview</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-1" /> Print / Save PDF
