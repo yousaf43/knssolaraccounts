@@ -52,7 +52,9 @@ function numberToWords(num: number): string {
   return result + " Only";
 }
 
-export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0, customerPhone, customerAddress }: Props) {
+export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0, customerPhone, customerAddress, docType = "invoice" }: Props) {
+  const isQuotation = docType === "quotation";
+  const docLabel = isQuotation ? "Quotation" : "Invoice";
   const { formatCurrency, settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
