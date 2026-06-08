@@ -626,7 +626,8 @@ export default function Invoices() {
 
   // ========== EARLY RETURNS FOR FORM / PREVIEW VIEWS ==========
   if (view === "preview" && previewInvoice) {
-    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} />;
+    const isQ = (previewInvoice.number || "").startsWith("QTN");
+    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} docType={isQ ? "quotation" : "invoice"} />;
   }
   if (view === "so-preview" && previewSO) {
     return <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} />;
