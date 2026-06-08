@@ -13,6 +13,7 @@ type Props = {
   customerOutstanding?: number;
   customerPhone?: string;
   customerAddress?: string;
+  docType?: "invoice" | "quotation";
 };
 
 // Convert number to words (for PKR amounts)
@@ -51,7 +52,9 @@ function numberToWords(num: number): string {
   return result + " Only";
 }
 
-export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0, customerPhone, customerAddress }: Props) {
+export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0, customerPhone, customerAddress, docType = "invoice" }: Props) {
+  const isQuotation = docType === "quotation";
+  const docLabel = isQuotation ? "Quotation" : "Invoice";
   const { formatCurrency, settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +81,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`
-      <html><head><title>Invoice ${invoice.number}</title>
+      <html><head><title>${docLabel} ${invoice.number}</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #111; font-size: 13px; }
@@ -130,7 +133,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Invoice Preview</h2>
+        <h2 className="text-xl font-bold">{docLabel} Preview</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-1" /> Print / Save PDF
@@ -157,7 +160,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         </div>
 
         {/* Invoice Title */}
-        <div className="text-center text-2xl font-bold underline my-4 text-gray-900">Invoice</div>
+        <div className="text-center text-2xl font-bold underline my-4 text-gray-900">{docLabel}</div>
 
         {/* Customer + Meta Info */}
         <div className="flex justify-between mb-4">
@@ -170,9 +173,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
           </div>
           <div className="text-right text-sm space-y-0.5">
             <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{invoice.date}</span></div>
-            <div className="flex justify-end gap-4"><span className="text-gray-500">Due Date</span><span className="font-medium">{invoice.dueDate}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">{isQuotation ? "Valid Until" : "Due Date"}</span><span className="font-medium">{invoice.dueDate}</span></div>
             {invoice.documentNumber && <div className="flex justify-end gap-4"><span className="text-gray-500">Doc No.</span><span className="font-medium">{invoice.documentNumber}</span></div>}
-            <div className="flex justify-end gap-4"><span className="text-gray-500">Invoice #</span><span className="font-medium">{invoice.number}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">{docLabel} #</span><span className="font-medium">{invoice.number}</span></div>
           </div>
         </div>
 
@@ -246,24 +249,28 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
               <span>Total:</span>
               <span>{formatCurrency(total)}</span>
             </div>
-            <div className="balance-row flex justify-between py-1 border-t border-gray-200 mt-1 text-xs text-gray-600">
-              <span>Paid Amount:</span>
-              <span>{formatCurrency(totalPaid)}</span>
-            </div>
-            <div className="balance-row flex justify-between py-1 text-xs text-gray-600">
-              <span>Invoice Balance:</span>
-              <span>{formatCurrency(invoiceBalance)}</span>
-            </div>
-            <div className="balance-row flex justify-between py-1 text-xs font-semibold text-gray-800">
-              <span>Account Balance:</span>
-              <span>{formatCurrency(accountBalance)}</span>
-            </div>
+            {!isQuotation && (
+              <>
+                <div className="balance-row flex justify-between py-1 border-t border-gray-200 mt-1 text-xs text-gray-600">
+                  <span>Paid Amount:</span>
+                  <span>{formatCurrency(totalPaid)}</span>
+                </div>
+                <div className="balance-row flex justify-between py-1 text-xs text-gray-600">
+                  <span>Invoice Balance:</span>
+                  <span>{formatCurrency(invoiceBalance)}</span>
+                </div>
+                <div className="balance-row flex justify-between py-1 text-xs font-semibold text-gray-800">
+                  <span>Account Balance:</span>
+                  <span>{formatCurrency(accountBalance)}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Amount in Words */}
         <div className="words-line mt-4 text-xs italic text-gray-700">
-          <strong>A/C Balance in Words</strong> {amountInWords}.
+          <strong>{isQuotation ? "Total in Words" : "A/C Balance in Words"}</strong> {isQuotation ? numberToWords(Math.round(total)) : amountInWords}.
         </div>
 
         {/* Footer bar */}

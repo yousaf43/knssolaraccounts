@@ -626,7 +626,8 @@ export default function Invoices() {
 
   // ========== EARLY RETURNS FOR FORM / PREVIEW VIEWS ==========
   if (view === "preview" && previewInvoice) {
-    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} />;
+    const isQ = (previewInvoice.number || "").startsWith("QTN");
+    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} docType={isQ ? "quotation" : "invoice"} />;
   }
   if (view === "so-preview" && previewSO) {
     return <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} />;
@@ -851,6 +852,7 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center"><Badge className={quotationStatusStyles[q.status] || ""}>{q.status}</Badge></td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View / Print" onClick={() => { setPreviewInvoice(q as unknown as Invoice); setView("preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
                           {q.status !== "accepted" && q.status !== "rejected" && (
                             <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Convert to Sales Order" onClick={() => handleConvertQuotationToSO(q)}>
                               <ArrowRight className="w-4 h-4 text-success" />
