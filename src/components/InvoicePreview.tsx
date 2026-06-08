@@ -13,6 +13,7 @@ type Props = {
   customerOutstanding?: number;
   customerPhone?: string;
   customerAddress?: string;
+  docType?: "invoice" | "quotation";
 };
 
 // Convert number to words (for PKR amounts)
