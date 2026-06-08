@@ -159,19 +159,18 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
           </div>
         </div>
 
-        {/* Invoice Title */}
-        <div className="text-center text-2xl font-bold underline my-4 text-gray-900">{docLabel}</div>
+        {/* Title */}
+        <div className="invoice-title text-center text-2xl font-bold underline my-4 text-gray-900">{docLabel}</div>
 
         {/* Customer + Meta Info */}
-        <div className="flex justify-between mb-4">
-          <div>
+        <div className="customer-info flex justify-between mb-4">
+          <div className="left">
             <p className="font-bold text-sm">{invoice.customer}</p>
             {customerPhone && <p className="text-xs text-gray-500"><strong>Phone:</strong> {customerPhone}</p>}
             {customerAddress && <p className="text-xs text-gray-500">{customerAddress}</p>}
-            {invoice.documentNumber && <p className="text-xs text-gray-500">Doc No. {invoice.documentNumber}</p>}
             {invoice.projectName && <p className="text-xs text-gray-500">Project: {invoice.projectName}</p>}
           </div>
-          <div className="text-right text-sm space-y-0.5">
+          <div className="right text-right text-sm space-y-0.5">
             <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{invoice.date}</span></div>
             <div className="flex justify-end gap-4"><span className="text-gray-500">{isQuotation ? "Valid Until" : "Due Date"}</span><span className="font-medium">{invoice.dueDate}</span></div>
             {invoice.documentNumber && <div className="flex justify-end gap-4"><span className="text-gray-500">Doc No.</span><span className="font-medium">{invoice.documentNumber}</span></div>}
@@ -214,7 +213,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         {/* Totals + Notes */}
         <div className="totals-section flex justify-between mt-4 gap-6">
           {/* Notes */}
-          <div className="flex-1">
+          <div className="notes-box flex-1">
             {invoice.notes && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 mb-1">Notes</p>
@@ -273,15 +272,15 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
           <strong>{isQuotation ? "Total in Words" : "A/C Balance in Words"}</strong> {isQuotation ? numberToWords(Math.round(total)) : amountInWords}.
         </div>
 
-        {/* Footer bar */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <p className="text-xs font-bold text-gray-700 mb-2">Terms & Conditions:</p>
+        {/* Terms */}
+        <div className="terms-section mt-6 pt-4 border-t border-gray-200">
+          <p className="text-xs font-bold text-gray-700 mb-2">Terms &amp; Conditions:</p>
           <ol className="text-[10px] text-gray-500 space-y-1 list-decimal list-inside leading-relaxed">
             <li>Payment is due within the specified due date mentioned above.</li>
             <li>Goods once sold will not be taken back or exchanged.</li>
             <li>All disputes are subject to local jurisdiction only.</li>
             <li>Warranty claims must be reported within 7 days of delivery with proof of purchase.</li>
-            <li>Installation charges are not included unless specifically mentioned in the invoice.</li>
+            <li>Installation charges are not included unless specifically mentioned in the {docLabel.toLowerCase()}.</li>
             <li>Any delay in payment may attract additional charges as per company policy.</li>
           </ol>
         </div>
