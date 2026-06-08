@@ -249,24 +249,28 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
               <span>Total:</span>
               <span>{formatCurrency(total)}</span>
             </div>
-            <div className="balance-row flex justify-between py-1 border-t border-gray-200 mt-1 text-xs text-gray-600">
-              <span>Paid Amount:</span>
-              <span>{formatCurrency(totalPaid)}</span>
-            </div>
-            <div className="balance-row flex justify-between py-1 text-xs text-gray-600">
-              <span>Invoice Balance:</span>
-              <span>{formatCurrency(invoiceBalance)}</span>
-            </div>
-            <div className="balance-row flex justify-between py-1 text-xs font-semibold text-gray-800">
-              <span>Account Balance:</span>
-              <span>{formatCurrency(accountBalance)}</span>
-            </div>
+            {!isQuotation && (
+              <>
+                <div className="balance-row flex justify-between py-1 border-t border-gray-200 mt-1 text-xs text-gray-600">
+                  <span>Paid Amount:</span>
+                  <span>{formatCurrency(totalPaid)}</span>
+                </div>
+                <div className="balance-row flex justify-between py-1 text-xs text-gray-600">
+                  <span>Invoice Balance:</span>
+                  <span>{formatCurrency(invoiceBalance)}</span>
+                </div>
+                <div className="balance-row flex justify-between py-1 text-xs font-semibold text-gray-800">
+                  <span>Account Balance:</span>
+                  <span>{formatCurrency(accountBalance)}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Amount in Words */}
         <div className="words-line mt-4 text-xs italic text-gray-700">
-          <strong>A/C Balance in Words</strong> {amountInWords}.
+          <strong>{isQuotation ? "Total in Words" : "A/C Balance in Words"}</strong> {isQuotation ? numberToWords(Math.round(total)) : amountInWords}.
         </div>
 
         {/* Footer bar */}
