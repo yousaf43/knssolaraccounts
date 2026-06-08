@@ -159,19 +159,18 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
           </div>
         </div>
 
-        {/* Invoice Title */}
-        <div className="text-center text-2xl font-bold underline my-4 text-gray-900">{docLabel}</div>
+        {/* Title */}
+        <div className="invoice-title text-center text-2xl font-bold underline my-4 text-gray-900">{docLabel}</div>
 
         {/* Customer + Meta Info */}
-        <div className="flex justify-between mb-4">
-          <div>
+        <div className="customer-info flex justify-between mb-4">
+          <div className="left">
             <p className="font-bold text-sm">{invoice.customer}</p>
             {customerPhone && <p className="text-xs text-gray-500"><strong>Phone:</strong> {customerPhone}</p>}
             {customerAddress && <p className="text-xs text-gray-500">{customerAddress}</p>}
-            {invoice.documentNumber && <p className="text-xs text-gray-500">Doc No. {invoice.documentNumber}</p>}
             {invoice.projectName && <p className="text-xs text-gray-500">Project: {invoice.projectName}</p>}
           </div>
-          <div className="text-right text-sm space-y-0.5">
+          <div className="right text-right text-sm space-y-0.5">
             <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{invoice.date}</span></div>
             <div className="flex justify-end gap-4"><span className="text-gray-500">{isQuotation ? "Valid Until" : "Due Date"}</span><span className="font-medium">{invoice.dueDate}</span></div>
             {invoice.documentNumber && <div className="flex justify-end gap-4"><span className="text-gray-500">Doc No.</span><span className="font-medium">{invoice.documentNumber}</span></div>}
