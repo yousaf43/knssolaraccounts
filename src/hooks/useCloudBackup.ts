@@ -19,13 +19,12 @@ export type CloudBackup = {
 const AUTO_BACKUP_KEY = "cb-auto-backup-enabled";
 const AUTO_BACKUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-async function collectBackupData(userId: string) {
+async function collectBackupData(_userId: string) {
   const data: Record<string, any[]> = {};
   const promises = BACKUP_TABLES.map(async (table) => {
     const { data: rows } = await supabase
       .from(table)
-      .select("*")
-      .eq("user_id", userId);
+      .select("*");
     data[table] = rows || [];
   });
   await Promise.all(promises);
@@ -37,11 +36,11 @@ async function restoreBackupData(userId: string, backupData: Record<string, any[
     if (!rows || !Array.isArray(rows) || rows.length === 0) continue;
     if (!BACKUP_TABLES.includes(table as any)) continue;
 
-    // Delete existing data for this user in this table
-    await supabase.from(table as any).delete().eq("user_id", userId);
+    // Delete existing shared data in this table
+    await supabase.from(table as any).delete().neq("id", "00000000-0000-0000-0000-000000000000");
 
-    // Insert backup data (ensure user_id is set)
-    const rowsWithUser = rows.map((r: any) => ({ ...r, user_id: userId }));
+    // Insert backup data (ensure user_id is set on rows that lack it)
+    const rowsWithUser = rows.map((r: any) => ({ ...r, user_id: r.user_id || userId }));
     // Insert in batches of 100
     for (let i = 0; i < rowsWithUser.length; i += 100) {
       const batch = rowsWithUser.slice(i, i + 100);

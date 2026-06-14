@@ -18,7 +18,6 @@ export function useCloudData<T extends { id: string }>(
     const { data: rows, error } = await supabase
       .from(tableName as never)
       .select("*")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && rows) {
       setData((rows as Record<string, unknown>[]).map(mapFromDb));
@@ -41,7 +40,7 @@ export function useCloudData<T extends { id: string }>(
   const update = useCallback(async (item: T) => {
     if (!user) return;
     const row = mapToDb(item, user.id);
-    const { error } = await supabase.from(tableName as never).update(row as never).eq("id", item.id).eq("user_id", user.id);
+    const { error } = await supabase.from(tableName as never).update(row as never).eq("id", item.id);
     if (!error) {
       setData((prev) => prev.map((d) => d.id === item.id ? item : d));
     }
@@ -50,7 +49,7 @@ export function useCloudData<T extends { id: string }>(
 
   const remove = useCallback(async (id: string) => {
     if (!user) return;
-    const { error } = await supabase.from(tableName as never).delete().eq("id", id).eq("user_id", user.id);
+    const { error } = await supabase.from(tableName as never).delete().eq("id", id);
     if (!error) {
       setData((prev) => prev.filter((d) => d.id !== id));
     }
@@ -59,8 +58,8 @@ export function useCloudData<T extends { id: string }>(
 
   const setAll = useCallback(async (items: T[]) => {
     if (!user) return;
-    // Delete all existing then insert new
-    await supabase.from(tableName as never).delete().eq("user_id", user.id);
+    // Delete all existing then insert new (shared team data)
+    await supabase.from(tableName as never).delete().neq("id", "00000000-0000-0000-0000-000000000000");
     if (items.length > 0) {
       const rows = items.map((item) => mapToDb(item, user.id));
       await supabase.from(tableName as never).insert(rows as never);
