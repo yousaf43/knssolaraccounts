@@ -53,20 +53,20 @@ export function useTrash() {
     const item = items.find((i) => i.id === trashId);
     if (!item) return null;
     // Delete from trash
-    await supabase.from("trash" as never).delete().eq("id", trashId).eq("user_id", user.id);
+    await supabase.from("trash" as never).delete().eq("id", trashId);
     setItems((prev) => prev.filter((i) => i.id !== trashId));
     return item;
   }, [user, items]);
 
   const permanentDelete = useCallback(async (trashId: string) => {
     if (!user) return;
-    await supabase.from("trash" as never).delete().eq("id", trashId).eq("user_id", user.id);
+    await supabase.from("trash" as never).delete().eq("id", trashId);
     setItems((prev) => prev.filter((i) => i.id !== trashId));
   }, [user]);
 
   const emptyTrash = useCallback(async () => {
     if (!user) return;
-    await supabase.from("trash" as never).delete().eq("user_id", user.id);
+    await supabase.from("trash" as never).delete().neq("id", "00000000-0000-0000-0000-000000000000");
     setItems([]);
   }, [user]);
 
