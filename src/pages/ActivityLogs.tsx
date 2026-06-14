@@ -37,7 +37,6 @@ export default function ActivityLogs() {
     const { data } = await supabase
       .from("activity_logs" as never)
       .select("*")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(200);
     if (data) setLogs(data as Record<string, unknown>[]);
