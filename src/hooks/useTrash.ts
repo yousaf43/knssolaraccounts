@@ -21,7 +21,6 @@ export function useTrash() {
     const { data } = await supabase
       .from("trash" as never)
       .select("*")
-      .eq("user_id", user.id)
       .order("deleted_at", { ascending: false });
     if (data) {
       setItems((data as Record<string, unknown>[]).map((r) => ({
