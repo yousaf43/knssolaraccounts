@@ -612,7 +612,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
                         <td className="px-3 py-2 text-right text-destructive">{formatCurrency(filtered.reduce((s, inv) => {
                           const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((ss, r) => ss + r.amount, 0);
-                          return s + Math.max(0, inv.amount - paid);
+                          return s + (inv.amount - paid);
                         }, 0))}</td>
                         <td colSpan={4}></td>
                       </tr>
