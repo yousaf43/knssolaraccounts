@@ -629,10 +629,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               const custInv = invoices.filter(i => i.customer === cust.name);
               const custRec = receipts.filter(r => r.customer === cust.name);
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
-              const totalPaid = custRec.reduce((s, r) => s + r.amount, 0);
-              const outstanding = Math.max(0, totalBilled - totalPaid);
-              return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, invoices: custInv, receipts: custRec };
-            }).filter(c => c.totalBilled > 0);
+            const totalPaid = custRec.reduce((s, r) => s + r.amount, 0);
+            const outstanding = totalBilled - totalPaid;
+            return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, invoices: custInv, receipts: custRec };
+          }).filter(c => c.totalBilled > 0);
 
             return (
               <div className="bg-card rounded-lg border p-6">
