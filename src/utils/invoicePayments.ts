@@ -35,7 +35,7 @@ export function getInvoicePaymentSummary(
   const receiptsPaid = invoiceReceipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0);
   const embeddedPaid = getInvoiceEmbeddedPaid(invoice);
   const totalPaid = receiptsPaid + embeddedPaid;
-  const remaining = Math.max(0, (invoice.amount || 0) - totalPaid);
+  const remaining = (invoice.amount || 0) - totalPaid;
 
   return {
     invoiceReceipts,
