@@ -659,7 +659,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         cust.invoices.length > 0 ? cust.invoices.map((inv, idx) => {
                           const invPaid = cust.receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + (r.amount || 0), 0)
                             + (inv.payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
-                          const invOutstanding = Math.max(0, inv.amount - invPaid);
+                          const invOutstanding = inv.amount - invPaid;
                           return (
                             <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
                               <td className="px-3 py-2 font-medium">{idx === 0 ? cust.name : ""}</td>
@@ -670,7 +670,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-3 py-2 text-muted-foreground text-xs">{idx === 0 ? (cust.phone || "—") : ""}</td>
                               <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
                               <td className="px-3 py-2 text-right text-success">{formatCurrency(invPaid)}</td>
-                              <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(invOutstanding)}</td>
+                              <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : invOutstanding < 0 ? "text-success" : "text-success"}`}>{formatCurrency(invOutstanding)}</td>
                             </tr>
                           );
                         }) : [(
@@ -683,7 +683,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(cust.totalBilled)}</td>
                             <td className="px-3 py-2 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
-                            <td className={`px-3 py-2 text-right font-medium ${cust.outstanding > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(cust.outstanding)}</td>
+                            <td className={`px-3 py-2 text-right font-medium ${cust.outstanding > 0 ? "text-destructive" : cust.outstanding < 0 ? "text-success" : "text-success"}`}>{formatCurrency(cust.outstanding)}</td>
                           </tr>
                         )]
                       )}
