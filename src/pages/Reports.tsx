@@ -580,7 +580,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <tbody>
                       {filtered.map(inv => {
                         const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-                        const balance = Math.max(0, inv.amount - paid);
+                        const balance = inv.amount - paid;
                         const invDate = new Date(inv.date);
                         const ageDays = Math.floor((today.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
                         const cust = customers.find(c => c.name === inv.customer);
@@ -595,7 +595,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-right">{formatCurrency(subTotal)}</td>
                             <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(tax)}</td>
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
-                            <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(balance)}</td>
+                            <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-destructive" : balance < 0 ? "text-success" : "text-success"}`}>{formatCurrency(balance)}</td>
                             <td className="px-3 py-2 text-center">{ageDays}</td>
                             <td className="px-3 py-2 text-muted-foreground text-xs">{cust ? `Mr ${cust.name}` : inv.customer}</td>
                             <td className="px-3 py-2 text-muted-foreground text-xs">{cust?.phone || "—"}</td>
