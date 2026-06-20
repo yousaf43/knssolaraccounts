@@ -188,8 +188,8 @@ export default function Customers() {
                               </div>
                               <div className="flex items-center gap-3">
                                 <span>{formatCurrency(inv.amount)}</span>
-                                <span className={remaining > 0 ? "text-warning" : "text-success"}>
-                                  Rem: {formatCurrency(Math.max(0, remaining))}
+                                <span className={remaining > 0 ? "text-warning" : remaining < 0 ? "text-destructive" : "text-success"}>
+                                  Rem: {formatCurrency(remaining)}
                                 </span>
                               </div>
                             </div>

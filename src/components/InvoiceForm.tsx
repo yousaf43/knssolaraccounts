@@ -520,7 +520,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
             </div>
             <div className="flex justify-between text-sm font-bold">
               <span>Remaining Balance</span>
-              <span className={remaining > 0 ? "text-destructive" : "text-success"}>{formatCurrency(Math.max(0, remaining))}</span>
+              <span className={remaining > 0 ? "text-destructive" : remaining < 0 ? "text-destructive" : "text-success"}>{formatCurrency(remaining)}</span>
             </div>
           </div>
         );
