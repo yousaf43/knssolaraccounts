@@ -720,7 +720,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <tbody>
                         {cust.invoices.map(inv => {
                           const paid = cust.receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-                          const balance = Math.max(0, inv.amount - paid);
+                          const balance = inv.amount - paid;
                           const ageDays = Math.floor((new Date().getTime() - new Date(inv.date).getTime()) / (1000 * 60 * 60 * 24));
                           return (
                             <tr key={inv.id} className="border-b last:border-0">
@@ -729,7 +729,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-2 py-1.5">{inv.projectName || "—"}</td>
                               <td className="px-2 py-1.5 text-right">{formatCurrency(inv.amount)}</td>
                               <td className="px-2 py-1.5 text-right text-success">{formatCurrency(paid)}</td>
-                              <td className={`px-2 py-1.5 text-right ${balance > 0 ? "text-destructive font-medium" : ""}`}>{formatCurrency(balance)}</td>
+                              <td className={`px-2 py-1.5 text-right ${balance > 0 ? "text-destructive font-medium" : balance < 0 ? "text-success" : ""}`}>{formatCurrency(balance)}</td>
                               <td className="px-2 py-1.5 text-center">{ageDays}</td>
                               <td className="px-2 py-1.5 text-center"><Badge variant="outline" className="text-[10px] px-1.5 py-0">{inv.status}</Badge></td>
                             </tr>
