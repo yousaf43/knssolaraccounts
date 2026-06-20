@@ -157,7 +157,7 @@ export default function Customers() {
                 <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t text-sm">
                   <div><p className="text-muted-foreground text-xs">Total Billed</p><p className="font-semibold">{formatCurrency(totalBilled)}</p></div>
                   <div className="text-center"><p className="text-muted-foreground text-xs">Total Paid</p><p className="font-semibold text-success">{formatCurrency(totalPaid)}</p></div>
-                  <div className="text-right"><p className="text-muted-foreground text-xs">Outstanding</p><p className={`font-semibold ${outstanding > 0 ? "text-warning" : "text-success"}`}>{formatCurrency(outstanding)}</p></div>
+                  <div className="text-right"><p className="text-muted-foreground text-xs">Outstanding</p><p className={`font-semibold ${outstanding > 0 ? "text-warning" : outstanding < 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(outstanding)}</p></div>
                 </div>
                 {/* Payment History Toggle */}
                 <button
@@ -188,8 +188,8 @@ export default function Customers() {
                               </div>
                               <div className="flex items-center gap-3">
                                 <span>{formatCurrency(inv.amount)}</span>
-                                <span className={remaining > 0 ? "text-warning" : "text-success"}>
-                                  Rem: {formatCurrency(Math.max(0, remaining))}
+                                <span className={remaining > 0 ? "text-warning" : remaining < 0 ? "text-destructive" : "text-success"}>
+                                  Rem: {formatCurrency(remaining)}
                                 </span>
                               </div>
                             </div>
