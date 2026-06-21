@@ -655,12 +655,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   + invs.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
                 custData.push({
                   id: `orphan-${name}`, name, company: "", email: "", phone: "", address: "",
-                  totalBilled: 0, outstanding: 0,
-                  invoiceCount: invs.length, totalPaid,
-                  invoices: invs, receipts: recs,
-                  outstanding: totalBilled - totalPaid,
+                  invoiceCount: invs.length,
                   totalBilled,
+                  totalPaid,
+                  outstanding: totalBilled - totalPaid,
+                  invoices: invs,
+                  receipts: recs,
                 } as any);
+
               });
             }
 
