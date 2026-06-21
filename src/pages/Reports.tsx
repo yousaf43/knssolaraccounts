@@ -18,6 +18,9 @@ import {
   useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
+import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
+
+const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
