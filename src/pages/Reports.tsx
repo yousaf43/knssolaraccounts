@@ -695,12 +695,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           const invOutstanding = inv.amount - invPaid;
                           return (
                             <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
-                              <td className="px-3 py-2 font-medium">{idx === 0 ? cust.name : ""}</td>
+                              <td className="px-3 py-2 font-medium">{cust.name}</td>
                               <td className="px-3 py-2 whitespace-nowrap">{inv.number}</td>
                               <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
                               <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{idx === 0 ? (cust.company || "—") : ""}</td>
-                              <td className="px-3 py-2 text-muted-foreground text-xs">{idx === 0 ? (cust.phone || "—") : ""}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
+                              <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
+
                               <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
                               <td className="px-3 py-2 text-right text-success">{formatCurrency(invPaid)}</td>
                               <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : invOutstanding < 0 ? "text-success" : "text-success"}`}>{formatCurrency(invOutstanding)}</td>
