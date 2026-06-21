@@ -625,12 +625,18 @@ export default function Invoices() {
   const hasActiveFilters = searchQuery.trim() !== "" || filterCustomer !== "all" || filterType !== "all" || filterDateRange !== "all" || filterStatus !== "all";
 
   // ========== EARLY RETURNS FOR FORM / PREVIEW VIEWS ==========
+  const findCustomerByLabel = (label?: string) => {
+    if (!label) return undefined;
+    const norm = (v?: string | null) => (v ?? "").trim().toLowerCase();
+    return customers.find((c) => norm(c.name) === norm(label) || norm(`${c.name} [${c.company}]`) === norm(label));
+  };
   if (view === "preview" && previewInvoice) {
     const isQ = (previewInvoice.number || "").startsWith("QTN");
-    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} docType={isQ ? "quotation" : "invoice"} />;
+    const cust = findCustomerByLabel(previewInvoice.customer);
+    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} docType={isQ ? "quotation" : "invoice"} customerPhone={cust?.phone} customerAddress={cust?.address} />;
   }
   if (view === "so-preview" && previewSO) {
-    return <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} />;
+    return <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} customers={customers} inventory={inventory} />;
   }
   if (view === "return-form") {
     return <ReturnInvoiceForm invoices={invoices.filter(i => !i.isReturn)} inventory={inventory} onSaveReturn={handleProcessReturn} onCancel={goList} nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
