@@ -181,8 +181,11 @@ export default function Customers() {
                       <p className="text-xs font-semibold text-muted-foreground mb-1">Invoices</p>
                       <div className="space-y-1">
                         {custInvoices.map((inv) => {
-                          const paidForInv = custReceipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-                          const remaining = inv.amount - paidForInv;
+                          const paidForInv = custReceipts.filter((r) => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0)
+                            + (inv.payments || []).reduce((s, p) => s + (p.amount || 0), 0);
+                          const rawRemaining = inv.amount - paidForInv;
+                          const remaining = rawRemaining > 0 ? rawRemaining : 0;
+                          const overpaid = rawRemaining < 0 ? -rawRemaining : 0;
                           return (
                             <div key={inv.id} className="flex items-center justify-between text-xs py-1 border-b border-dashed last:border-0">
                               <div className="flex items-center gap-2">
@@ -192,8 +195,8 @@ export default function Customers() {
                               </div>
                               <div className="flex items-center gap-3">
                                 <span>{formatCurrency(inv.amount)}</span>
-                                <span className={remaining > 0 ? "text-warning" : remaining < 0 ? "text-destructive" : "text-success"}>
-                                  Rem: {formatCurrency(remaining)}
+                                <span className={remaining > 0 ? "text-warning" : "text-success"}>
+                                  Rem: {formatCurrency(remaining)}{overpaid > 0 ? ` (Adv ${formatCurrency(overpaid)})` : ""}
                                 </span>
                               </div>
                             </div>
