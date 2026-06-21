@@ -18,6 +18,9 @@ import {
   useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
+import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
+
+const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
@@ -626,13 +629,43 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {/* Customer-wise Summary (029, 034, 201) */}
           {["029", "034", "201"].includes(report.code) && (() => {
             const custData = customers.map(cust => {
-              const custInv = invoices.filter(i => i.customer === cust.name);
-              const custRec = receipts.filter(r => r.customer === cust.name);
+              const custInv = invoices.filter(i => normName(i.customer) === normName(cust.name));
+              const custRec = receipts.filter(r => normName(r.customer) === normName(cust.name));
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
-            const totalPaid = custRec.reduce((s, r) => s + r.amount, 0);
+            const totalPaid = custRec.reduce((s, r) => s + r.amount, 0)
+              + custInv.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
             const outstanding = totalBilled - totalPaid;
             return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, invoices: custInv, receipts: custRec };
-          }).filter(c => c.totalBilled > 0);
+          }).filter(c => c.totalBilled > 0 || c.invoiceCount > 0);
+
+            // Catch orphan invoices (customer name doesn't match any customer record, or is blank)
+            const knownNames = new Set(customers.map(c => normName(c.name)));
+            const orphanInv = invoices.filter(i => !knownNames.has(normName(i.customer)));
+            if (orphanInv.length > 0) {
+              const groups = new Map<string, typeof orphanInv>();
+              orphanInv.forEach(i => {
+                const key = (i.customer || "").trim() || "(No Customer)";
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key)!.push(i);
+              });
+              groups.forEach((invs, name) => {
+                const recs = receipts.filter(r => normName(r.customer) === normName(name));
+                const totalBilled = invs.reduce((s, i) => s + i.amount, 0);
+                const totalPaid = recs.reduce((s, r) => s + r.amount, 0)
+                  + invs.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
+                custData.push({
+                  id: `orphan-${name}`, name, company: "", email: "", phone: "", address: "",
+                  invoiceCount: invs.length,
+                  totalBilled,
+                  totalPaid,
+                  outstanding: totalBilled - totalPaid,
+                  invoices: invs,
+                  receipts: recs,
+                } as any);
+
+              });
+            }
+
 
             return (
               <div className="bg-card rounded-lg border p-6">
