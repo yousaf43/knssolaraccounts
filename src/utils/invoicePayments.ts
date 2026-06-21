@@ -35,7 +35,12 @@ export function getInvoicePaymentSummary(
   const receiptsPaid = invoiceReceipts.reduce((sum, receipt) => sum + (receipt.amount || 0), 0);
   const embeddedPaid = getInvoiceEmbeddedPaid(invoice);
   const totalPaid = receiptsPaid + embeddedPaid;
-  const remaining = (invoice.amount || 0) - totalPaid;
+  const rawRemaining = (invoice.amount || 0) - totalPaid;
+  // Per-invoice remaining is never negative. Any extra payment is treated as
+  // customer advance and shown separately via `overpaid` — it must not turn the
+  // invoice's own remaining into a minus value.
+  const remaining = rawRemaining > 0 ? rawRemaining : 0;
+  const overpaid = rawRemaining < 0 ? -rawRemaining : 0;
 
   return {
     invoiceReceipts,
@@ -43,5 +48,6 @@ export function getInvoicePaymentSummary(
     embeddedPaid,
     totalPaid,
     remaining,
+    overpaid,
   };
 }

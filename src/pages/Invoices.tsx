@@ -955,7 +955,7 @@ export default function Invoices() {
                 </thead>
                 <tbody>
                   {pgInvoices.paginatedItems.map((inv) => {
-                    const { invoiceReceipts: invReceipts, totalPaid, remaining } = getInvoicePaymentSummary(inv, receipts);
+                    const { invoiceReceipts: invReceipts, totalPaid, remaining, overpaid } = getInvoicePaymentSummary(inv, receipts);
                     const isExpanded = expandedInvoice === inv.id;
                     return (
                       <React.Fragment key={inv.id}>
@@ -967,7 +967,12 @@ export default function Invoices() {
                           <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
                           <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.amount)}</td>
                           <td className="px-4 py-3 text-right text-success font-medium">{formatCurrency(totalPaid)}</td>
-                          <td className={`px-4 py-3 text-right font-medium ${remaining > 0 ? "text-warning" : remaining < 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(remaining)}</td>
+                          <td className={`px-4 py-3 text-right font-medium ${remaining > 0 ? "text-warning" : "text-success"}`}>
+                            {formatCurrency(remaining)}
+                            {overpaid > 0 && (
+                              <div className="text-[10px] font-normal text-muted-foreground">Advance: {formatCurrency(overpaid)}</div>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-center"><Badge className={invoiceStatusStyles[inv.status]}>{inv.status}</Badge></td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex items-center justify-center gap-1">
