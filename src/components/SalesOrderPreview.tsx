@@ -17,8 +17,9 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
   const { formatCurrency, settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
+  const norm = (v?: string | null) => (v ?? "").trim().toLowerCase();
   const customer = customers.find(
-    (c) => c.name === order.customer || `${c.name} [${c.company}]` === order.customer
+    (c) => norm(c.name) === norm(order.customer) || norm(`${c.name} [${c.company}]`) === norm(order.customer)
   );
 
   const subtotal = order.items.reduce((s, i) => s + i.amount, 0);
