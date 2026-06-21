@@ -32,15 +32,19 @@ export default function Customers() {
   const openAdd = () => { setEditing(null); setForm(emptyCustomer()); setShowForm(true); };
   const openEdit = (c: Customer) => { setEditing(c); setForm(c); setShowForm(true); };
 
-  // Calculate real totals from invoices/receipts
+  // Calculate real totals from invoices/receipts (case-insensitive name match)
+  const norm = (v?: string | null) => (v ?? "").trim().toLowerCase();
   const getCustomerTotals = (customerName: string) => {
-    const custInvoices = invoices.filter((i) => i.customer === customerName);
-    const custReceipts = receipts.filter((r) => r.customer === customerName);
+    const key = norm(customerName);
+    const custInvoices = invoices.filter((i) => norm(i.customer) === key);
+    const custReceipts = receipts.filter((r) => norm(r.customer) === key);
     const totalBilled = custInvoices.reduce((sum, i) => sum + i.amount, 0);
-    const totalPaid = custReceipts.reduce((sum, r) => sum + r.amount, 0);
+    const embeddedPaid = custInvoices.reduce((sum, i) => sum + (i.payments || []).reduce((s, p) => s + (p.amount || 0), 0), 0);
+    const totalPaid = custReceipts.reduce((sum, r) => sum + r.amount, 0) + embeddedPaid;
     const outstanding = totalBilled - totalPaid;
     return { totalBilled, totalPaid, outstanding, custInvoices, custReceipts };
   };
+
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
