@@ -810,10 +810,21 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 productMap[key].count += 1;
               });
             });
-            const products = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+            const q = productSearch.trim().toLowerCase();
+            const products = Object.values(productMap)
+              .filter(p => !q || p.name.toLowerCase().includes(q))
+              .sort((a, b) => b.revenue - a.revenue);
             return (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-lg font-semibold mb-4">Product Sale Summary ({products.length} products)</h2>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">Product Sale Summary ({products.length} products)</h2>
+                  <Input
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Search product..."
+                    className="h-9 w-full sm:w-64"
+                  />
+                </div>
                 <div className="overflow-x-auto">
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
