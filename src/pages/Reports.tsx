@@ -582,11 +582,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </thead>
                     <tbody>
                       {filtered.map(inv => {
-                        const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-                        const balance = inv.amount - paid;
+                        const { remaining: balance, overpaid } = getInvoicePaymentSummary(inv, receipts);
                         const invDate = new Date(inv.date);
                         const ageDays = Math.floor((today.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
-                        const cust = customers.find(c => c.name === inv.customer);
+                        const cust = customers.find(c => normName(c.name) === normName(inv.customer));
                         const subTotal = inv.items?.reduce((s: number, it: any) => s + (it.amount || 0), 0) || inv.amount;
                         const tax = inv.tax || 0;
                         return (
@@ -598,7 +597,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-right">{formatCurrency(subTotal)}</td>
                             <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(tax)}</td>
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
-                            <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-destructive" : balance < 0 ? "text-success" : "text-success"}`}>{formatCurrency(balance)}</td>
+                            <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-destructive" : "text-success"}`}>
+                              {formatCurrency(balance)}
+                              {overpaid > 0 && <div className="text-[10px] font-normal text-muted-foreground">Advance: {formatCurrency(overpaid)}</div>}
+                            </td>
                             <td className="px-3 py-2 text-center">{ageDays}</td>
                             <td className="px-3 py-2 text-muted-foreground text-xs">{cust ? `Mr ${cust.name}` : inv.customer}</td>
                             <td className="px-3 py-2 text-muted-foreground text-xs">{cust?.phone || "—"}</td>
@@ -613,10 +615,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.items?.reduce((ss: number, it: any) => ss + (it.amount || 0), 0) || i.amount), 0))}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.tax || 0), 0))}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
-                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(filtered.reduce((s, inv) => {
-                          const paid = receipts.filter(r => r.invoiceNumber === inv.number).reduce((ss, r) => ss + r.amount, 0);
-                          return s + (inv.amount - paid);
-                        }, 0))}</td>
+                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(filtered.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).remaining, 0))}</td>
                         <td colSpan={4}></td>
                       </tr>
                     </tfoot>
@@ -628,15 +627,22 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
           {/* Customer-wise Summary (029, 034, 201) */}
           {["029", "034", "201"].includes(report.code) && (() => {
+            // Sum per-invoice clamped remaining so overpayments don't make a customer look negative
+            const sumOutstanding = (invs: Invoice[], recs: Receipt[]) =>
+              invs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, recs).remaining, 0);
+            const sumAdvance = (invs: Invoice[], recs: Receipt[]) =>
+              invs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, recs).overpaid, 0);
+
             const custData = customers.map(cust => {
               const custInv = invoices.filter(i => normName(i.customer) === normName(cust.name));
               const custRec = receipts.filter(r => normName(r.customer) === normName(cust.name));
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
-            const totalPaid = custRec.reduce((s, r) => s + r.amount, 0)
-              + custInv.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
-            const outstanding = totalBilled - totalPaid;
-            return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, invoices: custInv, receipts: custRec };
-          }).filter(c => c.totalBilled > 0 || c.invoiceCount > 0);
+              const totalPaid = custRec.reduce((s, r) => s + r.amount, 0)
+                + custInv.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
+              const outstanding = sumOutstanding(custInv, custRec);
+              const advance = sumAdvance(custInv, custRec);
+              return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, advance, invoices: custInv, receipts: custRec };
+            }).filter(c => c.totalBilled > 0 || c.invoiceCount > 0);
 
             // Catch orphan invoices (customer name doesn't match any customer record, or is blank)
             const knownNames = new Set(customers.map(c => normName(c.name)));
@@ -658,7 +664,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   invoiceCount: invs.length,
                   totalBilled,
                   totalPaid,
-                  outstanding: totalBilled - totalPaid,
+                  outstanding: sumOutstanding(invs, recs),
+                  advance: sumAdvance(invs, recs),
                   invoices: invs,
                   receipts: recs,
                 } as any);
@@ -690,9 +697,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <tbody>
                       {custData.flatMap(cust => 
                         cust.invoices.length > 0 ? cust.invoices.map((inv, idx) => {
-                          const invPaid = cust.receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + (r.amount || 0), 0)
-                            + (inv.payments || []).reduce((s: number, p: any) => s + (p.amount || 0), 0);
-                          const invOutstanding = inv.amount - invPaid;
+                          const { totalPaid: invPaid, remaining: invOutstanding, overpaid: invOverpaid } = getInvoicePaymentSummary(inv, cust.receipts);
                           return (
                             <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
                               <td className="px-3 py-2 font-medium">{cust.name}</td>
@@ -704,7 +709,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
                               <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
                               <td className="px-3 py-2 text-right text-success">{formatCurrency(invPaid)}</td>
-                              <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : invOutstanding < 0 ? "text-success" : "text-success"}`}>{formatCurrency(invOutstanding)}</td>
+                              <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : "text-success"}`}>
+                                {formatCurrency(invOutstanding)}
+                                {invOverpaid > 0 && <div className="text-[10px] font-normal text-muted-foreground">Advance: {formatCurrency(invOverpaid)}</div>}
+                              </td>
                             </tr>
                           );
                         }) : [(
@@ -753,8 +761,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </thead>
                       <tbody>
                         {cust.invoices.map(inv => {
-                          const paid = cust.receipts.filter(r => r.invoiceNumber === inv.number).reduce((s, r) => s + r.amount, 0);
-                          const balance = inv.amount - paid;
+                          const { totalPaid: paid, remaining: balance, overpaid } = getInvoicePaymentSummary(inv, cust.receipts);
                           const ageDays = Math.floor((new Date().getTime() - new Date(inv.date).getTime()) / (1000 * 60 * 60 * 24));
                           return (
                             <tr key={inv.id} className="border-b last:border-0">
@@ -763,7 +770,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-2 py-1.5">{inv.projectName || "—"}</td>
                               <td className="px-2 py-1.5 text-right">{formatCurrency(inv.amount)}</td>
                               <td className="px-2 py-1.5 text-right text-success">{formatCurrency(paid)}</td>
-                              <td className={`px-2 py-1.5 text-right ${balance > 0 ? "text-destructive font-medium" : balance < 0 ? "text-success" : ""}`}>{formatCurrency(balance)}</td>
+                              <td className={`px-2 py-1.5 text-right ${balance > 0 ? "text-destructive font-medium" : ""}`}>
+                                {formatCurrency(balance)}
+                                {overpaid > 0 && <div className="text-[10px] font-normal text-muted-foreground">Adv {formatCurrency(overpaid)}</div>}
+                              </td>
                               <td className="px-2 py-1.5 text-center">{ageDays}</td>
                               <td className="px-2 py-1.5 text-center"><Badge variant="outline" className="text-[10px] px-1.5 py-0">{inv.status}</Badge></td>
                             </tr>
