@@ -18,6 +18,7 @@ import {
   useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
@@ -299,6 +300,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const companyName = settings?.companyName || "K & S Solar";
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
+  const [productSearch, setProductSearch] = useState("");
 
   const dateRange = useMemo(() => {
     if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
@@ -384,8 +386,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
-                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
-                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>
+                    {report.code !== "078" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
+                    {report.code !== "078" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
@@ -402,8 +404,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-muted-foreground">{item.model || "—"}</td>
                         <td className="px-3 py-2">{item.category}</td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>
+                        {report.code !== "078" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
+                        {report.code !== "078" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgPrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
                       </tr>
@@ -808,10 +810,21 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 productMap[key].count += 1;
               });
             });
-            const products = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+            const q = productSearch.trim().toLowerCase();
+            const products = Object.values(productMap)
+              .filter(p => !q || p.name.toLowerCase().includes(q))
+              .sort((a, b) => b.revenue - a.revenue);
             return (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-lg font-semibold mb-4">Product Sale Summary ({products.length} products)</h2>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">Product Sale Summary ({products.length} products)</h2>
+                  <Input
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Search product..."
+                    className="h-9 w-full sm:w-64"
+                  />
+                </div>
                 <div className="overflow-x-auto">
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
