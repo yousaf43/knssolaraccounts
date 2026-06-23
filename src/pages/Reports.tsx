@@ -970,6 +970,72 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Inventory chart Reports - Category-wise stock data */}
+      {/* Inventory Transactions Summary By Product (366) */}
+      {report.code === "366" && (() => {
+        const map: Record<string, { name: string; qtyOut: number; revenue: number; count: number }> = {};
+        invoices.forEach(inv => {
+          if (inv.date) {
+            const d = new Date(inv.date);
+            if (fromDate && d < fromDate) return;
+            if (toDate && d > toDate) return;
+          }
+          inv.items.forEach((it: any) => {
+            const key = it.description || "Unknown";
+            if (!map[key]) map[key] = { name: key, qtyOut: 0, revenue: 0, count: 0 };
+            map[key].qtyOut += it.qty || 0;
+            map[key].revenue += it.amount || 0;
+            map[key].count += 1;
+          });
+        });
+        const q = txnSearch.trim().toLowerCase();
+        const rows = Object.values(map)
+          .filter(p => !q || p.name.toLowerCase().includes(q))
+          .sort((a, b) => b.qtyOut - a.qtyOut);
+        return (
+          <div className="bg-card rounded-lg border p-6">
+            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+              <h2 className="text-lg font-semibold">Inventory Transactions Summary By Product ({rows.length})</h2>
+              <Input
+                value={txnSearch}
+                onChange={(e) => setTxnSearch(e.target.value)}
+                placeholder="Search product..."
+                className="h-9 w-full sm:w-64"
+              />
+            </div>
+            <div className="overflow-x-auto">
+              <table id="report-print-table" className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Transactions</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty Out</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(p => (
+                    <tr key={p.name} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium">{p.name}</td>
+                      <td className="px-3 py-2 text-right">{p.count}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{p.qtyOut}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(p.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-bold">
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2 text-right">{rows.reduce((s, p) => s + p.count, 0)}</td>
+                    <td className="px-3 py-2 text-right">{rows.reduce((s, p) => s + p.qtyOut, 0)}</td>
+                    <td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((s, p) => s + p.revenue, 0))}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       {["173", "180", "230", "231", "232"].includes(report.code) && (() => {
         // Build category-wise stock data from actual inventory
         const categoryData: Record<string, { qty: number; value: number; items: number }> = {};
