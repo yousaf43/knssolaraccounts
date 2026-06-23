@@ -970,7 +970,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Inventory chart Reports - Category-wise stock data */}
-      {["173", "180", "366", "230", "231", "232"].includes(report.code) && (() => {
+      {["173", "180", "230", "231", "232"].includes(report.code) && (() => {
         // Build category-wise stock data from actual inventory
         const categoryData: Record<string, { qty: number; value: number; items: number }> = {};
         inventory.forEach(item => {
