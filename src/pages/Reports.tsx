@@ -390,8 +390,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
-                    {report.code !== "078" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
-                    {report.code !== "078" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
