@@ -554,20 +554,34 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {/* Invoice Data Table (028, 037) */}
           {["028", "037"].includes(report.code) && (() => {
             const invList = report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices;
+            const q = invoiceSearch.trim().toLowerCase();
             const filtered = invList.filter(inv => {
-              if (!inv.date) return true;
-              const d = new Date(inv.date);
-              if (fromDate && d < fromDate) return false;
-              if (toDate && d > toDate) return false;
+              if (inv.date) {
+                const d = new Date(inv.date);
+                if (fromDate && d < fromDate) return false;
+                if (toDate && d > toDate) return false;
+              }
+              if (q) {
+                const hay = `${inv.number || ""} ${inv.customer || ""} ${inv.documentNumber || ""} ${inv.status || ""}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+              }
               return true;
             });
             const today = new Date();
 
             return (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-lg font-semibold mb-4">
-                  {report.code === "037" ? "Unpaid Sale Invoices/Credits" : "Sale Invoices/Credits"} (By Date) — {filtered.length} records
-                </h2>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">
+                    {report.code === "037" ? "Unpaid Sale Invoices/Credits" : "Sale Invoices/Credits"} (By Date) — {filtered.length} records
+                  </h2>
+                  <Input
+                    value={invoiceSearch}
+                    onChange={(e) => setInvoiceSearch(e.target.value)}
+                    placeholder="Search invoice / customer / doc..."
+                    className="h-9 w-full sm:w-72"
+                  />
+                </div>
                 <div className="overflow-x-auto">
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
