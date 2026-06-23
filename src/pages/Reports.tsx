@@ -730,7 +730,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tr>
                     </thead>
                     <tbody>
-                      {custData.flatMap(cust => 
+                      {visibleCust.flatMap(cust => 
                         cust.invoices.length > 0 ? cust.invoices.map((inv, idx) => {
                           const { totalPaid: invPaid, remaining: invOutstanding, overpaid: invOverpaid } = getInvoicePaymentSummary(inv, cust.receipts);
                           return (
@@ -768,16 +768,16 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
                         <td className="px-3 py-2" colSpan={6}>Total</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(custData.reduce((s, c) => s + c.totalBilled, 0))}</td>
-                        <td className="px-3 py-2 text-right text-success">{formatCurrency(custData.reduce((s, c) => s + c.totalPaid, 0))}</td>
-                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(custData.reduce((s, c) => s + c.outstanding, 0))}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(visibleCust.reduce((s, c) => s + c.totalBilled, 0))}</td>
+                        <td className="px-3 py-2 text-right text-success">{formatCurrency(visibleCust.reduce((s, c) => s + c.totalPaid, 0))}</td>
+                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(visibleCust.reduce((s, c) => s + c.outstanding, 0))}</td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
 
                 {/* Detailed Customer Statement - show each customer's invoices */}
-                {report.code === "034" && custData.map(cust => (
+                {report.code === "034" && visibleCust.map(cust => (
                   <div key={cust.id} className="mt-6 border rounded-lg p-4">
                     <h3 className="font-semibold text-sm mb-1">{cust.name} {cust.company && `— ${cust.company}`}</h3>
                     <p className="text-xs text-muted-foreground mb-3">{cust.phone || ""} {cust.email ? `| ${cust.email}` : ""}</p>
