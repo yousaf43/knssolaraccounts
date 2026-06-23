@@ -301,6 +301,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
   const [productSearch, setProductSearch] = useState("");
+  const [invoiceSearch, setInvoiceSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [receiptSearch, setReceiptSearch] = useState("");
+  const [txnSearch, setTxnSearch] = useState("");
 
   const dateRange = useMemo(() => {
     if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
@@ -386,8 +390,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
-                    {report.code !== "078" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
-                    {report.code !== "078" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
@@ -404,8 +408,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-muted-foreground">{item.model || "—"}</td>
                         <td className="px-3 py-2">{item.category}</td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
-                        {report.code !== "078" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
-                        {report.code !== "078" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgPrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
                       </tr>
@@ -550,20 +554,34 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {/* Invoice Data Table (028, 037) */}
           {["028", "037"].includes(report.code) && (() => {
             const invList = report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices;
+            const q = invoiceSearch.trim().toLowerCase();
             const filtered = invList.filter(inv => {
-              if (!inv.date) return true;
-              const d = new Date(inv.date);
-              if (fromDate && d < fromDate) return false;
-              if (toDate && d > toDate) return false;
+              if (inv.date) {
+                const d = new Date(inv.date);
+                if (fromDate && d < fromDate) return false;
+                if (toDate && d > toDate) return false;
+              }
+              if (q) {
+                const hay = `${inv.number || ""} ${inv.customer || ""} ${inv.documentNumber || ""} ${inv.status || ""}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+              }
               return true;
             });
             const today = new Date();
 
             return (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-lg font-semibold mb-4">
-                  {report.code === "037" ? "Unpaid Sale Invoices/Credits" : "Sale Invoices/Credits"} (By Date) — {filtered.length} records
-                </h2>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">
+                    {report.code === "037" ? "Unpaid Sale Invoices/Credits" : "Sale Invoices/Credits"} (By Date) — {filtered.length} records
+                  </h2>
+                  <Input
+                    value={invoiceSearch}
+                    onChange={(e) => setInvoiceSearch(e.target.value)}
+                    placeholder="Search invoice / customer / doc..."
+                    className="h-9 w-full sm:w-72"
+                  />
+                </div>
                 <div className="overflow-x-auto">
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
@@ -676,11 +694,26 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             }
 
 
+            const cq = customerSearch.trim().toLowerCase();
+            const visibleCust = cq
+              ? custData.filter((c: any) =>
+                  `${c.name || ""} ${c.company || ""} ${c.phone || ""} ${c.email || ""}`.toLowerCase().includes(cq)
+                )
+              : custData;
+
             return (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-lg font-semibold mb-4">
-                  {report.code === "034" ? "Customer Statement" : "Sale Invoices/Credits (By Customer)"} — {custData.length} customers
-                </h2>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">
+                    {report.code === "034" ? "Customer Statement" : "Sale Invoices/Credits (By Customer)"} — {visibleCust.length} customers
+                  </h2>
+                  <Input
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Search customer..."
+                    className="h-9 w-full sm:w-64"
+                  />
+                </div>
                 <div className="overflow-x-auto">
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
@@ -697,7 +730,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tr>
                     </thead>
                     <tbody>
-                      {custData.flatMap(cust => 
+                      {visibleCust.flatMap(cust => 
                         cust.invoices.length > 0 ? cust.invoices.map((inv, idx) => {
                           const { totalPaid: invPaid, remaining: invOutstanding, overpaid: invOverpaid } = getInvoicePaymentSummary(inv, cust.receipts);
                           return (
@@ -735,16 +768,16 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
                         <td className="px-3 py-2" colSpan={6}>Total</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(custData.reduce((s, c) => s + c.totalBilled, 0))}</td>
-                        <td className="px-3 py-2 text-right text-success">{formatCurrency(custData.reduce((s, c) => s + c.totalPaid, 0))}</td>
-                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(custData.reduce((s, c) => s + c.outstanding, 0))}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(visibleCust.reduce((s, c) => s + c.totalBilled, 0))}</td>
+                        <td className="px-3 py-2 text-right text-success">{formatCurrency(visibleCust.reduce((s, c) => s + c.totalPaid, 0))}</td>
+                        <td className="px-3 py-2 text-right text-destructive">{formatCurrency(visibleCust.reduce((s, c) => s + c.outstanding, 0))}</td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
 
                 {/* Detailed Customer Statement - show each customer's invoices */}
-                {report.code === "034" && custData.map(cust => (
+                {report.code === "034" && visibleCust.map(cust => (
                   <div key={cust.id} className="mt-6 border rounded-lg p-4">
                     <h3 className="font-semibold text-sm mb-1">{cust.name} {cust.company && `— ${cust.company}`}</h3>
                     <p className="text-xs text-muted-foreground mb-3">{cust.phone || ""} {cust.email ? `| ${cust.email}` : ""}</p>
@@ -860,9 +893,24 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           })()}
 
           {/* Payment Receipts Summary (063) */}
-          {report.code === "063" && (
+          {report.code === "063" && (() => {
+            const rq = receiptSearch.trim().toLowerCase();
+            const filteredReceipts = rq
+              ? receipts.filter(r =>
+                  `${r.number || ""} ${r.customer || ""} ${r.invoiceNumber || ""} ${r.paymentMethod || ""}`.toLowerCase().includes(rq)
+                )
+              : receipts;
+            return (
             <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-lg font-semibold mb-4">Payment Receipts ({receipts.length})</h2>
+              <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                <h2 className="text-lg font-semibold">Payment Receipts ({filteredReceipts.length})</h2>
+                <Input
+                  value={receiptSearch}
+                  onChange={(e) => setReceiptSearch(e.target.value)}
+                  placeholder="Search receipt / customer / invoice..."
+                  className="h-9 w-full sm:w-72"
+                />
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -876,7 +924,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </tr>
                   </thead>
                   <tbody>
-                    {receipts.map(r => (
+                    {filteredReceipts.map(r => (
                       <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 font-medium">{r.number}</td>
                         <td className="px-3 py-2">{r.customer}</td>
@@ -890,13 +938,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <tfoot>
                     <tr className="border-t-2 font-bold">
                       <td className="px-3 py-2" colSpan={5}>Total Received</td>
-                      <td className="px-3 py-2 text-right text-success">{formatCurrency(receipts.reduce((s, r) => s + r.amount, 0))}</td>
+                      <td className="px-3 py-2 text-right text-success">{formatCurrency(filteredReceipts.reduce((s, r) => s + r.amount, 0))}</td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
@@ -921,7 +970,73 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Inventory chart Reports - Category-wise stock data */}
-      {["173", "180", "366", "230", "231", "232"].includes(report.code) && (() => {
+      {/* Inventory Transactions Summary By Product (366) */}
+      {report.code === "366" && (() => {
+        const map: Record<string, { name: string; qtyOut: number; revenue: number; count: number }> = {};
+        invoices.forEach(inv => {
+          if (inv.date) {
+            const d = new Date(inv.date);
+            if (fromDate && d < fromDate) return;
+            if (toDate && d > toDate) return;
+          }
+          inv.items.forEach((it: any) => {
+            const key = it.description || "Unknown";
+            if (!map[key]) map[key] = { name: key, qtyOut: 0, revenue: 0, count: 0 };
+            map[key].qtyOut += it.qty || 0;
+            map[key].revenue += it.amount || 0;
+            map[key].count += 1;
+          });
+        });
+        const q = txnSearch.trim().toLowerCase();
+        const rows = Object.values(map)
+          .filter(p => !q || p.name.toLowerCase().includes(q))
+          .sort((a, b) => b.qtyOut - a.qtyOut);
+        return (
+          <div className="bg-card rounded-lg border p-6">
+            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+              <h2 className="text-lg font-semibold">Inventory Transactions Summary By Product ({rows.length})</h2>
+              <Input
+                value={txnSearch}
+                onChange={(e) => setTxnSearch(e.target.value)}
+                placeholder="Search product..."
+                className="h-9 w-full sm:w-64"
+              />
+            </div>
+            <div className="overflow-x-auto">
+              <table id="report-print-table" className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Transactions</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty Out</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(p => (
+                    <tr key={p.name} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium">{p.name}</td>
+                      <td className="px-3 py-2 text-right">{p.count}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{p.qtyOut}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(p.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 font-bold">
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2 text-right">{rows.reduce((s, p) => s + p.count, 0)}</td>
+                    <td className="px-3 py-2 text-right">{rows.reduce((s, p) => s + p.qtyOut, 0)}</td>
+                    <td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((s, p) => s + p.revenue, 0))}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {["173", "180", "230", "231", "232"].includes(report.code) && (() => {
         // Build category-wise stock data from actual inventory
         const categoryData: Record<string, { qty: number; value: number; items: number }> = {};
         inventory.forEach(item => {
