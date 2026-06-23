@@ -301,6 +301,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
   const [productSearch, setProductSearch] = useState("");
+  const [invoiceSearch, setInvoiceSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [receiptSearch, setReceiptSearch] = useState("");
+  const [txnSearch, setTxnSearch] = useState("");
 
   const dateRange = useMemo(() => {
     if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
