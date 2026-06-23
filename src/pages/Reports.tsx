@@ -694,11 +694,26 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             }
 
 
+            const cq = customerSearch.trim().toLowerCase();
+            const visibleCust = cq
+              ? custData.filter((c: any) =>
+                  `${c.name || ""} ${c.company || ""} ${c.phone || ""} ${c.email || ""}`.toLowerCase().includes(cq)
+                )
+              : custData;
+
             return (
               <div className="bg-card rounded-lg border p-6">
-                <h2 className="text-lg font-semibold mb-4">
-                  {report.code === "034" ? "Customer Statement" : "Sale Invoices/Credits (By Customer)"} — {custData.length} customers
-                </h2>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">
+                    {report.code === "034" ? "Customer Statement" : "Sale Invoices/Credits (By Customer)"} — {visibleCust.length} customers
+                  </h2>
+                  <Input
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Search customer..."
+                    className="h-9 w-full sm:w-64"
+                  />
+                </div>
                 <div className="overflow-x-auto">
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
