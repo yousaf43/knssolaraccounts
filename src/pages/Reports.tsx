@@ -893,9 +893,24 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           })()}
 
           {/* Payment Receipts Summary (063) */}
-          {report.code === "063" && (
+          {report.code === "063" && (() => {
+            const rq = receiptSearch.trim().toLowerCase();
+            const filteredReceipts = rq
+              ? receipts.filter(r =>
+                  `${r.number || ""} ${r.customer || ""} ${r.invoiceNumber || ""} ${r.paymentMethod || ""}`.toLowerCase().includes(rq)
+                )
+              : receipts;
+            return (
             <div className="bg-card rounded-lg border p-6">
-              <h2 className="text-lg font-semibold mb-4">Payment Receipts ({receipts.length})</h2>
+              <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                <h2 className="text-lg font-semibold">Payment Receipts ({filteredReceipts.length})</h2>
+                <Input
+                  value={receiptSearch}
+                  onChange={(e) => setReceiptSearch(e.target.value)}
+                  placeholder="Search receipt / customer / invoice..."
+                  className="h-9 w-full sm:w-72"
+                />
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -909,7 +924,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </tr>
                   </thead>
                   <tbody>
-                    {receipts.map(r => (
+                    {filteredReceipts.map(r => (
                       <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 font-medium">{r.number}</td>
                         <td className="px-3 py-2">{r.customer}</td>
@@ -923,13 +938,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <tfoot>
                     <tr className="border-t-2 font-bold">
                       <td className="px-3 py-2" colSpan={5}>Total Received</td>
-                      <td className="px-3 py-2 text-right text-success">{formatCurrency(receipts.reduce((s, r) => s + r.amount, 0))}</td>
+                      <td className="px-3 py-2 text-right text-success">{formatCurrency(filteredReceipts.reduce((s, r) => s + r.amount, 0))}</td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
