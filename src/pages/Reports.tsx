@@ -408,8 +408,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-muted-foreground">{item.model || "—"}</td>
                         <td className="px-3 py-2">{item.category}</td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
-                        {report.code !== "078" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
-                        {report.code !== "078" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgPrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
                       </tr>
