@@ -1205,7 +1205,7 @@ export default function Invoices() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => { if (confirmApproveSO) { handleApproveSO(confirmApproveSO); setConfirmApproveSO(null); } }}>
-              Yes, Convert to Invoice
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
