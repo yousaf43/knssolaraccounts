@@ -22,6 +22,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
+import { supabase } from "@/integrations/supabase/client";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -114,12 +115,41 @@ export default function Invoices() {
 
   // --- Invoice handlers ---
   const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => {
-    // Prevent duplicate document numbers
-    const duplicate = invoices.find(i => i.number.trim().toLowerCase() === invoice.number.trim().toLowerCase() && i.id !== invoice.id);
-    if (duplicate) {
-      toast.error(`Document number "${invoice.number}" already exists. Please use a different number.`);
+    const normalizeDocument = (value?: string) => (value || "").trim().toLowerCase();
+    const invoiceNumber = normalizeDocument(invoice.number);
+    const documentNumber = normalizeDocument(invoice.documentNumber);
+
+    const duplicateInvoiceNumber = invoices.find((i) => normalizeDocument(i.number) === invoiceNumber && i.id !== invoice.id);
+    if (duplicateInvoiceNumber) {
+      toast.error(`Invoice number "${invoice.number}" already exists. Please use a different number.`);
       return;
     }
+
+    if (documentNumber) {
+      const duplicateDocNumber = invoices.find((i) => normalizeDocument(i.documentNumber) === documentNumber && i.id !== invoice.id);
+      if (duplicateDocNumber) {
+        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not created.`);
+        return;
+      }
+
+      const { data: existingDocRows, error: duplicateCheckError } = await supabase
+        .from("invoices" as never)
+        .select("id, document_number")
+        .ilike("document_number", invoice.documentNumber!.trim())
+        .neq("id", invoice.id)
+        .limit(1);
+
+      if (duplicateCheckError) {
+        toast.error("Could not verify document number. Invoice was not created.");
+        return;
+      }
+
+      if (existingDocRows && existingDocRows.length > 0) {
+        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not created.`);
+        return;
+      }
+    }
+
     await upsertInvoice(invoice);
     // Do NOT deduct inventory on creation — stock deducts only on Approve
     if (!editInvoice) {
