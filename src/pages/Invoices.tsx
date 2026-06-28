@@ -114,6 +114,12 @@ export default function Invoices() {
 
   // --- Invoice handlers ---
   const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => {
+    // Prevent duplicate document numbers
+    const duplicate = invoices.find(i => i.number.trim().toLowerCase() === invoice.number.trim().toLowerCase() && i.id !== invoice.id);
+    if (duplicate) {
+      toast.error(`Document number "${invoice.number}" already exists. Please use a different number.`);
+      return;
+    }
     await upsertInvoice(invoice);
     // Do NOT deduct inventory on creation — stock deducts only on Approve
     if (!editInvoice) {
