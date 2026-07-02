@@ -54,20 +54,20 @@ serve(async (req) => {
           { data: purchasePayments },
           { data: solarWashing },
         ] = await Promise.all([
-          supabase.from("invoices").select("number,customer,date,amount,status,document_number").order("created_at", { ascending: false }).limit(150),
-          supabase.from("customers").select("name,company,phone,total_billed,outstanding").limit(200),
-          supabase.from("inventory").select("name,sku,qty,sale_price,cost_price,category,product_type,reorder_level").limit(300),
-          supabase.from("receipts").select("number,customer,invoice_number,amount,date,payment_method").order("created_at", { ascending: false }).limit(150),
-          supabase.from("expenses").select("description,amount,category,date").order("created_at", { ascending: false }).limit(150),
-          supabase.from("sales_orders").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(150),
-          supabase.from("suppliers").select("name,company,phone,outstanding").limit(200),
-          supabase.from("bills").select("number,supplier,date,amount,status").order("created_at", { ascending: false }).limit(150),
-          supabase.from("accounts").select("name,account_title,balance,currency").limit(100),
-          supabase.from("ledger_entries").select("date,description,amount,type,bank").order("created_at", { ascending: false }).limit(300),
-          supabase.from("quotations").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(100),
-          supabase.from("purchase_orders").select("number,supplier,date,amount,status").order("created_at", { ascending: false }).limit(100),
-          supabase.from("purchase_payments").select("number,supplier,date,amount").order("created_at", { ascending: false }).limit(100),
-          supabase.from("solar_washing").select("date,customer,amount,notes").order("created_at", { ascending: false }).limit(100),
+          supabase.from("invoices").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(40),
+          supabase.from("customers").select("name,phone,total_billed,outstanding").limit(80),
+          supabase.from("inventory").select("name,sku,qty,sale_price,cost_price,reorder_level").limit(80),
+          supabase.from("receipts").select("number,customer,amount,date").order("created_at", { ascending: false }).limit(40),
+          supabase.from("expenses").select("description,amount,category,date").order("created_at", { ascending: false }).limit(40),
+          supabase.from("sales_orders").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(30),
+          supabase.from("suppliers").select("name,phone,outstanding").limit(60),
+          supabase.from("bills").select("number,supplier,date,amount,status").order("created_at", { ascending: false }).limit(30),
+          supabase.from("accounts").select("name,balance,currency").limit(30),
+          supabase.from("ledger_entries").select("amount,type,bank").order("created_at", { ascending: false }).limit(500),
+          supabase.from("quotations").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(20),
+          supabase.from("purchase_orders").select("number,supplier,date,amount,status").order("created_at", { ascending: false }).limit(20),
+          supabase.from("purchase_payments").select("supplier,date,amount").order("created_at", { ascending: false }).limit(20),
+          supabase.from("solar_washing").select("date,customer,amount").order("created_at", { ascending: false }).limit(30),
         ]);
 
         const balances: Record<string, { in: number; out: number }> = {};
@@ -79,37 +79,34 @@ serve(async (req) => {
         }
         const enrichedAccounts = (accounts || []).map((a) => {
           const l = balances[a.name] || { in: 0, out: 0 };
-          return { ...a, actual_balance: (a.balance || 0) + l.in - l.out };
+          return { name: a.name, currency: a.currency, actual_balance: (a.balance || 0) + l.in - l.out };
         });
 
-        businessContext = `\n## LIVE BUSINESS DATA (Today: ${new Date().toISOString().split("T")[0]})\n
-### Accounts (with real balances)
-${JSON.stringify(enrichedAccounts, null, 0)}
-### Customers
-${JSON.stringify(customers || [], null, 0)}
-### Suppliers
-${JSON.stringify(suppliers || [], null, 0)}
-### Inventory
-${JSON.stringify(inventory || [], null, 0)}
-### Invoices (recent)
-${JSON.stringify(invoices || [], null, 0)}
-### Sales Orders
-${JSON.stringify(salesOrders || [], null, 0)}
-### Receipts
-${JSON.stringify(receipts || [], null, 0)}
-### Expenses
-${JSON.stringify(expenses || [], null, 0)}
-### Bills
-${JSON.stringify(bills || [], null, 0)}
-### Quotations
-${JSON.stringify(quotations || [], null, 0)}
-### Purchase Orders
-${JSON.stringify(purchaseOrders || [], null, 0)}
-### Purchase Payments
-${JSON.stringify(purchasePayments || [], null, 0)}
-### Solar Washing
-${JSON.stringify(solarWashing || [], null, 0)}
+        // Compact JSON without null/empty
+        const compact = (arr: any[]) => JSON.stringify(arr || []);
+
+        businessContext = `\n## LIVE BUSINESS DATA (Today: ${new Date().toISOString().split("T")[0]})
+### Accounts: ${compact(enrichedAccounts)}
+### Customers (${customers?.length || 0}): ${compact(customers || [])}
+### Suppliers (${suppliers?.length || 0}): ${compact(suppliers || [])}
+### Inventory (${inventory?.length || 0}): ${compact(inventory || [])}
+### Recent Invoices: ${compact(invoices || [])}
+### Sales Orders: ${compact(salesOrders || [])}
+### Recent Receipts: ${compact(receipts || [])}
+### Recent Expenses: ${compact(expenses || [])}
+### Bills: ${compact(bills || [])}
+### Quotations: ${compact(quotations || [])}
+### Purchase Orders: ${compact(purchaseOrders || [])}
+### Purchase Payments: ${compact(purchasePayments || [])}
+### Solar Washing: ${compact(solarWashing || [])}
 `;
+
+        // Hard cap to stay well below Groq's per-request token limit (~6000 chars ≈ 1500 tokens buffer)
+        const MAX = 24000;
+        if (businessContext.length > MAX) {
+          businessContext = businessContext.slice(0, MAX) + "\n...[truncated for size]";
+        }
+
       } catch (e) {
         console.error("data fetch error:", e);
       }
