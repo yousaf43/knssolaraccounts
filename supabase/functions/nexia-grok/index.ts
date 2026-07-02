@@ -19,8 +19,8 @@ serve(async (req) => {
       });
     }
 
-    const XAI_API_KEY = Deno.env.get("XAI_API_KEY");
-    if (!XAI_API_KEY) throw new Error("XAI_API_KEY not configured");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization");
     const supabase = createClient(
@@ -126,26 +126,27 @@ CREATOR: Yousuf ne banaya hai (Yousuf Enterprises). Contact: +923101734582.
 JAWAB CHOTA rakh (2-4 sentences) kyunki yeh voice mein bhi bolay ga — long paragraphs mat likh unless user detail maangay.
 ${businessContext}`;
 
-    const response = await fetch("https://api.x.ai/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${XAI_API_KEY}`,
+        Authorization: `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "grok-2-latest",
+        model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
         ],
+        temperature: 0.7,
         stream: false,
       }),
     });
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("Grok error:", response.status, t);
-      return new Response(JSON.stringify({ error: `Grok API error: ${response.status}` }), {
+      console.error("Groq error:", response.status, t);
+      return new Response(JSON.stringify({ error: `Groq API error: ${response.status}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
