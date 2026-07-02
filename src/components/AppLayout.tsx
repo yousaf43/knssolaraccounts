@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/AppSidebar";
+import { NexiaAssistant } from "@/components/NexiaAssistant";
 import { Outlet } from "react-router-dom";
 import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -89,6 +90,7 @@ export function AppLayout() {
           </footer>
         </div>
       </div>
+      <NexiaAssistant />
     </>
   );
 }
