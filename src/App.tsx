@@ -12,6 +12,7 @@ import Customers from "@/pages/Customers";
 import Purchases from "@/pages/Purchases";
 import Expenses from "@/pages/Expenses";
 import Inventory from "@/pages/Inventory";
+import StoreInventory from "@/pages/StoreInventory";
 import Accounts from "@/pages/Accounts";
 import Assets from "@/pages/Assets";
 import Reports from "@/pages/Reports";
@@ -50,6 +51,7 @@ function ProtectedRoutes() {
         {!isSales && <Route path="/purchases" element={<Purchases />} />}
         {!isSales && <Route path="/expenses" element={<Expenses />} />}
         {!isSales && <Route path="/inventory" element={<Inventory />} />}
+        {!isSales && <Route path="/store-inventory" element={<StoreInventory />} />}
         {!isSales && <Route path="/accounts" element={<Accounts />} />}
         {!isSales && <Route path="/assets" element={<Assets />} />}
         {!isSales && <Route path="/reports" element={<Reports />} />}
