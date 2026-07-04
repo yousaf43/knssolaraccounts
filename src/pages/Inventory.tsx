@@ -633,8 +633,6 @@ export default function Inventory() {
       {/* Stock Adjustment Section */}
       <StockAdjustmentSection inventory={inventory} onUpdateInventory={handleUpdateInventory} />
 
-      {/* Store Inventory Section */}
-      <StoreInventorySection inventory={inventory} />
     </div>
   );
 }
