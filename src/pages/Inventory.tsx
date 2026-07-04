@@ -34,7 +34,8 @@ export default function Inventory() {
   const { formatCurrency } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
-  const { data: inventory, loading, upsert, remove, replaceAll } = useInventoryCloud();
+  const { data: inventoryAll, loading, upsert, remove, replaceAll } = useInventoryCloud();
+  const inventory = useMemo(() => inventoryAll.filter((i) => (i.location || "main") === "main"), [inventoryAll]);
   const { upsert: upsertAdjustment } = useStockAdjustmentsCloud();
   const { customUnits, customAccounts, customCategories, setCustomUnits, setCustomAccounts, setCustomCategories } = useUserSettingsCloud();
 
