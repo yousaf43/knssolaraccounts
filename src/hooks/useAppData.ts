@@ -48,6 +48,7 @@ const inventoryFromDb = (r: Record<string, unknown>): InventoryItem => ({
   saleDiscount: Number(r.sale_discount) || 0, purchaseDiscount: Number(r.purchase_discount) || 0,
   productType: (r.product_type as InventoryItem["productType"]) || "stock",
   bundleItems: (r.bundle_items as InventoryItem["bundleItems"]) || [],
+  location: ((r.location as InventoryItem["location"]) || "main"),
 });
 const inventoryToDb = (i: InventoryItem, userId: string) => ({
   id: i.id, user_id: userId, name: i.name, sku: i.sku, model: i.model || "", unique_code: i.uniqueCode || "",
@@ -56,6 +57,7 @@ const inventoryToDb = (i: InventoryItem, userId: string) => ({
   sale_price: i.salePrice, unit: i.unit, weight: i.weight, stock_asset_account: i.stockAssetAccount,
   sale_discount: i.saleDiscount, purchase_discount: i.purchaseDiscount,
   product_type: i.productType || "stock", bundle_items: i.bundleItems || [],
+  location: i.location || "main",
 });
 
 // Invoice
