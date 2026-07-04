@@ -92,6 +92,7 @@ const salesOrderFromDb = (r: Record<string, unknown>): SalesOrder => ({
   advancePayment: Number(r.advance_payment) || 0,
   advancePaymentMethod: (r.advance_payment_method as string) || undefined,
   advancePaymentRef: (r.advance_payment_ref as string) || undefined,
+  location: ((r.location as SalesOrder["location"]) || "main"),
 });
 const salesOrderToDb = (s: SalesOrder, userId: string) => ({
   id: s.id, user_id: userId, number: s.number, project_name: s.projectName || "",
@@ -100,6 +101,7 @@ const salesOrderToDb = (s: SalesOrder, userId: string) => ({
   tax: s.tax || 0, advance_payment: s.advancePayment || 0,
   advance_payment_method: s.advancePaymentMethod || "",
   advance_payment_ref: s.advancePaymentRef || "",
+  location: s.location || "main",
 });
 
 // Quotation
