@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import StockAdjustmentSection from "@/components/StockAdjustmentSection";
+import StoreInventorySection from "@/components/StoreInventorySection";
 import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
