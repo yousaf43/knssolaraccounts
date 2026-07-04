@@ -51,6 +51,7 @@ function ProtectedRoutes() {
         {!isSales && <Route path="/purchases" element={<Purchases />} />}
         {!isSales && <Route path="/expenses" element={<Expenses />} />}
         {!isSales && <Route path="/inventory" element={<Inventory />} />}
+        {!isSales && <Route path="/store-inventory" element={<StoreInventory />} />}
         {!isSales && <Route path="/accounts" element={<Accounts />} />}
         {!isSales && <Route path="/assets" element={<Assets />} />}
         {!isSales && <Route path="/reports" element={<Reports />} />}
