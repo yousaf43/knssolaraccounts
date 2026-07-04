@@ -5,6 +5,7 @@ import {
   Truck,
   Receipt,
   Package,
+  Store,
   Landmark,
   Building2,
   BarChart3,
