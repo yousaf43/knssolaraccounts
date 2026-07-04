@@ -259,8 +259,9 @@ export default function Inventory() {
   };
 
   const handleUpdateInventory = async (updater: (prev: InventoryItem[]) => InventoryItem[]) => {
-    const updated = updater(inventory);
-    await replaceAll(updated);
+    const updatedMain = updater(inventory).map((i) => ({ ...i, location: (i.location || "main") as "main" | "store" }));
+    const storeItems = inventoryAll.filter((i) => (i.location || "main") === "store");
+    await replaceAll([...updatedMain, ...storeItems]);
   };
 
   if (loading) {
