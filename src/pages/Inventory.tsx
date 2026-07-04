@@ -27,14 +27,15 @@ const emptyItem = (): Partial<InventoryItem> => ({
   name: "", sku: "", model: "", uniqueCode: "", qty: 0, reorderLevel: 5, price: 0, category: "",
   date: new Date().toISOString().split("T")[0], costPrice: 0, salePrice: 0,
   unit: "pcs", weight: 0, stockAssetAccount: "Inventory Asset",
-  saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [],
+  saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [], location: "main",
 });
 
 export default function Inventory() {
   const { formatCurrency } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
-  const { data: inventory, loading, upsert, remove, replaceAll } = useInventoryCloud();
+  const { data: inventoryAll, loading, upsert, remove, replaceAll } = useInventoryCloud();
+  const inventory = useMemo(() => inventoryAll.filter((i) => (i.location || "main") === "main"), [inventoryAll]);
   const { upsert: upsertAdjustment } = useStockAdjustmentsCloud();
   const { customUnits, customAccounts, customCategories, setCustomUnits, setCustomAccounts, setCustomCategories } = useUserSettingsCloud();
 
@@ -258,8 +259,9 @@ export default function Inventory() {
   };
 
   const handleUpdateInventory = async (updater: (prev: InventoryItem[]) => InventoryItem[]) => {
-    const updated = updater(inventory);
-    await replaceAll(updated);
+    const updatedMain = updater(inventory).map((i) => ({ ...i, location: (i.location || "main") as "main" | "store" }));
+    const storeItems = inventoryAll.filter((i) => (i.location || "main") === "store");
+    await replaceAll([...updatedMain, ...storeItems]);
   };
 
   if (loading) {

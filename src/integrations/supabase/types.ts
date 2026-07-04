@@ -247,6 +247,7 @@ export type Database = {
           created_at: string
           date: string | null
           id: string
+          location: string
           model: string | null
           name: string
           price: number | null
@@ -271,6 +272,7 @@ export type Database = {
           created_at?: string
           date?: string | null
           id?: string
+          location?: string
           model?: string | null
           name?: string
           price?: number | null
@@ -295,6 +297,7 @@ export type Database = {
           created_at?: string
           date?: string | null
           id?: string
+          location?: string
           model?: string | null
           name?: string
           price?: number | null
@@ -755,6 +758,7 @@ export type Database = {
           delivery_date: string | null
           id: string
           items: Json | null
+          location: string
           notes: string | null
           number: string | null
           project_name: string | null
@@ -774,6 +778,7 @@ export type Database = {
           delivery_date?: string | null
           id?: string
           items?: Json | null
+          location?: string
           notes?: string | null
           number?: string | null
           project_name?: string | null
@@ -793,6 +798,7 @@ export type Database = {
           delivery_date?: string | null
           id?: string
           items?: Json | null
+          location?: string
           notes?: string | null
           number?: string | null
           project_name?: string | null
