@@ -954,6 +954,7 @@ export default function Invoices() {
                           <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Print with Prices" onClick={() => { setPreviewSO({ order: so, showPrices: true }); setView("so-preview"); }}><Printer className="w-4 h-4 text-primary" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Delivery Challan (no prices)" onClick={() => { setPreviewSO({ order: so, showPrices: false }); setView("so-preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditOrder(so); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                          <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Move to Store Sale Orders" onClick={async () => { await upsertSalesOrder({ ...so, location: "store" }); toast({ title: "Moved to Store", description: `${so.number} moved to Store Sale Orders.` }); }}><ArrowLeftRight className="w-4 h-4 text-primary" /></button>
                           <ConfirmDeleteDialog onConfirm={() => handleDeleteSO(so.id)} title="Delete Sales Order?" description={`Delete sales order ${so.number}?`} />
                         </div>
                       </td>
