@@ -27,7 +27,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
   name: "", sku: "", model: "", uniqueCode: "", qty: 0, reorderLevel: 5, price: 0, category: "",
   date: new Date().toISOString().split("T")[0], costPrice: 0, salePrice: 0,
   unit: "pcs", weight: 0, stockAssetAccount: "Inventory Asset",
-  saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [],
+  saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [], location: "main",
 });
 
 export default function Inventory() {
