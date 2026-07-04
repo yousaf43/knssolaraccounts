@@ -67,7 +67,7 @@ export default function Invoices() {
   const { moveToTrash } = useTrash();
   const { data: invoices, upsert: upsertInvoice, remove: removeInvoice, setData: setInvoices } = useInvoicesCloud();
   const { data: salesOrdersAll, upsert: upsertSalesOrder, remove: removeSalesOrder, setData: setSalesOrders } = useSalesOrdersCloud();
-  const salesOrders = useMemo(() => salesOrdersAll.filter((s) => (s.location || "main") === "main"), [salesOrdersAll]);
+  const salesOrders = useMemo<SalesOrder[]>(() => salesOrdersAll.filter((s: SalesOrder) => (s.location || "main") === "main"), [salesOrdersAll]);
   const { data: receipts, upsert: upsertReceipt, remove: removeReceipt, setData: setReceipts } = useReceiptsCloud();
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
