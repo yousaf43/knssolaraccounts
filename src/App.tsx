@@ -12,6 +12,7 @@ import Customers from "@/pages/Customers";
 import Purchases from "@/pages/Purchases";
 import Expenses from "@/pages/Expenses";
 import Inventory from "@/pages/Inventory";
+import StoreInventory from "@/pages/StoreInventory";
 import Accounts from "@/pages/Accounts";
 import Assets from "@/pages/Assets";
 import Reports from "@/pages/Reports";
