@@ -291,10 +291,20 @@ export default function StoreInventory() {
 
         {/* Products Tab */}
         <TabsContent value="products" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <h2 className="text-base font-semibold">Store Products</h2>
             <p className="text-xs text-muted-foreground">Products auto-mirror from Main Inventory. Store stock is managed independently here.</p>
           </div>
+          <div className="relative max-w-md">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, SKU, model, code, category..."
+              className="pl-8"
+            />
+          </div>
+
 
           {/* Edit Store Item Dialog (stock managed independently from Main Inventory) */}
           <Dialog open={showForm && !!editing} onOpenChange={(open) => { if (!open) setShowForm(false); }}>
@@ -429,7 +439,7 @@ export default function StoreInventory() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((i) => (
+                {pg.paginatedItems.map((i) => (
                   <tr key={i.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium">{i.name}</td>
                     <td className="px-3 py-2">
@@ -458,10 +468,17 @@ export default function StoreInventory() {
                     </td>
                   </tr>
                 ))}
-                {items.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No store products yet. Click "Add Store Item" to get started.</td></tr>}
+                {filteredItems.length === 0 && <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">{items.length === 0 ? "No store products yet. Add a product in Main Inventory to auto-mirror it here." : "No products match your search."}</td></tr>}
               </tbody>
             </table>
           </div>
+          <TablePagination
+            currentPage={pg.currentPage}
+            totalPages={pg.totalPages}
+            totalItems={pg.totalItems}
+            onPageChange={pg.goToPage}
+            itemLabel="product"
+          />
         </TabsContent>
 
         {/* Store Sale Orders Tab */}
