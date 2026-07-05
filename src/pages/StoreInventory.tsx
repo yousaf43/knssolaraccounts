@@ -333,6 +333,8 @@ export default function StoreInventory() {
                     <div><Label>Quantity (Store Stock)</Label><Input type="number" min={0} value={form.qty ?? 0} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
                     <div><Label>Reorder Level</Label><Input type="number" min={0} value={form.reorderLevel ?? 5} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
                   </>
+                )}
+
 
                 {form.productType === "bundle" && (
                   <div className="md:col-span-2">
