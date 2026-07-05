@@ -856,7 +856,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               qty: number;
               revenue: number;
               count: number;
-              details: { invoiceNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
+              details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
             };
             const productMap: Record<string, Line> = {};
             invoices.forEach(inv => {
@@ -879,6 +879,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 productMap[key].count += 1;
                 productMap[key].details.push({
                   invoiceNumber: inv.number,
+                  documentNumber: (inv as any).documentNumber || "",
                   date: inv.date,
                   customer: inv.customer,
                   qty: item.qty,
@@ -1013,6 +1014,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <thead>
                                 <tr className="border-b bg-muted/50">
                                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc #</th>
                                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
                                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
@@ -1027,6 +1029,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                                   .map((d, i) => (
                                     <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                                       <td className="px-3 py-2 font-medium">{d.invoiceNumber}</td>
+                                      <td className="px-3 py-2 text-muted-foreground">{d.documentNumber || "-"}</td>
                                       <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
                                       <td className="px-3 py-2">{d.customer}</td>
                                       <td className="px-3 py-2 text-right">{d.qty}</td>
@@ -1035,12 +1038,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                                     </tr>
                                   ))}
                                 {selected.details.length === 0 && (
-                                  <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
+                                  <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
                                 )}
                               </tbody>
                               <tfoot>
                                 <tr className="border-t-2 font-bold">
-                                  <td className="px-3 py-2" colSpan={3}>Total ({selected.name})</td>
+                                  <td className="px-3 py-2" colSpan={4}>Total ({selected.name})</td>
                                   <td className="px-3 py-2 text-right">{selected.qty}</td>
                                   <td className="px-3 py-2 text-right"></td>
                                   <td className="px-3 py-2 text-right">{formatCurrency(selected.revenue)}</td>
@@ -1138,6 +1141,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <thead>
                         <tr className="border-b bg-muted/50">
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc #</th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
@@ -1152,6 +1156,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           .map((d, i) => (
                             <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                               <td className="px-3 py-2 font-medium">{d.invoiceNumber}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{d.documentNumber || "-"}</td>
                               <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
                               <td className="px-3 py-2">{d.customer}</td>
                               <td className="px-3 py-2 text-right">{d.qty}</td>
@@ -1160,12 +1165,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             </tr>
                           ))}
                         {selected.details.length === 0 && (
-                          <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
+                          <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
                         )}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={3}>Total ({selected.category})</td>
+                          <td className="px-3 py-2" colSpan={4}>Total ({selected.category})</td>
                           <td className="px-3 py-2 text-right">{selected.qty}</td>
                           <td className="px-3 py-2 text-right"></td>
                           <td className="px-3 py-2 text-right">{formatCurrency(selected.revenue)}</td>
