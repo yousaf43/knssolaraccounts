@@ -132,7 +132,7 @@ export default function StoreInventory() {
 
   const completeSite = async (so: SalesOrder) => {
     await upsertSO({ ...so, location: "completed" });
-    await log("edit", "sales_order", so.id, so.number, "Marked as Completed Site");
+    await log("edit", "sales_order", so.id, so.number, "Marked as Completed Project");
     toast.success(`${so.number} moved to Completed Projects`);
   };
 
