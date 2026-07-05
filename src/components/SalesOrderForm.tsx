@@ -23,9 +23,10 @@ type Props = {
   editOrder?: SalesOrder | null;
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
+  hidePrices?: boolean;
 };
 
-export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber, onAddCustomer }: Props) {
+export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber, onAddCustomer, hidePrices = false }: Props) {
   const { formatCurrency } = useSettings();
   const [customNumber, setCustomNumber] = useState(editOrder?.number || "");
   const [projectName, setProjectName] = useState(editOrder?.projectName || "");
@@ -193,7 +194,9 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.trim() || !date || !deliveryDate) return;
-    const validItems = items.filter((i) => i.description.trim() && i.qty > 0 && i.rate > 0);
+    const validItems = hidePrices
+      ? items.filter((i) => i.description.trim() && i.qty > 0)
+      : items.filter((i) => i.description.trim() && i.qty > 0 && i.rate > 0);
     if (validItems.length === 0) return;
 
     onSave({
@@ -203,14 +206,15 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       customer: customer.trim(),
       date,
       deliveryDate,
-      amount: total,
+      amount: hidePrices ? (editOrder?.amount ?? 0) : total,
       status,
       items: validItems,
       notes: notes.trim(),
-      tax,
-      advancePayment: showAdvance ? advancePayment : 0,
-      advancePaymentMethod: showAdvance ? advancePaymentMethod : undefined,
-      advancePaymentRef: showAdvance ? advancePaymentRef.trim() : undefined,
+      tax: hidePrices ? (editOrder?.tax ?? 0) : tax,
+      advancePayment: hidePrices ? (editOrder?.advancePayment ?? 0) : (showAdvance ? advancePayment : 0),
+      advancePaymentMethod: hidePrices ? editOrder?.advancePaymentMethod : (showAdvance ? advancePaymentMethod : undefined),
+      advancePaymentRef: hidePrices ? editOrder?.advancePaymentRef : (showAdvance ? advancePaymentRef.trim() : undefined),
+      location: editOrder?.location,
     });
   };
 
@@ -299,10 +303,12 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label>Tax Rate (%)</Label>
-          <Input type="number" min={0} max={100} value={tax} onChange={(e) => setTax(Number(e.target.value))} className="mt-1" />
-        </div>
+        {!hidePrices && (
+          <div>
+            <Label>Tax Rate (%)</Label>
+            <Input type="number" min={0} max={100} value={tax} onChange={(e) => setTax(Number(e.target.value))} className="mt-1" />
+          </div>
+        )}
       </div>
 
       {/* Line Items with Inventory Dropdown + Search */}
@@ -316,8 +322,8 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground">Description</th>
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">Qty</th>
                 <th className="text-center px-3 py-2 font-medium text-muted-foreground w-24">Stock</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Rate</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Amount</th>
+                {!hidePrices && <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Rate</th>}
+                {!hidePrices && <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Amount</th>}
                 <th className="w-10"></th>
               </tr>
             </thead>
@@ -350,13 +356,15 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-2">
-                      <Input type="number" min={0} step={0.01} value={item.rate} onChange={(e) => updateItem(i, "rate", Number(e.target.value))} className="h-8 text-right" required />
-                    </td>
-                    <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
+                    {!hidePrices && (
+                      <td className="px-3 py-2">
+                        <Input type="number" min={0} step={0.01} value={item.rate} onChange={(e) => updateItem(i, "rate", Number(e.target.value))} className="h-8 text-right" required />
+                      </td>
+                    )}
+                    {!hidePrices && <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>}
                     <td className="px-2 py-2">{items.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(i)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>}</td>
                   </tr>
-                  <BundleItemsRow item={item} inventory={inventory} colSpan={7} lineQty={item.qty} editable onBundlePriceChange={(subId, price) => handleBundlePriceChange(i, subId, price)} onBundleQtyChange={(subId, qty) => handleBundleQtyChange(i, subId, qty)} />
+                  <BundleItemsRow item={item} inventory={inventory} colSpan={hidePrices ? 5 : 7} lineQty={item.qty} editable={!hidePrices} onBundlePriceChange={(subId, price) => handleBundlePriceChange(i, subId, price)} onBundleQtyChange={(subId, qty) => handleBundleQtyChange(i, subId, qty)} />
                   </React.Fragment>
                 );
               })}
@@ -369,48 +377,52 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       </div>
 
       {/* Totals */}
-      <div className="flex justify-end">
-        <div className="w-64 space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Tax ({tax}%)</span><span className="font-medium">{formatCurrency(taxAmount)}</span></div>
-          <div className="flex justify-between border-t pt-2 text-base font-bold"><span>Total</span><span>{formatCurrency(total)}</span></div>
+      {!hidePrices && (
+        <div className="flex justify-end">
+          <div className="w-64 space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Tax ({tax}%)</span><span className="font-medium">{formatCurrency(taxAmount)}</span></div>
+            <div className="flex justify-between border-t pt-2 text-base font-bold"><span>Total</span><span>{formatCurrency(total)}</span></div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Advance Payment */}
-      <div className="border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <PackageCheck className="w-4 h-4 text-primary" />
-            <Label className="font-medium">Advance Payment</Label>
+      {!hidePrices && (
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PackageCheck className="w-4 h-4 text-primary" />
+              <Label className="font-medium">Advance Payment</Label>
+            </div>
+            <Switch checked={showAdvance} onCheckedChange={setShowAdvance} />
           </div>
-          <Switch checked={showAdvance} onCheckedChange={setShowAdvance} />
+          {showAdvance && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              <div>
+                <Label>Amount</Label>
+                <Input type="number" min={0} max={total} step={0.01} value={advancePayment} onChange={(e) => setAdvancePayment(Number(e.target.value))} className="mt-1" />
+              </div>
+              <div>
+                <Label>Payment Method</Label>
+                <Select value={advancePaymentMethod} onValueChange={setAdvancePaymentMethod}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Reference</Label>
+                <Input value={advancePaymentRef} onChange={(e) => setAdvancePaymentRef(e.target.value)} placeholder="Txn ref / cheque #" className="mt-1" />
+              </div>
+            </div>
+          )}
         </div>
-        {showAdvance && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div>
-              <Label>Amount</Label>
-              <Input type="number" min={0} max={total} step={0.01} value={advancePayment} onChange={(e) => setAdvancePayment(Number(e.target.value))} className="mt-1" />
-            </div>
-            <div>
-              <Label>Payment Method</Label>
-              <Select value={advancePaymentMethod} onValueChange={setAdvancePaymentMethod}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Reference</Label>
-              <Input value={advancePaymentRef} onChange={(e) => setAdvancePaymentRef(e.target.value)} placeholder="Txn ref / cheque #" className="mt-1" />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       <div>
         <Label>Notes</Label>
