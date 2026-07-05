@@ -322,8 +322,8 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground">Description</th>
                 <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">Qty</th>
                 <th className="text-center px-3 py-2 font-medium text-muted-foreground w-24">Stock</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Rate</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Amount</th>
+                {!hidePrices && <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Rate</th>}
+                {!hidePrices && <th className="text-right px-3 py-2 font-medium text-muted-foreground w-28">Amount</th>}
                 <th className="w-10"></th>
               </tr>
             </thead>
