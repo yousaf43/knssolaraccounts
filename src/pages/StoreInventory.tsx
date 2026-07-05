@@ -106,6 +106,37 @@ export default function StoreInventory() {
     { label: "Store Orders", value: stats.orders, icon: ShoppingCart },
   ];
 
+  if (viewOrder) {
+    return (
+      <SalesOrderPreview
+        order={viewOrder}
+        onClose={() => setViewOrder(null)}
+        showPrices={false}
+        customers={customers}
+        inventory={inventoryAll}
+      />
+    );
+  }
+
+  if (editOrder) {
+    return (
+      <SalesOrderForm
+        customers={customers}
+        inventory={inventoryAll}
+        editOrder={editOrder}
+        nextNumber={editOrder.number}
+        hidePrices
+        onCancel={() => setEditOrder(null)}
+        onSave={async (order) => {
+          await upsertSO({ ...order, location: "store" });
+          await log("edit", "sales_order", order.id, order.number, "Store sale order updated");
+          toast.success(`${order.number} updated`);
+          setEditOrder(null);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
