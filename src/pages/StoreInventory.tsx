@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package, Eye, Boxes } from "lucide-react";
+import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package, Eye, Boxes, CheckCircle2 } from "lucide-react";
 import { useInventoryCloud, useSalesOrdersCloud, useCustomersCloud, useUserSettingsCloud } from "@/hooks/useAppData";
 import type { InventoryItem, SalesOrder } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
@@ -128,6 +128,12 @@ export default function StoreInventory() {
   const moveBackToMain = async (so: SalesOrder) => {
     await upsertSO({ ...so, location: "main" });
     toast.success(`${so.number} moved back to Sales Orders`);
+  };
+
+  const completeSite = async (so: SalesOrder) => {
+    await upsertSO({ ...so, location: "completed" });
+    await log("edit", "sales_order", so.id, so.number, "Marked as Completed Site");
+    toast.success(`${so.number} moved to Completed Sites`);
   };
 
   // Resolve any inventoryItemId (main or store) to the corresponding STORE inventory item, matched by sku/name.
@@ -491,6 +497,9 @@ export default function StoreInventory() {
                           </button>
                           <button className="p-1.5 rounded hover:bg-primary/10" title="Move back to Main Sales Orders" onClick={() => moveBackToMain(so)}>
                             <ArrowLeftRight className="w-4 h-4 text-primary" />
+                          </button>
+                          <button className="p-1.5 rounded hover:bg-green-500/10" title="Complete Site (move to Completed Sites)" onClick={() => completeSite(so)}>
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
                           </button>
                           <ConfirmDeleteDialog onConfirm={() => removeSO(so.id)} title="Delete Store Sale Order?" description={`Delete ${so.number}?`} />
                         </div>

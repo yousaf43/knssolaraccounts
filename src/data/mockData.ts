@@ -53,7 +53,7 @@ export type SalesOrder = {
   advancePayment?: number;
   advancePaymentMethod?: string;
   advancePaymentRef?: string;
-  location?: "main" | "store";
+  location?: "main" | "store" | "completed";
 };
 
 export type Quotation = {
