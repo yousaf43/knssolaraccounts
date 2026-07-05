@@ -65,6 +65,22 @@ export default function StoreInventory() {
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [viewOrder, setViewOrder] = useState<SalesOrder | null>(null);
 
+  const [search, setSearch] = useState("");
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((i) =>
+      i.name.toLowerCase().includes(q) ||
+      (i.sku || "").toLowerCase().includes(q) ||
+      (i.model || "").toLowerCase().includes(q) ||
+      (i.uniqueCode || "").toLowerCase().includes(q) ||
+      (i.category || "").toLowerCase().includes(q)
+    );
+  }, [items, search]);
+  const pg = usePagination(filteredItems, 25);
+  useEffect(() => { pg.resetPage(); }, [search]);
+
+
   const generateSku = () => {
     const nums = items
       .map((i) => i.sku)
