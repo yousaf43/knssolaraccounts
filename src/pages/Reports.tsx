@@ -310,6 +310,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedProductKey, setSelectedProductKey] = useState<string>("all");
   const [productTypeFilter, setProductTypeFilter] = useState<string>("all");
+  const [multiSelectedKeys, setMultiSelectedKeys] = useState<string[]>([]);
+  const [viewMultiSelected, setViewMultiSelected] = useState(false);
+  const toggleMultiSelected = (key: string) =>
+    setMultiSelectedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
   const dateRange = useMemo(() => {
     if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
