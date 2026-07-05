@@ -946,11 +946,6 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center"><Badge className={soStatusStyles[so.status]}>{so.status}</Badge></td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          {so.status !== "approved" && so.status !== "cancelled" && (
-                            <button className="p-1.5 rounded hover:bg-success/10 transition-colors" title="Approve → Convert to Invoice" onClick={() => setConfirmApproveSO(so)}>
-                              <CheckCircle className="w-4 h-4 text-success" />
-                            </button>
-                          )}
                           <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Print with Prices" onClick={() => { setPreviewSO({ order: so, showPrices: true }); setView("so-preview"); }}><Printer className="w-4 h-4 text-primary" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Delivery Challan (no prices)" onClick={() => { setPreviewSO({ order: so, showPrices: false }); setView("so-preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditOrder(so); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
