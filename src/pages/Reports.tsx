@@ -879,6 +879,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 productMap[key].count += 1;
                 productMap[key].details.push({
                   invoiceNumber: inv.number,
+                  documentNumber: (inv as any).documentNumber || "",
                   date: inv.date,
                   customer: inv.customer,
                   qty: item.qty,
