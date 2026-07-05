@@ -309,6 +309,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [txnSearch, setTxnSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedProductKey, setSelectedProductKey] = useState<string>("all");
+  const [productTypeFilter, setProductTypeFilter] = useState<string>("all");
 
   const dateRange = useMemo(() => {
     if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
@@ -851,6 +852,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               key: string;
               name: string;
               category: string;
+              productType: string;
               qty: number;
               revenue: number;
               count: number;
@@ -870,7 +872,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 const key = invItem?.id || `name:${normName(item.description) || "unknown"}`;
                 const name = invItem?.name || item.description || "Unknown";
                 const category = invItem?.category || "Uncategorized";
-                if (!productMap[key]) productMap[key] = { key, name, category, qty: 0, revenue: 0, count: 0, details: [] };
+                const productType = (invItem?.productType as string | undefined) || "unknown";
+                if (!productMap[key]) productMap[key] = { key, name, category, productType, qty: 0, revenue: 0, count: 0, details: [] };
                 productMap[key].qty += item.qty;
                 productMap[key].revenue += item.amount;
                 productMap[key].count += 1;
@@ -887,12 +890,18 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             const allLines = Object.values(productMap);
             const categories = Array.from(new Set(allLines.map(l => l.category))).sort();
+            const productTypes = Array.from(new Set(allLines.map(l => l.productType))).sort();
             const q = productSearch.trim().toLowerCase();
+
+            // Product-type filter
+            const typeFiltered = productTypeFilter === "all"
+              ? allLines
+              : allLines.filter(l => l.productType === productTypeFilter);
 
             // Category filter
             const catFiltered = categoryFilter === "all"
-              ? allLines
-              : allLines.filter(l => l.category === categoryFilter);
+              ? typeFiltered
+              : typeFiltered.filter(l => l.category === categoryFilter);
 
             // Product search filter
             const searchFiltered = catFiltered
@@ -912,14 +921,34 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               const rows = Object.values(catMap).sort((a, b) => b.revenue - a.revenue);
               return (
                 <div className="bg-card rounded-lg border p-6">
-                  <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                     <h2 className="text-lg font-semibold">Sales by Category ({rows.length})</h2>
-                    <Input
-                      value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
-                      placeholder="Search product..."
-                      className="h-9 w-full sm:w-64"
-                    />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="h-9 w-full sm:w-44"><SelectValue placeholder="All categories" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All categories</SelectItem>
+                          {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={productTypeFilter} onValueChange={setProductTypeFilter}>
+                        <SelectTrigger className="h-9 w-full sm:w-44"><SelectValue placeholder="All product types" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All product types</SelectItem>
+                          {productTypes.map(t => (
+                            <SelectItem key={t} value={t}>
+                              {t === "non-stock" ? "Non-Stock" : t === "bundle" ? "Bundle" : t === "stock" ? "Stock" : "Unknown"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Search product..."
+                        className="h-9 w-full sm:w-56"
+                      />
+                    </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table id="report-print-table" className="w-full text-sm">
