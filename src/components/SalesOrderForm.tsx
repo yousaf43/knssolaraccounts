@@ -194,7 +194,9 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.trim() || !date || !deliveryDate) return;
-    const validItems = items.filter((i) => i.description.trim() && i.qty > 0 && i.rate > 0);
+    const validItems = hidePrices
+      ? items.filter((i) => i.description.trim() && i.qty > 0)
+      : items.filter((i) => i.description.trim() && i.qty > 0 && i.rate > 0);
     if (validItems.length === 0) return;
 
     onSave({
@@ -204,14 +206,15 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       customer: customer.trim(),
       date,
       deliveryDate,
-      amount: total,
+      amount: hidePrices ? (editOrder?.amount ?? 0) : total,
       status,
       items: validItems,
       notes: notes.trim(),
-      tax,
-      advancePayment: showAdvance ? advancePayment : 0,
-      advancePaymentMethod: showAdvance ? advancePaymentMethod : undefined,
-      advancePaymentRef: showAdvance ? advancePaymentRef.trim() : undefined,
+      tax: hidePrices ? (editOrder?.tax ?? 0) : tax,
+      advancePayment: hidePrices ? (editOrder?.advancePayment ?? 0) : (showAdvance ? advancePayment : 0),
+      advancePaymentMethod: hidePrices ? editOrder?.advancePaymentMethod : (showAdvance ? advancePaymentMethod : undefined),
+      advancePaymentRef: hidePrices ? editOrder?.advancePaymentRef : (showAdvance ? advancePaymentRef.trim() : undefined),
+      location: editOrder?.location,
     });
   };
 
