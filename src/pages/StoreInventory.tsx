@@ -118,6 +118,61 @@ export default function StoreInventory() {
     );
   }
 
+  // Resolve any inventoryItemId (main or store) to the corresponding STORE inventory item, matched by sku/name.
+  const resolveStoreItem = (inventoryItemId?: string): InventoryItem | undefined => {
+    if (!inventoryItemId) return undefined;
+    const direct = items.find((i) => i.id === inventoryItemId);
+    if (direct) return direct;
+    const src = inventoryAll.find((i) => i.id === inventoryItemId);
+    if (!src) return undefined;
+    return items.find(
+      (i) =>
+        (i.sku && src.sku && i.sku.trim().toLowerCase() === src.sku.trim().toLowerCase()) ||
+        i.name.trim().toLowerCase() === src.name.trim().toLowerCase()
+    );
+  };
+
+  // Expand a sale-order line into { storeItemId -> qty to deduct from store stock }.
+  const expandLine = (line: { inventoryItemId?: string; qty: number; bundleItemPrices?: { itemId: string; qty?: number }[] }): Map<string, number> => {
+    const out = new Map<string, number>();
+    if (!line.inventoryItemId) return out;
+    const src = inventoryAll.find((i) => i.id === line.inventoryItemId);
+    if (src?.productType === "bundle" && src.bundleItems?.length) {
+      for (const bi of src.bundleItems) {
+        const override = line.bundleItemPrices?.find((p) => p.itemId === bi.itemId);
+        const subQty = override?.qty !== undefined ? override.qty : bi.qty;
+        const storeSub = resolveStoreItem(bi.itemId);
+        if (storeSub) out.set(storeSub.id, (out.get(storeSub.id) || 0) + subQty * line.qty);
+      }
+    } else {
+      const store = resolveStoreItem(line.inventoryItemId);
+      if (store) out.set(store.id, (out.get(store.id) || 0) + line.qty);
+    }
+    return out;
+  };
+
+  const totalsFor = (lines: { inventoryItemId?: string; qty: number; bundleItemPrices?: { itemId: string; qty?: number }[] }[]) => {
+    const totals = new Map<string, number>();
+    for (const l of lines) {
+      const m = expandLine(l);
+      for (const [k, v] of m) totals.set(k, (totals.get(k) || 0) + v);
+    }
+    return totals;
+  };
+
+  const applyStoreStockDelta = async (prevItems: SalesOrder["items"], nextItems: SalesOrder["items"]) => {
+    const prev = totalsFor(prevItems || []);
+    const next = totalsFor(nextItems || []);
+    const keys = new Set<string>([...prev.keys(), ...next.keys()]);
+    for (const id of keys) {
+      const delta = (next.get(id) || 0) - (prev.get(id) || 0); // positive = deduct more from store
+      if (!delta) continue;
+      const inv = items.find((i) => i.id === id);
+      if (!inv) continue;
+      await upsert({ ...inv, qty: Math.max(0, (inv.qty || 0) - delta) });
+    }
+  };
+
   if (editOrder) {
     return (
       <SalesOrderForm
@@ -128,9 +183,10 @@ export default function StoreInventory() {
         hidePrices
         onCancel={() => setEditOrder(null)}
         onSave={async (order) => {
+          await applyStoreStockDelta(editOrder.items || [], order.items || []);
           await upsertSO({ ...order, location: "store" });
           await log("edit", "sales_order", order.id, order.number, "Store sale order updated");
-          toast.success(`${order.number} updated`);
+          toast.success(`${order.number} updated · store stock adjusted`);
           setEditOrder(null);
         }}
       />
