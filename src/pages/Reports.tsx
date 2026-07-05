@@ -922,7 +922,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               return (
                 <div className="bg-card rounded-lg border p-6">
                   <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-                    <h2 className="text-lg font-semibold">{categoryFilter === "all" ? `Sales by Category (${rows.length})` : `${categoryFilter} — Products (${searchFiltered.length})`}</h2>
+                    <h2 className="text-lg font-semibold">
+                      {categoryFilter === "all"
+                        ? `Sales by Category (${rows.length})`
+                        : selectedProductKey !== "all"
+                          ? `Sales Detail: ${searchFiltered.find(p => p.key === selectedProductKey)?.name || ""}`
+                          : `${categoryFilter} — Products (${searchFiltered.length})`}
+                    </h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                         <SelectTrigger className="h-9 w-full sm:w-44"><SelectValue placeholder="All categories" /></SelectTrigger>
@@ -991,41 +997,100 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           </tr>
                         </tfoot>
                       </table>
-                    ) : (
-                      <table id="report-print-table" className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b bg-muted/50">
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
-                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {searchFiltered.map(p => (
-                            <tr key={p.key} className="border-b last:border-0 hover:bg-muted/30">
-                              <td className="px-3 py-2 font-medium">{p.name}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
-                              <td className="px-3 py-2 text-right">{p.count}</td>
-                              <td className="px-3 py-2 text-right">{p.qty}</td>
-                              <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.revenue)}</td>
+                    ) : (() => {
+                      const selected = selectedProductKey !== "all"
+                        ? searchFiltered.find(p => p.key === selectedProductKey)
+                        : null;
+                      if (selected) {
+                        return (
+                          <>
+                            <div className="mb-3">
+                              <Button variant="outline" size="sm" onClick={() => setSelectedProductKey("all")}>
+                                <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to {categoryFilter}
+                              </Button>
+                            </div>
+                            <table id="report-print-table" className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/50">
+                                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
+                                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Rate</th>
+                                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {selected.details
+                                  .slice()
+                                  .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                                  .map((d, i) => (
+                                    <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                                      <td className="px-3 py-2 font-medium">{d.invoiceNumber}</td>
+                                      <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
+                                      <td className="px-3 py-2">{d.customer}</td>
+                                      <td className="px-3 py-2 text-right">{d.qty}</td>
+                                      <td className="px-3 py-2 text-right">{formatCurrency(d.rate)}</td>
+                                      <td className="px-3 py-2 text-right font-semibold">{formatCurrency(d.amount)}</td>
+                                    </tr>
+                                  ))}
+                                {selected.details.length === 0 && (
+                                  <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
+                                )}
+                              </tbody>
+                              <tfoot>
+                                <tr className="border-t-2 font-bold">
+                                  <td className="px-3 py-2" colSpan={3}>Total ({selected.name})</td>
+                                  <td className="px-3 py-2 text-right">{selected.qty}</td>
+                                  <td className="px-3 py-2 text-right"></td>
+                                  <td className="px-3 py-2 text-right">{formatCurrency(selected.revenue)}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </>
+                        );
+                      }
+                      return (
+                        <table id="report-print-table" className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-muted/50">
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
+                              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
                             </tr>
-                          ))}
-                          {searchFiltered.length === 0 && (
-                            <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No products found.</td></tr>
-                          )}
-                        </tbody>
-                        <tfoot>
-                          <tr className="border-t-2 font-bold">
-                            <td className="px-3 py-2" colSpan={2}>Total ({categoryFilter})</td>
-                            <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
-                            <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
-                            <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.revenue, 0))}</td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    )}
+                          </thead>
+                          <tbody>
+                            {searchFiltered.map(p => (
+                              <tr
+                                key={p.key}
+                                className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                                onClick={() => setSelectedProductKey(p.key)}
+                                title="Click to view sales detail"
+                              >
+                                <td className="px-3 py-2 font-medium text-primary hover:underline">{p.name}</td>
+                                <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
+                                <td className="px-3 py-2 text-right">{p.count}</td>
+                                <td className="px-3 py-2 text-right">{p.qty}</td>
+                                <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.revenue)}</td>
+                              </tr>
+                            ))}
+                            {searchFiltered.length === 0 && (
+                              <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No products found.</td></tr>
+                            )}
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t-2 font-bold">
+                              <td className="px-3 py-2" colSpan={2}>Total ({categoryFilter})</td>
+                              <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
+                              <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
+                              <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.revenue, 0))}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      );
+                    })()}
                   </div>
                 </div>
               );
