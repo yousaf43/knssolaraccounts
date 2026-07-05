@@ -263,30 +263,39 @@ export default function StoreInventory() {
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Delivery</th>
-                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
                   <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
                   <th className="text-center px-3 py-2 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {storeOrders.map((so) => (
-                  <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-3 py-2 font-medium">{so.number}</td>
-                    <td className="px-3 py-2">{so.customer}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{so.date}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{formatCurrency(so.amount)}</td>
-                    <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{so.status}</Badge></td>
-                    <td className="px-3 py-2 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button className="p-1.5 rounded hover:bg-primary/10" title="Move back to Main Sales Orders" onClick={() => moveBackToMain(so)}>
-                          <ArrowLeftRight className="w-4 h-4 text-primary" />
-                        </button>
-                        <ConfirmDeleteDialog onConfirm={() => removeSO(so.id)} title="Delete Store Sale Order?" description={`Delete ${so.number}?`} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {storeOrders.map((so) => {
+                  const totalQty = (so.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
+                  return (
+                    <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium">{so.number}</td>
+                      <td className="px-3 py-2">{so.customer}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{so.date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
+                      <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{so.status}</Badge></td>
+                      <td className="px-3 py-2 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button className="p-1.5 rounded hover:bg-muted" title="View" onClick={() => setViewOrder(so)}>
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button className="p-1.5 rounded hover:bg-muted" title="Edit" onClick={() => setEditOrder(so)}>
+                            <Edit className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                          <button className="p-1.5 rounded hover:bg-primary/10" title="Move back to Main Sales Orders" onClick={() => moveBackToMain(so)}>
+                            <ArrowLeftRight className="w-4 h-4 text-primary" />
+                          </button>
+                          <ConfirmDeleteDialog onConfirm={() => removeSO(so.id)} title="Delete Store Sale Order?" description={`Delete ${so.number}?`} />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {storeOrders.length === 0 && (
                   <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No store sale orders yet. Move an order here from the Sales Orders tab.</td></tr>
                 )}
