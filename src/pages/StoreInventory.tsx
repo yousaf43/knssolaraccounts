@@ -388,7 +388,6 @@ export default function StoreInventory() {
                     <td className="px-3 py-2 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(i)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                        <ConfirmDeleteDialog onConfirm={() => handleDelete(i.id)} title="Delete Store Item?" description={`Delete "${i.name}" from store inventory?`} />
                       </div>
                     </td>
                   </tr>
