@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
-import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package, Eye, Boxes, CheckCircle2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package, Eye, Boxes, CheckCircle2, Search } from "lucide-react";
 import { useInventoryCloud, useSalesOrdersCloud, useCustomersCloud, useUserSettingsCloud } from "@/hooks/useAppData";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/TablePagination";
 import type { InventoryItem, SalesOrder } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
