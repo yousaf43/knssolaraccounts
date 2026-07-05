@@ -9,11 +9,12 @@ type Props = {
   colSpan: number;
   lineQty: number;
   editable?: boolean;
+  hidePrices?: boolean;
   onBundlePriceChange?: (itemId: string, price: number) => void;
   onBundleQtyChange?: (itemId: string, qty: number) => void;
 };
 
-export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, onBundlePriceChange, onBundleQtyChange }: Props) {
+export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, hidePrices, onBundlePriceChange, onBundleQtyChange }: Props) {
   const { formatCurrency } = useSettings();
 
   if (!item.inventoryItemId) return null;
