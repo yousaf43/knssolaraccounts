@@ -856,7 +856,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               qty: number;
               revenue: number;
               count: number;
-              details: { invoiceNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
+              details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
             };
             const productMap: Record<string, Line> = {};
             invoices.forEach(inv => {
