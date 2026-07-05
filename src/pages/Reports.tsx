@@ -835,63 +835,251 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             );
           })()}
 
-          {/* Product Sale Detail (084, 085, 088, 235, 203) */}
-          {["084", "085", "088", "235", "203"].includes(report.code) && (() => {
-            const productMap: Record<string, { name: string; qty: number; revenue: number; count: number }> = {};
+          {/* Product Sale Detail (084, 085, 088, 235, 236, 203) */}
+          {["084", "085", "088", "235", "236", "203"].includes(report.code) && (() => {
+            // Build inventory lookup for category resolution
+            const invById: Record<string, InventoryItem> = {};
+            const invByName: Record<string, InventoryItem> = {};
+            inventory.forEach(i => {
+              invById[i.id] = i;
+              invByName[normName(i.name)] = i;
+            });
+            const resolveInv = (item: { description: string; inventoryItemId?: string }): InventoryItem | undefined =>
+              (item.inventoryItemId && invById[item.inventoryItemId]) || invByName[normName(item.description)];
+
+            type Line = {
+              key: string;
+              name: string;
+              category: string;
+              qty: number;
+              revenue: number;
+              count: number;
+              details: { invoiceNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
+            };
+            const productMap: Record<string, Line> = {};
             invoices.forEach(inv => {
+              // Date range filter (applies here so per-product report respects it)
+              if (fromDate || toDate) {
+                if (!inv.date) return;
+                const d = new Date(inv.date);
+                if (fromDate && d < new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate())) return;
+                if (toDate && d > new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate(), 23, 59, 59)) return;
+              }
               inv.items.forEach(item => {
-                const key = item.description || "Unknown";
-                if (!productMap[key]) productMap[key] = { name: key, qty: 0, revenue: 0, count: 0 };
+                const invItem = resolveInv(item);
+                const key = invItem?.id || `name:${normName(item.description) || "unknown"}`;
+                const name = invItem?.name || item.description || "Unknown";
+                const category = invItem?.category || "Uncategorized";
+                if (!productMap[key]) productMap[key] = { key, name, category, qty: 0, revenue: 0, count: 0, details: [] };
                 productMap[key].qty += item.qty;
                 productMap[key].revenue += item.amount;
                 productMap[key].count += 1;
+                productMap[key].details.push({
+                  invoiceNumber: inv.number,
+                  date: inv.date,
+                  customer: inv.customer,
+                  qty: item.qty,
+                  rate: item.rate,
+                  amount: item.amount,
+                });
               });
             });
+
+            const allLines = Object.values(productMap);
+            const categories = Array.from(new Set(allLines.map(l => l.category))).sort();
             const q = productSearch.trim().toLowerCase();
-            const products = Object.values(productMap)
+
+            // Category filter
+            const catFiltered = categoryFilter === "all"
+              ? allLines
+              : allLines.filter(l => l.category === categoryFilter);
+
+            // Product search filter
+            const searchFiltered = catFiltered
               .filter(p => !q || p.name.toLowerCase().includes(q))
               .sort((a, b) => b.revenue - a.revenue);
+
+            // Report 236: group by category
+            if (report.code === "236") {
+              const catMap: Record<string, { category: string; qty: number; revenue: number; count: number; productCount: number }> = {};
+              searchFiltered.forEach(l => {
+                if (!catMap[l.category]) catMap[l.category] = { category: l.category, qty: 0, revenue: 0, count: 0, productCount: 0 };
+                catMap[l.category].qty += l.qty;
+                catMap[l.category].revenue += l.revenue;
+                catMap[l.category].count += l.count;
+                catMap[l.category].productCount += 1;
+              });
+              const rows = Object.values(catMap).sort((a, b) => b.revenue - a.revenue);
+              return (
+                <div className="bg-card rounded-lg border p-6">
+                  <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                    <h2 className="text-lg font-semibold">Sales by Category ({rows.length})</h2>
+                    <Input
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Search product..."
+                      className="h-9 w-full sm:w-64"
+                    />
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table id="report-print-table" className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Products</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map(r => (
+                          <tr key={r.category} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 font-medium">{r.category}</td>
+                            <td className="px-3 py-2 text-right">{r.productCount}</td>
+                            <td className="px-3 py-2 text-right">{r.count}</td>
+                            <td className="px-3 py-2 text-right">{r.qty}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{formatCurrency(r.revenue)}</td>
+                          </tr>
+                        ))}
+                        {rows.length === 0 && (
+                          <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-bold">
+                          <td className="px-3 py-2">Total</td>
+                          <td className="px-3 py-2 text-right">{rows.reduce((s, r) => s + r.productCount, 0)}</td>
+                          <td className="px-3 py-2 text-right">{rows.reduce((s, r) => s + r.count, 0)}</td>
+                          <td className="px-3 py-2 text-right">{rows.reduce((s, r) => s + r.qty, 0)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((s, r) => s + r.revenue, 0))}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+              );
+            }
+
+            // Selected product drilldown
+            const selected = selectedProductKey !== "all" ? searchFiltered.find(p => p.key === selectedProductKey) : null;
+
             return (
               <div className="bg-card rounded-lg border p-6">
-                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-                  <h2 className="text-lg font-semibold">Product Sale Summary ({products.length} products)</h2>
-                  <Input
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    placeholder="Search product..."
-                    className="h-9 w-full sm:w-64"
-                  />
+                <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">
+                    {selected ? `Sales Detail: ${selected.name}` : `Product Sale Summary (${searchFiltered.length} products)`}
+                  </h2>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setSelectedProductKey("all"); }}>
+                      <SelectTrigger className="h-9 w-full sm:w-48"><SelectValue placeholder="All categories" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All categories</SelectItem>
+                        {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Select value={selectedProductKey} onValueChange={setSelectedProductKey}>
+                      <SelectTrigger className="h-9 w-full sm:w-64"><SelectValue placeholder="All products" /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        <SelectItem value="all">All products</SelectItem>
+                        {catFiltered
+                          .slice()
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map(p => <SelectItem key={p.key} value={p.key}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Search product..."
+                      className="h-9 w-full sm:w-56"
+                    />
+                  </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table id="report-print-table" className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
-                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
-                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
-                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {products.map(p => (
-                        <tr key={p.name} className="border-b last:border-0 hover:bg-muted/30">
-                          <td className="px-3 py-2 font-medium">{p.name}</td>
-                          <td className="px-3 py-2 text-right">{p.count}</td>
-                          <td className="px-3 py-2 text-right">{p.qty}</td>
-                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.revenue)}</td>
+
+                {selected ? (
+                  <div className="overflow-x-auto">
+                    <table id="report-print-table" className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Rate</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t-2 font-bold">
-                        <td className="px-3 py-2">Total</td>
-                        <td className="px-3 py-2 text-right">{products.reduce((s, p) => s + p.count, 0)}</td>
-                        <td className="px-3 py-2 text-right">{products.reduce((s, p) => s + p.qty, 0)}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(products.reduce((s, p) => s + p.revenue, 0))}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {selected.details
+                          .slice()
+                          .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                          .map((d, i) => (
+                            <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                              <td className="px-3 py-2 font-medium">{d.invoiceNumber}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
+                              <td className="px-3 py-2">{d.customer}</td>
+                              <td className="px-3 py-2 text-right">{d.qty}</td>
+                              <td className="px-3 py-2 text-right">{formatCurrency(d.rate)}</td>
+                              <td className="px-3 py-2 text-right font-semibold">{formatCurrency(d.amount)}</td>
+                            </tr>
+                          ))}
+                        {selected.details.length === 0 && (
+                          <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-bold">
+                          <td className="px-3 py-2" colSpan={3}>Total ({selected.category})</td>
+                          <td className="px-3 py-2 text-right">{selected.qty}</td>
+                          <td className="px-3 py-2 text-right"></td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(selected.revenue)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table id="report-print-table" className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {searchFiltered.map(p => (
+                          <tr
+                            key={p.key}
+                            className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                            onClick={() => setSelectedProductKey(p.key)}
+                            title="Click to view detail"
+                          >
+                            <td className="px-3 py-2 font-medium text-primary hover:underline">{p.name}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
+                            <td className="px-3 py-2 text-right">{p.count}</td>
+                            <td className="px-3 py-2 text-right">{p.qty}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.revenue)}</td>
+                          </tr>
+                        ))}
+                        {searchFiltered.length === 0 && (
+                          <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-bold">
+                          <td className="px-3 py-2" colSpan={2}>Total</td>
+                          <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
+                          <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.revenue, 0))}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
               </div>
             );
           })()}
