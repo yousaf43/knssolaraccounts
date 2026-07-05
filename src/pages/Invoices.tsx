@@ -1177,7 +1177,7 @@ export default function Invoices() {
           </div>
         </TabsContent>
 
-        {/* Project Completed Tab (Completed Sites) */}
+        {/* Project Completed Tab (Completed Projects) */}
         <TabsContent value="project-completed">
           <div className="p-2"><CompletedSites /></div>
         </TabsContent>

@@ -132,8 +132,8 @@ export default function StoreInventory() {
 
   const completeSite = async (so: SalesOrder) => {
     await upsertSO({ ...so, location: "completed" });
-    await log("edit", "sales_order", so.id, so.number, "Marked as Completed Site");
-    toast.success(`${so.number} moved to Completed Sites`);
+    await log("edit", "sales_order", so.id, so.number, "Marked as Completed Project");
+    toast.success(`${so.number} moved to Completed Projects`);
   };
 
   // Resolve any inventoryItemId (main or store) to the corresponding STORE inventory item, matched by sku/name.
@@ -373,7 +373,7 @@ export default function StoreInventory() {
                           <button className="p-1.5 rounded hover:bg-primary/10" title="Move back to Main Sales Orders" onClick={() => moveBackToMain(so)}>
                             <ArrowLeftRight className="w-4 h-4 text-primary" />
                           </button>
-                          <button className="p-1.5 rounded hover:bg-green-500/10" title="Complete Site (move to Completed Sites)" onClick={() => completeSite(so)}>
+                          <button className="p-1.5 rounded hover:bg-green-500/10" title="Complete Project (move to Completed Projects)" onClick={() => completeSite(so)}>
                             <CheckCircle2 className="w-4 h-4 text-green-600" />
                           </button>
                           <ConfirmDeleteDialog onConfirm={() => removeSO(so.id)} title="Delete Store Sale Order?" description={`Delete ${so.number}?`} />

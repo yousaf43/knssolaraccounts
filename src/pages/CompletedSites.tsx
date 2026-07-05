@@ -117,7 +117,7 @@ export default function CompletedSites() {
       amount: so.amount,
       status: "pending",
       items: mappedItems,
-      notes: so.notes ? `From ${so.number}. ${so.notes}` : `Converted from ${so.number} (Completed Site)`,
+      notes: so.notes ? `From ${so.number}. ${so.notes}` : `Converted from ${so.number} (Completed Project)`,
       tax: so.tax,
     };
     await upsertInvoice(newInvoice);
@@ -142,7 +142,7 @@ export default function CompletedSites() {
     }
 
     await removeSO(so.id);
-    await log("create", "invoice", newInvoice.id, newInvoice.number, `Converted from Completed Site ${so.number}`);
+    await log("create", "invoice", newInvoice.id, newInvoice.number, `Converted from Completed Project ${so.number}`);
     toast.success(`${so.number} → Invoice ${newInvoice.number} created, main stock deducted`);
   };
 
@@ -186,7 +186,7 @@ export default function CompletedSites() {
       <div className="flex items-center gap-2">
         <CheckCircle2 className="w-6 h-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">Completed Sites</h1>
+          <h1 className="text-2xl font-bold">Completed Projects</h1>
           <p className="text-muted-foreground text-sm">Completed store sale orders — edits adjust main inventory</p>
         </div>
       </div>
@@ -231,14 +231,14 @@ export default function CompletedSites() {
                       <button className="p-1.5 rounded hover:bg-primary/10" title="Move back to Store Sale Orders" onClick={() => moveBackToStore(so)}>
                         <ArrowLeftRight className="w-4 h-4 text-primary" />
                       </button>
-                      <ConfirmDeleteDialog onConfirm={() => removeSO(so.id)} title="Delete Completed Site?" description={`Delete ${so.number}?`} />
+                      <ConfirmDeleteDialog onConfirm={() => removeSO(so.id)} title="Delete Completed Project?" description={`Delete ${so.number}?`} />
                     </div>
                   </td>
                 </tr>
               );
             })}
             {orders.length === 0 && (
-              <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No completed sites yet. Click "Complete Site" on a Store Sale Order to move it here.</td></tr>
+              <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No completed projects yet. Click "Complete Project" on a Store Sale Order to move it here.</td></tr>
             )}
           </tbody>
         </table>
@@ -250,7 +250,7 @@ export default function CompletedSites() {
             <AlertDialogTitle>Move to Invoice?</AlertDialogTitle>
             <AlertDialogDescription>
               Convert <strong>{confirmInvoice?.number}</strong> into a new Invoice for <strong>{confirmInvoice?.customer}</strong>?
-              This will deduct <strong>main inventory</strong> stock and remove the completed site.
+              This will deduct <strong>main inventory</strong> stock and remove the completed project.
               {confirmInvoice?.advancePayment && confirmInvoice.advancePayment > 0 ? (
                 <> An advance receipt of <strong>{formatCurrency(confirmInvoice.advancePayment)}</strong> will also be created.</>
               ) : null}
