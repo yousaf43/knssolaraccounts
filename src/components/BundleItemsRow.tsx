@@ -66,7 +66,7 @@ export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, hi
                     <span className="font-medium text-foreground">× {qty * lineQty}</span>
                   )}
                   {editable && <span className="text-foreground text-[10px]">× {lineQty}</span>}
-                  {editable ? (
+                  {!hidePrices && (editable ? (
                     <Input
                       type="number"
                       min={0}
@@ -77,14 +77,18 @@ export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, hi
                     />
                   ) : (
                     <span className="text-foreground font-medium w-24 text-right">{formatCurrency(price)}</span>
+                  ))}
+                  {!hidePrices && (
+                    <span className="text-foreground font-medium w-20 text-right">{formatCurrency(price * qty * lineQty)}</span>
                   )}
-                  <span className="text-foreground font-medium w-20 text-right">{formatCurrency(price * qty * lineQty)}</span>
                 </div>
               );
             })}
-            <div className="flex justify-end text-xs font-bold text-foreground pt-1 border-t border-border/50">
-              <span>Bundle Total: {formatCurrency(bundleTotal)}</span>
-            </div>
+            {!hidePrices && (
+              <div className="flex justify-end text-xs font-bold text-foreground pt-1 border-t border-border/50">
+                <span>Bundle Total: {formatCurrency(bundleTotal)}</span>
+              </div>
+            )}
           </div>
         </div>
       </td>
