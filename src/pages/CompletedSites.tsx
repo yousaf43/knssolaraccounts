@@ -232,10 +232,10 @@ export default function CompletedSites() {
         nextNumber={editOrder.number}
         onCancel={() => setEditOrder(null)}
         onSave={async (order) => {
-          await applyMainStockDelta(editOrder.items || [], order.items || []);
+          await applyStoreStockDelta(editOrder.items || [], order.items || []);
           await upsertSO({ ...order, location: "completed" });
-          await log("edit", "sales_order", order.id, order.number, "Completed site updated · main stock adjusted");
-          toast.success(`${order.number} updated · main stock adjusted`);
+          await log("edit", "sales_order", order.id, order.number, "Completed project updated · store stock adjusted");
+          toast.success(`${order.number} updated · store stock adjusted`);
           setEditOrder(null);
         }}
       />
