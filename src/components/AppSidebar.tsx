@@ -15,6 +15,7 @@ import {
   History,
   Trash2,
   Droplets,
+  CheckCircle2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
@@ -25,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const allNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin", "accountant", "sales"] },
   { title: "Invoices", url: "/invoices", icon: FileText, roles: ["admin", "accountant", "sales"] },
+  { title: "Completed Sites", url: "/completed-sites", icon: CheckCircle2, roles: ["admin", "accountant", "sales"] },
   { title: "Customers", url: "/customers", icon: Users, roles: ["admin", "accountant", "sales"] },
   { title: "Purchases", url: "/purchases", icon: Truck, roles: ["admin", "accountant"] },
   { title: "Expenses", url: "/expenses", icon: Receipt, roles: ["admin", "accountant"] },
