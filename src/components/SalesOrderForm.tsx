@@ -23,9 +23,10 @@ type Props = {
   editOrder?: SalesOrder | null;
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
+  hidePrices?: boolean;
 };
 
-export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber, onAddCustomer }: Props) {
+export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrder, nextNumber, onAddCustomer, hidePrices = false }: Props) {
   const { formatCurrency } = useSettings();
   const [customNumber, setCustomNumber] = useState(editOrder?.number || "");
   const [projectName, setProjectName] = useState(editOrder?.projectName || "");
