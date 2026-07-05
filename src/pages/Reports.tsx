@@ -930,9 +930,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <h2 className="text-lg font-semibold">
                       {categoryFilter === "all"
                         ? `Sales by Category (${rows.length})`
-                        : selectedProductKey !== "all"
-                          ? `Sales Detail: ${searchFiltered.find(p => p.key === selectedProductKey)?.name || ""}`
-                          : `${categoryFilter} — Products (${searchFiltered.length})`}
+                        : viewMultiSelected && multiSelectedKeys.length > 0
+                          ? `Combined Sales Detail (${multiSelectedKeys.length} products)`
+                          : selectedProductKey !== "all"
+                            ? `Sales Detail: ${searchFiltered.find(p => p.key === selectedProductKey)?.name || ""}`
+                            : `${categoryFilter} — Products (${searchFiltered.length})`}
                     </h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Select value={categoryFilter} onValueChange={setCategoryFilter}>
