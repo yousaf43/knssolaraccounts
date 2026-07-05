@@ -174,11 +174,10 @@ export default function StoreInventory() {
   };
 
   if (editOrder) {
-    const storeInventory = items;
     return (
       <SalesOrderForm
         customers={customers}
-        inventory={storeInventory}
+        inventory={inventoryAll}
         editOrder={editOrder}
         nextNumber={editOrder.number}
         hidePrices
