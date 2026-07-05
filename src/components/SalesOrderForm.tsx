@@ -388,39 +388,41 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       )}
 
       {/* Advance Payment */}
-      <div className="border rounded-lg p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <PackageCheck className="w-4 h-4 text-primary" />
-            <Label className="font-medium">Advance Payment</Label>
+      {!hidePrices && (
+        <div className="border rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PackageCheck className="w-4 h-4 text-primary" />
+              <Label className="font-medium">Advance Payment</Label>
+            </div>
+            <Switch checked={showAdvance} onCheckedChange={setShowAdvance} />
           </div>
-          <Switch checked={showAdvance} onCheckedChange={setShowAdvance} />
+          {showAdvance && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              <div>
+                <Label>Amount</Label>
+                <Input type="number" min={0} max={total} step={0.01} value={advancePayment} onChange={(e) => setAdvancePayment(Number(e.target.value))} className="mt-1" />
+              </div>
+              <div>
+                <Label>Payment Method</Label>
+                <Select value={advancePaymentMethod} onValueChange={setAdvancePaymentMethod}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Reference</Label>
+                <Input value={advancePaymentRef} onChange={(e) => setAdvancePaymentRef(e.target.value)} placeholder="Txn ref / cheque #" className="mt-1" />
+              </div>
+            </div>
+          )}
         </div>
-        {showAdvance && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div>
-              <Label>Amount</Label>
-              <Input type="number" min={0} max={total} step={0.01} value={advancePayment} onChange={(e) => setAdvancePayment(Number(e.target.value))} className="mt-1" />
-            </div>
-            <div>
-              <Label>Payment Method</Label>
-              <Select value={advancePaymentMethod} onValueChange={setAdvancePaymentMethod}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Reference</Label>
-              <Input value={advancePaymentRef} onChange={(e) => setAdvancePaymentRef(e.target.value)} placeholder="Txn ref / cheque #" className="mt-1" />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       <div>
         <Label>Notes</Label>
