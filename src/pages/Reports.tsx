@@ -19,6 +19,7 @@ import {
 } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
