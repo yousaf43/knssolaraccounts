@@ -37,6 +37,10 @@ export default function CompletedSites() {
     () => inventoryAll.filter((i) => (i.location || "main") === "main"),
     [inventoryAll]
   );
+  const storeInventory = useMemo(
+    () => inventoryAll.filter((i) => (i.location || "main") === "store"),
+    [inventoryAll]
+  );
 
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [viewOrder, setViewOrder] = useState<SalesOrder | null>(null);
@@ -95,9 +99,66 @@ export default function CompletedSites() {
     }
   };
 
+  // --- Store inventory helpers (source of truth while order sits in Completed Projects) ---
+  const resolveStoreItem = (inventoryItemId?: string): InventoryItem | undefined => {
+    if (!inventoryItemId) return undefined;
+    const direct = storeInventory.find((i) => i.id === inventoryItemId);
+    if (direct) return direct;
+    const src = inventoryAll.find((i) => i.id === inventoryItemId);
+    if (!src) return undefined;
+    return storeInventory.find(
+      (i) =>
+        (i.sku && src.sku && i.sku.trim().toLowerCase() === src.sku.trim().toLowerCase()) ||
+        i.name.trim().toLowerCase() === src.name.trim().toLowerCase()
+    );
+  };
+
+  const expandLineStore = (line: { inventoryItemId?: string; qty: number; bundleItemPrices?: { itemId: string; qty?: number }[] }) => {
+    const out = new Map<string, number>();
+    if (!line.inventoryItemId) return out;
+    const src = inventoryAll.find((i) => i.id === line.inventoryItemId);
+    if (src?.productType === "bundle" && src.bundleItems?.length) {
+      for (const bi of src.bundleItems) {
+        const override = line.bundleItemPrices?.find((p) => p.itemId === bi.itemId);
+        const subQty = override?.qty !== undefined ? override.qty : bi.qty;
+        const storeSub = resolveStoreItem(bi.itemId);
+        if (storeSub) out.set(storeSub.id, (out.get(storeSub.id) || 0) + subQty * line.qty);
+      }
+    } else {
+      const store = resolveStoreItem(line.inventoryItemId);
+      if (store) out.set(store.id, (out.get(store.id) || 0) + line.qty);
+    }
+    return out;
+  };
+
+  const totalsForStore = (lines: SalesOrder["items"]) => {
+    const totals = new Map<string, number>();
+    for (const l of lines || []) {
+      for (const [k, v] of expandLineStore(l)) totals.set(k, (totals.get(k) || 0) + v);
+    }
+    return totals;
+  };
+
+  // Positive delta = consume more from store stock; negative delta = restore store stock.
+  const applyStoreStockDelta = async (prevItems: SalesOrder["items"], nextItems: SalesOrder["items"]) => {
+    const prev = totalsForStore(prevItems || []);
+    const next = totalsForStore(nextItems || []);
+    const keys = new Set<string>([...prev.keys(), ...next.keys()]);
+    for (const id of keys) {
+      const delta = (next.get(id) || 0) - (prev.get(id) || 0);
+      if (!delta) continue;
+      const inv = storeInventory.find((i) => i.id === id);
+      if (!inv || inv.productType === "non-stock") continue;
+      await upsertInv({ ...inv, qty: Math.max(0, (inv.qty || 0) - delta) });
+    }
+  };
+
   const moveBackToStore = async (so: SalesOrder) => {
+    // Restore store stock that was deducted when the order was completed
+    await applyStoreStockDelta(so.items || [], []);
     await upsertSO({ ...so, location: "store" });
-    toast.success(`${so.number} moved back to Store Sale Orders`);
+    await log("edit", "sales_order", so.id, so.number, "Moved back to Store Sale Orders — store stock restored");
+    toast.success(`${so.number} moved back to Store Sale Orders · store stock restored`);
   };
 
   const convertToInvoice = async (so: SalesOrder) => {
@@ -171,10 +232,10 @@ export default function CompletedSites() {
         nextNumber={editOrder.number}
         onCancel={() => setEditOrder(null)}
         onSave={async (order) => {
-          await applyMainStockDelta(editOrder.items || [], order.items || []);
+          await applyStoreStockDelta(editOrder.items || [], order.items || []);
           await upsertSO({ ...order, location: "completed" });
-          await log("edit", "sales_order", order.id, order.number, "Completed site updated · main stock adjusted");
-          toast.success(`${order.number} updated · main stock adjusted`);
+          await log("edit", "sales_order", order.id, order.number, "Completed project updated · store stock adjusted");
+          toast.success(`${order.number} updated · store stock adjusted`);
           setEditOrder(null);
         }}
       />

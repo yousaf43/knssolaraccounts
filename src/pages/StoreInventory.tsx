@@ -150,9 +150,12 @@ export default function StoreInventory() {
   };
 
   const completeSite = async (so: SalesOrder) => {
+    // Deduct store stock by SO items (bundles expanded). Store stock is the source of truth
+    // while the order sits in Completed Projects.
+    await applyStoreStockDelta([], so.items || []);
     await upsertSO({ ...so, location: "completed" });
-    await log("edit", "sales_order", so.id, so.number, "Marked as Completed Project");
-    toast.success(`${so.number} moved to Completed Projects`);
+    await log("edit", "sales_order", so.id, so.number, "Marked as Completed Project — store stock deducted");
+    toast.success(`${so.number} moved to Completed Projects · store stock deducted`);
   };
 
   // Resolve any inventoryItemId (main or store) to the corresponding STORE inventory item, matched by sku/name.
