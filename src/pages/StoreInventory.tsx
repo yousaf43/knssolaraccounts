@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { SalesOrderPreview } from "@/components/SalesOrderPreview";
@@ -274,8 +275,75 @@ export default function StoreInventory() {
         <TabsContent value="products" className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold">Store Products</h2>
-            <p className="text-xs text-muted-foreground">Products are auto-mirrored from Main Inventory when added there.</p>
+            <p className="text-xs text-muted-foreground">Products auto-mirror from Main Inventory. Store stock is managed independently here.</p>
           </div>
+
+          {/* Edit Store Item Dialog (stock managed independently from Main Inventory) */}
+          <Dialog open={showForm && !!editing} onOpenChange={(open) => { if (!open) setShowForm(false); }}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Store Item — {editing?.name}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div><Label>Item Name *</Label><Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" maxLength={100} required /></div>
+                <div><Label>SKU</Label><Input value={form.sku || ""} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" maxLength={20} /></div>
+                <div><Label>Model</Label><Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} className="mt-1" maxLength={50} /></div>
+                <div><Label>Unique Code</Label><Input value={form.uniqueCode || ""} onChange={(e) => setForm({ ...form, uniqueCode: e.target.value })} className="mt-1" maxLength={50} /></div>
+
+                <div>
+                  <Label>Category</Label>
+                  {addingCategory ? (
+                    <div className="flex gap-1 mt-1">
+                      <Input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="New category..." className="flex-1" maxLength={50} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewCategory())} />
+                      <Button type="button" size="sm" onClick={addNewCategory} className="shrink-0">Add</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setAddingCategory(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                    </div>
+                  ) : (
+                    <Select value={form.category || ""} onValueChange={(v) => v === "__add_new__" ? setAddingCategory(true) : setForm({ ...form, category: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select category" /></SelectTrigger>
+                      <SelectContent>
+                        {usedCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        <SelectItem value="__add_new__">+ Add New Category</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Unit</Label>
+                  {addingUnit ? (
+                    <div className="flex gap-1 mt-1">
+                      <Input value={newUnit} onChange={(e) => setNewUnit(e.target.value)} placeholder="New unit..." className="flex-1" maxLength={20} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewUnit())} />
+                      <Button type="button" size="sm" onClick={addNewUnit} className="shrink-0">Add</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setAddingUnit(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                    </div>
+                  ) : (
+                    <Select value={form.unit || "pcs"} onValueChange={(v) => v === "__add_new__" ? setAddingUnit(true) : setForm({ ...form, unit: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {allUnits.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                        <SelectItem value="__add_new__">+ Add New Unit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {form.productType !== "non-stock" && (
+                  <>
+                    <div><Label>Quantity (Store Stock)</Label><Input type="number" min={0} value={form.qty ?? 0} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
+                    <div><Label>Reorder Level</Label><Input type="number" min={0} value={form.reorderLevel ?? 5} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
+                  </>
+                )}
+
+                <DialogFooter className="md:col-span-2">
+                  <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                  <Button type="submit">Update</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+
 
 
 
