@@ -335,6 +335,54 @@ export default function StoreInventory() {
                   </>
                 )}
 
+
+                {form.productType === "bundle" && (
+                  <div className="md:col-span-2">
+                    <Label className="mb-2 block">Bundle Components (from Store Inventory)</Label>
+                    <div className="bg-muted/30 rounded-lg border p-3 space-y-2">
+                      {(form.bundleItems || []).map((bi, idx) => {
+                        const bundledItem = items.find((inv) => inv.id === bi.itemId);
+                        const pickerSource = items.filter((inv) => inv.id !== editing?.id && inv.productType !== "bundle");
+                        return (
+                          <div key={idx} className="flex items-center gap-2">
+                            <BundleComponentSearch
+                              inventory={pickerSource}
+                              selectedItemId={bi.itemId}
+                              onSelect={(v) => {
+                                const updated = [...(form.bundleItems || [])];
+                                updated[idx] = { ...updated[idx], itemId: v };
+                                setForm({ ...form, bundleItems: updated });
+                              }}
+                            />
+                            <Input
+                              type="number" min={1} value={bi.qty}
+                              onChange={(e) => {
+                                const updated = [...(form.bundleItems || [])];
+                                updated[idx] = { ...updated[idx], qty: Number(e.target.value) };
+                                setForm({ ...form, bundleItems: updated });
+                              }}
+                              className="w-20 h-8 text-xs" placeholder="Qty"
+                            />
+                            <span className="text-xs text-muted-foreground w-16 truncate">{bundledItem?.unit || ""}</span>
+                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
+                              const updated = (form.bundleItems || []).filter((_, i) => i !== idx);
+                              setForm({ ...form, bundleItems: updated });
+                            }}>
+                              <Trash2 className="w-3 h-3 text-destructive" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                      <Button type="button" variant="outline" size="sm" onClick={() => {
+                        setForm({ ...form, bundleItems: [...(form.bundleItems || []), { itemId: "", qty: 1 }] });
+                      }}>
+                        <Plus className="w-3 h-3 mr-1" /> Add Component
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+
                 <DialogFooter className="md:col-span-2">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
                   <Button type="submit">Update</Button>
