@@ -533,7 +533,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Sales Reports */}
-      {["028", "029", "034", "037", "084", "085", "088", "235", "200", "201", "202", "203"].includes(report.code) && (
+      {["028", "029", "034", "037", "084", "085", "088", "235", "236", "200", "201", "202", "203"].includes(report.code) && (
         <div className="space-y-6">
           {/* Sales Trend Chart */}
           <div className="bg-card rounded-lg border p-6">
