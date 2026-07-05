@@ -303,10 +303,12 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label>Tax Rate (%)</Label>
-          <Input type="number" min={0} max={100} value={tax} onChange={(e) => setTax(Number(e.target.value))} className="mt-1" />
-        </div>
+        {!hidePrices && (
+          <div>
+            <Label>Tax Rate (%)</Label>
+            <Input type="number" min={0} max={100} value={tax} onChange={(e) => setTax(Number(e.target.value))} className="mt-1" />
+          </div>
+        )}
       </div>
 
       {/* Line Items with Inventory Dropdown + Search */}
