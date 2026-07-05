@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package } from "lucide-react";
-import { useInventoryCloud, useSalesOrdersCloud } from "@/hooks/useAppData";
+import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package, Eye } from "lucide-react";
+import { useInventoryCloud, useSalesOrdersCloud, useCustomersCloud } from "@/hooks/useAppData";
 import type { InventoryItem, SalesOrder } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { SalesOrderForm } from "@/components/SalesOrderForm";
+import { SalesOrderPreview } from "@/components/SalesOrderPreview";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { toast } from "sonner";
