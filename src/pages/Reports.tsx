@@ -44,6 +44,7 @@ const allReports: Report[] = [
   { code: "085", title: "Product Sale Detail (By Product)", category: "Sales", section: "general" },
   { code: "088", title: "Product Sale Summary", category: "Sales", section: "general" },
   { code: "235", title: "Category Sale Summary", category: "Sales", section: "general" },
+  { code: "236", title: "Product Sale Detail (By Category)", category: "Sales", section: "general" },
   // General Reports - Purchases
   { code: "040", title: "Purchase Invoices (By Date)", category: "Purchases", section: "general" },
   { code: "041", title: "Purchase Invoices (By Supplier)", category: "Purchases", section: "general" },
