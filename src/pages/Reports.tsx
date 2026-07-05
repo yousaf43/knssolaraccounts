@@ -922,7 +922,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               return (
                 <div className="bg-card rounded-lg border p-6">
                   <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-                    <h2 className="text-lg font-semibold">{categoryFilter === "all" ? `Sales by Category (${rows.length})` : `${categoryFilter} — Products (${searchFiltered.length})`}</h2>
+                    <h2 className="text-lg font-semibold">
+                      {categoryFilter === "all"
+                        ? `Sales by Category (${rows.length})`
+                        : selectedProductKey !== "all"
+                          ? `Sales Detail: ${searchFiltered.find(p => p.key === selectedProductKey)?.name || ""}`
+                          : `${categoryFilter} — Products (${searchFiltered.length})`}
+                    </h2>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                         <SelectTrigger className="h-9 w-full sm:w-44"><SelectValue placeholder="All categories" /></SelectTrigger>
