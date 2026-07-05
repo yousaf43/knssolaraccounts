@@ -45,6 +45,10 @@ export default function StoreInventory() {
     () => salesOrdersAll.filter((s) => (s.location || "main") === "store"),
     [salesOrdersAll]
   );
+  const completedOrders = useMemo(
+    () => salesOrdersAll.filter((s) => (s.location || "main") === "completed"),
+    [salesOrdersAll]
+  );
 
   const allUnits = useMemo(() => [...DEFAULT_UNITS, ...customUnits], [customUnits]);
   const allCategories = useMemo(() => [...DEFAULT_CATEGORIES, ...customCategories], [customCategories]);
