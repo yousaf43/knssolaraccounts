@@ -136,7 +136,41 @@ export default function Inventory() {
 
     await upsert(item);
     await log(editing ? "edit" : "create", "inventory", item.id, item.name, `SKU: ${item.sku}, Qty: ${item.qty}`);
-    toast.success(editing ? "Item updated" : "Item added");
+
+    // Auto-mirror to Store Inventory on CREATE only (skip if a store copy already exists by sku or name)
+    if (!editing) {
+      const skuNorm = item.sku.trim().toLowerCase();
+      const nameNorm = item.name.trim().toLowerCase();
+      const existingStore = inventoryAll.find(
+        (i) => (i.location || "main") === "store" &&
+          ((i.sku && i.sku.trim().toLowerCase() === skuNorm) ||
+            i.name.trim().toLowerCase() === nameNorm)
+      );
+      if (!existingStore) {
+        // Map bundle sub-items (main ids) to store equivalents where available
+        const mappedBundle = (item.bundleItems || []).map((bi) => {
+          const mainSub = inventoryAll.find((i) => i.id === bi.itemId);
+          if (!mainSub) return bi;
+          const storeSub = inventoryAll.find(
+            (i) => (i.location || "main") === "store" &&
+              ((i.sku && mainSub.sku && i.sku.trim().toLowerCase() === mainSub.sku.trim().toLowerCase()) ||
+                i.name.trim().toLowerCase() === mainSub.name.trim().toLowerCase())
+          );
+          return storeSub ? { ...bi, itemId: storeSub.id } : bi;
+        });
+        const storeItem: InventoryItem = {
+          ...item,
+          id: crypto.randomUUID(),
+          location: "store",
+          qty: 0,
+          price: 0, costPrice: 0, salePrice: 0, saleDiscount: 0, purchaseDiscount: 0,
+          bundleItems: mappedBundle,
+        };
+        await upsert(storeItem);
+      }
+    }
+
+    toast.success(editing ? "Item updated" : "Item added (also mirrored to Store Inventory)");
     setShowForm(false);
   };
 
