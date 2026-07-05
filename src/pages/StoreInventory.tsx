@@ -238,10 +238,9 @@ export default function StoreInventory() {
         hidePrices
         onCancel={() => setEditOrder(null)}
         onSave={async (order) => {
-          await applyStoreStockDelta(editOrder.items || [], order.items || []);
           await upsertSO({ ...order, location: "store" });
           await log("edit", "sales_order", order.id, order.number, "Store sale order updated");
-          toast.success(`${order.number} updated · store stock adjusted`);
+          toast.success(`${order.number} updated`);
           setEditOrder(null);
         }}
       />
