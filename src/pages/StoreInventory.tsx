@@ -293,6 +293,7 @@ export default function StoreInventory() {
         <TabsList>
           <TabsTrigger value="products">Store Products</TabsTrigger>
           <TabsTrigger value="orders">Store Sale Orders ({storeOrders.length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed Store Sale Orders ({completedOrders.length})</TabsTrigger>
         </TabsList>
 
         {/* Products Tab */}
