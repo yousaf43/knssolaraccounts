@@ -1177,6 +1177,11 @@ export default function Invoices() {
           </div>
         </TabsContent>
 
+        {/* Project Completed Tab (Completed Sites) */}
+        <TabsContent value="project-completed">
+          <div className="p-2"><CompletedSites /></div>
+        </TabsContent>
+
         {/* Sales All Tab */}
         <TabsContent value="all">
           {FilterBar({ showType: true })}
