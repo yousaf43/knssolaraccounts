@@ -307,6 +307,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [customerSearch, setCustomerSearch] = useState("");
   const [receiptSearch, setReceiptSearch] = useState("");
   const [txnSearch, setTxnSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [selectedProductKey, setSelectedProductKey] = useState<string>("all");
 
   const dateRange = useMemo(() => {
     if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
