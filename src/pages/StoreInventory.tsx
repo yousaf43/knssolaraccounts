@@ -545,6 +545,8 @@ export default function StoreInventory() {
               </tbody>
             </table>
           </div>
+        </TabsContent>
+
 
         {/* Completed Store Sale Orders Tab (view-only) */}
         <TabsContent value="completed" className="space-y-4">
