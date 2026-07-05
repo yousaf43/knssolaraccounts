@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package, Eye } from "lucide-react";
-import { useInventoryCloud, useSalesOrdersCloud, useCustomersCloud } from "@/hooks/useAppData";
+import { Loader2, Plus, Edit, Trash2, X, Store, ShoppingCart, ArrowLeftRight, Package, Eye, Boxes } from "lucide-react";
+import { useInventoryCloud, useSalesOrdersCloud, useCustomersCloud, useUserSettingsCloud } from "@/hooks/useAppData";
 import type { InventoryItem, SalesOrder } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,19 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { SalesOrderPreview } from "@/components/SalesOrderPreview";
-import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { toast } from "sonner";
 
+const DEFAULT_UNITS = ["pcs", "kg", "ltr", "box", "dozen", "meter", "feet"];
+const DEFAULT_CATEGORIES = ["Electronics", "Office Supplies", "Raw Materials", "Packaging", "Tools"];
+
 const emptyItem = (): Partial<InventoryItem> => ({
-  name: "", sku: "", qty: 0, reorderLevel: 5, price: 0, category: "",
+  name: "", sku: "", model: "", uniqueCode: "", qty: 0, reorderLevel: 5, price: 0, category: "",
   date: new Date().toISOString().split("T")[0], costPrice: 0, salePrice: 0,
   unit: "pcs", weight: 0, stockAssetAccount: "Inventory Asset",
   saleDiscount: 0, purchaseDiscount: 0, productType: "stock", bundleItems: [],
@@ -24,11 +28,11 @@ const emptyItem = (): Partial<InventoryItem> => ({
 });
 
 export default function StoreInventory() {
-  const { formatCurrency } = useSettings();
   const { log } = useActivityLog();
   const { data: inventoryAll, loading, upsert, remove } = useInventoryCloud();
   const { data: salesOrdersAll, upsert: upsertSO, remove: removeSO } = useSalesOrdersCloud();
   const { data: customers } = useCustomersCloud();
+  const { customUnits, customCategories, setCustomUnits, setCustomCategories } = useUserSettingsCloud();
 
   const items = useMemo(
     () => inventoryAll.filter((i) => (i.location || "main") === "store"),
@@ -39,9 +43,21 @@ export default function StoreInventory() {
     [salesOrdersAll]
   );
 
+  const allUnits = useMemo(() => [...DEFAULT_UNITS, ...customUnits], [customUnits]);
+  const allCategories = useMemo(() => [...DEFAULT_CATEGORIES, ...customCategories], [customCategories]);
+  const usedCategories = useMemo(() => {
+    const cats = new Set<string>(inventoryAll.map((i) => i.category).filter(Boolean));
+    allCategories.forEach((c) => cats.add(c));
+    return Array.from(cats).sort();
+  }, [inventoryAll, allCategories]);
+
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<Partial<InventoryItem>>(emptyItem());
+  const [newUnit, setNewUnit] = useState("");
+  const [addingUnit, setAddingUnit] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
 
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [viewOrder, setViewOrder] = useState<SalesOrder | null>(null);
@@ -61,11 +77,30 @@ export default function StoreInventory() {
 
   const stats = useMemo(() => {
     const totalQty = items.reduce((s, i) => s + (i.qty || 0), 0);
-    const stockValue = items.reduce((s, i) => s + (i.qty || 0) * (i.costPrice || 0), 0);
-    const retailValue = items.reduce((s, i) => s + (i.qty || 0) * (i.salePrice || 0), 0);
     const lowStock = items.filter((i) => i.qty <= i.reorderLevel).length;
-    return { totalProducts: items.length, totalQty, stockValue, retailValue, lowStock, orders: storeOrders.length };
+    const bundles = items.filter((i) => i.productType === "bundle").length;
+    return { totalProducts: items.length, totalQty, lowStock, bundles, orders: storeOrders.length };
   }, [items, storeOrders]);
+
+  const addNewUnit = () => {
+    const v = newUnit.trim();
+    if (!v || allUnits.includes(v)) return;
+    setCustomUnits((prev) => [...prev, v]);
+    setForm({ ...form, unit: v });
+    setNewUnit("");
+    setAddingUnit(false);
+    toast.success(`Unit "${v}" added`);
+  };
+
+  const addNewCategory = () => {
+    const v = newCategory.trim();
+    if (!v || allCategories.includes(v)) return;
+    setCustomCategories((prev) => [...prev, v]);
+    setForm({ ...form, category: v });
+    setNewCategory("");
+    setAddingCategory(false);
+    toast.success(`Category "${v}" added`);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +108,8 @@ export default function StoreInventory() {
     const item: InventoryItem = {
       ...emptyItem(),
       ...form,
+      // prices always hidden in store; keep zero
+      price: 0, costPrice: 0, salePrice: 0, saleDiscount: 0, purchaseDiscount: 0,
       sku: form.sku?.trim() || generateSku(),
       location: "store",
       id: editing?.id || crypto.randomUUID(),
@@ -93,31 +130,6 @@ export default function StoreInventory() {
     toast.success(`${so.number} moved back to Sales Orders`);
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  }
-
-  const kpis = [
-    { label: "Store Products", value: stats.totalProducts, icon: Package },
-    { label: "Total Qty", value: stats.totalQty.toLocaleString(), icon: Store },
-    { label: "Stock Value", value: formatCurrency(stats.stockValue), icon: Store },
-    { label: "Retail Value", value: formatCurrency(stats.retailValue), icon: Store },
-    { label: "Low Stock", value: stats.lowStock, icon: Store },
-    { label: "Store Orders", value: stats.orders, icon: ShoppingCart },
-  ];
-
-  if (viewOrder) {
-    return (
-      <SalesOrderPreview
-        order={viewOrder}
-        onClose={() => setViewOrder(null)}
-        showPrices={false}
-        customers={customers}
-        inventory={inventoryAll}
-      />
-    );
-  }
-
   // Resolve any inventoryItemId (main or store) to the corresponding STORE inventory item, matched by sku/name.
   const resolveStoreItem = (inventoryItemId?: string): InventoryItem | undefined => {
     if (!inventoryItemId) return undefined;
@@ -132,7 +144,6 @@ export default function StoreInventory() {
     );
   };
 
-  // Expand a sale-order line into { storeItemId -> qty to deduct from store stock }.
   const expandLine = (line: { inventoryItemId?: string; qty: number; bundleItemPrices?: { itemId: string; qty?: number }[] }): Map<string, number> => {
     const out = new Map<string, number>();
     if (!line.inventoryItemId) return out;
@@ -165,13 +176,29 @@ export default function StoreInventory() {
     const next = totalsFor(nextItems || []);
     const keys = new Set<string>([...prev.keys(), ...next.keys()]);
     for (const id of keys) {
-      const delta = (next.get(id) || 0) - (prev.get(id) || 0); // positive = deduct more from store
+      const delta = (next.get(id) || 0) - (prev.get(id) || 0);
       if (!delta) continue;
       const inv = items.find((i) => i.id === id);
       if (!inv) continue;
       await upsert({ ...inv, qty: Math.max(0, (inv.qty || 0) - delta) });
     }
   };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
+
+  if (viewOrder) {
+    return (
+      <SalesOrderPreview
+        order={viewOrder}
+        onClose={() => setViewOrder(null)}
+        showPrices={false}
+        customers={customers}
+        inventory={inventoryAll}
+      />
+    );
+  }
 
   if (editOrder) {
     return (
@@ -193,6 +220,17 @@ export default function StoreInventory() {
     );
   }
 
+  const kpis = [
+    { label: "Store Products", value: stats.totalProducts, icon: Package },
+    { label: "Total Qty", value: stats.totalQty.toLocaleString(), icon: Store },
+    { label: "Bundles", value: stats.bundles, icon: Boxes },
+    { label: "Low Stock", value: stats.lowStock, icon: Store },
+    { label: "Store Orders", value: stats.orders, icon: ShoppingCart },
+  ];
+
+  // Bundle picker source: store items only (exclude bundles and the item being edited)
+  const bundlePickerSource = items.filter((inv) => inv.id !== editing?.id && inv.productType !== "bundle");
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -206,7 +244,7 @@ export default function StoreInventory() {
       </div>
 
       {/* Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {kpis.map((k) => (
           <Card key={k.label}>
             <CardHeader className="p-3 pb-1 flex-row items-center justify-between space-y-0">
@@ -240,14 +278,118 @@ export default function StoreInventory() {
                 <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-4 h-4" /></Button>
               </div>
               <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div><Label>Item Name *</Label><Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" required /></div>
-                <div><Label>SKU</Label><Input value={form.sku || ""} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" /></div>
-                <div><Label>Category</Label><Input value={form.category || ""} onChange={(e) => setForm({ ...form, category: e.target.value })} className="mt-1" /></div>
-                <div><Label>Unit</Label><Input value={form.unit || "pcs"} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="mt-1" /></div>
-                <div><Label>Qty</Label><Input type="number" value={form.qty ?? 0} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
-                <div><Label>Reorder Level</Label><Input type="number" value={form.reorderLevel ?? 5} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
-                <div><Label>Cost Price</Label><Input type="number" value={form.costPrice ?? 0} onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })} className="mt-1" /></div>
-                <div><Label>Sale Price</Label><Input type="number" value={form.salePrice ?? 0} onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value), price: Number(e.target.value) })} className="mt-1" /></div>
+                <div>
+                  <Label>Product Type</Label>
+                  <Select value={form.productType || "stock"} onValueChange={(v) => setForm({ ...form, productType: v as InventoryItem["productType"] })}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="stock">Stock (Tracked)</SelectItem>
+                      <SelectItem value="non-stock">Non-Stock (Service)</SelectItem>
+                      <SelectItem value="bundle">Bundle (Composite)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Item Name *</Label><Input value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1" maxLength={100} required /></div>
+                <div><Label>SKU *</Label><Input value={form.sku || ""} onChange={(e) => setForm({ ...form, sku: e.target.value })} className="mt-1" maxLength={20} required /></div>
+                <div><Label>Model</Label><Input value={form.model || ""} onChange={(e) => setForm({ ...form, model: e.target.value })} className="mt-1" maxLength={50} placeholder="e.g. LONGi Hi-MO 6" /></div>
+                <div><Label>Unique Code</Label><Input value={form.uniqueCode || ""} onChange={(e) => setForm({ ...form, uniqueCode: e.target.value })} className="mt-1" maxLength={50} placeholder="e.g. SN-12345" /></div>
+
+                <div>
+                  <Label>Category</Label>
+                  {addingCategory ? (
+                    <div className="flex gap-1 mt-1">
+                      <Input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="New category..." className="flex-1" maxLength={50} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewCategory())} />
+                      <Button type="button" size="sm" onClick={addNewCategory} className="shrink-0">Add</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setAddingCategory(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                    </div>
+                  ) : (
+                    <Select value={form.category || ""} onValueChange={(v) => v === "__add_new__" ? setAddingCategory(true) : setForm({ ...form, category: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Select category" /></SelectTrigger>
+                      <SelectContent>
+                        {usedCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        <SelectItem value="__add_new__">+ Add New Category</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div><Label>Date</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1" /></div>
+
+                {form.productType !== "non-stock" && (
+                  <>
+                    <div><Label>Quantity</Label><Input type="number" min={0} value={form.qty ?? 0} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
+                    <div><Label>Reorder Level</Label><Input type="number" min={0} value={form.reorderLevel ?? 5} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
+                  </>
+                )}
+
+                <div>
+                  <Label>Unit</Label>
+                  {addingUnit ? (
+                    <div className="flex gap-1 mt-1">
+                      <Input value={newUnit} onChange={(e) => setNewUnit(e.target.value)} placeholder="New unit..." className="flex-1" maxLength={20} autoFocus onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addNewUnit())} />
+                      <Button type="button" size="sm" onClick={addNewUnit} className="shrink-0">Add</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setAddingUnit(false)} className="shrink-0"><X className="w-3 h-3" /></Button>
+                    </div>
+                  ) : (
+                    <Select value={form.unit || "pcs"} onValueChange={(v) => v === "__add_new__" ? setAddingUnit(true) : setForm({ ...form, unit: v })}>
+                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {allUnits.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                        <SelectItem value="__add_new__">+ Add New Unit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div><Label>Weight</Label><Input type="number" min={0} step={0.01} value={form.weight ?? 0} onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })} className="mt-1" /></div>
+
+                {form.productType === "bundle" && (
+                  <div className="md:col-span-3 lg:col-span-4">
+                    <Label className="mb-2 block">Bundle Components (from Store Inventory)</Label>
+                    <div className="bg-muted/30 rounded-lg border p-3 space-y-2">
+                      {(form.bundleItems || []).map((bi, idx) => {
+                        const bundledItem = items.find((inv) => inv.id === bi.itemId);
+                        return (
+                          <div key={idx} className="flex items-center gap-2">
+                            <BundleComponentSearch
+                              inventory={bundlePickerSource}
+                              selectedItemId={bi.itemId}
+                              onSelect={(v) => {
+                                const updated = [...(form.bundleItems || [])];
+                                updated[idx] = { ...updated[idx], itemId: v };
+                                setForm({ ...form, bundleItems: updated });
+                              }}
+                            />
+                            <Input
+                              type="number" min={1} value={bi.qty}
+                              onChange={(e) => {
+                                const updated = [...(form.bundleItems || [])];
+                                updated[idx] = { ...updated[idx], qty: Number(e.target.value) };
+                                setForm({ ...form, bundleItems: updated });
+                              }}
+                              className="w-20 h-8 text-xs" placeholder="Qty"
+                            />
+                            <span className="text-xs text-muted-foreground w-16 truncate">{bundledItem?.unit || ""}</span>
+                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => {
+                              const updated = (form.bundleItems || []).filter((_, i) => i !== idx);
+                              setForm({ ...form, bundleItems: updated });
+                            }}>
+                              <Trash2 className="w-3 h-3 text-destructive" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                      <div>
+                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                          setForm({ ...form, bundleItems: [...(form.bundleItems || []), { itemId: "", qty: 1 }] });
+                        }}>
+                          <Plus className="w-3 h-3 mr-1" /> Add Component
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="md:col-span-3 lg:col-span-4 flex gap-3 justify-end">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
                   <Button type="submit">{editing ? "Update" : "Add"}</Button>
@@ -261,12 +403,12 @@ export default function StoreInventory() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Item</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Type</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">SKU</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                   <th className="text-center px-3 py-2 font-medium text-muted-foreground">Unit</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
-                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost</th>
-                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale</th>
                   <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
                   <th className="text-center px-3 py-2 font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -275,14 +417,18 @@ export default function StoreInventory() {
                 {items.map((i) => (
                   <tr key={i.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-3 py-2 font-medium">{i.name}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant="outline" className="text-[10px] capitalize">{i.productType || "stock"}</Badge>
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground">{i.sku}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{i.model || "—"}</td>
                     <td className="px-3 py-2 text-muted-foreground">{i.category || "—"}</td>
                     <td className="px-3 py-2 text-center">{i.unit || "pcs"}</td>
                     <td className="px-3 py-2 text-right">{i.qty}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(i.costPrice || 0)}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(i.salePrice || 0)}</td>
                     <td className="px-3 py-2 text-center">
-                      {i.qty <= 0 ? (
+                      {i.productType === "non-stock" ? (
+                        <Badge variant="outline" className="text-xs">Service</Badge>
+                      ) : i.qty <= 0 ? (
                         <Badge className="bg-destructive/10 text-destructive border-0">Out</Badge>
                       ) : i.qty <= i.reorderLevel ? (
                         <Badge className="bg-destructive/10 text-destructive border-0">Low</Badge>
