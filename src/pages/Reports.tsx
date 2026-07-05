@@ -890,12 +890,18 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             const allLines = Object.values(productMap);
             const categories = Array.from(new Set(allLines.map(l => l.category))).sort();
+            const productTypes = Array.from(new Set(allLines.map(l => l.productType))).sort();
             const q = productSearch.trim().toLowerCase();
+
+            // Product-type filter
+            const typeFiltered = productTypeFilter === "all"
+              ? allLines
+              : allLines.filter(l => l.productType === productTypeFilter);
 
             // Category filter
             const catFiltered = categoryFilter === "all"
-              ? allLines
-              : allLines.filter(l => l.category === categoryFilter);
+              ? typeFiltered
+              : typeFiltered.filter(l => l.category === categoryFilter);
 
             // Product search filter
             const searchFiltered = catFiltered
