@@ -28,6 +28,7 @@ export default function StoreInventory() {
   const { log } = useActivityLog();
   const { data: inventoryAll, loading, upsert, remove } = useInventoryCloud();
   const { data: salesOrdersAll, upsert: upsertSO, remove: removeSO } = useSalesOrdersCloud();
+  const { data: customers } = useCustomersCloud();
 
   const items = useMemo(
     () => inventoryAll.filter((i) => (i.location || "main") === "store"),
@@ -41,6 +42,9 @@ export default function StoreInventory() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<Partial<InventoryItem>>(emptyItem());
+
+  const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
+  const [viewOrder, setViewOrder] = useState<SalesOrder | null>(null);
 
   const generateSku = () => {
     const nums = items
