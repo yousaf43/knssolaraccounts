@@ -545,6 +545,52 @@ export default function StoreInventory() {
               </tbody>
             </table>
           </div>
+
+        {/* Completed Store Sale Orders Tab (view-only) */}
+        <TabsContent value="completed" className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold">Completed Store Sale Orders</h2>
+            <p className="text-xs text-muted-foreground">Orders moved to Completed Projects. View-only. If reversed from Completed Projects, they return automatically to Store Sale Orders.</p>
+          </div>
+
+          <div className="bg-card rounded-lg border overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">SO #</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Delivery</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                  <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
+                  <th className="text-center px-3 py-2 font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {completedOrders.map((so) => {
+                  const totalQty = (so.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
+                  return (
+                    <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2 font-medium">{so.number}</td>
+                      <td className="px-3 py-2">{so.customer}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{so.date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
+                      <td className="px-3 py-2 text-center"><Badge className="bg-green-500/10 text-green-600 border-0 text-xs">Completed</Badge></td>
+                      <td className="px-3 py-2 text-center">
+                        <button className="p-1.5 rounded hover:bg-muted" title="View" onClick={() => setViewOrder(so)}>
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {completedOrders.length === 0 && (
+                  <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No completed store sale orders yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
