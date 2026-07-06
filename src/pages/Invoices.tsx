@@ -80,6 +80,8 @@ export default function Invoices() {
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const [stickyHeaderH, setStickyHeaderH] = useState(0);
 
   useEffect(() => {
     const el = document.getElementById("main-scroll");
@@ -90,6 +92,20 @@ export default function Invoices() {
     target.addEventListener("scroll", onScroll, { passive: true } as AddEventListenerOptions);
     return () => target.removeEventListener("scroll", onScroll as EventListener);
   }, []);
+
+  useEffect(() => {
+    const measure = () => setStickyHeaderH(stickyHeaderRef.current?.offsetHeight ?? 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (stickyHeaderRef.current) ro.observe(stickyHeaderRef.current);
+    window.addEventListener("resize", measure);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
+  });
+
+  // Top app bar height (h-14 mobile / h-16 sm+) — used to offset sticky table headers.
+  const topBarH = typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches ? 64 : 56;
+  const theadTop = stickyHeaderH + topBarH;
+
 
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
@@ -848,43 +864,44 @@ export default function Invoices() {
       {hiddenInputs}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
         <div
+          ref={stickyHeaderRef}
           className={`sticky top-14 sm:top-16 z-20 -mx-3 sm:-mx-6 px-3 sm:px-6 transition-all duration-300 ease-out ${
             isScrolled
-              ? "bg-background/80 backdrop-blur-md pt-2 pb-2 space-y-2 border-b shadow-sm"
+              ? "bg-background/85 backdrop-blur-md pt-1.5 pb-1.5 space-y-1.5 border-b shadow-sm"
               : "bg-background pt-3 sm:pt-6 pb-3 space-y-4 border-b"
           }`}
         >
-          <div className={`flex items-center justify-between transition-all duration-300 ${isScrolled ? "gap-3" : ""}`}>
+          <div className={`flex items-center justify-between transition-all duration-300 ${isScrolled ? "gap-2" : ""}`}>
             <div className="flex items-center gap-3 min-w-0">
               {isScrolled && (
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-3.5 h-3.5" />
                 </div>
               )}
               <div className="min-w-0">
-                <h1 className={`font-bold truncate transition-all duration-300 ${isScrolled ? "text-base leading-tight" : "text-2xl"}`}>Sales</h1>
+                <h1 className={`font-bold truncate transition-all duration-300 ${isScrolled ? "text-sm leading-tight" : "text-2xl"}`}>Sales</h1>
                 {!isScrolled && (
                   <p className="text-muted-foreground text-sm">Manage sales orders, invoices, receipts and more</p>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {(activeTab === "invoices" || activeTab === "sales-orders") && (
-                <Button variant="outline" size={isScrolled ? "sm" : "sm"} className={isScrolled ? "h-8" : ""} onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
-                  <Upload className={`${isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} mr-2`} />
-                  {isScrolled ? "Import" : "Import CSV"}
+              {!isScrolled && (activeTab === "invoices" || activeTab === "sales-orders") && (
+                <Button variant="outline" size="sm" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import CSV
                 </Button>
               )}
               {activeTab !== "all" && (
-                <Button size={isScrolled ? "sm" : "default"} className={isScrolled ? "h-8" : ""} onClick={handleNewClick}>
-                  <Plus className={`${isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} mr-2`} />
+                <Button size={isScrolled ? "sm" : "default"} className={isScrolled ? "h-7 px-2 text-xs" : ""} onClick={handleNewClick}>
+                  <Plus className={`${isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} ${isScrolled ? "mr-1" : "mr-2"}`} />
                   {isScrolled ? "New" : newButtonLabel}
                 </Button>
               )}
             </div>
           </div>
 
-          <TabsList className={`grid w-full grid-cols-7 transition-all duration-300 ${isScrolled ? "h-8" : ""}`}>
+          <TabsList className={`grid w-full grid-cols-7 transition-all duration-300 ${isScrolled ? "h-7" : ""}`}>
             <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Quotations"}</TabsTrigger>
             <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Sales Orders"}</TabsTrigger>
             <TabsTrigger value="project-completed" className="flex items-center gap-2"><CheckCircle2 className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Project Completed"}</TabsTrigger>
@@ -898,15 +915,16 @@ export default function Invoices() {
         </div>
 
 
+
         {/* Quotations Tab */}
         <TabsContent value="quotations">
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredQuotations.length} quotation(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Quotation #</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
@@ -953,10 +971,10 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Order #</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
@@ -1000,10 +1018,10 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredInvoices.length} invoice(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Invoice #</th>
                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Doc No.</th>
@@ -1093,10 +1111,10 @@ export default function Invoices() {
                 <div className="flex items-center justify-end px-4 py-2">
                   <span className="text-xs text-muted-foreground">{filteredReturns.length} return(s)</span>
                 </div>
-                <div className="bg-card rounded-lg border overflow-hidden">
-                  <div className="overflow-x-auto">
+                <div className="bg-card rounded-lg border">
+                  <div>
                     <table className="w-full text-sm">
-                      <thead>
+                      <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                         <tr className="border-b bg-muted/50">
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Return #</th>
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Original Invoice</th>
@@ -1151,10 +1169,10 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Receipt #</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
@@ -1214,10 +1232,10 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">#</th>
