@@ -314,7 +314,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [viewMultiSelected, setViewMultiSelected] = useState(false);
   const [stockSearch, setStockSearch] = useState("");
   const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
-  const [stockModelFilter, setStockModelFilter] = useState<string>("all");
+  
   const toggleMultiSelected = (key: string) =>
     setMultiSelectedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
@@ -346,7 +346,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       const q = stockSearch.trim().toLowerCase();
       data = inventory.filter(i => {
         if (stockCategoryFilter !== "all" && i.category !== stockCategoryFilter) return false;
-        if (stockModelFilter !== "all" && (i.model || "") !== stockModelFilter) return false;
+        
         if (q) {
           const hay = `${i.name} ${i.sku} ${i.model || ""} ${i.category} ${i.uniqueCode || ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
@@ -355,14 +355,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       });
     }
     return data;
-  }, [report.code, inventory, stockSearch, stockCategoryFilter, stockModelFilter]);
+  }, [report.code, inventory, stockSearch, stockCategoryFilter]);
 
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
-    [inventory]
-  );
-  const stockModels = useMemo(
-    () => Array.from(new Set(inventory.map(i => i.model || "").filter(Boolean))).sort(),
     [inventory]
   );
 
@@ -404,15 +400,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 {stockCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={stockModelFilter} onValueChange={setStockModelFilter}>
-              <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Model" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Models</SelectItem>
-                {stockModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {(stockSearch || stockCategoryFilter !== "all" || stockModelFilter !== "all") && (
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStockSearch(""); setStockCategoryFilter("all"); setStockModelFilter("all"); }}>
+            {(stockSearch || stockCategoryFilter !== "all") && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStockSearch(""); setStockCategoryFilter("all"); }}>
                 Reset
               </Button>
             )}
