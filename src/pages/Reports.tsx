@@ -1009,7 +1009,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         ? searchFiltered.find(p => p.key === selectedProductKey)
                         : null;
                       const multiSelected = viewMultiSelected
-                        ? searchFiltered.filter(p => multiSelectedKeys.includes(p.key))
+                        ? allLines.filter(p => multiSelectedKeys.includes(p.key))
                         : [];
                       const showCombined = viewMultiSelected && multiSelected.length > 0;
 
