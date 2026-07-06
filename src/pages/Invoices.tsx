@@ -879,7 +879,7 @@ export default function Invoices() {
         >
           {isScrolled ? (
             // Compact single-row toolbar: icon + title + inline tabs pill + new button
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 justify-between">
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center shadow-sm">
                   <FileText className="w-3 h-3" />
