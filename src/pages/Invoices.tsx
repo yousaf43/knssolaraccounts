@@ -84,14 +84,20 @@ export default function Invoices() {
   const [stickyHeaderH, setStickyHeaderH] = useState(0);
 
   useEffect(() => {
+    // The window is the actual scroll container (main-scroll grows with content).
+    // Listen to both window and #main-scroll to be resilient to layout changes.
     const el = document.getElementById("main-scroll");
-    const target: HTMLElement | Window = el ?? window;
-    const getY = () => (el ? el.scrollTop : window.scrollY);
+    const getY = () => Math.max(window.scrollY || 0, el?.scrollTop || 0);
     const onScroll = () => setIsScrolled(getY() > 20);
     onScroll();
-    target.addEventListener("scroll", onScroll, { passive: true } as AddEventListenerOptions);
-    return () => target.removeEventListener("scroll", onScroll as EventListener);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    el?.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      el?.removeEventListener("scroll", onScroll);
+    };
   }, []);
+
 
   useEffect(() => {
     const measure = () => setStickyHeaderH(stickyHeaderRef.current?.offsetHeight ?? 0);
