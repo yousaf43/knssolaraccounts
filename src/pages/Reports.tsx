@@ -465,6 +465,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               <table id="report-print-table" className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Item</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">SKU</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
@@ -472,17 +473,18 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>}
-                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Price</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Cost</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {inventoryTableData.map(item => {
-                    const avgPrice = item.costPrice > 0 && item.salePrice > 0
-                      ? (item.costPrice + item.salePrice) / 2
-                      : item.costPrice || item.salePrice;
+                  {inventoryTableData.map((item, idx) => {
+                    // Average cost price: for merged/dedup rows this is already the weighted avg (totalValue/totalQty).
+                    // For single rows it equals the item's cost price.
+                    const avgCost = item.costPrice || 0;
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                         <td className="px-3 py-2 font-medium">{item.name}</td>
                         <td className="px-3 py-2 text-muted-foreground">{item.sku}</td>
                         <td className="px-3 py-2 text-muted-foreground">{item.model || "—"}</td>
@@ -490,7 +492,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
-                        {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgPrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgCost)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
                       </tr>
                     );
@@ -498,12 +500,15 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 </tbody>
                 {report.code === "148" && (
                   <tfoot>
-                     <tr className="border-t-2 font-bold">
-                       <td className="px-3 py-2" colSpan={8}>Total Stock Valuation</td>
+                    <tr className="border-t-2 font-bold bg-muted/40">
+                      <td className="px-3 py-2" colSpan={5}>Total Products: {inventoryTableData.length}</td>
+                      <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
+                      <td className="px-3 py-2" colSpan={3}>Total Stock Valuation</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + i.qty * i.costPrice, 0))}</td>
                     </tr>
                   </tfoot>
                 )}
+
               </table>
             </div>
           )}
