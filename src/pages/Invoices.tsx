@@ -79,6 +79,18 @@ export default function Invoices() {
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const el = document.getElementById("main-scroll");
+    const target: HTMLElement | Window = el ?? window;
+    const getY = () => (el ? el.scrollTop : window.scrollY);
+    const onScroll = () => setIsScrolled(getY() > 20);
+    onScroll();
+    target.addEventListener("scroll", onScroll, { passive: true } as AddEventListenerOptions);
+    return () => target.removeEventListener("scroll", onScroll as EventListener);
+  }, []);
+
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
