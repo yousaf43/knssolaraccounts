@@ -1177,7 +1177,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             // Selected product drilldown
             const selected = selectedProductKey !== "all" ? searchFiltered.find(p => p.key === selectedProductKey) : null;
             const multiSelected = viewMultiSelected
-              ? searchFiltered.filter(p => multiSelectedKeys.includes(p.key))
+              ? allLines.filter(p => multiSelectedKeys.includes(p.key))
               : [];
             const showCombined = viewMultiSelected && multiSelected.length > 0 && !selected;
             const allVisibleSelected = searchFiltered.length > 0 && searchFiltered.every(p => multiSelectedKeys.includes(p.key));
