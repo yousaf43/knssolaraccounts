@@ -330,8 +330,7 @@ export default function Accounts() {
 
         {/* Account Balances */}
         <TabsContent value="balances">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Account Balances</h2>
+          <div className="flex justify-end items-center mb-4">
             <Button size="sm" className="bg-primary" onClick={() => { setEditAccId(null); setAccForm({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" }); setShowAccForm(!showAccForm); }}>
               <Plus className="w-4 h-4 mr-1" /> New Account
             </Button>
