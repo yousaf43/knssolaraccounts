@@ -606,8 +606,7 @@ export default function Accounts() {
         {/* Other Payments */}
         <TabsContent value="payments">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Other Payments</h2>
+            <div className="flex justify-end items-center">
               <Button size="sm" onClick={() => { setEditPayId(null); setPayForm(emptyPay); setShowPayForm(!showPayForm); }}>
                 <Plus className="w-4 h-4 mr-1" /> Add Payment
               </Button>
