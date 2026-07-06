@@ -60,6 +60,7 @@ export default function StoreInventory() {
   }, [inventoryAll, allCategories]);
 
   const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"products" | "orders" | "completed">("products");
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<Partial<InventoryItem>>(emptyItem());
   const [newUnit, setNewUnit] = useState("");
