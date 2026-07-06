@@ -38,20 +38,37 @@ export function StickyPageHeader({
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    const el = document.getElementById("main-scroll");
-    const getY = () => Math.max(window.scrollY || 0, el?.scrollTop || 0);
-    const onScroll = () => {
-      const y = getY();
-      setIsScrolled((prev) => (prev ? y > 10 : y > 40));
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    el?.addEventListener("scroll", onScroll, { passive: true });
+    // Use a sentinel + IntersectionObserver so the compact/full switch is
+    // driven by a fixed point in the document rather than live scrollTop.
+    // Scroll-position toggles flicker at the threshold because the header
+    // height changes when it compacts, which shifts scrollTop and re-crosses
+    // the boundary. A sentinel avoids that feedback loop.
+    const sentinel = document.createElement("div");
+    sentinel.setAttribute("aria-hidden", "true");
+    sentinel.style.cssText =
+      "position:absolute;top:0;left:0;width:1px;height:48px;pointer-events:none;visibility:hidden;";
+
+    const scrollEl = document.getElementById("main-scroll");
+    const host = scrollEl ?? document.body;
+    const hadInlinePosition = host.style.position !== "";
+    if (getComputedStyle(host).position === "static") {
+      host.style.position = "relative";
+    }
+    host.prepend(sentinel);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsScrolled(!entry.isIntersecting),
+      { root: scrollEl ?? null, threshold: 0 },
+    );
+    observer.observe(sentinel);
+
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      el?.removeEventListener("scroll", onScroll);
+      observer.disconnect();
+      sentinel.remove();
+      if (!hadInlinePosition) host.style.removeProperty("position");
     };
   }, []);
+
 
   const compact = forceCompact || isScrolled;
 
