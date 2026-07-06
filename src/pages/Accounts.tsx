@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X, SendHorizontal } from "lucide-react";
+import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X, SendHorizontal, Wallet, Settings2, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
