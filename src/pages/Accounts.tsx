@@ -59,9 +59,20 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
 export default function Accounts() {
   const { formatCurrency, settings } = useSettings();
   const { data: accounts, setData: setAccounts, upsert: upsertAccount, remove: removeAccount, loading: accountsLoading } = useAccountsCloud();
+  const [activeTab, setActiveTab] = useState("balances");
   const [showAccForm, setShowAccForm] = useState(false);
   const [editAccId, setEditAccId] = useState<string | null>(null);
   const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
+
+  const sectionMeta: Record<string, { title: string; subtitle: string }> = {
+    balances: { title: "Account Balances", subtitle: "Bank accounts, opening & ledger balances" },
+    management: { title: "Account Management", subtitle: "Ledger entries, incoming & outgoing" },
+    payments: { title: "Other Payments", subtitle: "Miscellaneous outgoing payments" },
+    receipts: { title: "Other Receipts", subtitle: "Miscellaneous incoming receipts" },
+    transfers: { title: "Account Transfers", subtitle: "Move funds between accounts" },
+    reconcile: { title: "Bank Reconciliation", subtitle: "Match statement with book balances" },
+  };
+  const currentSection = sectionMeta[activeTab] ?? sectionMeta.balances;
   const { data: payments, setData: setPayments, upsert: upsertPayment, remove: removePayment } = useOtherPaymentsCloud();
   const { data: receipts, setData: setReceipts, upsert: upsertReceipt, remove: removeReceipt } = useOtherReceiptsCloud();
   const { data: transfers, setData: setTransfers, upsert: upsertTransfer, remove: removeTransfer } = useTransfersCloud();
@@ -289,11 +300,11 @@ export default function Accounts() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="balances" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <StickyPageHeader
           icon={Landmark}
-          title="Accounts"
-          subtitle="Manage bank accounts, payments, receipts, transfers & reconciliation"
+          title={currentSection.title}
+          subtitle={currentSection.subtitle}
           tabsFull={
             <TabsList className="grid w-full grid-cols-6 gap-1">
               <TabsTrigger value="balances" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Account Balances">Balances</TabsTrigger>
@@ -319,8 +330,7 @@ export default function Accounts() {
 
         {/* Account Balances */}
         <TabsContent value="balances">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Account Balances</h2>
+          <div className="flex justify-end items-center mb-4">
             <Button size="sm" className="bg-primary" onClick={() => { setEditAccId(null); setAccForm({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" }); setShowAccForm(!showAccForm); }}>
               <Plus className="w-4 h-4 mr-1" /> New Account
             </Button>
@@ -427,8 +437,7 @@ export default function Accounts() {
         {/* Account Management */}
         <TabsContent value="management">
           <div className="space-y-4">
-            <div className="flex flex-wrap justify-between items-center gap-2">
-              <h2 className="text-lg font-semibold">Account Management</h2>
+            <div className="flex flex-wrap justify-end items-center gap-2">
               <div className="flex flex-wrap gap-2">
                 <Select value={ledgerBank} onValueChange={setLedgerBank}>
                   <SelectTrigger className="w-52"><SelectValue placeholder="All Banks" /></SelectTrigger>
@@ -597,8 +606,7 @@ export default function Accounts() {
         {/* Other Payments */}
         <TabsContent value="payments">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Other Payments</h2>
+            <div className="flex justify-end items-center">
               <Button size="sm" onClick={() => { setEditPayId(null); setPayForm(emptyPay); setShowPayForm(!showPayForm); }}>
                 <Plus className="w-4 h-4 mr-1" /> Add Payment
               </Button>
@@ -650,8 +658,7 @@ export default function Accounts() {
         {/* Other Receipts */}
         <TabsContent value="receipts">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Other Receipts</h2>
+            <div className="flex justify-end items-center">
               <Button size="sm" onClick={() => { setEditRecId(null); setRecForm(emptyRec); setShowRecForm(!showRecForm); }}>
                 <Plus className="w-4 h-4 mr-1" /> Add Receipt
               </Button>
@@ -704,8 +711,7 @@ export default function Accounts() {
         {/* Transfers */}
         <TabsContent value="transfers">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Account Transfers</h2>
+            <div className="flex justify-end items-center">
               <Button size="sm" onClick={() => { setEditTrfId(null); setTrfForm(emptyTrf); setShowTrfForm(!showTrfForm); }}>
                 <ArrowLeftRight className="w-4 h-4 mr-1" /> New Transfer
               </Button>
@@ -756,7 +762,6 @@ export default function Accounts() {
         {/* Reconcile */}
         <TabsContent value="reconcile">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Bank Reconciliation</h2>
             <div className="bg-card border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead><tr className="border-b bg-muted/50">
