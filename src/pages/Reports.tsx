@@ -344,14 +344,41 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     else if (report.code === "083") data = inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
     else if (report.code === "148") {
       const q = stockSearch.trim().toLowerCase();
-      data = inventory.filter(i => {
+      const filtered = inventory.filter(i => {
         if (stockCategoryFilter !== "all" && i.category !== stockCategoryFilter) return false;
-        
         if (q) {
           const hay = `${i.name} ${i.sku} ${i.model || ""} ${i.category} ${i.uniqueCode || ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
+      });
+      // Deduplicate: merge rows that represent the same product.
+      // Key preference: uniqueCode > sku+model > sku > name+model > id.
+      const groups = new Map<string, InventoryItem[]>();
+      for (const it of filtered) {
+        const key =
+          (it.uniqueCode && it.uniqueCode.trim()) ||
+          (it.sku && it.sku.trim() ? `${it.sku.trim()}|${(it.model || "").trim()}` : "") ||
+          (it.name ? `${it.name.trim().toLowerCase()}|${(it.model || "").trim()}` : it.id);
+        const list = groups.get(key) || [];
+        list.push(it);
+        groups.set(key, list);
+      }
+      data = Array.from(groups.values()).map(list => {
+        if (list.length === 1) return list[0];
+        const totalQty = list.reduce((s, x) => s + (x.qty || 0), 0);
+        const totalValue = list.reduce((s, x) => s + (x.qty || 0) * (x.costPrice || 0), 0);
+        const avgCost = totalQty !== 0 ? totalValue / totalQty : Math.max(...list.map(x => x.costPrice || 0));
+        const salePrice = Math.max(...list.map(x => x.salePrice || 0));
+        const base = list.find(x => x.model) || list.find(x => x.category) || list[0];
+        return {
+          ...base,
+          qty: totalQty,
+          costPrice: avgCost,
+          salePrice,
+          model: list.find(x => x.model)?.model || base.model,
+          category: list.find(x => x.category)?.category || base.category,
+        } as InventoryItem;
       });
     }
     return data;
