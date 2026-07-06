@@ -921,8 +921,8 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredQuotations.length} quotation(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
@@ -971,8 +971,8 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
@@ -1018,8 +1018,8 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredInvoices.length} invoice(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
@@ -1111,8 +1111,8 @@ export default function Invoices() {
                 <div className="flex items-center justify-end px-4 py-2">
                   <span className="text-xs text-muted-foreground">{filteredReturns.length} return(s)</span>
                 </div>
-                <div className="bg-card rounded-lg border overflow-hidden">
-                  <div className="overflow-x-auto">
+                <div className="bg-card rounded-lg border">
+                  <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
@@ -1169,8 +1169,8 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
@@ -1232,8 +1232,8 @@ export default function Invoices() {
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
           </div>
-          <div className="bg-card rounded-lg border overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-card rounded-lg border">
+            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
