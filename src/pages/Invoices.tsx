@@ -234,7 +234,7 @@ export default function Invoices() {
       if (item.inventoryItemId) {
         const invItem = inventory.find((i) => i.id === item.inventoryItemId);
         if (invItem && invItem.productType !== "non-stock") {
-          await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+          await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
         }
       }
     }
@@ -367,7 +367,7 @@ export default function Invoices() {
         if (item.inventoryItemId) {
           const invItem = inventory.find((i) => i.id === item.inventoryItemId);
           if (invItem && invItem.productType !== "non-stock") {
-            await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+            await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
           }
         }
       }
@@ -434,7 +434,7 @@ export default function Invoices() {
     for (const item of so.items) {
       if (item.inventoryItemId) {
         const invItem = inventory.find((inv) => inv.id === item.inventoryItemId);
-        if (invItem) await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+        if (invItem && invItem.productType !== "non-stock") await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
       }
     }
     if (so.advancePayment && so.advancePayment > 0) {
