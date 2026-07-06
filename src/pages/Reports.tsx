@@ -671,6 +671,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice Date</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
@@ -686,7 +687,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map(inv => {
+                      {filtered.map((inv, idx) => {
                         const { remaining: balance, overpaid } = getInvoicePaymentSummary(inv, receipts);
                         const invDate = new Date(inv.date);
                         const ageDays = Math.floor((today.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -695,6 +696,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         const tax = inv.tax || 0;
                         return (
                           <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                             <td className="px-3 py-2 font-medium whitespace-nowrap">{inv.number}</td>
                             <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
                             <td className="px-3 py-2 font-medium">{inv.customer}</td>
@@ -716,7 +718,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
-                        <td className="px-3 py-2" colSpan={4}>Total ({filtered.length} invoices)</td>
+                        <td className="px-3 py-2" colSpan={5}>Total ({filtered.length} invoices)</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.items?.reduce((ss: number, it: any) => ss + (it.amount || 0), 0) || i.amount), 0))}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.tax || 0), 0))}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
@@ -724,6 +726,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td colSpan={4}></td>
                       </tr>
                     </tfoot>
+
                   </table>
                 </div>
               </div>
@@ -803,6 +806,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   <table id="report-print-table" className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice Date</th>
@@ -815,49 +819,60 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tr>
                     </thead>
                     <tbody>
-                      {visibleCust.flatMap(cust => 
-                        cust.invoices.length > 0 ? cust.invoices.map((inv, idx) => {
-                          const { totalPaid: invPaid, remaining: invOutstanding, overpaid: invOverpaid } = getInvoicePaymentSummary(inv, cust.receipts);
-                          return (
-                            <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
-                              <td className="px-3 py-2 font-medium">{cust.name}</td>
-                              <td className="px-3 py-2 whitespace-nowrap">{inv.number}</td>
-                              <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
-                              <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
-                              <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
+                      {(() => {
+                        let __sr = 0;
+                        return visibleCust.flatMap(cust =>
+                          cust.invoices.length > 0 ? cust.invoices.map((inv) => {
+                            const { totalPaid: invPaid, remaining: invOutstanding, overpaid: invOverpaid } = getInvoicePaymentSummary(inv, cust.receipts);
+                            __sr += 1;
+                            return (
+                              <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
+                                <td className="px-3 py-2 text-muted-foreground">{__sr}</td>
+                                <td className="px-3 py-2 font-medium">{cust.name}</td>
+                                <td className="px-3 py-2 whitespace-nowrap">{inv.number}</td>
+                                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
+                                <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
+                                <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
+                                <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
 
-                              <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
-                              <td className="px-3 py-2 text-right text-success">{formatCurrency(invPaid)}</td>
-                              <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : "text-success"}`}>
-                                {formatCurrency(invOutstanding)}
-                                {invOverpaid > 0 && <div className="text-[10px] font-normal text-muted-foreground">Advance: {formatCurrency(invOverpaid)}</div>}
-                              </td>
-                            </tr>
-                          );
-                        }) : [(
-                          <tr key={cust.id} className="border-b last:border-0 hover:bg-muted/30">
-                            <td className="px-3 py-2 font-medium">{cust.name}</td>
-                            <td className="px-3 py-2">—</td>
-                            <td className="px-3 py-2">—</td>
-                            <td className="px-3 py-2">—</td>
-                            <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
-                            <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
-                            <td className="px-3 py-2 text-right font-semibold">{formatCurrency(cust.totalBilled)}</td>
-                            <td className="px-3 py-2 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
-                            <td className={`px-3 py-2 text-right font-medium ${cust.outstanding > 0 ? "text-destructive" : cust.outstanding < 0 ? "text-success" : "text-success"}`}>{formatCurrency(cust.outstanding)}</td>
-                          </tr>
-                        )]
-                      )}
+                                <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
+                                <td className="px-3 py-2 text-right text-success">{formatCurrency(invPaid)}</td>
+                                <td className={`px-3 py-2 text-right font-medium ${invOutstanding > 0 ? "text-destructive" : "text-success"}`}>
+                                  {formatCurrency(invOutstanding)}
+                                  {invOverpaid > 0 && <div className="text-[10px] font-normal text-muted-foreground">Advance: {formatCurrency(invOverpaid)}</div>}
+                                </td>
+                              </tr>
+                            );
+                          }) : (() => {
+                            __sr += 1;
+                            const n = __sr;
+                            return [(
+                              <tr key={cust.id} className="border-b last:border-0 hover:bg-muted/30">
+                                <td className="px-3 py-2 text-muted-foreground">{n}</td>
+                                <td className="px-3 py-2 font-medium">{cust.name}</td>
+                                <td className="px-3 py-2">—</td>
+                                <td className="px-3 py-2">—</td>
+                                <td className="px-3 py-2">—</td>
+                                <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
+                                <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
+                                <td className="px-3 py-2 text-right font-semibold">{formatCurrency(cust.totalBilled)}</td>
+                                <td className="px-3 py-2 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
+                                <td className={`px-3 py-2 text-right font-medium ${cust.outstanding > 0 ? "text-destructive" : cust.outstanding < 0 ? "text-success" : "text-success"}`}>{formatCurrency(cust.outstanding)}</td>
+                              </tr>
+                            )];
+                          })()
+                        );
+                      })()}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
-                        <td className="px-3 py-2" colSpan={6}>Total</td>
+                        <td className="px-3 py-2" colSpan={7}>Total</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(visibleCust.reduce((s, c) => s + c.totalBilled, 0))}</td>
                         <td className="px-3 py-2 text-right text-success">{formatCurrency(visibleCust.reduce((s, c) => s + c.totalPaid, 0))}</td>
                         <td className="px-3 py-2 text-right text-destructive">{formatCurrency(visibleCust.reduce((s, c) => s + c.outstanding, 0))}</td>
                       </tr>
                     </tfoot>
+
                   </table>
                 </div>
 
@@ -869,6 +884,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b bg-muted/30">
+                          <th className="text-left px-2 py-1.5 w-10">Sr #</th>
                           <th className="text-left px-2 py-1.5">Date</th>
                           <th className="text-left px-2 py-1.5">Invoice #</th>
                           <th className="text-left px-2 py-1.5">Project</th>
@@ -880,11 +896,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         </tr>
                       </thead>
                       <tbody>
-                        {cust.invoices.map(inv => {
+                        {cust.invoices.map((inv, idx) => {
                           const { totalPaid: paid, remaining: balance, overpaid } = getInvoicePaymentSummary(inv, cust.receipts);
                           const ageDays = Math.floor((new Date().getTime() - new Date(inv.date).getTime()) / (1000 * 60 * 60 * 24));
                           return (
                             <tr key={inv.id} className="border-b last:border-0">
+                              <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
                               <td className="px-2 py-1.5">{inv.date}</td>
                               <td className="px-2 py-1.5">{inv.number}</td>
                               <td className="px-2 py-1.5">{inv.projectName || "—"}</td>
@@ -902,12 +919,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                       <tfoot>
                         <tr className="font-semibold border-t">
-                          <td className="px-2 py-1.5" colSpan={3}>Sub Total</td>
+                          <td className="px-2 py-1.5" colSpan={4}>Sub Total</td>
                           <td className="px-2 py-1.5 text-right">{formatCurrency(cust.totalBilled)}</td>
                           <td className="px-2 py-1.5 text-right text-success">{formatCurrency(cust.totalPaid)}</td>
                           <td className="px-2 py-1.5 text-right text-destructive">{formatCurrency(cust.outstanding)}</td>
                           <td colSpan={2}></td>
                         </tr>
+
                       </tfoot>
                     </table>
                   </div>
