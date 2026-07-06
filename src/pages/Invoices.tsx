@@ -80,6 +80,8 @@ export default function Invoices() {
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const [stickyHeaderH, setStickyHeaderH] = useState(0);
 
   useEffect(() => {
     const el = document.getElementById("main-scroll");
@@ -90,6 +92,20 @@ export default function Invoices() {
     target.addEventListener("scroll", onScroll, { passive: true } as AddEventListenerOptions);
     return () => target.removeEventListener("scroll", onScroll as EventListener);
   }, []);
+
+  useEffect(() => {
+    const measure = () => setStickyHeaderH(stickyHeaderRef.current?.offsetHeight ?? 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (stickyHeaderRef.current) ro.observe(stickyHeaderRef.current);
+    window.addEventListener("resize", measure);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
+  });
+
+  // Top app bar height (h-14 mobile / h-16 sm+) — used to offset sticky table headers.
+  const topBarH = typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches ? 64 : 56;
+  const theadTop = stickyHeaderH + topBarH;
+
 
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
   const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
