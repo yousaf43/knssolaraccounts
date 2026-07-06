@@ -875,6 +875,7 @@ export default function Invoices() {
     <div>
       {hiddenInputs}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
+        <div ref={sentinelRef} aria-hidden className="h-0 w-full" />
         <div
           ref={stickyHeaderRef}
           className={`sticky top-14 sm:top-16 z-20 -mx-3 sm:-mx-6 px-3 sm:px-6 transition-all duration-300 ease-out ${
