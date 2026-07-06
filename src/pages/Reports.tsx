@@ -1176,12 +1176,21 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             // Selected product drilldown
             const selected = selectedProductKey !== "all" ? searchFiltered.find(p => p.key === selectedProductKey) : null;
+            const multiSelected = viewMultiSelected
+              ? searchFiltered.filter(p => multiSelectedKeys.includes(p.key))
+              : [];
+            const showCombined = viewMultiSelected && multiSelected.length > 0 && !selected;
+            const allVisibleSelected = searchFiltered.length > 0 && searchFiltered.every(p => multiSelectedKeys.includes(p.key));
 
             return (
               <div className="bg-card rounded-lg border p-6">
                 <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                   <h2 className="text-lg font-semibold">
-                    {selected ? `Sales Detail: ${selected.name}` : `Product Sale Summary (${searchFiltered.length} products)`}
+                    {selected
+                      ? `Sales Detail: ${selected.name}`
+                      : showCombined
+                        ? `Combined Sales Detail (${multiSelected.length} products)`
+                        : `${report.title} (${searchFiltered.length} products)`}
                   </h2>
                   <div className="flex items-center gap-2 flex-wrap">
                     <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setSelectedProductKey("all"); }}>
@@ -1210,7 +1219,61 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   </div>
                 </div>
 
-                {selected ? (
+                {showCombined ? (
+                  <div className="overflow-x-auto">
+                    <div className="mb-3 flex items-center gap-2 flex-wrap">
+                      <Button variant="outline" size="sm" onClick={() => { setViewMultiSelected(false); }}>
+                        <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to list
+                      </Button>
+                      <span className="text-sm text-muted-foreground truncate max-w-full">
+                        {multiSelected.map(p => p.name).join(", ")}
+                      </span>
+                    </div>
+                    <table id="report-print-table" className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Rate</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {multiSelected
+                          .flatMap(p => p.details.map(d => ({ ...d, productName: p.name })))
+                          .slice()
+                          .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+                          .map((d, i) => (
+                            <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
+                              <td className="px-3 py-2 font-medium">{d.productName}</td>
+                              <td className="px-3 py-2">{d.invoiceNumber}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{d.documentNumber || "-"}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
+                              <td className="px-3 py-2">{d.customer}</td>
+                              <td className="px-3 py-2 text-right">{d.qty}</td>
+                              <td className="px-3 py-2 text-right">{formatCurrency(d.rate)}</td>
+                              <td className="px-3 py-2 text-right font-semibold">{formatCurrency(d.amount)}</td>
+                            </tr>
+                          ))}
+                        {multiSelected.every(p => p.details.length === 0) && (
+                          <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">No sales for selected products.</td></tr>
+                        )}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-bold">
+                          <td className="px-3 py-2" colSpan={5}>Total ({multiSelected.length} products)</td>
+                          <td className="px-3 py-2 text-right">{multiSelected.reduce((s, p) => s + p.qty, 0)}</td>
+                          <td className="px-3 py-2 text-right"></td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(multiSelected.reduce((s, p) => s + p.revenue, 0))}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                ) : selected ? (
                   <div className="overflow-x-auto">
                     <table id="report-print-table" className="w-full text-sm">
                       <thead>
@@ -1255,9 +1318,35 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
+                    {multiSelectedKeys.length > 0 && (
+                      <div className="mb-3 flex items-center gap-2 flex-wrap p-2 rounded-md bg-muted/40 border">
+                        <span className="text-sm font-medium">{multiSelectedKeys.length} product(s) selected</span>
+                        <Button size="sm" onClick={() => setViewMultiSelected(true)}>
+                          View combined report
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setMultiSelectedKeys([])}>
+                          Clear
+                        </Button>
+                      </div>
+                    )}
                     <table id="report-print-table" className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
+                          <th className="px-3 py-2 w-8">
+                            <input
+                              type="checkbox"
+                              checked={allVisibleSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setMultiSelectedKeys(prev => Array.from(new Set([...prev, ...searchFiltered.map(p => p.key)])));
+                                } else {
+                                  const visible = new Set(searchFiltered.map(p => p.key));
+                                  setMultiSelectedKeys(prev => prev.filter(k => !visible.has(k)));
+                                }
+                              }}
+                              aria-label="Select all"
+                            />
+                          </th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
@@ -1269,11 +1358,23 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         {searchFiltered.map(p => (
                           <tr
                             key={p.key}
-                            className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
-                            onClick={() => setSelectedProductKey(p.key)}
-                            title="Click to view detail"
+                            className="border-b last:border-0 hover:bg-muted/30"
                           >
-                            <td className="px-3 py-2 font-medium text-primary hover:underline">{p.name}</td>
+                            <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={multiSelectedKeys.includes(p.key)}
+                                onChange={() => toggleMultiSelected(p.key)}
+                                aria-label={`Select ${p.name}`}
+                              />
+                            </td>
+                            <td
+                              className="px-3 py-2 font-medium text-primary hover:underline cursor-pointer"
+                              onClick={() => setSelectedProductKey(p.key)}
+                              title="Click to view detail"
+                            >
+                              {p.name}
+                            </td>
                             <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
                             <td className="px-3 py-2 text-right">{p.count}</td>
                             <td className="px-3 py-2 text-right">{p.qty}</td>
@@ -1281,12 +1382,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           </tr>
                         ))}
                         {searchFiltered.length === 0 && (
-                          <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
+                          <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
                         )}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={2}>Total</td>
+                          <td className="px-3 py-2" colSpan={3}>Total</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
                           <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.revenue, 0))}</td>
