@@ -832,43 +832,46 @@ export default function Invoices() {
   );
 
   return (
-    <div className="space-y-6">
+    <div>
       {hiddenInputs}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Sales</h1>
-          <p className="text-muted-foreground text-sm">Manage sales orders, invoices, receipts and more</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {(activeTab === "invoices" || activeTab === "sales-orders") && (
-            <Button variant="outline" size="sm" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-2" />
-              Import CSV
-            </Button>
-          )}
-          {activeTab !== "all" && (
-            <Button onClick={handleNewClick}>
-              <Plus className="w-4 h-4 mr-2" />
-              {newButtonLabel}
-            </Button>
-          )}
-        </div>
-      </div>
-
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className="w-4 h-4" />Quotations</TabsTrigger>
-          <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Sales Orders</TabsTrigger>
-          <TabsTrigger value="project-completed" className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Project Completed</TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
-          <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className="w-4 h-4" />Returns</TabsTrigger>
-          <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
-          <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
-        </TabsList>
+        <div className="sticky top-14 sm:top-16 z-20 bg-background -mx-3 sm:-mx-6 px-3 sm:px-6 pt-3 sm:pt-6 pb-3 space-y-4 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">Sales</h1>
+              <p className="text-muted-foreground text-sm">Manage sales orders, invoices, receipts and more</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {(activeTab === "invoices" || activeTab === "sales-orders") && (
+                <Button variant="outline" size="sm" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import CSV
+                </Button>
+              )}
+              {activeTab !== "all" && (
+                <Button onClick={handleNewClick}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  {newButtonLabel}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className="w-4 h-4" />Quotations</TabsTrigger>
+            <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Sales Orders</TabsTrigger>
+            <TabsTrigger value="project-completed" className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Project Completed</TabsTrigger>
+            <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
+            <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className="w-4 h-4" />Returns</TabsTrigger>
+            <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
+            <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
+          </TabsList>
+
+          {activeTab !== "project-completed" && FilterBar({ showType: activeTab === "all" })}
+        </div>
 
         {/* Quotations Tab */}
         <TabsContent value="quotations">
-          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredQuotations.length} quotation(s)</span>
           </div>
@@ -919,7 +922,6 @@ export default function Invoices() {
 
         {/* Sales Orders Tab */}
         <TabsContent value="sales-orders">
-          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
           </div>
@@ -967,7 +969,6 @@ export default function Invoices() {
 
         {/* Invoices Tab */}
         <TabsContent value="invoices">
-          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredInvoices.length} invoice(s)</span>
           </div>
@@ -1056,7 +1057,6 @@ export default function Invoices() {
 
         {/* Returns Tab */}
         <TabsContent value="returns">
-          {FilterBar({})}
           {(() => {
             const returnInvoices = invoices.filter((inv) => inv.isReturn);
             const filteredReturns = returnInvoices.filter((i) => matchCustomer(i.customer) && isInDateRange(i.date) && matchSearchFields(i.number, i.customer, i.returnedFrom || "", i.notes || ""));
@@ -1120,7 +1120,6 @@ export default function Invoices() {
         </TabsContent>
 
         <TabsContent value="receipts">
-          {FilterBar({})}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
           </div>
@@ -1184,7 +1183,6 @@ export default function Invoices() {
 
         {/* Sales All Tab */}
         <TabsContent value="all">
-          {FilterBar({ showType: true })}
           <div className="flex items-center justify-end px-4 py-2">
             <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
           </div>
