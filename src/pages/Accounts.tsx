@@ -711,8 +711,7 @@ export default function Accounts() {
         {/* Transfers */}
         <TabsContent value="transfers">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Account Transfers</h2>
+            <div className="flex justify-end items-center">
               <Button size="sm" onClick={() => { setEditTrfId(null); setTrfForm(emptyTrf); setShowTrfForm(!showTrfForm); }}>
                 <ArrowLeftRight className="w-4 h-4 mr-1" /> New Transfer
               </Button>
