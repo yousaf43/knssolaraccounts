@@ -867,7 +867,7 @@ export default function Invoices() {
             <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
           </TabsList>
 
-          {activeTab !== "project-completed" && <FilterBar showType={activeTab === "all"} />}
+          {activeTab !== "project-completed" && FilterBar({ showType: activeTab === "all" })}
         </div>
 
         {/* Quotations Tab */}
