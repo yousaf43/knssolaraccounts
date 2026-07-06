@@ -300,11 +300,11 @@ export default function Accounts() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="balances" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <StickyPageHeader
           icon={Landmark}
-          title="Accounts"
-          subtitle="Manage bank accounts, payments, receipts, transfers & reconciliation"
+          title={currentSection.title}
+          subtitle={currentSection.subtitle}
           tabsFull={
             <TabsList className="grid w-full grid-cols-6 gap-1">
               <TabsTrigger value="balances" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Account Balances">Balances</TabsTrigger>
