@@ -658,8 +658,7 @@ export default function Accounts() {
         {/* Other Receipts */}
         <TabsContent value="receipts">
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Other Receipts</h2>
+            <div className="flex justify-end items-center">
               <Button size="sm" onClick={() => { setEditRecId(null); setRecForm(emptyRec); setShowRecForm(!showRecForm); }}>
                 <Plus className="w-4 h-4 mr-1" /> Add Receipt
               </Button>
