@@ -3,7 +3,7 @@ import StockAdjustmentSection from "@/components/StockAdjustmentSection";
 import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
-import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package } from "lucide-react";
+import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package, Filter } from "lucide-react";
 import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Button } from "@/components/ui/button";
