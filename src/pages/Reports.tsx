@@ -312,6 +312,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [productTypeFilter, setProductTypeFilter] = useState<string>("all");
   const [multiSelectedKeys, setMultiSelectedKeys] = useState<string[]>([]);
   const [viewMultiSelected, setViewMultiSelected] = useState(false);
+  const [stockSearch, setStockSearch] = useState("");
+  const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
+  const [stockModelFilter, setStockModelFilter] = useState<string>("all");
   const toggleMultiSelected = (key: string) =>
     setMultiSelectedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
