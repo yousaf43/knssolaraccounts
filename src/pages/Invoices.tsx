@@ -864,43 +864,44 @@ export default function Invoices() {
       {hiddenInputs}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
         <div
+          ref={stickyHeaderRef}
           className={`sticky top-14 sm:top-16 z-20 -mx-3 sm:-mx-6 px-3 sm:px-6 transition-all duration-300 ease-out ${
             isScrolled
-              ? "bg-background/80 backdrop-blur-md pt-2 pb-2 space-y-2 border-b shadow-sm"
+              ? "bg-background/85 backdrop-blur-md pt-1.5 pb-1.5 space-y-1.5 border-b shadow-sm"
               : "bg-background pt-3 sm:pt-6 pb-3 space-y-4 border-b"
           }`}
         >
-          <div className={`flex items-center justify-between transition-all duration-300 ${isScrolled ? "gap-3" : ""}`}>
+          <div className={`flex items-center justify-between transition-all duration-300 ${isScrolled ? "gap-2" : ""}`}>
             <div className="flex items-center gap-3 min-w-0">
               {isScrolled && (
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-3.5 h-3.5" />
                 </div>
               )}
               <div className="min-w-0">
-                <h1 className={`font-bold truncate transition-all duration-300 ${isScrolled ? "text-base leading-tight" : "text-2xl"}`}>Sales</h1>
+                <h1 className={`font-bold truncate transition-all duration-300 ${isScrolled ? "text-sm leading-tight" : "text-2xl"}`}>Sales</h1>
                 {!isScrolled && (
                   <p className="text-muted-foreground text-sm">Manage sales orders, invoices, receipts and more</p>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {(activeTab === "invoices" || activeTab === "sales-orders") && (
-                <Button variant="outline" size={isScrolled ? "sm" : "sm"} className={isScrolled ? "h-8" : ""} onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
-                  <Upload className={`${isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} mr-2`} />
-                  {isScrolled ? "Import" : "Import CSV"}
+              {!isScrolled && (activeTab === "invoices" || activeTab === "sales-orders") && (
+                <Button variant="outline" size="sm" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import CSV
                 </Button>
               )}
               {activeTab !== "all" && (
-                <Button size={isScrolled ? "sm" : "default"} className={isScrolled ? "h-8" : ""} onClick={handleNewClick}>
-                  <Plus className={`${isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} mr-2`} />
+                <Button size={isScrolled ? "sm" : "default"} className={isScrolled ? "h-7 px-2 text-xs" : ""} onClick={handleNewClick}>
+                  <Plus className={`${isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} ${isScrolled ? "mr-1" : "mr-2"}`} />
                   {isScrolled ? "New" : newButtonLabel}
                 </Button>
               )}
             </div>
           </div>
 
-          <TabsList className={`grid w-full grid-cols-7 transition-all duration-300 ${isScrolled ? "h-8" : ""}`}>
+          <TabsList className={`grid w-full grid-cols-7 transition-all duration-300 ${isScrolled ? "h-7" : ""}`}>
             <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Quotations"}</TabsTrigger>
             <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Sales Orders"}</TabsTrigger>
             <TabsTrigger value="project-completed" className="flex items-center gap-2"><CheckCircle2 className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Project Completed"}</TabsTrigger>
@@ -912,6 +913,7 @@ export default function Invoices() {
 
           {!isScrolled && activeTab !== "project-completed" && FilterBar({ showType: activeTab === "all" })}
         </div>
+
 
 
         {/* Quotations Tab */}
