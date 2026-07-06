@@ -312,6 +312,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [productTypeFilter, setProductTypeFilter] = useState<string>("all");
   const [multiSelectedKeys, setMultiSelectedKeys] = useState<string[]>([]);
   const [viewMultiSelected, setViewMultiSelected] = useState(false);
+  const [stockSearch, setStockSearch] = useState("");
+  const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
+  const [stockModelFilter, setStockModelFilter] = useState<string>("all");
   const toggleMultiSelected = (key: string) =>
     setMultiSelectedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
@@ -334,13 +337,34 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
   // Inventory-specific data tables
   const inventoryTableData = useMemo(() => {
-    if (report.code === "078") return inventory; // Products List
-    if (report.code === "080") return inventory; // Stock Quantity
-    if (report.code === "082") return inventory.filter(i => i.qty === 0); // Out of Stock
-    if (report.code === "083") return inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
-    if (report.code === "148") return inventory; // Stock Valuation
-    return null;
-  }, [report.code, inventory]);
+    let data: InventoryItem[] | null = null;
+    if (report.code === "078") data = inventory; // Products List
+    else if (report.code === "080") data = inventory; // Stock Quantity
+    else if (report.code === "082") data = inventory.filter(i => i.qty === 0); // Out of Stock
+    else if (report.code === "083") data = inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
+    else if (report.code === "148") {
+      const q = stockSearch.trim().toLowerCase();
+      data = inventory.filter(i => {
+        if (stockCategoryFilter !== "all" && i.category !== stockCategoryFilter) return false;
+        if (stockModelFilter !== "all" && (i.model || "") !== stockModelFilter) return false;
+        if (q) {
+          const hay = `${i.name} ${i.sku} ${i.model || ""} ${i.category} ${i.uniqueCode || ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+    return data;
+  }, [report.code, inventory, stockSearch, stockCategoryFilter, stockModelFilter]);
+
+  const stockCategories = useMemo(
+    () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
+    [inventory]
+  );
+  const stockModels = useMemo(
+    () => Array.from(new Set(inventory.map(i => i.model || "").filter(Boolean))).sort(),
+    [inventory]
+  );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
 
@@ -362,6 +386,37 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFromDate(undefined); setToDate(undefined); }}>
             Clear
           </Button>
+        )}
+        {report.code === "148" && (
+          <>
+            <div className="relative">
+              <Input
+                value={stockSearch}
+                onChange={(e) => setStockSearch(e.target.value)}
+                placeholder="Search name, SKU, model…"
+                className="h-8 text-xs w-56"
+              />
+            </div>
+            <Select value={stockCategoryFilter} onValueChange={setStockCategoryFilter}>
+              <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {stockCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={stockModelFilter} onValueChange={setStockModelFilter}>
+              <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Model" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Models</SelectItem>
+                {stockModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {(stockSearch || stockCategoryFilter !== "all" || stockModelFilter !== "all") && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStockSearch(""); setStockCategoryFilter("all"); setStockModelFilter("all"); }}>
+                Reset
+              </Button>
+            )}
+          </>
         )}
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportCSV(report, filteredData, dateRange)}>
