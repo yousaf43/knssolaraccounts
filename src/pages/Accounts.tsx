@@ -437,8 +437,7 @@ export default function Accounts() {
         {/* Account Management */}
         <TabsContent value="management">
           <div className="space-y-4">
-            <div className="flex flex-wrap justify-between items-center gap-2">
-              <h2 className="text-lg font-semibold">Account Management</h2>
+            <div className="flex flex-wrap justify-end items-center gap-2">
               <div className="flex flex-wrap gap-2">
                 <Select value={ledgerBank} onValueChange={setLedgerBank}>
                   <SelectTrigger className="w-52"><SelectValue placeholder="All Banks" /></SelectTrigger>
