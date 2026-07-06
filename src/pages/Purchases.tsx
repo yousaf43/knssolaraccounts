@@ -400,37 +400,75 @@ export default function Purchases() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Purchases</h1>
-          <p className="text-muted-foreground text-sm">Manage purchase orders, bills, payments & suppliers</p>
-        </div>
-        <div className="flex gap-2">
-          {getAddButton()}
-          {(tab === "purchase-orders" || tab === "bills") && (
-            <>
-              <input type="file" accept=".csv" ref={tab === "purchase-orders" ? poFileRef : billFileRef} className="hidden" onChange={tab === "purchase-orders" ? handleImportPO : handleImportBills} />
-              <Button variant="outline" size="sm" onClick={() => (tab === "purchase-orders" ? poFileRef : billFileRef).current?.click()}>
-                <Upload className="w-4 h-4 mr-1" /> Import
-              </Button>
-            </>
-          )}
-          {tab !== "suppliers" && (
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-1" /> Export
-            </Button>
-          )}
-        </div>
-      </div>
-
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
-          <TabsTrigger value="bills">Bills</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="purchases-all">Purchases All</TabsTrigger>
-          <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
-        </TabsList>
+        <StickyPageHeader
+          icon={ShoppingBag}
+          title="Purchases"
+          subtitle="Manage purchase orders, bills, payments & suppliers"
+          actionsFull={
+            <>
+              {getAddButton()}
+              {(tab === "purchase-orders" || tab === "bills") && (
+                <>
+                  <input type="file" accept=".csv" ref={tab === "purchase-orders" ? poFileRef : billFileRef} className="hidden" onChange={tab === "purchase-orders" ? handleImportPO : handleImportBills} />
+                  <Button variant="outline" size="sm" onClick={() => (tab === "purchase-orders" ? poFileRef : billFileRef).current?.click()}>
+                    <Upload className="w-4 h-4 mr-1" /> Import
+                  </Button>
+                </>
+              )}
+              {tab !== "suppliers" && (
+                <Button variant="outline" size="sm" onClick={handleExport}>
+                  <Download className="w-4 h-4 mr-1" /> Export
+                </Button>
+              )}
+            </>
+          }
+          actionsCompact={
+            <>
+              {(tab === "purchase-orders" || tab === "bills") && (
+                <Button variant="outline" size="sm" className="h-7 px-2.5 rounded-full text-xs" onClick={() => (tab === "purchase-orders" ? poFileRef : billFileRef).current?.click()}>
+                  <Upload className="w-3.5 h-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">Import</span>
+                </Button>
+              )}
+              {tab !== "suppliers" && (
+                <Button variant="outline" size="sm" className="h-7 px-2.5 rounded-full text-xs" onClick={handleExport}>
+                  <Download className="w-3.5 h-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+              )}
+              {(tab === "purchase-orders" || tab === "bills" || tab === "payments") && (
+                <Button size="sm" className="h-7 px-2.5 text-xs rounded-full shadow-sm" onClick={() => {
+                  if (tab === "purchase-orders") setShowPOForm(true);
+                  else if (tab === "bills") setShowBillForm(true);
+                  else if (tab === "payments") setShowPaymentForm(true);
+                }}>
+                  <Plus className="w-3.5 h-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">New</span>
+                </Button>
+              )}
+            </>
+          }
+          tabsFull={
+            <TabsList>
+              <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
+              <TabsTrigger value="bills">Bills</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="purchases-all">Purchases All</TabsTrigger>
+              <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
+            </TabsList>
+          }
+          tabsCompact={
+            <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 inline-flex w-auto flex-shrink-0">
+              <TabsTrigger value="purchase-orders" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Purchase Orders"><ShoppingBag className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="bills" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Bills"><FileText className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="payments" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Payments"><CreditCard className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="purchases-all" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Purchases All"><List className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="suppliers" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Suppliers"><Users className="w-3.5 h-3.5" /></TabsTrigger>
+            </TabsList>
+          }
+        />
+
 
         {/* Purchase Orders */}
         <TabsContent value="purchase-orders">
