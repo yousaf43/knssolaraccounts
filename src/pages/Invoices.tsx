@@ -367,7 +367,7 @@ export default function Invoices() {
         if (item.inventoryItemId) {
           const invItem = inventory.find((i) => i.id === item.inventoryItemId);
           if (invItem && invItem.productType !== "non-stock") {
-            await upsertInventory({ ...invItem, qty: Math.max(0, invItem.qty - item.qty) });
+            await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
           }
         }
       }
