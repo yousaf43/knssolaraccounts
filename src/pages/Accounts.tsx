@@ -59,9 +59,20 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
 export default function Accounts() {
   const { formatCurrency, settings } = useSettings();
   const { data: accounts, setData: setAccounts, upsert: upsertAccount, remove: removeAccount, loading: accountsLoading } = useAccountsCloud();
+  const [activeTab, setActiveTab] = useState("balances");
   const [showAccForm, setShowAccForm] = useState(false);
   const [editAccId, setEditAccId] = useState<string | null>(null);
   const [accForm, setAccForm] = useState({ name: "", accountTitle: "", code: "", currency: "PKR", balance: "" });
+
+  const sectionMeta: Record<string, { title: string; subtitle: string }> = {
+    balances: { title: "Account Balances", subtitle: "Bank accounts, opening & ledger balances" },
+    management: { title: "Account Management", subtitle: "Ledger entries, incoming & outgoing" },
+    payments: { title: "Other Payments", subtitle: "Miscellaneous outgoing payments" },
+    receipts: { title: "Other Receipts", subtitle: "Miscellaneous incoming receipts" },
+    transfers: { title: "Account Transfers", subtitle: "Move funds between accounts" },
+    reconcile: { title: "Bank Reconciliation", subtitle: "Match statement with book balances" },
+  };
+  const currentSection = sectionMeta[activeTab] ?? sectionMeta.balances;
   const { data: payments, setData: setPayments, upsert: upsertPayment, remove: removePayment } = useOtherPaymentsCloud();
   const { data: receipts, setData: setReceipts, upsert: upsertReceipt, remove: removeReceipt } = useOtherReceiptsCloud();
   const { data: transfers, setData: setTransfers, upsert: upsertTransfer, remove: removeTransfer } = useTransfersCloud();
