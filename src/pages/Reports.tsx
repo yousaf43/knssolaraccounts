@@ -355,7 +355,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       });
     }
     return data;
-  }, [report.code, inventory, stockSearch, stockCategoryFilter, stockModelFilter]);
+  }, [report.code, inventory, stockSearch, stockCategoryFilter]);
 
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
