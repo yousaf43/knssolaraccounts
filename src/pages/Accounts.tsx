@@ -762,7 +762,6 @@ export default function Accounts() {
         {/* Reconcile */}
         <TabsContent value="reconcile">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Bank Reconciliation</h2>
             <div className="bg-card border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead><tr className="border-b bg-muted/50">
