@@ -404,15 +404,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 {stockCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={stockModelFilter} onValueChange={setStockModelFilter}>
-              <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Model" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Models</SelectItem>
-                {stockModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {(stockSearch || stockCategoryFilter !== "all" || stockModelFilter !== "all") && (
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStockSearch(""); setStockCategoryFilter("all"); setStockModelFilter("all"); }}>
+            {(stockSearch || stockCategoryFilter !== "all") && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStockSearch(""); setStockCategoryFilter("all"); }}>
                 Reset
               </Button>
             )}
