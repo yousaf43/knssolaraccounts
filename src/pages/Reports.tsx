@@ -361,10 +361,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
     [inventory]
   );
-  const stockModels = useMemo(
-    () => Array.from(new Set(inventory.map(i => i.model || "").filter(Boolean))).sort(),
-    [inventory]
-  );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
 
