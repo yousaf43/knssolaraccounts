@@ -87,9 +87,14 @@ export default function Invoices() {
   useEffect(() => {
     // The window is the actual scroll container (main-scroll grows with content).
     // Listen to both window and #main-scroll to be resilient to layout changes.
+    // Hysteresis prevents a compress/expand loop on short pages: compress at >40px,
+    // only expand again below <10px.
     const el = document.getElementById("main-scroll");
     const getY = () => Math.max(window.scrollY || 0, el?.scrollTop || 0);
-    const onScroll = () => setIsScrolled(getY() > 20);
+    const onScroll = () => {
+      const y = getY();
+      setIsScrolled(prev => (prev ? y > 10 : y > 40));
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     el?.addEventListener("scroll", onScroll, { passive: true });
