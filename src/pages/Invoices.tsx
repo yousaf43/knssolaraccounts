@@ -887,7 +887,7 @@ export default function Invoices() {
                 <span className="text-sm font-semibold tracking-tight hidden sm:inline">Sales</span>
               </div>
               <div className="h-5 w-px bg-border hidden sm:block" />
-              <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 flex-1 justify-start overflow-x-auto no-scrollbar">
+              <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 inline-flex w-auto">
                 <TabsTrigger value="quotations" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Quotations"><ClipboardList className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="sales-orders" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Sales Orders"><ShoppingCart className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="project-completed" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Project Completed"><CheckCircle2 className="w-3.5 h-3.5" /></TabsTrigger>
