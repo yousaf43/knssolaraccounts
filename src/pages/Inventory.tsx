@@ -664,10 +664,12 @@ export default function Inventory() {
                   <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
                   <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>
-                  <td className="px-3 py-3 text-right">{item.productType === "non-stock" ? "∞" : item.qty}</td>
+                  <td className={`px-3 py-3 text-right ${item.productType !== "non-stock" && item.qty < 0 ? "text-destructive font-semibold" : ""}`}>{item.productType === "non-stock" ? "∞" : item.qty}</td>
                   <td className="px-3 py-3 text-center">
                     {item.productType === "non-stock" ? (
                       <Badge className="bg-primary/10 text-primary border-0">Service</Badge>
+                    ) : item.qty < 0 ? (
+                      <Badge className="bg-destructive/15 text-destructive border-0">Out of Stock</Badge>
                     ) : item.qty <= item.reorderLevel ? (
                       <Badge className="bg-destructive/10 text-destructive border-0">Low Stock</Badge>
                     ) : (
