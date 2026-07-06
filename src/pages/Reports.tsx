@@ -387,6 +387,37 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             Clear
           </Button>
         )}
+        {report.code === "148" && (
+          <>
+            <div className="relative">
+              <Input
+                value={stockSearch}
+                onChange={(e) => setStockSearch(e.target.value)}
+                placeholder="Search name, SKU, model…"
+                className="h-8 text-xs w-56"
+              />
+            </div>
+            <Select value={stockCategoryFilter} onValueChange={setStockCategoryFilter}>
+              <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {stockCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={stockModelFilter} onValueChange={setStockModelFilter}>
+              <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Model" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Models</SelectItem>
+                {stockModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {(stockSearch || stockCategoryFilter !== "all" || stockModelFilter !== "all") && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStockSearch(""); setStockCategoryFilter("all"); setStockModelFilter("all"); }}>
+                Reset
+              </Button>
+            )}
+          </>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportCSV(report, filteredData, dateRange)}>
             <Download className="w-3.5 h-3.5" /> CSV
