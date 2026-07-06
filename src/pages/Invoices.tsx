@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw, ArrowLeftRight, CheckCircle2 } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw, ArrowLeftRight, CheckCircle2, Filter } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { InvoiceForm } from "@/components/InvoiceForm";
@@ -878,16 +879,16 @@ export default function Invoices() {
           }`}
         >
           {isScrolled ? (
-            // Compact single-row toolbar: icon + title + inline tabs pill + new button
-            <div className="flex items-center gap-3 justify-between">
+            // Compact single-row toolbar: icon + title + inline tabs pill + filters + new button
+            <div className="flex items-center gap-2 flex-nowrap">
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center shadow-sm">
                   <FileText className="w-3 h-3" />
                 </div>
                 <span className="text-sm font-semibold tracking-tight hidden sm:inline">Sales</span>
+                <div className="h-5 w-px bg-border hidden sm:block ml-1" />
               </div>
-              <div className="h-5 w-px bg-border hidden sm:block" />
-              <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 inline-flex w-auto">
+              <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 inline-flex w-auto flex-shrink-0">
                 <TabsTrigger value="quotations" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Quotations"><ClipboardList className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="sales-orders" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Sales Orders"><ShoppingCart className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="project-completed" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Project Completed"><CheckCircle2 className="w-3.5 h-3.5" /></TabsTrigger>
@@ -896,12 +897,34 @@ export default function Invoices() {
                 <TabsTrigger value="receipts" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Receipts"><ReceiptIcon className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="all" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="All"><List className="w-3.5 h-3.5" /></TabsTrigger>
               </TabsList>
-              {activeTab !== "all" && (
-                <Button size="sm" className="h-7 px-2.5 text-xs rounded-full flex-shrink-0 shadow-sm" onClick={handleNewClick}>
-                  <Plus className="w-3.5 h-3.5 sm:mr-1" />
-                  <span className="hidden sm:inline">New</span>
-                </Button>
-              )}
+              <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="h-7 w-32 md:w-48 text-xs rounded-full"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 px-2.5 rounded-full text-xs relative">
+                      <Filter className="w-3.5 h-3.5 sm:mr-1" />
+                      <span className="hidden sm:inline">Filters</span>
+                      {hasActiveFilters && (
+                        <span className="ml-1 inline-flex items-center justify-center w-4 h-4 text-[10px] rounded-full bg-primary text-primary-foreground">•</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-auto max-w-[92vw] p-3">
+                    <FilterBar showType={activeTab === "all"} />
+                  </PopoverContent>
+                </Popover>
+                {activeTab !== "all" && (
+                  <Button size="sm" className="h-7 px-2.5 text-xs rounded-full shadow-sm" onClick={handleNewClick}>
+                    <Plus className="w-3.5 h-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">New</span>
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <>
