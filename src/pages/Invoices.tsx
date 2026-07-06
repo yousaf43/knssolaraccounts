@@ -126,6 +126,7 @@ export default function Invoices() {
   const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
   const [confirmApproveSO, setConfirmApproveSO] = useState<SalesOrder | null>(null);
+  const isCompactHeader = isScrolled || activeTab === "quotations";
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -878,12 +879,12 @@ export default function Invoices() {
         <div
           ref={stickyHeaderRef}
           className={`sticky top-14 sm:top-16 z-20 -mx-3 sm:-mx-6 px-3 sm:px-6 transition-all duration-300 ease-out ${
-            isScrolled
+            isCompactHeader
               ? "bg-background/75 backdrop-blur-xl py-2 border-b border-border/60 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.15)]"
               : "bg-background pt-3 sm:pt-6 pb-3 space-y-4 border-b"
           }`}
         >
-          {isScrolled ? (
+          {isCompactHeader ? (
             // Compact single-row toolbar: icon + title + inline tabs pill + filters + new button
             <div className="flex items-center gap-2 flex-nowrap">
               <div className="flex items-center gap-2 flex-shrink-0">
