@@ -84,14 +84,20 @@ export default function Invoices() {
   const [stickyHeaderH, setStickyHeaderH] = useState(0);
 
   useEffect(() => {
+    // The window is the actual scroll container (main-scroll grows with content).
+    // Listen to both window and #main-scroll to be resilient to layout changes.
     const el = document.getElementById("main-scroll");
-    const target: HTMLElement | Window = el ?? window;
-    const getY = () => (el ? el.scrollTop : window.scrollY);
+    const getY = () => Math.max(window.scrollY || 0, el?.scrollTop || 0);
     const onScroll = () => setIsScrolled(getY() > 20);
     onScroll();
-    target.addEventListener("scroll", onScroll, { passive: true } as AddEventListenerOptions);
-    return () => target.removeEventListener("scroll", onScroll as EventListener);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    el?.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      el?.removeEventListener("scroll", onScroll);
+    };
   }, []);
+
 
   useEffect(() => {
     const measure = () => setStickyHeaderH(stickyHeaderRef.current?.offsetHeight ?? 0);
@@ -867,52 +873,74 @@ export default function Invoices() {
           ref={stickyHeaderRef}
           className={`sticky top-14 sm:top-16 z-20 -mx-3 sm:-mx-6 px-3 sm:px-6 transition-all duration-300 ease-out ${
             isScrolled
-              ? "bg-background/85 backdrop-blur-md pt-1.5 pb-1.5 space-y-1.5 border-b shadow-sm"
+              ? "bg-background/75 backdrop-blur-xl py-2 border-b border-border/60 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.15)]"
               : "bg-background pt-3 sm:pt-6 pb-3 space-y-4 border-b"
           }`}
         >
-          <div className={`flex items-center justify-between transition-all duration-300 ${isScrolled ? "gap-2" : ""}`}>
-            <div className="flex items-center gap-3 min-w-0">
-              {isScrolled && (
-                <div className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-3.5 h-3.5" />
+          {isScrolled ? (
+            // Compact single-row toolbar: icon + title + inline tabs pill + new button
+            <div className="flex items-center gap-3 justify-between">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center shadow-sm">
+                  <FileText className="w-3 h-3" />
                 </div>
-              )}
-              <div className="min-w-0">
-                <h1 className={`font-bold truncate transition-all duration-300 ${isScrolled ? "text-sm leading-tight" : "text-2xl"}`}>Sales</h1>
-                {!isScrolled && (
-                  <p className="text-muted-foreground text-sm">Manage sales orders, invoices, receipts and more</p>
-                )}
+                <span className="text-sm font-semibold tracking-tight hidden sm:inline">Sales</span>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {!isScrolled && (activeTab === "invoices" || activeTab === "sales-orders") && (
-                <Button variant="outline" size="sm" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import CSV
-                </Button>
-              )}
+              <div className="h-5 w-px bg-border hidden sm:block" />
+              <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 inline-flex w-auto">
+                <TabsTrigger value="quotations" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Quotations"><ClipboardList className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="sales-orders" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Sales Orders"><ShoppingCart className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="project-completed" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Project Completed"><CheckCircle2 className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="invoices" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Invoices"><FileText className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="returns" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Returns"><RotateCcw className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="receipts" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Receipts"><ReceiptIcon className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="all" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="All"><List className="w-3.5 h-3.5" /></TabsTrigger>
+              </TabsList>
               {activeTab !== "all" && (
-                <Button size={isScrolled ? "sm" : "default"} className={isScrolled ? "h-7 px-2 text-xs" : ""} onClick={handleNewClick}>
-                  <Plus className={`${isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} ${isScrolled ? "mr-1" : "mr-2"}`} />
-                  {isScrolled ? "New" : newButtonLabel}
+                <Button size="sm" className="h-7 px-2.5 text-xs rounded-full flex-shrink-0 shadow-sm" onClick={handleNewClick}>
+                  <Plus className="w-3.5 h-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">New</span>
                 </Button>
               )}
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <h1 className="font-bold text-2xl truncate">Sales</h1>
+                  <p className="text-muted-foreground text-sm">Manage sales orders, invoices, receipts and more</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(activeTab === "invoices" || activeTab === "sales-orders") && (
+                    <Button variant="outline" size="sm" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import CSV
+                    </Button>
+                  )}
+                  {activeTab !== "all" && (
+                    <Button onClick={handleNewClick}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      {newButtonLabel}
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-          <TabsList className={`grid w-full grid-cols-7 transition-all duration-300 ${isScrolled ? "h-7" : ""}`}>
-            <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Quotations"}</TabsTrigger>
-            <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Sales Orders"}</TabsTrigger>
-            <TabsTrigger value="project-completed" className="flex items-center gap-2"><CheckCircle2 className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Project Completed"}</TabsTrigger>
-            <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Invoices"}</TabsTrigger>
-            <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Returns"}</TabsTrigger>
-            <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "Receipts"}</TabsTrigger>
-            <TabsTrigger value="all" className="flex items-center gap-2"><List className={isScrolled ? "w-3.5 h-3.5" : "w-4 h-4"} />{!isScrolled && "All"}</TabsTrigger>
-          </TabsList>
+              <TabsList className="grid w-full grid-cols-7">
+                <TabsTrigger value="quotations" className="flex items-center gap-2"><ClipboardList className="w-4 h-4" />Quotations</TabsTrigger>
+                <TabsTrigger value="sales-orders" className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" />Sales Orders</TabsTrigger>
+                <TabsTrigger value="project-completed" className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Project Completed</TabsTrigger>
+                <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
+                <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className="w-4 h-4" />Returns</TabsTrigger>
+                <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
+                <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
+              </TabsList>
 
-          {!isScrolled && activeTab !== "project-completed" && FilterBar({ showType: activeTab === "all" })}
+              {activeTab !== "project-completed" && FilterBar({ showType: activeTab === "all" })}
+            </>
+          )}
         </div>
+
 
 
 
