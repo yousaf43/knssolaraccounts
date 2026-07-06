@@ -1318,9 +1318,35 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
+                    {multiSelectedKeys.length > 0 && (
+                      <div className="mb-3 flex items-center gap-2 flex-wrap p-2 rounded-md bg-muted/40 border">
+                        <span className="text-sm font-medium">{multiSelectedKeys.length} product(s) selected</span>
+                        <Button size="sm" onClick={() => setViewMultiSelected(true)}>
+                          View combined report
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setMultiSelectedKeys([])}>
+                          Clear
+                        </Button>
+                      </div>
+                    )}
                     <table id="report-print-table" className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/50">
+                          <th className="px-3 py-2 w-8">
+                            <input
+                              type="checkbox"
+                              checked={allVisibleSelected}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setMultiSelectedKeys(prev => Array.from(new Set([...prev, ...searchFiltered.map(p => p.key)])));
+                                } else {
+                                  const visible = new Set(searchFiltered.map(p => p.key));
+                                  setMultiSelectedKeys(prev => prev.filter(k => !visible.has(k)));
+                                }
+                              }}
+                              aria-label="Select all"
+                            />
+                          </th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Product</th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
@@ -1332,11 +1358,23 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         {searchFiltered.map(p => (
                           <tr
                             key={p.key}
-                            className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
-                            onClick={() => setSelectedProductKey(p.key)}
-                            title="Click to view detail"
+                            className="border-b last:border-0 hover:bg-muted/30"
                           >
-                            <td className="px-3 py-2 font-medium text-primary hover:underline">{p.name}</td>
+                            <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={multiSelectedKeys.includes(p.key)}
+                                onChange={() => toggleMultiSelected(p.key)}
+                                aria-label={`Select ${p.name}`}
+                              />
+                            </td>
+                            <td
+                              className="px-3 py-2 font-medium text-primary hover:underline cursor-pointer"
+                              onClick={() => setSelectedProductKey(p.key)}
+                              title="Click to view detail"
+                            >
+                              {p.name}
+                            </td>
                             <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
                             <td className="px-3 py-2 text-right">{p.count}</td>
                             <td className="px-3 py-2 text-right">{p.qty}</td>
@@ -1344,12 +1382,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           </tr>
                         ))}
                         {searchFiltered.length === 0 && (
-                          <tr><td colSpan={5} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
+                          <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
                         )}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={2}>Total</td>
+                          <td className="px-3 py-2" colSpan={3}>Total</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
                           <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.revenue, 0))}</td>
