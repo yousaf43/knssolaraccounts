@@ -285,20 +285,43 @@ export default function StoreInventory() {
               <TabsTrigger value="completed" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Completed"><CheckCircle2 className="w-3.5 h-3.5" /></TabsTrigger>
             </TabsList>
           }
+          actionsCompact={
+            activeTab === "products" ? (
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="h-7 w-32 md:w-56 text-xs rounded-full"
+              />
+            ) : null
+          }
           extraFull={
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {kpis.map((k) => (
-                <Card key={k.label}>
-                  <CardHeader className="p-3 pb-1 flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-xs font-medium text-muted-foreground">{k.label}</CardTitle>
-                    <k.icon className="w-4 h-4 text-primary" />
-                  </CardHeader>
-                  <CardContent className="p-3 pt-0">
-                    <p className="text-lg font-bold">{k.value}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {kpis.map((k) => (
+                  <Card key={k.label}>
+                    <CardHeader className="p-3 pb-1 flex-row items-center justify-between space-y-0">
+                      <CardTitle className="text-xs font-medium text-muted-foreground">{k.label}</CardTitle>
+                      <k.icon className="w-4 h-4 text-primary" />
+                    </CardHeader>
+                    <CardContent className="p-3 pt-0">
+                      <p className="text-lg font-bold">{k.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {activeTab === "products" && (
+                <div className="relative max-w-md">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by name, SKU, model, code, category..."
+                    className="pl-8"
+                  />
+                </div>
+              )}
+            </>
           }
         />
 
@@ -309,15 +332,8 @@ export default function StoreInventory() {
             <h2 className="text-base font-semibold">Store Products</h2>
             <p className="text-xs text-muted-foreground">Products auto-mirror from Main Inventory. Store stock is managed independently here.</p>
           </div>
-          <div className="relative max-w-md">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, SKU, model, code, category..."
-              className="pl-8"
-            />
-          </div>
+
+
 
 
           {/* Edit Store Item Dialog (stock managed independently from Main Inventory) */}
