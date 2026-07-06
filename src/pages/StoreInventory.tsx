@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -59,6 +60,7 @@ export default function StoreInventory() {
   }, [inventoryAll, allCategories]);
 
   const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"products" | "orders" | "completed">("products");
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<Partial<InventoryItem>>(emptyItem());
   const [newUnit, setNewUnit] = useState("");
@@ -264,37 +266,42 @@ export default function StoreInventory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Store className="w-6 h-6 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Store Inventory</h1>
-            <p className="text-muted-foreground text-sm">Independent store stock &amp; sale orders</p>
-          </div>
-        </div>
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
+        <StickyPageHeader
+          icon={Store}
+          title="Store Inventory"
+          subtitle="Independent store stock & sale orders"
+          tabsFull={
+            <TabsList>
+              <TabsTrigger value="products">Store Products</TabsTrigger>
+              <TabsTrigger value="orders">Store Sale Orders ({storeOrders.length})</TabsTrigger>
+              <TabsTrigger value="completed">Completed Store Sale Orders ({completedOrders.length})</TabsTrigger>
+            </TabsList>
+          }
+          tabsCompact={
+            <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 inline-flex w-auto flex-shrink-0">
+              <TabsTrigger value="products" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Store Products"><Boxes className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="orders" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Store Sale Orders"><ShoppingCart className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="completed" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Completed"><CheckCircle2 className="w-3.5 h-3.5" /></TabsTrigger>
+            </TabsList>
+          }
+          extraFull={
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {kpis.map((k) => (
+                <Card key={k.label}>
+                  <CardHeader className="p-3 pb-1 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-xs font-medium text-muted-foreground">{k.label}</CardTitle>
+                    <k.icon className="w-4 h-4 text-primary" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                    <p className="text-lg font-bold">{k.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          }
+        />
 
-      {/* Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {kpis.map((k) => (
-          <Card key={k.label}>
-            <CardHeader className="p-3 pb-1 flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-medium text-muted-foreground">{k.label}</CardTitle>
-              <k.icon className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0">
-              <p className="text-lg font-bold">{k.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Tabs defaultValue="products" className="w-full">
-        <TabsList>
-          <TabsTrigger value="products">Store Products</TabsTrigger>
-          <TabsTrigger value="orders">Store Sale Orders ({storeOrders.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed Store Sale Orders ({completedOrders.length})</TabsTrigger>
-        </TabsList>
 
         {/* Products Tab */}
         <TabsContent value="products" className="space-y-4">

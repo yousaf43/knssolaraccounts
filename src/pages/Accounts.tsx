@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X, SendHorizontal } from "lucide-react";
+import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCircle2, Download, Pencil, Trash2, Printer, X, SendHorizontal, Wallet, Settings2, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -288,20 +289,33 @@ export default function Accounts() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Accounts</h1>
-        <p className="text-muted-foreground text-sm">Manage bank accounts, payments, receipts, transfers & reconciliation</p>
-      </div>
-
       <Tabs defaultValue="balances" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="balances">Account Balances</TabsTrigger>
-          <TabsTrigger value="management">Account Management</TabsTrigger>
-          <TabsTrigger value="payments">Other Payments</TabsTrigger>
-          <TabsTrigger value="receipts">Other Receipts</TabsTrigger>
-          <TabsTrigger value="transfers">Transfers</TabsTrigger>
-          <TabsTrigger value="reconcile">Reconcile</TabsTrigger>
-        </TabsList>
+        <StickyPageHeader
+          icon={Landmark}
+          title="Accounts"
+          subtitle="Manage bank accounts, payments, receipts, transfers & reconciliation"
+          tabsFull={
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="balances">Account Balances</TabsTrigger>
+              <TabsTrigger value="management">Account Management</TabsTrigger>
+              <TabsTrigger value="payments">Other Payments</TabsTrigger>
+              <TabsTrigger value="receipts">Other Receipts</TabsTrigger>
+              <TabsTrigger value="transfers">Transfers</TabsTrigger>
+              <TabsTrigger value="reconcile">Reconcile</TabsTrigger>
+            </TabsList>
+          }
+          tabsCompact={
+            <TabsList className="h-7 bg-muted/60 rounded-full p-0.5 gap-0.5 inline-flex w-auto flex-shrink-0">
+              <TabsTrigger value="balances" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Account Balances"><Wallet className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="management" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Account Management"><Settings2 className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="payments" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Other Payments"><ArrowUpRight className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="receipts" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Other Receipts"><ArrowDownRight className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="transfers" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Transfers"><ArrowLeftRight className="w-3.5 h-3.5" /></TabsTrigger>
+              <TabsTrigger value="reconcile" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Reconcile"><RefreshCw className="w-3.5 h-3.5" /></TabsTrigger>
+            </TabsList>
+          }
+        />
+
 
         {/* Account Balances */}
         <TabsContent value="balances">

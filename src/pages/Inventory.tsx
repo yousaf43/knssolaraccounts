@@ -3,7 +3,8 @@ import StockAdjustmentSection from "@/components/StockAdjustmentSection";
 import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
-import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2 } from "lucide-react";
+import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package } from "lucide-react";
+import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -304,22 +305,35 @@ export default function Inventory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Inventory</h1>
-          <p className="text-muted-foreground text-sm">Stock management and alerts</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importLoading}>
-            {importLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-            Import CSV
-          </Button>
-          <Button onClick={openAdd}>
-            <Plus className="w-4 h-4 mr-2" /> Add Item
-          </Button>
-        </div>
-      </div>
+      <StickyPageHeader
+        icon={Package}
+        title="Inventory"
+        subtitle="Stock management and alerts"
+        actionsFull={
+          <>
+            <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importLoading}>
+              {importLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              Import CSV
+            </Button>
+            <Button onClick={openAdd}>
+              <Plus className="w-4 h-4 mr-2" /> Add Item
+            </Button>
+          </>
+        }
+        actionsCompact={
+          <>
+            <Button variant="outline" size="sm" className="h-7 px-2.5 rounded-full text-xs" onClick={() => fileInputRef.current?.click()} disabled={importLoading}>
+              {importLoading ? <Loader2 className="w-3.5 h-3.5 sm:mr-1 animate-spin" /> : <Upload className="w-3.5 h-3.5 sm:mr-1" />}
+              <span className="hidden sm:inline">Import</span>
+            </Button>
+            <Button size="sm" className="h-7 px-2.5 text-xs rounded-full shadow-sm" onClick={openAdd}>
+              <Plus className="w-3.5 h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">Add</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* CSV Format Help */}
       <div className="bg-muted/40 border rounded-lg px-4 py-2 text-xs text-muted-foreground">
