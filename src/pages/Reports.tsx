@@ -337,13 +337,34 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
   // Inventory-specific data tables
   const inventoryTableData = useMemo(() => {
-    if (report.code === "078") return inventory; // Products List
-    if (report.code === "080") return inventory; // Stock Quantity
-    if (report.code === "082") return inventory.filter(i => i.qty === 0); // Out of Stock
-    if (report.code === "083") return inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
-    if (report.code === "148") return inventory; // Stock Valuation
-    return null;
-  }, [report.code, inventory]);
+    let data: InventoryItem[] | null = null;
+    if (report.code === "078") data = inventory; // Products List
+    else if (report.code === "080") data = inventory; // Stock Quantity
+    else if (report.code === "082") data = inventory.filter(i => i.qty === 0); // Out of Stock
+    else if (report.code === "083") data = inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
+    else if (report.code === "148") {
+      const q = stockSearch.trim().toLowerCase();
+      data = inventory.filter(i => {
+        if (stockCategoryFilter !== "all" && i.category !== stockCategoryFilter) return false;
+        if (stockModelFilter !== "all" && (i.model || "") !== stockModelFilter) return false;
+        if (q) {
+          const hay = `${i.name} ${i.sku} ${i.model || ""} ${i.category} ${i.uniqueCode || ""}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+    return data;
+  }, [report.code, inventory, stockSearch, stockCategoryFilter, stockModelFilter]);
+
+  const stockCategories = useMemo(
+    () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
+    [inventory]
+  );
+  const stockModels = useMemo(
+    () => Array.from(new Set(inventory.map(i => i.model || "").filter(Boolean))).sort(),
+    [inventory]
+  );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
 
