@@ -346,7 +346,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       const q = stockSearch.trim().toLowerCase();
       data = inventory.filter(i => {
         if (stockCategoryFilter !== "all" && i.category !== stockCategoryFilter) return false;
-        if (stockModelFilter !== "all" && (i.model || "") !== stockModelFilter) return false;
+        
         if (q) {
           const hay = `${i.name} ${i.sku} ${i.model || ""} ${i.category} ${i.uniqueCode || ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
