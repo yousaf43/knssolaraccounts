@@ -295,13 +295,13 @@ export default function Accounts() {
           title="Accounts"
           subtitle="Manage bank accounts, payments, receipts, transfers & reconciliation"
           tabsFull={
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="balances">Account Balances</TabsTrigger>
-              <TabsTrigger value="management">Account Management</TabsTrigger>
-              <TabsTrigger value="payments">Other Payments</TabsTrigger>
-              <TabsTrigger value="receipts">Other Receipts</TabsTrigger>
-              <TabsTrigger value="transfers">Transfers</TabsTrigger>
-              <TabsTrigger value="reconcile">Reconcile</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-6 gap-1">
+              <TabsTrigger value="balances" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Account Balances">Balances</TabsTrigger>
+              <TabsTrigger value="management" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Account Management">Management</TabsTrigger>
+              <TabsTrigger value="payments" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Other Payments">Payments</TabsTrigger>
+              <TabsTrigger value="receipts" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Other Receipts">Receipts</TabsTrigger>
+              <TabsTrigger value="transfers" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Transfers">Transfers</TabsTrigger>
+              <TabsTrigger value="reconcile" className="min-w-0 px-1 text-xs sm:text-sm truncate" title="Reconcile">Reconcile</TabsTrigger>
             </TabsList>
           }
           tabsCompact={
