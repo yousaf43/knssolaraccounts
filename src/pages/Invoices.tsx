@@ -922,9 +922,9 @@ export default function Invoices() {
             <span className="text-xs text-muted-foreground">{filteredQuotations.length} quotation(s)</span>
           </div>
           <div className="bg-card rounded-lg border">
-            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Quotation #</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
@@ -972,9 +972,9 @@ export default function Invoices() {
             <span className="text-xs text-muted-foreground">{filteredSO.length} order(s)</span>
           </div>
           <div className="bg-card rounded-lg border">
-            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Order #</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
@@ -1019,9 +1019,9 @@ export default function Invoices() {
             <span className="text-xs text-muted-foreground">{filteredInvoices.length} invoice(s)</span>
           </div>
           <div className="bg-card rounded-lg border">
-            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Invoice #</th>
                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Doc No.</th>
@@ -1112,9 +1112,9 @@ export default function Invoices() {
                   <span className="text-xs text-muted-foreground">{filteredReturns.length} return(s)</span>
                 </div>
                 <div className="bg-card rounded-lg border">
-                  <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
+                  <div>
                     <table className="w-full text-sm">
-                      <thead>
+                      <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                         <tr className="border-b bg-muted/50">
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Return #</th>
                           <th className="text-left px-4 py-3 font-medium text-muted-foreground">Original Invoice</th>
@@ -1170,9 +1170,9 @@ export default function Invoices() {
             <span className="text-xs text-muted-foreground">{filteredReceipts.length} receipt(s)</span>
           </div>
           <div className="bg-card rounded-lg border">
-            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Receipt #</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
@@ -1233,9 +1233,9 @@ export default function Invoices() {
             <span className="text-xs text-muted-foreground">{allSalesData.length} record(s)</span>
           </div>
           <div className="bg-card rounded-lg border">
-            <div className="overflow-x-auto [<div className="overflow-x-auto">_thead]:sticky [<div className="overflow-x-auto">_thead]:z-10" style={{}}>
+            <div>
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky z-10 bg-background" style={{ top: theadTop }}>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">Type</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">#</th>
