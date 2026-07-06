@@ -82,26 +82,25 @@ export default function Invoices() {
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const [stickyHeaderH, setStickyHeaderH] = useState(0);
 
   useEffect(() => {
-    // The window is the actual scroll container (main-scroll grows with content).
-    // Listen to both window and #main-scroll to be resilient to layout changes.
-    // Hysteresis prevents a compress/expand loop on short pages: compress at >40px,
-    // only expand again below <10px.
-    const el = document.getElementById("main-scroll");
-    const getY = () => Math.max(window.scrollY || 0, el?.scrollTop || 0);
-    const onScroll = () => {
-      const y = getY();
-      setIsScrolled(prev => (prev ? y > 10 : y > 40));
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    el?.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      el?.removeEventListener("scroll", onScroll);
-    };
+    // Use an IntersectionObserver on a zero-height sentinel that sits ABOVE
+    // the sticky header. This avoids the compress/expand flicker loop caused
+    // by scroll-position thresholds (collapsing the header changes scrollY,
+    // which can immediately re-expand it). The sentinel lives outside the
+    // sticky container, so its page position is stable.
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const topOffset = window.matchMedia("(min-width: 640px)").matches ? 64 : 56;
+    const scrollRoot = document.getElementById("main-scroll") ?? null;
+    const io = new IntersectionObserver(
+      ([entry]) => setIsScrolled(!entry.isIntersecting),
+      { root: scrollRoot, rootMargin: `-${topOffset}px 0px 0px 0px`, threshold: 0 },
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
   }, []);
 
 
