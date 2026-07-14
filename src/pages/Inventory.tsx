@@ -295,8 +295,22 @@ export default function Inventory() {
 
   const handleUpdateInventory = async (updater: (prev: InventoryItem[]) => InventoryItem[]) => {
     const updatedMain = updater(inventory).map((i) => ({ ...i, location: (i.location || "main") as "main" | "store" }));
-    const storeItems = inventoryAll.filter((i) => (i.location || "main") === "store");
-    await replaceAll([...updatedMain, ...storeItems]);
+    // Diff against current main inventory and upsert only changed items.
+    // Avoids the destructive replaceAll (delete-all-then-insert) which can lose rows on partial failure.
+    const prevById = new Map(inventory.map((i) => [i.id, i]));
+    const changed = updatedMain.filter((i) => {
+      const prev = prevById.get(i.id);
+      if (!prev) return true;
+      return (
+        prev.qty !== i.qty ||
+        prev.costPrice !== i.costPrice ||
+        prev.salePrice !== i.salePrice ||
+        prev.price !== i.price
+      );
+    });
+    for (const item of changed) {
+      await upsert(item);
+    }
   };
 
   if (loading) {
