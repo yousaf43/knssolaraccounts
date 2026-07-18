@@ -10,7 +10,7 @@ type Props = {
  * Renders `text` with case-insensitive occurrences of `query` wrapped in a
  * <mark> element so search matches are visually highlighted.
  */
-export function Highlight({ text, query, className }: Props) {
+export function HighlightText({ text, query, className }: Props) {
   const value = text === null || text === undefined ? "" : String(text);
   const q = query.trim();
   if (!q) return <>{value}</> as unknown as ReactNode;
