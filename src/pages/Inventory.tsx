@@ -181,6 +181,21 @@ export default function Inventory() {
     if (item) {
       await moveToTrash("inventory", id, item);
       await log("delete", "inventory", id, item.name, `SKU: ${item.sku}`);
+
+      // Cascade: also remove matching Store Inventory mirror (by SKU or name)
+      const skuNorm = (item.sku || "").trim().toLowerCase();
+      const nameNorm = item.name.trim().toLowerCase();
+      const storeMirrors = inventoryAll.filter(
+        (i) =>
+          (i.location || "main") === "store" &&
+          i.id !== id &&
+          ((skuNorm && i.sku && i.sku.trim().toLowerCase() === skuNorm) ||
+            i.name.trim().toLowerCase() === nameNorm)
+      );
+      for (const mirror of storeMirrors) {
+        await moveToTrash("inventory", mirror.id, mirror);
+        await remove(mirror.id);
+      }
     }
     await remove(id);
     toast.success("Item deleted");
