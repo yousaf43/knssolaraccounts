@@ -6,6 +6,7 @@ import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } fro
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package, Filter } from "lucide-react";
 import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { HighlightText } from "@/components/HighlightText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
