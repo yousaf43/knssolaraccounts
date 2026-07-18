@@ -6,6 +6,7 @@ import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } fro
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package, Filter } from "lucide-react";
 import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { HighlightText } from "@/components/HighlightText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -668,12 +669,12 @@ export default function Inventory() {
               const typeVariant = item.productType === "non-stock" ? "outline" : item.productType === "bundle" ? "secondary" : "default";
               return (
                 <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-3 font-medium">{item.name}</td>
+                  <td className="px-3 py-3 font-medium"><HighlightText text={item.name} query={searchQuery} /></td>
                   <td className="px-3 py-3"><Badge variant={typeVariant} className="text-xs">{typeLabel}</Badge></td>
-                  <td className="px-3 py-3 text-muted-foreground">{item.sku}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{item.model || "—"}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{item.uniqueCode || "—"}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{item.category}</td>
+                  <td className="px-3 py-3 text-muted-foreground"><HighlightText text={item.sku} query={searchQuery} /></td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.model ? <HighlightText text={item.model} query={searchQuery} /> : "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{item.uniqueCode ? <HighlightText text={item.uniqueCode} query={searchQuery} /> : "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground"><HighlightText text={item.category} query={searchQuery} /></td>
                   <td className="px-3 py-3 text-muted-foreground">{item.date || "—"}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
