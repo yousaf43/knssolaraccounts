@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { useTrash } from "@/hooks/useTrash";
 import { useActivityLog } from "@/hooks/useActivityLog";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import {
+  useInvoicesCloud,
+  useSalesOrdersCloud,
+  useStockAdjustmentsCloud,
+  useCustomersCloud,
+  useSuppliersCloud,
+  useExpensesCloud,
+  useReceiptsCloud,
+  useInventoryCloud,
+  useBillsCloud,
+  usePurchaseOrdersCloud,
+  usePurchasePaymentsCloud,
+} from "@/hooks/useAppData";
 import { Loader2, RotateCcw, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,37 +34,57 @@ const TYPE_LABELS: Record<string, string> = {
   purchase_payment: "Purchase Payment",
 };
 
-// Map item_type to supabase table name
-const TYPE_TABLE: Record<string, string> = {
-  invoice: "invoices",
-  sales_order: "sales_orders",
-  stock_adjustment: "stock_adjustments",
-  customer: "customers",
-  supplier: "suppliers",
-  expense: "expenses",
-  receipt: "receipts",
-  inventory: "inventory",
-  bill: "bills",
-  purchase_order: "purchase_orders",
-  purchase_payment: "purchase_payments",
-};
-
 export default function TrashPage() {
-  const { user } = useAuth();
   const { items, loading, restoreFromTrash, permanentDelete, emptyTrash } = useTrash();
   const { log } = useActivityLog();
   const [search, setSearch] = useState("");
 
+  // Load cloud hooks for each restorable type so we can upsert via the
+  // proper camelCase → snake_case mapper (raw supabase upsert with the
+  // camelCase JS object silently fails because columns don't match).
+  const invoices = useInvoicesCloud();
+  const salesOrders = useSalesOrdersCloud();
+  const stockAdjustments = useStockAdjustmentsCloud();
+  const customers = useCustomersCloud();
+  const suppliers = useSuppliersCloud();
+  const expenses = useExpensesCloud();
+  const receipts = useReceiptsCloud();
+  const inventory = useInventoryCloud();
+  const bills = useBillsCloud();
+  const purchaseOrders = usePurchaseOrdersCloud();
+  const purchasePayments = usePurchasePaymentsCloud();
+
+  const restoreDispatch: Record<string, (data: Record<string, unknown>) => Promise<void>> = {
+    invoice: (d) => invoices.upsert(d as never),
+    sales_order: (d) => salesOrders.upsert(d as never),
+    stock_adjustment: (d) => stockAdjustments.upsert(d as never),
+    customer: (d) => customers.upsert(d as never),
+    supplier: (d) => suppliers.upsert(d as never),
+    expense: (d) => expenses.upsert(d as never),
+    receipt: (d) => receipts.upsert(d as never),
+    inventory: (d) => inventory.upsert(d as never),
+    bill: (d) => bills.upsert(d as never),
+    purchase_order: (d) => purchaseOrders.upsert(d as never),
+    purchase_payment: (d) => purchasePayments.upsert(d as never),
+  };
+
   const handleRestore = async (trashId: string) => {
-    const item = await restoreFromTrash(trashId);
-    if (!item || !user) return;
-    const table = TYPE_TABLE[item.itemType];
-    if (table) {
-      // Re-insert the item data back into its original table
-      await supabase.from(table as never).upsert(item.itemData as never, { onConflict: "id" });
+    const trashItem = items.find((i) => i.id === trashId);
+    if (!trashItem) return;
+    const restorer = restoreDispatch[trashItem.itemType];
+    if (!restorer) {
+      toast.error(`Cannot restore item of type "${trashItem.itemType}"`);
+      return;
     }
-    await log("restore", item.itemType, item.itemId, getLabel(item.itemType, item.itemData), "Restored from trash");
-    toast.success("Item restored successfully");
+    try {
+      await restorer(trashItem.itemData);
+      await restoreFromTrash(trashId);
+      await log("restore", trashItem.itemType, trashItem.itemId, getLabel(trashItem.itemType, trashItem.itemData), "Restored from trash");
+      toast.success("Item restored successfully");
+    } catch (err) {
+      console.error("Restore failed:", err);
+      toast.error("Failed to restore item");
+    }
   };
 
   const handlePermanentDelete = async (trashId: string) => {
@@ -67,7 +98,7 @@ export default function TrashPage() {
   };
 
   const getLabel = (type: string, data: Record<string, unknown>) => {
-    return (data.number as string) || (data.name as string) || (data.item_name as string) || (data.id as string) || "Unknown";
+    return (data.number as string) || (data.name as string) || (data.itemName as string) || (data.item_name as string) || (data.id as string) || "Unknown";
   };
 
   const filtered = items.filter((item) => {
