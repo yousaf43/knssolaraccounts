@@ -280,14 +280,14 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search customer..." />
+                  <CommandInput placeholder="Search customer..." value={customerSearch} onValueChange={setCustomerSearch} />
                   <CommandList>
                     <CommandEmpty>No customer found.</CommandEmpty>
                     <CommandGroup>
                       {customers.map((c) => (
                         <CommandItem key={c.id} value={`${c.id} ${c.name} ${c.company}`} onSelect={() => { setCustomer(c.name); setSelectedCustomerId(c.id); }}>
                           <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === c.id ? "opacity-100" : "opacity-0")} />
-                          {c.name} ({c.company})
+                          <HighlightText text={c.name} query={customerSearch} /> (<HighlightText text={c.company || ""} query={customerSearch} />)
                         </CommandItem>
                       ))}
                     </CommandGroup>
