@@ -36,6 +36,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(() => {
     if (!editInvoice?.customer) return "";
     return customers.find(c => c.name === editInvoice.customer)?.id || "";
