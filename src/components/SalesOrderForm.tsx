@@ -248,14 +248,14 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search customer..." />
+                  <CommandInput placeholder="Search customer..." value={customerSearch} onValueChange={setCustomerSearch} />
                   <CommandList>
                     <CommandEmpty>No customer found.</CommandEmpty>
                     <CommandGroup>
                       {customers.map((c) => (
                         <CommandItem key={c.id} value={`${c.name} ${c.company}`} onSelect={() => setCustomer(c.name)}>
                           <Check className={cn("mr-2 h-4 w-4", customer === c.name ? "opacity-100" : "opacity-0")} />
-                          {c.name} ({c.company})
+                          <HighlightText text={c.name} query={customerSearch} /> (<HighlightText text={c.company || ""} query={customerSearch} />)
                         </CommandItem>
                       ))}
                     </CommandGroup>
