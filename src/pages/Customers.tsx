@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
+import { HighlightText } from "@/components/HighlightText";
 
 const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", address: "", totalBilled: 0, outstanding: 0 });
 
@@ -142,8 +143,8 @@ export default function Customers() {
                       {c.name.split(" ").map((n) => n[0]).join("")}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate">{c.name}</p>
-                      <p className="text-sm text-muted-foreground truncate">{c.company}</p>
+                      <p className="font-semibold truncate"><HighlightText text={c.name} query={searchQuery} /></p>
+                      <p className="text-sm text-muted-foreground truncate"><HighlightText text={c.company || ""} query={searchQuery} /></p>
                     </div>
                   </div>
                   <div className="flex gap-1">
@@ -154,9 +155,9 @@ export default function Customers() {
                   </div>
                 </div>
                 <div className="space-y-2 text-sm">
-                  {c.email && <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /><span className="truncate">{c.email}</span></div>}
-                  <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" /><span>{c.phone}</span></div>
-                  {c.address && <p className="text-muted-foreground text-xs truncate">{c.address}</p>}
+                  {c.email && <div className="flex items-center gap-2 text-muted-foreground"><Mail className="w-3.5 h-3.5" /><span className="truncate"><HighlightText text={c.email} query={searchQuery} /></span></div>}
+                  <div className="flex items-center gap-2 text-muted-foreground"><Phone className="w-3.5 h-3.5" /><span><HighlightText text={c.phone || ""} query={searchQuery} /></span></div>
+                  {c.address && <p className="text-muted-foreground text-xs truncate"><HighlightText text={c.address} query={searchQuery} /></p>}
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t text-sm">
                   <div><p className="text-muted-foreground text-xs">Total Billed</p><p className="font-semibold">{formatCurrency(totalBilled)}</p></div>
