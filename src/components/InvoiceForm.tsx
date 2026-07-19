@@ -10,6 +10,7 @@ import { Plus, Trash2, X, UserPlus, ChevronsUpDown, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProductCombobox } from "@/components/ProductCombobox";
+import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
@@ -35,6 +36,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
   const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
   const [customer, setCustomer] = useState(editInvoice?.customer || "");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(() => {
     if (!editInvoice?.customer) return "";
     return customers.find(c => c.name === editInvoice.customer)?.id || "";
@@ -280,14 +282,14 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search customer..." />
+                  <CommandInput placeholder="Search customer..." value={customerSearch} onValueChange={setCustomerSearch} />
                   <CommandList>
                     <CommandEmpty>No customer found.</CommandEmpty>
                     <CommandGroup>
                       {customers.map((c) => (
                         <CommandItem key={c.id} value={`${c.id} ${c.name} ${c.company}`} onSelect={() => { setCustomer(c.name); setSelectedCustomerId(c.id); }}>
                           <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === c.id ? "opacity-100" : "opacity-0")} />
-                          {c.name} ({c.company})
+                          <HighlightText text={c.name} query={customerSearch} /> (<HighlightText text={c.company || ""} query={customerSearch} />)
                         </CommandItem>
                       ))}
                     </CommandGroup>

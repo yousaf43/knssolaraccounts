@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import type { SalesOrder, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
 import { ProductCombobox } from "@/components/ProductCombobox";
+import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 
 type Props = {
@@ -31,6 +32,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const [customNumber, setCustomNumber] = useState(editOrder?.number || "");
   const [projectName, setProjectName] = useState(editOrder?.projectName || "");
   const [customer, setCustomer] = useState(editOrder?.customer || "");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [date, setDate] = useState(editOrder?.date || new Date().toISOString().split("T")[0]);
   const [deliveryDate, setDeliveryDate] = useState(editOrder?.deliveryDate || "");
   const [status, setStatus] = useState<SalesOrder["status"]>(editOrder?.status || "pending");
@@ -246,14 +248,14 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search customer..." />
+                  <CommandInput placeholder="Search customer..." value={customerSearch} onValueChange={setCustomerSearch} />
                   <CommandList>
                     <CommandEmpty>No customer found.</CommandEmpty>
                     <CommandGroup>
                       {customers.map((c) => (
                         <CommandItem key={c.id} value={`${c.name} ${c.company}`} onSelect={() => setCustomer(c.name)}>
                           <Check className={cn("mr-2 h-4 w-4", customer === c.name ? "opacity-100" : "opacity-0")} />
-                          {c.name} ({c.company})
+                          <HighlightText text={c.name} query={customerSearch} /> (<HighlightText text={c.company || ""} query={customerSearch} />)
                         </CommandItem>
                       ))}
                     </CommandGroup>
