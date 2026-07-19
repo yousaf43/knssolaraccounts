@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Customer } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { HighlightText } from "@/components/HighlightText";
 
 type Props = {
   customers: Customer[];
@@ -77,10 +78,10 @@ export function CustomerCombobox({ customers, selectedName, onSelect, placeholde
                 )}
               >
                 <span className="flex flex-col min-w-0">
-                  <span className="font-medium truncate">{c.name}</span>
-                  {c.company && <span className="text-xs text-muted-foreground truncate">{c.company}</span>}
+                  <span className="font-medium truncate"><HighlightText text={c.name} query={search} /></span>
+                  {c.company && <span className="text-xs text-muted-foreground truncate"><HighlightText text={c.company} query={search} /></span>}
                 </span>
-                {c.phone && <span className="text-xs text-muted-foreground shrink-0">{c.phone}</span>}
+                {c.phone && <span className="text-xs text-muted-foreground shrink-0"><HighlightText text={c.phone} query={search} /></span>}
               </button>
             ))
           )}
