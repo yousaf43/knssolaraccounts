@@ -739,16 +739,16 @@ export default function Invoices() {
     return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} prefillInvoice={receivePaymentInvoice} />;
   }
   if (view === "quotation-form") {
-    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} />;
+    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
   }
   if (view === "form") {
     if (activeTab === "sales-orders" || editOrder) {
-      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />;
+      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
     if (activeTab === "receipts" || editReceipt) {
       return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
-    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} />;
+    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} />;
   }
 
   // --- Export CSV ---
