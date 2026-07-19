@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import type { SalesOrder, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
 import { ProductCombobox } from "@/components/ProductCombobox";
+import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 
 type Props = {
