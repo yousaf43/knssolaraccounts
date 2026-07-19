@@ -414,7 +414,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             Clear
           </Button>
         )}
-        {report.code === "148" && (
+        {showInventoryTable && (
           <>
             <div className="relative">
               <Input
