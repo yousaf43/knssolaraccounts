@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { Customer } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+import { HighlightText } from "@/components/HighlightText";
 
 type Props = {
   customers: Customer[];
