@@ -32,6 +32,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const [customNumber, setCustomNumber] = useState(editOrder?.number || "");
   const [projectName, setProjectName] = useState(editOrder?.projectName || "");
   const [customer, setCustomer] = useState(editOrder?.customer || "");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [date, setDate] = useState(editOrder?.date || new Date().toISOString().split("T")[0]);
   const [deliveryDate, setDeliveryDate] = useState(editOrder?.deliveryDate || "");
   const [status, setStatus] = useState<SalesOrder["status"]>(editOrder?.status || "pending");
