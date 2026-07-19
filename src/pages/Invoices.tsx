@@ -75,7 +75,19 @@ export default function Invoices() {
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
   // Sale documents (Invoice/Quotation/SalesOrder) are linked ONLY to Main Inventory.
   // Store Inventory items must not appear in the product picker.
-  const mainInventory = useMemo(() => inventory.filter((i: any) => (i.location || "main") === "main"), [inventory]);
+  // Also dedupe by SKU/uniqueCode/name so legacy duplicate records don't leak into the picker.
+  const mainInventory = useMemo(() => {
+    const mainOnly = inventory.filter((i: any) => (i.location || "main") === "main");
+    const byKey = new Map<string, typeof mainOnly[number]>();
+    for (const it of mainOnly) {
+      const key = ((it as any).uniqueCode || it.sku || it.name || it.id).toString().trim().toLowerCase();
+      const existing = byKey.get(key);
+      if (!existing) { byKey.set(key, it); continue; }
+      // Prefer the record with higher qty; ties -> keep existing
+      if ((it.qty ?? 0) > (existing.qty ?? 0)) byKey.set(key, it);
+    }
+    return Array.from(byKey.values());
+  }, [inventory]);
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
   const { data: ledger, setData: setLedger, upsert: upsertLedger } = useLedgerEntriesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
