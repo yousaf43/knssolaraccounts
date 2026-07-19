@@ -88,9 +88,22 @@ export function ProductCombobox({ inventory, selectedItemId, onSelect }: Props) 
                   )}
                 >
                   <span className="flex items-center gap-2 min-w-0">
-                    <span className="font-medium truncate">{inv.name}</span>
-                    <span className="text-muted-foreground shrink-0">({inv.sku})</span>
-                    {inv.model && <span className="text-muted-foreground text-[10px] shrink-0">{inv.model}</span>}
+                    <span className="font-medium truncate">
+                      <HighlightText text={inv.name} query={search} />
+                    </span>
+                    <span className="text-muted-foreground shrink-0">
+                      (<HighlightText text={inv.sku} query={search} />)
+                    </span>
+                    {inv.model && (
+                      <span className="text-muted-foreground text-[10px] shrink-0">
+                        <HighlightText text={inv.model} query={search} />
+                      </span>
+                    )}
+                    {inv.category && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">
+                        <HighlightText text={inv.category} query={search} />
+                      </Badge>
+                    )}
                     {typeLabel && (
                       <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">{typeLabel}</Badge>
                     )}
@@ -98,6 +111,7 @@ export function ProductCombobox({ inventory, selectedItemId, onSelect }: Props) 
                   <span className="text-muted-foreground shrink-0">
                     {inv.productType === "non-stock" ? "∞" : `${inv.qty} ${inv.unit}`}
                   </span>
+
                 </button>
               );
             })
