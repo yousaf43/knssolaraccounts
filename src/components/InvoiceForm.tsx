@@ -10,6 +10,7 @@ import { Plus, Trash2, X, UserPlus, ChevronsUpDown, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ProductCombobox } from "@/components/ProductCombobox";
+import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
