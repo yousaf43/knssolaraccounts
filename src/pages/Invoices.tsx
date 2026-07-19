@@ -743,7 +743,7 @@ export default function Invoices() {
   }
   if (view === "form") {
     if (activeTab === "sales-orders" || editOrder) {
-      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />;
     }
     if (activeTab === "receipts" || editReceipt) {
       return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
