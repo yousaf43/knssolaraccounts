@@ -73,6 +73,9 @@ export default function Invoices() {
   const { data: receipts, upsert: upsertReceipt, remove: removeReceipt, setData: setReceipts } = useReceiptsCloud();
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
+  // Sale documents (Invoice/Quotation/SalesOrder) are linked ONLY to Main Inventory.
+  // Store Inventory items must not appear in the product picker.
+  const mainInventory = useMemo(() => inventory.filter((i: any) => (i.location || "main") === "main"), [inventory]);
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
   const { data: ledger, setData: setLedger, upsert: upsertLedger } = useLedgerEntriesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
