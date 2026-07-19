@@ -1940,7 +1940,19 @@ export default function Reports() {
   const { data: invoices } = useInvoicesCloud();
   const { data: expenses } = useExpensesCloud();
   const { data: bills } = useBillsCloud();
-  const { data: inventory } = useInventoryCloud();
+  const { data: rawInventory } = useInventoryCloud();
+  // Only main inventory in reports; dedupe legacy duplicates by uniqueCode/sku/name.
+  const inventory = useMemo(() => {
+    const mainOnly = (rawInventory as any[]).filter((i: any) => (i.location || "main") === "main");
+    const byKey = new Map<string, any>();
+    for (const it of mainOnly) {
+      const key = ((it as any).uniqueCode || it.sku || it.name || it.id).toString().trim().toLowerCase();
+      const existing = byKey.get(key);
+      if (!existing) { byKey.set(key, it); continue; }
+      if ((it.qty ?? 0) > (existing.qty ?? 0)) byKey.set(key, it);
+    }
+    return Array.from(byKey.values()) as typeof rawInventory;
+  }, [rawInventory]);
   const { data: accounts } = useAccountsCloud();
   const { data: ledger } = useLedgerEntriesCloud();
   const [assets] = useState<CompanyAsset[]>([]);
