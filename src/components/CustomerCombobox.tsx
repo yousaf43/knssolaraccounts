@@ -77,11 +77,11 @@ export function CustomerCombobox({ customers, selectedName, onSelect, placeholde
                   selectedName === c.name && "bg-accent"
                 )}
               >
-                <span className="flex flex-col min-w-0">
-                  <span className="font-medium truncate"><HighlightText text={c.name} query={search} /></span>
-                  {c.company && <span className="text-xs text-muted-foreground truncate"><HighlightText text={c.company} query={search} /></span>}
-                </span>
-                {c.phone && <span className="text-xs text-muted-foreground shrink-0"><HighlightText text={c.phone} query={search} /></span>}
+                <div className="flex flex-col min-w-0 flex-1">
+                  <div className="font-medium truncate whitespace-nowrap"><HighlightText text={c.name} query={search} /></div>
+                  {c.company && <div className="text-xs text-muted-foreground truncate whitespace-nowrap"><HighlightText text={c.company} query={search} /></div>}
+                </div>
+                {c.phone && <div className="text-xs text-muted-foreground shrink-0 whitespace-nowrap truncate max-w-[40%]"><HighlightText text={c.phone} query={search} /></div>}
               </button>
             ))
           )}
