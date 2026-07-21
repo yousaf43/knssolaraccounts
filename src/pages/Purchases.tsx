@@ -715,6 +715,7 @@ export default function Purchases() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Supplier</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Delivery Date</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Qty</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
