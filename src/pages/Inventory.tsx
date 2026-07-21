@@ -71,10 +71,22 @@ export default function Inventory() {
   }, [inventory, allCategories]);
 
   const filteredInventory = useMemo(() => {
+    const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return inventory.filter((item) => {
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (!item.name.toLowerCase().includes(q) && !item.sku.toLowerCase().includes(q) && !(item.model || "").toLowerCase().includes(q) && !(item.uniqueCode || "").toLowerCase().includes(q)) return false;
+      if (tokens.length) {
+        const haystack = [
+          item.name,
+          item.sku,
+          item.model,
+          item.uniqueCode,
+          item.category,
+          item.unit,
+          (item as any).description,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!tokens.every((t) => haystack.includes(t))) return false;
       }
       if (filterCategory !== "__all__" && item.category !== filterCategory) return false;
       if (filterStatus === "low" && item.qty > item.reorderLevel) return false;
