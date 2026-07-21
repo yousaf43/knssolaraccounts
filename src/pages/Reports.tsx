@@ -522,9 +522,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 </thead>
                 <tbody>
                   {inventoryTableData.map((item, idx) => {
-                    // Average cost price: for merged/dedup rows this is already the weighted avg (totalValue/totalQty).
-                    // For single rows it equals the item's cost price.
-                    const avgCost = item.costPrice || 0;
+                    // Avg Cost is derived from purchase order history (weighted avg of PO rates).
+                    // Inventory's own Cost Price stays user-controlled.
+                    const avgCost = getAvgCost(item);
+                    const stockValue = item.qty * avgCost;
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
@@ -536,7 +537,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgCost)}</td>}
-                        {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(stockValue)}</td>}
                       </tr>
                     );
                   })}
