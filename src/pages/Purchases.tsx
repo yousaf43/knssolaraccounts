@@ -735,7 +735,7 @@ export default function Purchases() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => openEditPO(p)}>
                           <Edit className="w-3.5 h-3.5" />
                         </Button>
-                        <ConfirmDeleteDialog onConfirm={() => handleDeletePO(p.id)} title="Delete Purchase Order?" description={`Delete PO ${p.number}?`} />
+                        
                       </div>
                     </td>
                   </tr>
