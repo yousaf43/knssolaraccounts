@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import {
-  type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem,
+  type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem, type InventoryItem,
 } from "@/data/mockData";
-import { usePurchaseOrdersCloud, useBillsCloud, usePurchasePaymentsCloud, useSuppliersCloud } from "@/hooks/useAppData";
+import { usePurchaseOrdersCloud, useBillsCloud, usePurchasePaymentsCloud, useSuppliersCloud, useInventoryCloud } from "@/hooks/useAppData";
+import { ProductCombobox } from "@/components/ProductCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +61,19 @@ export default function Purchases() {
   const { data: bills, upsert: upsertBill, remove: removeBill, setData: setBills } = useBillsCloud();
   const { data: payments, upsert: upsertPayment, remove: removePayment, setData: setPayments } = usePurchasePaymentsCloud();
   const { data: suppliers, upsert: upsertSupplier, remove: removeSupplier, setData: setSuppliers } = useSuppliersCloud();
+  const { data: inventoryAll, upsert: upsertInventory } = useInventoryCloud();
+
+  // Main-only inventory (deduped by SKU/uniqueCode/name) for product picker
+  const mainInventory = useMemo(() => {
+    const mains = inventoryAll.filter(i => (i.location || "main") === "main");
+    const seen = new Set<string>();
+    return mains.filter(i => {
+      const key = (i.uniqueCode || i.sku || i.name).trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [inventoryAll]);
 
   // Filters
   const [filterSupplier, setFilterSupplier] = useState("all");
@@ -219,17 +233,65 @@ export default function Purchases() {
   // ---- Line items helpers ----
   const updateItem = (items: InvoiceItem[], setItems: (v: InvoiceItem[]) => void, idx: number, field: keyof InvoiceItem, val: string) => {
     const updated = [...items];
-    if (field === "description") updated[idx].description = val;
-    else {
+    if (field === "description" || field === "inventoryItemId") {
+      (updated[idx] as any)[field] = val;
+    } else {
       (updated[idx] as any)[field] = parseFloat(val) || 0;
       updated[idx].amount = updated[idx].qty * updated[idx].rate;
     }
     setItems(updated);
   };
 
+  const selectProductForItem = (items: InvoiceItem[], setItems: (v: InvoiceItem[]) => void, idx: number, inventoryItemId: string) => {
+    const inv = mainInventory.find(i => i.id === inventoryItemId);
+    if (!inv) return;
+    const updated = [...items];
+    updated[idx] = {
+      ...updated[idx],
+      inventoryItemId: inv.id,
+      description: inv.name,
+      rate: updated[idx].rate || inv.costPrice || 0,
+      qty: updated[idx].qty || 1,
+    };
+    updated[idx].amount = updated[idx].qty * updated[idx].rate;
+    setItems(updated);
+  };
+
   const calcTotal = (items: InvoiceItem[], tax: number) => {
     const sub = items.reduce((s, i) => s + i.amount, 0);
     return sub + sub * (tax / 100);
+  };
+
+  const applyPurchaseToInventory = async (items: InvoiceItem[]) => {
+    for (const it of items) {
+      if (!it.inventoryItemId || it.qty <= 0) continue;
+      const main = inventoryAll.find(i => i.id === it.inventoryItemId);
+      if (!main) continue;
+      const oldQty = main.qty || 0;
+      const oldCost = main.costPrice || 0;
+      const addQty = it.qty;
+      const addRate = it.rate || 0;
+      const newQty = oldQty + addQty;
+      const newCost = oldQty > 0
+        ? ((oldQty * oldCost) + (addQty * addRate)) / newQty
+        : (addRate || oldCost);
+      await upsertInventory({
+        ...main,
+        qty: newQty,
+        costPrice: Number(newCost.toFixed(2)),
+      } as InventoryItem);
+
+      const key = (main.uniqueCode || main.sku || main.name).trim().toLowerCase();
+      const storeMirror = inventoryAll.find(i => (i.location === "store") && (
+        (i.uniqueCode || i.sku || i.name).trim().toLowerCase() === key
+      ));
+      if (storeMirror) {
+        await upsertInventory({
+          ...storeMirror,
+          qty: (storeMirror.qty || 0) + addQty,
+        } as InventoryItem);
+      }
+    }
   };
 
   // ---- PO CRUD ----
@@ -241,11 +303,12 @@ export default function Purchases() {
     const newPO = { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
     upsertPO(newPO);
     setPurchaseOrders(prev => [...prev, newPO]);
+    await applyPurchaseToInventory(poItems);
     setShowPOForm(false);
     setPOItems([emptyItem()]);
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
     await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
-    toast.success("Purchase Order created");
+    toast.success("Purchase Order created and stock updated");
   };
 
   // ---- Bill CRUD ----
@@ -316,11 +379,16 @@ export default function Purchases() {
   const LineItemsEditor = ({ items, setItems }: { items: InvoiceItem[]; setItems: (v: InvoiceItem[]) => void }) => (
     <div className="space-y-2">
       <Label className="font-semibold">Line Items</Label>
-      <div className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2 text-xs font-medium text-muted-foreground">
-        <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span />
+      <div className="grid grid-cols-[220px_1fr_80px_100px_100px_40px] gap-2 text-xs font-medium text-muted-foreground">
+        <span>Product</span><span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span />
       </div>
       {items.map((item, i) => (
-        <div key={i} className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2">
+        <div key={i} className="grid grid-cols-[220px_1fr_80px_100px_100px_40px] gap-2 items-start">
+          <ProductCombobox
+            inventory={mainInventory}
+            selectedItemId={item.inventoryItemId}
+            onSelect={(id) => selectProductForItem(items, setItems, i, id)}
+          />
           <Input value={item.description} onChange={e => updateItem(items, setItems, i, "description", e.target.value)} placeholder="Item description" className="h-8 text-sm" />
           <Input type="number" value={item.qty} onChange={e => updateItem(items, setItems, i, "qty", e.target.value)} className="h-8 text-sm" min={1} />
           <Input type="number" value={item.rate} onChange={e => updateItem(items, setItems, i, "rate", e.target.value)} className="h-8 text-sm" min={0} />
