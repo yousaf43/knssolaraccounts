@@ -233,11 +233,27 @@ export default function Purchases() {
   // ---- Line items helpers ----
   const updateItem = (items: InvoiceItem[], setItems: (v: InvoiceItem[]) => void, idx: number, field: keyof InvoiceItem, val: string) => {
     const updated = [...items];
-    if (field === "description") updated[idx].description = val;
-    else {
+    if (field === "description" || field === "inventoryItemId") {
+      (updated[idx] as any)[field] = val;
+    } else {
       (updated[idx] as any)[field] = parseFloat(val) || 0;
       updated[idx].amount = updated[idx].qty * updated[idx].rate;
     }
+    setItems(updated);
+  };
+
+  const selectProductForItem = (items: InvoiceItem[], setItems: (v: InvoiceItem[]) => void, idx: number, inventoryItemId: string) => {
+    const inv = mainInventory.find(i => i.id === inventoryItemId);
+    if (!inv) return;
+    const updated = [...items];
+    updated[idx] = {
+      ...updated[idx],
+      inventoryItemId: inv.id,
+      description: inv.name,
+      rate: updated[idx].rate || inv.costPrice || 0,
+      qty: updated[idx].qty || 1,
+    };
+    updated[idx].amount = updated[idx].qty * updated[idx].rate;
     setItems(updated);
   };
 
