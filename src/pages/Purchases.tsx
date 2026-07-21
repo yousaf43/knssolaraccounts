@@ -303,7 +303,7 @@ export default function Purchases() {
     setPOItems([emptyItem()]);
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
     await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
-    toast.success("Purchase Order created and stock updated");
+    toast.success("Purchase Order created");
   };
 
   // ---- Bill CRUD ----
