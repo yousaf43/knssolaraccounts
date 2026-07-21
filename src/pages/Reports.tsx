@@ -389,6 +389,44 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     return data;
   }, [report.code, inventory, stockSearch, stockCategoryFilter]);
 
+  // Weighted average purchase cost per inventory item, computed from PO history.
+  // Keyed by both inventory item id and by SKU/uniqueCode/name so merged rows still match.
+  const poAvgCostMap = useMemo(() => {
+    const totals = new Map<string, { qty: number; value: number }>();
+    const bump = (key: string, qty: number, rate: number) => {
+      if (!key || qty <= 0) return;
+      const t = totals.get(key) || { qty: 0, value: 0 };
+      t.qty += qty;
+      t.value += qty * rate;
+      totals.set(key, t);
+    };
+    for (const po of purchaseOrders) {
+      for (const it of po.items || []) {
+        const qty = it.qty || 0;
+        const rate = it.rate || 0;
+        if (qty <= 0 || rate <= 0) continue;
+        if (it.inventoryItemId) bump(`id:${it.inventoryItemId}`, qty, rate);
+        // Also index by product identity for cases where inventoryItemId isn't set
+        const inv = inventory.find(i => i.id === it.inventoryItemId);
+        const identity = inv
+          ? (inv.uniqueCode || inv.sku || inv.name)
+          : (it.description || "");
+        const key = identity.trim().toLowerCase();
+        if (key) bump(`k:${key}`, qty, rate);
+      }
+    }
+    return totals;
+  }, [purchaseOrders, inventory]);
+
+  const getAvgCost = useCallback((item: InventoryItem): number => {
+    const byId = poAvgCostMap.get(`id:${item.id}`);
+    if (byId && byId.qty > 0) return byId.value / byId.qty;
+    const key = (item.uniqueCode || item.sku || item.name).trim().toLowerCase();
+    const byKey = poAvgCostMap.get(`k:${key}`);
+    if (byKey && byKey.qty > 0) return byKey.value / byKey.qty;
+    return item.costPrice || 0;
+  }, [poAvgCostMap]);
+
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
     [inventory]
