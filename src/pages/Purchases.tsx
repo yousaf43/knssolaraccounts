@@ -740,7 +740,7 @@ export default function Purchases() {
                     </td>
                   </tr>
                 ))}
-                {filteredPO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
+                {filteredPO.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
               </tbody>
             </table>
             <TablePagination currentPage={pgPO.currentPage} totalPages={pgPO.totalPages} totalItems={pgPO.totalItems} onPageChange={pgPO.goToPage} itemLabel="order" />
