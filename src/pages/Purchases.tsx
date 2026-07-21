@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import {
-  type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem,
+  type PurchaseOrder, type Bill, type PurchasePayment, type Supplier, type InvoiceItem, type InventoryItem,
 } from "@/data/mockData";
-import { usePurchaseOrdersCloud, useBillsCloud, usePurchasePaymentsCloud, useSuppliersCloud } from "@/hooks/useAppData";
+import { usePurchaseOrdersCloud, useBillsCloud, usePurchasePaymentsCloud, useSuppliersCloud, useInventoryCloud } from "@/hooks/useAppData";
+import { ProductCombobox } from "@/components/ProductCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
