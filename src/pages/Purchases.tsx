@@ -501,7 +501,7 @@ export default function Purchases() {
 
   // Add button per tab
   const getAddButton = () => {
-    if (tab === "purchase-orders") return <Button size="sm" onClick={() => setShowPOForm(true)}><Plus className="w-4 h-4 mr-1" /> New PO</Button>;
+    if (tab === "purchase-orders") return <Button size="sm" onClick={openNewPO}><Plus className="w-4 h-4 mr-1" /> New PO</Button>;
     if (tab === "bills") return <Button size="sm" onClick={() => setShowBillForm(true)}><Plus className="w-4 h-4 mr-1" /> New Bill</Button>;
     if (tab === "payments") return <Button size="sm" onClick={() => setShowPaymentForm(true)}><Plus className="w-4 h-4 mr-1" /> New Payment</Button>;
     return null;
