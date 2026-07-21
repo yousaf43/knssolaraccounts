@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
-import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder } from "@/data/mockData";
+import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder, type PurchaseOrder } from "@/data/mockData";
 import { type CompanyAsset } from "@/pages/Assets";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
