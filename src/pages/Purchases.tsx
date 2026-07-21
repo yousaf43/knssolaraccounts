@@ -727,6 +727,7 @@ export default function Purchases() {
                     <td className="px-4 py-3">{p.date}</td>
                     <td className="px-4 py-3">{p.supplier}</td>
                     <td className="px-4 py-3">{p.deliveryDate}</td>
+                    <td className="px-4 py-3 text-right">{(p.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0)}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.status]}`}>{p.status}</span></td>
                     <td className="px-4 py-3 text-center">
