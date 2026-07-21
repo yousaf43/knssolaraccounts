@@ -262,6 +262,38 @@ export default function Purchases() {
     return sub + sub * (tax / 100);
   };
 
+  const applyPurchaseToInventory = async (items: InvoiceItem[]) => {
+    for (const it of items) {
+      if (!it.inventoryItemId || it.qty <= 0) continue;
+      const main = inventoryAll.find(i => i.id === it.inventoryItemId);
+      if (!main) continue;
+      const oldQty = main.qty || 0;
+      const oldCost = main.costPrice || 0;
+      const addQty = it.qty;
+      const addRate = it.rate || 0;
+      const newQty = oldQty + addQty;
+      const newCost = oldQty > 0
+        ? ((oldQty * oldCost) + (addQty * addRate)) / newQty
+        : (addRate || oldCost);
+      await upsertInventory({
+        ...main,
+        qty: newQty,
+        costPrice: Number(newCost.toFixed(2)),
+      } as InventoryItem);
+
+      const key = (main.uniqueCode || main.sku || main.name).trim().toLowerCase();
+      const storeMirror = inventoryAll.find(i => (i.location === "store") && (
+        (i.uniqueCode || i.sku || i.name).trim().toLowerCase() === key
+      ));
+      if (storeMirror) {
+        await upsertInventory({
+          ...storeMirror,
+          qty: (storeMirror.qty || 0) + addQty,
+        } as InventoryItem);
+      }
+    }
+  };
+
   // ---- PO CRUD ----
   const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,11 +303,12 @@ export default function Purchases() {
     const newPO = { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
     upsertPO(newPO);
     setPurchaseOrders(prev => [...prev, newPO]);
+    await applyPurchaseToInventory(poItems);
     setShowPOForm(false);
     setPOItems([emptyItem()]);
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
     await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
-    toast.success("Purchase Order created");
+    toast.success("Purchase Order created and stock updated");
   };
 
   // ---- Bill CRUD ----
