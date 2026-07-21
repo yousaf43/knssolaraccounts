@@ -1962,6 +1962,7 @@ export default function Reports() {
   const { data: customers } = useCustomersCloud();
   const { data: receipts } = useReceiptsCloud();
   const { data: salesOrders } = useSalesOrdersCloud();
+  const { data: purchaseOrders } = usePurchaseOrdersCloud();
 
   // Build monthly data from real data
   const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills), [invoices, expenses, bills]);
