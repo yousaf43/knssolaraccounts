@@ -715,6 +715,7 @@ export default function Purchases() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Supplier</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Delivery Date</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Qty</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Status</th>
                 <th className="text-center px-4 py-3 font-medium text-muted-foreground">Actions</th>
@@ -726,6 +727,7 @@ export default function Purchases() {
                     <td className="px-4 py-3">{p.date}</td>
                     <td className="px-4 py-3">{p.supplier}</td>
                     <td className="px-4 py-3">{p.deliveryDate}</td>
+                    <td className="px-4 py-3 text-right">{(p.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0)}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.status]}`}>{p.status}</span></td>
                     <td className="px-4 py-3 text-center">
@@ -738,7 +740,7 @@ export default function Purchases() {
                     </td>
                   </tr>
                 ))}
-                {filteredPO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
+                {filteredPO.length === 0 && <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
               </tbody>
             </table>
             <TablePagination currentPage={pgPO.currentPage} totalPages={pgPO.totalPages} totalItems={pgPO.totalItems} onPageChange={pgPO.goToPage} itemLabel="order" />
