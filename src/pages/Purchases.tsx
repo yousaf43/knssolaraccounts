@@ -548,7 +548,7 @@ export default function Purchases() {
               )}
               {(tab === "purchase-orders" || tab === "bills" || tab === "payments") && (
                 <Button size="sm" className="h-7 px-2.5 text-xs rounded-full shadow-sm" onClick={() => {
-                  if (tab === "purchase-orders") setShowPOForm(true);
+                  if (tab === "purchase-orders") openNewPO();
                   else if (tab === "bills") setShowBillForm(true);
                   else if (tab === "payments") setShowPaymentForm(true);
                 }}>
