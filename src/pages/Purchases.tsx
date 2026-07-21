@@ -84,6 +84,7 @@ export default function Purchases() {
 
   // PO Form
   const [showPOForm, setShowPOForm] = useState(false);
+  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [poForm, setPOForm] = useState({ supplier: "", date: today(), deliveryDate: "", status: "pending" as PurchaseOrder["status"], notes: "", tax: 10 });
   const [poItems, setPOItems] = useState<InvoiceItem[]>([emptyItem()]);
   const [showPOQuickSupplier, setShowPOQuickSupplier] = useState(false);
@@ -290,20 +291,65 @@ export default function Purchases() {
   };
 
   // ---- PO CRUD ----
+  const openNewPO = () => {
+    setEditingPO(null);
+    setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
+    setPOItems([emptyItem()]);
+    setShowPOForm(true);
+  };
+  const openEditPO = (po: PurchaseOrder) => {
+    setEditingPO(po);
+    setPOForm({
+      supplier: po.supplier,
+      date: po.date,
+      deliveryDate: po.deliveryDate || "",
+      status: po.status,
+      notes: po.notes || "",
+      tax: po.tax ?? 0,
+    });
+    setPOItems(po.items && po.items.length ? po.items.map(it => ({ ...it })) : [emptyItem()]);
+    setShowPOForm(true);
+  };
+
   const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!poForm.supplier) return;
     const total = calcTotal(poItems, poForm.tax);
-    const num = `PO-${String(purchaseOrders.length + 1).padStart(3, "0")}`;
-    const newPO = { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
-    upsertPO(newPO);
-    setPurchaseOrders(prev => [...prev, newPO]);
-    await applyPurchaseToInventory(poItems);
+    if (editingPO) {
+      // Compute qty diff per inventory item and apply to stock
+      const oldMap = new Map<string, number>();
+      (editingPO.items || []).forEach(it => {
+        if (it.inventoryItemId) oldMap.set(it.inventoryItemId, (oldMap.get(it.inventoryItemId) || 0) + (it.qty || 0));
+      });
+      const newMap = new Map<string, number>();
+      poItems.forEach(it => {
+        if (it.inventoryItemId) newMap.set(it.inventoryItemId, (newMap.get(it.inventoryItemId) || 0) + (it.qty || 0));
+      });
+      const diffItems: InvoiceItem[] = [];
+      const ids = new Set([...oldMap.keys(), ...newMap.keys()]);
+      ids.forEach(id => {
+        const diff = (newMap.get(id) || 0) - (oldMap.get(id) || 0);
+        if (diff !== 0) diffItems.push({ description: "", qty: diff, rate: 0, amount: 0, inventoryItemId: id });
+      });
+      const updated: PurchaseOrder = { ...editingPO, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
+      upsertPO(updated);
+      setPurchaseOrders(prev => prev.map(p => p.id === updated.id ? updated : p));
+      if (diffItems.length) await applyPurchaseToInventory(diffItems);
+      await log("update", "purchase_order", updated.id, updated.number, `Supplier: ${poForm.supplier}, Amount: ${total}`);
+      toast.success("Purchase Order updated");
+    } else {
+      const num = `PO-${String(purchaseOrders.length + 1).padStart(3, "0")}`;
+      const newPO = { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
+      upsertPO(newPO);
+      setPurchaseOrders(prev => [...prev, newPO]);
+      await applyPurchaseToInventory(poItems);
+      await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
+      toast.success("Purchase Order created");
+    }
     setShowPOForm(false);
+    setEditingPO(null);
     setPOItems([emptyItem()]);
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
-    await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
-    toast.success("Purchase Order created");
   };
 
   // ---- Bill CRUD ----
@@ -455,7 +501,7 @@ export default function Purchases() {
 
   // Add button per tab
   const getAddButton = () => {
-    if (tab === "purchase-orders") return <Button size="sm" onClick={() => setShowPOForm(true)}><Plus className="w-4 h-4 mr-1" /> New PO</Button>;
+    if (tab === "purchase-orders") return <Button size="sm" onClick={openNewPO}><Plus className="w-4 h-4 mr-1" /> New PO</Button>;
     if (tab === "bills") return <Button size="sm" onClick={() => setShowBillForm(true)}><Plus className="w-4 h-4 mr-1" /> New Bill</Button>;
     if (tab === "payments") return <Button size="sm" onClick={() => setShowPaymentForm(true)}><Plus className="w-4 h-4 mr-1" /> New Payment</Button>;
     return null;
@@ -502,7 +548,7 @@ export default function Purchases() {
               )}
               {(tab === "purchase-orders" || tab === "bills" || tab === "payments") && (
                 <Button size="sm" className="h-7 px-2.5 text-xs rounded-full shadow-sm" onClick={() => {
-                  if (tab === "purchase-orders") setShowPOForm(true);
+                  if (tab === "purchase-orders") openNewPO();
                   else if (tab === "bills") setShowBillForm(true);
                   else if (tab === "payments") setShowPaymentForm(true);
                 }}>
@@ -538,8 +584,8 @@ export default function Purchases() {
           {showPOForm && (
             <div className="bg-card rounded-lg border p-6 mb-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold">Create Purchase Order</h2>
-                <Button variant="ghost" size="icon" onClick={() => setShowPOForm(false)}><X className="w-4 h-4" /></Button>
+                <h2 className="font-semibold">{editingPO ? `Edit Purchase Order ${editingPO.number}` : "Create Purchase Order"}</h2>
+                <Button variant="ghost" size="icon" onClick={() => { setShowPOForm(false); setEditingPO(null); }}><X className="w-4 h-4" /></Button>
               </div>
               <form onSubmit={handleSavePO} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -599,12 +645,65 @@ export default function Purchases() {
                   <div className="flex gap-3">
                     <Textarea placeholder="Notes (optional)" value={poForm.notes} onChange={e => setPOForm({ ...poForm, notes: e.target.value })} className="w-64 h-16 text-sm" />
                     <div className="flex gap-2 items-end">
-                      <Button type="button" variant="outline" onClick={() => setShowPOForm(false)}>Cancel</Button>
-                      <Button type="submit">Create PO</Button>
+                      <Button type="button" variant="outline" onClick={() => { setShowPOForm(false); setEditingPO(null); }}>Cancel</Button>
+                      <Button type="submit">{editingPO ? "Update PO" : "Create PO"}</Button>
                     </div>
                   </div>
                 </div>
               </form>
+
+              {/* Purchase History for products in this PO */}
+              {(() => {
+                const selectedIds = Array.from(new Set(poItems.map(i => i.inventoryItemId).filter(Boolean) as string[]));
+                if (selectedIds.length === 0) return null;
+                const history = purchaseOrders
+                  .filter(p => !editingPO || p.id !== editingPO.id)
+                  .flatMap(p => (p.items || [])
+                    .filter(it => it.inventoryItemId && selectedIds.includes(it.inventoryItemId))
+                    .map(it => ({ poId: p.id, number: p.number, date: p.date, supplier: p.supplier, item: it }))
+                  )
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 25);
+                if (history.length === 0) return (
+                  <div className="mt-6 pt-4 border-t">
+                    <h3 className="text-sm font-semibold mb-2">Purchase History</h3>
+                    <p className="text-xs text-muted-foreground">No previous purchases for the selected products.</p>
+                  </div>
+                );
+                return (
+                  <div className="mt-6 pt-4 border-t">
+                    <h3 className="text-sm font-semibold mb-2">Purchase History <span className="text-xs font-normal text-muted-foreground">(latest {history.length} entries for selected products)</span></h3>
+                    <div className="border rounded-md overflow-auto max-h-64">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/50 sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium">Date</th>
+                            <th className="text-left px-3 py-2 font-medium">PO #</th>
+                            <th className="text-left px-3 py-2 font-medium">Supplier</th>
+                            <th className="text-left px-3 py-2 font-medium">Product</th>
+                            <th className="text-right px-3 py-2 font-medium">Qty</th>
+                            <th className="text-right px-3 py-2 font-medium">Rate</th>
+                            <th className="text-right px-3 py-2 font-medium">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {history.map((h, i) => (
+                            <tr key={`${h.poId}-${i}`} className="border-t hover:bg-muted/30">
+                              <td className="px-3 py-1.5">{h.date}</td>
+                              <td className="px-3 py-1.5 font-medium">{h.number}</td>
+                              <td className="px-3 py-1.5">{h.supplier}</td>
+                              <td className="px-3 py-1.5">{h.item.description}</td>
+                              <td className="px-3 py-1.5 text-right">{h.item.qty}</td>
+                              <td className="px-3 py-1.5 text-right">{formatCurrency(h.item.rate)}</td>
+                              <td className="px-3 py-1.5 text-right">{formatCurrency(h.item.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
           {FilterBar()}
@@ -629,7 +728,14 @@ export default function Purchases() {
                     <td className="px-4 py-3">{p.deliveryDate}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.status]}`}>{p.status}</span></td>
-                    <td className="px-4 py-3 text-center"><ConfirmDeleteDialog onConfirm={() => handleDeletePO(p.id)} title="Delete Purchase Order?" description={`Delete PO ${p.number}?`} /></td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="inline-flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => openEditPO(p)}>
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <ConfirmDeleteDialog onConfirm={() => handleDeletePO(p.id)} title="Delete Purchase Order?" description={`Delete PO ${p.number}?`} />
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {filteredPO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
