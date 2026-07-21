@@ -291,20 +291,65 @@ export default function Purchases() {
   };
 
   // ---- PO CRUD ----
+  const openNewPO = () => {
+    setEditingPO(null);
+    setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
+    setPOItems([emptyItem()]);
+    setShowPOForm(true);
+  };
+  const openEditPO = (po: PurchaseOrder) => {
+    setEditingPO(po);
+    setPOForm({
+      supplier: po.supplier,
+      date: po.date,
+      deliveryDate: po.deliveryDate || "",
+      status: po.status,
+      notes: po.notes || "",
+      tax: po.tax ?? 0,
+    });
+    setPOItems(po.items && po.items.length ? po.items.map(it => ({ ...it })) : [emptyItem()]);
+    setShowPOForm(true);
+  };
+
   const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!poForm.supplier) return;
     const total = calcTotal(poItems, poForm.tax);
-    const num = `PO-${String(purchaseOrders.length + 1).padStart(3, "0")}`;
-    const newPO = { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
-    upsertPO(newPO);
-    setPurchaseOrders(prev => [...prev, newPO]);
-    await applyPurchaseToInventory(poItems);
+    if (editingPO) {
+      // Compute qty diff per inventory item and apply to stock
+      const oldMap = new Map<string, number>();
+      (editingPO.items || []).forEach(it => {
+        if (it.inventoryItemId) oldMap.set(it.inventoryItemId, (oldMap.get(it.inventoryItemId) || 0) + (it.qty || 0));
+      });
+      const newMap = new Map<string, number>();
+      poItems.forEach(it => {
+        if (it.inventoryItemId) newMap.set(it.inventoryItemId, (newMap.get(it.inventoryItemId) || 0) + (it.qty || 0));
+      });
+      const diffItems: InvoiceItem[] = [];
+      const ids = new Set([...oldMap.keys(), ...newMap.keys()]);
+      ids.forEach(id => {
+        const diff = (newMap.get(id) || 0) - (oldMap.get(id) || 0);
+        if (diff !== 0) diffItems.push({ description: "", qty: diff, rate: 0, amount: 0, inventoryItemId: id });
+      });
+      const updated: PurchaseOrder = { ...editingPO, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
+      upsertPO(updated);
+      setPurchaseOrders(prev => prev.map(p => p.id === updated.id ? updated : p));
+      if (diffItems.length) await applyPurchaseToInventory(diffItems);
+      await log("update", "purchase_order", updated.id, updated.number, `Supplier: ${poForm.supplier}, Amount: ${total}`);
+      toast.success("Purchase Order updated");
+    } else {
+      const num = `PO-${String(purchaseOrders.length + 1).padStart(3, "0")}`;
+      const newPO = { id: crypto.randomUUID(), number: num, supplier: poForm.supplier, date: poForm.date, deliveryDate: poForm.deliveryDate, amount: total, status: poForm.status, items: poItems, notes: poForm.notes, tax: poForm.tax };
+      upsertPO(newPO);
+      setPurchaseOrders(prev => [...prev, newPO]);
+      await applyPurchaseToInventory(poItems);
+      await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
+      toast.success("Purchase Order created");
+    }
     setShowPOForm(false);
+    setEditingPO(null);
     setPOItems([emptyItem()]);
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
-    await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
-    toast.success("Purchase Order created");
   };
 
   // ---- Bill CRUD ----
