@@ -266,10 +266,10 @@ export default function Purchases() {
   const applyPurchaseToInventory = async (items: InvoiceItem[]) => {
     // Only quantity is updated on PO save. Cost/Sale prices stay user-controlled in Inventory.
     for (const it of items) {
-      if (!it.inventoryItemId || it.qty <= 0) continue;
+      if (!it.inventoryItemId || !it.qty) continue;
       const main = inventoryAll.find(i => i.id === it.inventoryItemId);
       if (!main) continue;
-      const addQty = it.qty;
+      const addQty = it.qty; // may be negative on edits that reduce qty
 
       await upsertInventory({
         ...main,
