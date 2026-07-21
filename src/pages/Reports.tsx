@@ -286,7 +286,7 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders, purchaseOrders }: {
   report: Report; onBack: () => void;
   monthlySales: { month: string; sales: number; expenses: number }[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -297,6 +297,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   customers: Customer[];
   receipts: Receipt[];
   salesOrders: SalesOrder[];
+  purchaseOrders: PurchaseOrder[];
 }) {
   const { formatCurrency, settings } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
