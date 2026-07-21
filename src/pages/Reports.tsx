@@ -548,7 +548,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <td className="px-3 py-2" colSpan={5}>Total Products: {inventoryTableData.length}</td>
                       <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
                       <td className="px-3 py-2" colSpan={3}>Total Stock Valuation</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + i.qty * i.costPrice, 0))}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * getAvgCost(i), 0))}</td>
                     </tr>
                   </tfoot>
                 )}
