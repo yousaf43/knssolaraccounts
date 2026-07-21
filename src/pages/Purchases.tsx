@@ -651,6 +651,59 @@ export default function Purchases() {
                   </div>
                 </div>
               </form>
+
+              {/* Purchase History for products in this PO */}
+              {(() => {
+                const selectedIds = Array.from(new Set(poItems.map(i => i.inventoryItemId).filter(Boolean) as string[]));
+                if (selectedIds.length === 0) return null;
+                const history = purchaseOrders
+                  .filter(p => !editingPO || p.id !== editingPO.id)
+                  .flatMap(p => (p.items || [])
+                    .filter(it => it.inventoryItemId && selectedIds.includes(it.inventoryItemId))
+                    .map(it => ({ poId: p.id, number: p.number, date: p.date, supplier: p.supplier, item: it }))
+                  )
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 25);
+                if (history.length === 0) return (
+                  <div className="mt-6 pt-4 border-t">
+                    <h3 className="text-sm font-semibold mb-2">Purchase History</h3>
+                    <p className="text-xs text-muted-foreground">No previous purchases for the selected products.</p>
+                  </div>
+                );
+                return (
+                  <div className="mt-6 pt-4 border-t">
+                    <h3 className="text-sm font-semibold mb-2">Purchase History <span className="text-xs font-normal text-muted-foreground">(latest {history.length} entries for selected products)</span></h3>
+                    <div className="border rounded-md overflow-auto max-h-64">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/50 sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium">Date</th>
+                            <th className="text-left px-3 py-2 font-medium">PO #</th>
+                            <th className="text-left px-3 py-2 font-medium">Supplier</th>
+                            <th className="text-left px-3 py-2 font-medium">Product</th>
+                            <th className="text-right px-3 py-2 font-medium">Qty</th>
+                            <th className="text-right px-3 py-2 font-medium">Rate</th>
+                            <th className="text-right px-3 py-2 font-medium">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {history.map((h, i) => (
+                            <tr key={`${h.poId}-${i}`} className="border-t hover:bg-muted/30">
+                              <td className="px-3 py-1.5">{h.date}</td>
+                              <td className="px-3 py-1.5 font-medium">{h.number}</td>
+                              <td className="px-3 py-1.5">{h.supplier}</td>
+                              <td className="px-3 py-1.5">{h.item.description}</td>
+                              <td className="px-3 py-1.5 text-right">{h.item.qty}</td>
+                              <td className="px-3 py-1.5 text-right">{formatCurrency(h.item.rate)}</td>
+                              <td className="px-3 py-1.5 text-right">{formatCurrency(h.item.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
           {FilterBar()}
