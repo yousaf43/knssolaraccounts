@@ -379,11 +379,16 @@ export default function Purchases() {
   const LineItemsEditor = ({ items, setItems }: { items: InvoiceItem[]; setItems: (v: InvoiceItem[]) => void }) => (
     <div className="space-y-2">
       <Label className="font-semibold">Line Items</Label>
-      <div className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2 text-xs font-medium text-muted-foreground">
-        <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span />
+      <div className="grid grid-cols-[220px_1fr_80px_100px_100px_40px] gap-2 text-xs font-medium text-muted-foreground">
+        <span>Product</span><span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span />
       </div>
       {items.map((item, i) => (
-        <div key={i} className="grid grid-cols-[1fr_80px_100px_100px_40px] gap-2">
+        <div key={i} className="grid grid-cols-[220px_1fr_80px_100px_100px_40px] gap-2 items-start">
+          <ProductCombobox
+            inventory={mainInventory}
+            selectedItemId={item.inventoryItemId}
+            onSelect={(id) => selectProductForItem(items, setItems, i, id)}
+          />
           <Input value={item.description} onChange={e => updateItem(items, setItems, i, "description", e.target.value)} placeholder="Item description" className="h-8 text-sm" />
           <Input type="number" value={item.qty} onChange={e => updateItem(items, setItems, i, "qty", e.target.value)} className="h-8 text-sm" min={1} />
           <Input type="number" value={item.rate} onChange={e => updateItem(items, setItems, i, "rate", e.target.value)} className="h-8 text-sm" min={0} />
