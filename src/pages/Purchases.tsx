@@ -263,24 +263,19 @@ export default function Purchases() {
   };
 
   const applyPurchaseToInventory = async (items: InvoiceItem[]) => {
+    // Only quantity is updated on PO save. Cost/Sale prices stay user-controlled in Inventory.
     for (const it of items) {
       if (!it.inventoryItemId || it.qty <= 0) continue;
       const main = inventoryAll.find(i => i.id === it.inventoryItemId);
       if (!main) continue;
-      const oldQty = main.qty || 0;
-      const oldCost = main.costPrice || 0;
       const addQty = it.qty;
-      const addRate = it.rate || 0;
-      const newQty = oldQty + addQty;
-      const newCost = oldQty > 0
-        ? ((oldQty * oldCost) + (addQty * addRate)) / newQty
-        : (addRate || oldCost);
+
       await upsertInventory({
         ...main,
-        qty: newQty,
-        costPrice: Number(newCost.toFixed(2)),
+        qty: (main.qty || 0) + addQty,
       } as InventoryItem);
 
+      // Mirror qty to store inventory (match by uniqueCode/sku/name)
       const key = (main.uniqueCode || main.sku || main.name).trim().toLowerCase();
       const storeMirror = inventoryAll.find(i => (i.location === "store") && (
         (i.uniqueCode || i.sku || i.name).trim().toLowerCase() === key
@@ -308,7 +303,7 @@ export default function Purchases() {
     setPOItems([emptyItem()]);
     setPOForm({ supplier: "", date: today(), deliveryDate: "", status: "pending", notes: "", tax: 10 });
     await log("create", "purchase_order", newPO.id, num, `Supplier: ${poForm.supplier}, Amount: ${total}`);
-    toast.success("Purchase Order created and stock updated");
+    toast.success("Purchase Order created");
   };
 
   // ---- Bill CRUD ----

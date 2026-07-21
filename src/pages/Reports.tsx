@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
-import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder } from "@/data/mockData";
+import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder, type PurchaseOrder } from "@/data/mockData";
 import { type CompanyAsset } from "@/pages/Assets";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
-  useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud,
+  useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud, usePurchaseOrdersCloud,
   useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
 import { Badge } from "@/components/ui/badge";
@@ -286,7 +286,7 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders, purchaseOrders }: {
   report: Report; onBack: () => void;
   monthlySales: { month: string; sales: number; expenses: number }[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -297,6 +297,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   customers: Customer[];
   receipts: Receipt[];
   salesOrders: SalesOrder[];
+  purchaseOrders: PurchaseOrder[];
 }) {
   const { formatCurrency, settings } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
@@ -387,6 +388,44 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     }
     return data;
   }, [report.code, inventory, stockSearch, stockCategoryFilter]);
+
+  // Weighted average purchase cost per inventory item, computed from PO history.
+  // Keyed by both inventory item id and by SKU/uniqueCode/name so merged rows still match.
+  const poAvgCostMap = useMemo(() => {
+    const totals = new Map<string, { qty: number; value: number }>();
+    const bump = (key: string, qty: number, rate: number) => {
+      if (!key || qty <= 0) return;
+      const t = totals.get(key) || { qty: 0, value: 0 };
+      t.qty += qty;
+      t.value += qty * rate;
+      totals.set(key, t);
+    };
+    for (const po of purchaseOrders) {
+      for (const it of po.items || []) {
+        const qty = it.qty || 0;
+        const rate = it.rate || 0;
+        if (qty <= 0 || rate <= 0) continue;
+        if (it.inventoryItemId) bump(`id:${it.inventoryItemId}`, qty, rate);
+        // Also index by product identity for cases where inventoryItemId isn't set
+        const inv = inventory.find(i => i.id === it.inventoryItemId);
+        const identity = inv
+          ? (inv.uniqueCode || inv.sku || inv.name)
+          : (it.description || "");
+        const key = identity.trim().toLowerCase();
+        if (key) bump(`k:${key}`, qty, rate);
+      }
+    }
+    return totals;
+  }, [purchaseOrders, inventory]);
+
+  const getAvgCost = useCallback((item: InventoryItem): number => {
+    const byId = poAvgCostMap.get(`id:${item.id}`);
+    if (byId && byId.qty > 0) return byId.value / byId.qty;
+    const key = (item.uniqueCode || item.sku || item.name).trim().toLowerCase();
+    const byKey = poAvgCostMap.get(`k:${key}`);
+    if (byKey && byKey.qty > 0) return byKey.value / byKey.qty;
+    return item.costPrice || 0;
+  }, [poAvgCostMap]);
 
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
@@ -483,9 +522,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 </thead>
                 <tbody>
                   {inventoryTableData.map((item, idx) => {
-                    // Average cost price: for merged/dedup rows this is already the weighted avg (totalValue/totalQty).
-                    // For single rows it equals the item's cost price.
-                    const avgCost = item.costPrice || 0;
+                    // Avg Cost is derived from purchase order history (weighted avg of PO rates).
+                    // Inventory's own Cost Price stays user-controlled.
+                    const avgCost = getAvgCost(item);
+                    const stockValue = item.qty * avgCost;
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
@@ -497,7 +537,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgCost)}</td>}
-                        {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.qty * item.costPrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(stockValue)}</td>}
                       </tr>
                     );
                   })}
@@ -508,7 +548,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <td className="px-3 py-2" colSpan={5}>Total Products: {inventoryTableData.length}</td>
                       <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
                       <td className="px-3 py-2" colSpan={3}>Total Stock Valuation</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + i.qty * i.costPrice, 0))}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * getAvgCost(i), 0))}</td>
                     </tr>
                   </tfoot>
                 )}
@@ -1961,6 +2001,7 @@ export default function Reports() {
   const { data: customers } = useCustomersCloud();
   const { data: receipts } = useReceiptsCloud();
   const { data: salesOrders } = useSalesOrdersCloud();
+  const { data: purchaseOrders } = usePurchaseOrdersCloud();
 
   // Build monthly data from real data
   const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills), [invoices, expenses, bills]);
@@ -2011,7 +2052,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} customers={customers} receipts={receipts} salesOrders={salesOrders} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} />;
   }
 
   return (
