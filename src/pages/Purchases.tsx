@@ -84,6 +84,7 @@ export default function Purchases() {
 
   // PO Form
   const [showPOForm, setShowPOForm] = useState(false);
+  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [poForm, setPOForm] = useState({ supplier: "", date: today(), deliveryDate: "", status: "pending" as PurchaseOrder["status"], notes: "", tax: 10 });
   const [poItems, setPOItems] = useState<InvoiceItem[]>([emptyItem()]);
   const [showPOQuickSupplier, setShowPOQuickSupplier] = useState(false);
