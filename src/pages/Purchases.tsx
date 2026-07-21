@@ -61,6 +61,19 @@ export default function Purchases() {
   const { data: bills, upsert: upsertBill, remove: removeBill, setData: setBills } = useBillsCloud();
   const { data: payments, upsert: upsertPayment, remove: removePayment, setData: setPayments } = usePurchasePaymentsCloud();
   const { data: suppliers, upsert: upsertSupplier, remove: removeSupplier, setData: setSuppliers } = useSuppliersCloud();
+  const { data: inventoryAll, upsert: upsertInventory } = useInventoryCloud();
+
+  // Main-only inventory (deduped by SKU/uniqueCode/name) for product picker
+  const mainInventory = useMemo(() => {
+    const mains = inventoryAll.filter(i => (i.location || "main") === "main");
+    const seen = new Set<string>();
+    return mains.filter(i => {
+      const key = (i.uniqueCode || i.sku || i.name).trim().toLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [inventoryAll]);
 
   // Filters
   const [filterSupplier, setFilterSupplier] = useState("all");
