@@ -584,8 +584,8 @@ export default function Purchases() {
           {showPOForm && (
             <div className="bg-card rounded-lg border p-6 mb-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold">Create Purchase Order</h2>
-                <Button variant="ghost" size="icon" onClick={() => setShowPOForm(false)}><X className="w-4 h-4" /></Button>
+                <h2 className="font-semibold">{editingPO ? `Edit Purchase Order ${editingPO.number}` : "Create Purchase Order"}</h2>
+                <Button variant="ghost" size="icon" onClick={() => { setShowPOForm(false); setEditingPO(null); }}><X className="w-4 h-4" /></Button>
               </div>
               <form onSubmit={handleSavePO} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
