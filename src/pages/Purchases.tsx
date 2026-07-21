@@ -645,8 +645,8 @@ export default function Purchases() {
                   <div className="flex gap-3">
                     <Textarea placeholder="Notes (optional)" value={poForm.notes} onChange={e => setPOForm({ ...poForm, notes: e.target.value })} className="w-64 h-16 text-sm" />
                     <div className="flex gap-2 items-end">
-                      <Button type="button" variant="outline" onClick={() => setShowPOForm(false)}>Cancel</Button>
-                      <Button type="submit">Create PO</Button>
+                      <Button type="button" variant="outline" onClick={() => { setShowPOForm(false); setEditingPO(null); }}>Cancel</Button>
+                      <Button type="submit">{editingPO ? "Update PO" : "Create PO"}</Button>
                     </div>
                   </div>
                 </div>
