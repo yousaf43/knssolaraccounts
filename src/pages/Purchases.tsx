@@ -675,7 +675,14 @@ export default function Purchases() {
                     <td className="px-4 py-3">{p.deliveryDate}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.status]}`}>{p.status}</span></td>
-                    <td className="px-4 py-3 text-center"><ConfirmDeleteDialog onConfirm={() => handleDeletePO(p.id)} title="Delete Purchase Order?" description={`Delete PO ${p.number}?`} /></td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="inline-flex items-center gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => openEditPO(p)}>
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <ConfirmDeleteDialog onConfirm={() => handleDeletePO(p.id)} title="Delete Purchase Order?" description={`Delete PO ${p.number}?`} />
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {filteredPO.length === 0 && <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No purchase orders found.</td></tr>}
