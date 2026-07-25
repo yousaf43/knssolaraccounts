@@ -69,7 +69,11 @@ export default function Invoices() {
   const { moveToTrash } = useTrash();
   const { data: invoices, upsert: upsertInvoice, remove: removeInvoice, setData: setInvoices } = useInvoicesCloud();
   const { data: salesOrdersAll, upsert: upsertSalesOrder, remove: removeSalesOrder, setData: setSalesOrders } = useSalesOrdersCloud();
-  const salesOrders = useMemo<SalesOrder[]>(() => salesOrdersAll.filter((s: SalesOrder) => (s.location || "main") === "main"), [salesOrdersAll]);
+  // Sales Orders tab shows both main SOs and those moved to Store (read-only, status shown as "Moved to Store").
+  const salesOrders = useMemo<SalesOrder[]>(() => salesOrdersAll.filter((s: SalesOrder) => {
+    const loc = s.location || "main";
+    return loc === "main" || loc === "store";
+  }), [salesOrdersAll]);
   const { data: receipts, upsert: upsertReceipt, remove: removeReceipt, setData: setReceipts } = useReceiptsCloud();
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
