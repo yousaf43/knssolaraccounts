@@ -69,7 +69,11 @@ export default function Invoices() {
   const { moveToTrash } = useTrash();
   const { data: invoices, upsert: upsertInvoice, remove: removeInvoice, setData: setInvoices } = useInvoicesCloud();
   const { data: salesOrdersAll, upsert: upsertSalesOrder, remove: removeSalesOrder, setData: setSalesOrders } = useSalesOrdersCloud();
-  const salesOrders = useMemo<SalesOrder[]>(() => salesOrdersAll.filter((s: SalesOrder) => (s.location || "main") === "main"), [salesOrdersAll]);
+  // Sales Orders tab shows both main SOs and those moved to Store (read-only, status shown as "Moved to Store").
+  const salesOrders = useMemo<SalesOrder[]>(() => salesOrdersAll.filter((s: SalesOrder) => {
+    const loc = s.location || "main";
+    return loc === "main" || loc === "store";
+  }), [salesOrdersAll]);
   const { data: receipts, upsert: upsertReceipt, remove: removeReceipt, setData: setReceipts } = useReceiptsCloud();
   const { data: customers, upsert: upsertCustomer, setData: setCustomers } = useCustomersCloud();
   const { data: inventory, upsert: upsertInventory, setData: setInventory } = useInventoryCloud();
@@ -1065,13 +1069,23 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-muted-foreground">{so.date}</td>
                       <td className="px-4 py-3 text-muted-foreground">{so.deliveryDate}</td>
                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(so.amount)}</td>
-                      <td className="px-4 py-3 text-center"><Badge className={soStatusStyles[so.status]}>{so.status}</Badge></td>
+                      <td className="px-4 py-3 text-center">
+                        {(so.location || "main") === "store"
+                          ? <Badge className="bg-amber-100 text-amber-800 border-0">Moved to Store</Badge>
+                          : <Badge className={soStatusStyles[so.status]}>{so.status}</Badge>}
+                      </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Print with Prices" onClick={() => { setPreviewSO({ order: so, showPrices: true }); setView("so-preview"); }}><Printer className="w-4 h-4 text-primary" /></button>
                           <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Delivery Challan (no prices)" onClick={() => { setPreviewSO({ order: so, showPrices: false }); setView("so-preview"); }}><Eye className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditOrder(so); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                          <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Move to Store Sale Orders" onClick={async () => { await upsertSalesOrder({ ...so, location: "store" }); toast.success(`${so.number} moved to Store Sale Orders`); }}><ArrowLeftRight className="w-4 h-4 text-primary" /></button>
+                          {(so.location || "main") === "store" ? (
+                            <span className="text-[11px] text-muted-foreground px-2" title="This order is in Store Sale Orders. Edit it from the Store tab.">Locked</span>
+                          ) : (
+                            <>
+                              <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditOrder(so); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                              <button className="p-1.5 rounded hover:bg-primary/10 transition-colors" title="Move to Store Sale Orders" onClick={async () => { await upsertSalesOrder({ ...so, location: "store" }); toast.success(`${so.number} moved to Store Sale Orders`); }}><ArrowLeftRight className="w-4 h-4 text-primary" /></button>
+                            </>
+                          )}
                           <ConfirmDeleteDialog onConfirm={() => handleDeleteSO(so.id)} title="Delete Sales Order?" description={`Delete sales order ${so.number}?`} />
                         </div>
                       </td>
