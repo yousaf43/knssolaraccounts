@@ -19,11 +19,15 @@ type AuthContextType = {
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
+  twoFAVerified: boolean;
+  setTwoFAVerified: (v: boolean) => void;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
+
+const twoFAKey = (uid: string) => `2fa_verified_${uid}`;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -33,6 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [twoFAVerified, setTwoFAVerifiedState] = useState(false);
+
+  const setTwoFAVerified = (v: boolean) => {
+    setTwoFAVerifiedState(v);
+    if (user) {
+      if (v) sessionStorage.setItem(twoFAKey(user.id), "1");
+      else sessionStorage.removeItem(twoFAKey(user.id));
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     const { data: profileData } = await supabase
@@ -68,11 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          setTwoFAVerifiedState(sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
           // Use setTimeout to avoid Supabase deadlock
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
           setRole(null);
+          setTwoFAVerifiedState(false);
         }
         setLoading(false);
       }
@@ -83,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        setTwoFAVerifiedState(sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
         fetchProfile(session.user.id);
       }
       setLoading(false);
@@ -109,15 +125,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (user) sessionStorage.removeItem(twoFAKey(user.id));
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
     setRole(null);
+    setTwoFAVerifiedState(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, role, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, role, loading, twoFAVerified, setTwoFAVerified, signUp, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
