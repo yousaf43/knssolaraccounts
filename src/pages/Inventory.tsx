@@ -735,21 +735,39 @@ export default function Inventory() {
       {/* Pagination */}
       {filteredInventory.length > ITEMS_PER_PAGE && (() => {
         const totalPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
+        const getPages = (): (number | "...")[] => {
+          const pages: (number | "...")[] = [];
+          if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+          } else {
+            pages.push(1);
+            if (currentPage > 3) pages.push("...");
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+            if (currentPage < totalPages - 2) pages.push("...");
+            pages.push(totalPages);
+          }
+          return pages;
+        };
         return (
-          <div className="flex items-center justify-between px-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2">
             <p className="text-sm text-muted-foreground">
               Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInventory.length)} of {filteredInventory.length}
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</Button>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <Button key={i+1} variant={currentPage === i+1 ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(i+1)}>{i+1}</Button>
-              ))}
+              {getPages().map((p, i) =>
+                p === "..." ? (
+                  <span key={`e${i}`} className="px-2 text-sm text-muted-foreground">…</span>
+                ) : (
+                  <Button key={p} variant={currentPage === p ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(p)}>{p}</Button>
+                )
+              )}
               <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
             </div>
           </div>
         );
       })()}
+
 
       {/* Stock Adjustment Section */}
       <StockAdjustmentSection inventory={inventory} onUpdateInventory={handleUpdateInventory} />
