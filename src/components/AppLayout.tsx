@@ -82,6 +82,7 @@ export function AppLayout() {
               </button>
             </div>
           </header>
+          <RecentTabs />
           {/* Content */}
           <main id="main-scroll" className="flex-1 bg-background p-3 sm:p-6">
             <Outlet />
