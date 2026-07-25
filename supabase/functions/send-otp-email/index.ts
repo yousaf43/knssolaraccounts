@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "K&S Solar Energy <onboarding@resend.dev>",
+        from: "K&S Solar Energy <noreply@knssolar.com.pk>",
         to: [user.email],
         subject: `Your login code: ${code}`,
         html,
