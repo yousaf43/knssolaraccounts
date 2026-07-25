@@ -22,6 +22,7 @@ import ActivityLogs from "@/pages/ActivityLogs";
 import TrashPage from "@/pages/Trash";
 import SolarWashing from "@/pages/SolarWashing";
 import Auth from "@/pages/Auth";
+import TwoFactorVerify from "@/pages/TwoFactorVerify";
 import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -29,7 +30,7 @@ import { Loader2 } from "lucide-react";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { user, loading, role } = useAuth();
+  const { user, loading, role, twoFAVerified } = useAuth();
 
   if (loading) {
     return (
@@ -40,6 +41,7 @@ function ProtectedRoutes() {
   }
 
   if (!user) return <Navigate to="/auth" replace />;
+  if (!twoFAVerified) return <TwoFactorVerify />;
 
   const isSales = role === "sales";
 
@@ -68,7 +70,7 @@ function ProtectedRoutes() {
 }
 
 function AuthRoute() {
-  const { user, loading } = useAuth();
+  const { user, loading, twoFAVerified } = useAuth();
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -76,6 +78,7 @@ function AuthRoute() {
       </div>
     );
   }
+  if (user && !twoFAVerified) return <TwoFactorVerify />;
   if (user) return <Navigate to="/" replace />;
   return <Auth />;
 }
