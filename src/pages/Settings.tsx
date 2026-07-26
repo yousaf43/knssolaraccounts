@@ -758,6 +758,40 @@ export default function Settings() {
         )}
       </Tabs>
 
+      <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Full Name</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>New Password <span className="text-xs text-muted-foreground">(leave blank to keep current)</span></Label>
+              <Input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Min 6 characters" className="mt-1" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)} disabled={savingEdit}>Cancel</Button>
+            <Button onClick={handleSaveEditUser} disabled={savingEdit} className="gap-2">
+              {savingEdit && <Loader2 className="w-4 h-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <div className="flex justify-end">
         <Button onClick={handleSave} className="gap-2" disabled={uploading}>
           {uploading ? "Uploading..." : <><Save className="w-4 h-4" /> Save Settings</>}
