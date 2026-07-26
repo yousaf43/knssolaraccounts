@@ -140,6 +140,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    // LIST USERS (merge auth emails + profiles + roles)
+    if (action === "list") {
+      const { data: authList, error: authErr } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (authErr) {
+        return new Response(JSON.stringify({ error: authErr.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: profiles } = await adminClient.from("profiles").select("user_id, full_name, phone");
+      const { data: roles } = await adminClient.from("user_roles").select("user_id, role");
+      const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      const roleMap = new Map((roles || []).map((r: any) => [r.user_id, r.role]));
+      const users = (authList?.users || []).map((u: any) => ({
+        user_id: u.id,
+        email: u.email || "",
+        full_name: profileMap.get(u.id)?.full_name || "",
+        phone: profileMap.get(u.id)?.phone || "",
+        role: roleMap.get(u.id) || "sales",
+      }));
+      return new Response(JSON.stringify({ success: true, users }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // EXPORT ALL DATA
     if (action === "export") {
       const tables = ["customers", "suppliers", "inventory", "invoices", "sales_orders", "quotations", "receipts", "expenses", "purchase_orders", "bills", "purchase_payments", "stock_adjustments", "accounts", "ledger_entries", "other_payments", "other_receipts", "transfers", "reconcile_entries", "user_settings"];
