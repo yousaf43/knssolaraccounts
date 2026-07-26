@@ -360,7 +360,7 @@ export default function Settings() {
           <TabsTrigger value="backup" className="gap-1.5 text-xs"><Database className="w-3.5 h-3.5" /> Backup</TabsTrigger>
           <TabsTrigger value="export" className="gap-1.5 text-xs"><FileDown className="w-3.5 h-3.5" /> Export</TabsTrigger>
           {role === "admin" && (
-            <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={loadUsers}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
+            <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={() => loadUsers()}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
           )}
         </TabsList>
 
