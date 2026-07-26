@@ -114,18 +114,70 @@ export default function Settings() {
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  const loadUsers = async () => {
-    if (usersLoaded) return;
-    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-    if (profiles && roles) {
-      const merged: UserWithRole[] = profiles.map((p: any) => {
-        const r = roles.find((r: any) => r.user_id === p.user_id);
-        return { user_id: p.user_id, full_name: p.full_name || "Unknown", email: "", role: r?.role || "sales" };
+  const loadUsers = async (force = false) => {
+    if (usersLoaded && !force) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: "list" }),
       });
-      setUsers(merged);
+      const result = await res.json();
+      if (res.ok && result.users) {
+        setUsers(result.users);
+      } else {
+        toast.error(result.error || "Failed to load users");
+      }
+    } catch (err: any) {
+      toast.error("Failed to load users: " + err.message);
     }
     setUsersLoaded(true);
+  };
+
+  // Edit user dialog state
+  const [editUser, setEditUser] = useState<UserWithRole | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEditUser = (u: UserWithRole) => {
+    setEditUser(u);
+    setEditName(u.full_name || "");
+    setEditEmail(u.email || "");
+    setEditPhone(u.phone || "");
+    setEditPassword("");
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editUser) return;
+    if (editPassword && editPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    setSavingEdit(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          action: "update",
+          userId: editUser.user_id,
+          fullName: editName.trim(),
+          phone: editPhone.trim(),
+          email: editEmail.trim() && editEmail.trim() !== editUser.email ? editEmail.trim() : undefined,
+          password: editPassword || undefined,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) { toast.error(result.error || "Update failed"); }
+      else {
+        toast.success("User updated");
+        setEditUser(null);
+        await loadUsers(true);
+      }
+    } catch (err: any) { toast.error("Failed: " + err.message); }
+    setSavingEdit(false);
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
