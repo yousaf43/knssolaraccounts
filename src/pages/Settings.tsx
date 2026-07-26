@@ -707,6 +707,7 @@ export default function Settings() {
                     <thead>
                       <tr className="bg-muted/50">
                         <th className="text-left px-4 py-3 font-medium">Name</th>
+                        <th className="text-left px-4 py-3 font-medium">Email</th>
                         <th className="text-left px-4 py-3 font-medium">Role</th>
                         <th className="text-right px-4 py-3 font-medium">Actions</th>
                       </tr>
@@ -720,6 +721,7 @@ export default function Settings() {
                               {u.user_id === user?.id && <Badge variant="outline" className="text-[10px]">You</Badge>}
                             </div>
                           </td>
+                          <td className="px-4 py-3 text-muted-foreground break-all">{u.email || "—"}</td>
                           <td className="px-4 py-3"><Badge variant="secondary" className="capitalize">{u.role}</Badge></td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
@@ -733,6 +735,9 @@ export default function Settings() {
                                       <SelectItem value="sales">Sales</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditUser(u)} title="Edit user">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteUser(u.user_id)}>
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
