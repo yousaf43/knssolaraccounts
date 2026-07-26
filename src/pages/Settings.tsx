@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database, Cloud, Trash2, RotateCcw, Loader2, UserCircle, Edit, X, Check, FileDown, FileSpreadsheet, FileJson } from "lucide-react";
@@ -39,6 +40,7 @@ type UserWithRole = {
   user_id: string;
   full_name: string;
   email: string;
+  phone?: string;
   role: string;
 };
 
@@ -113,18 +115,70 @@ export default function Settings() {
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  const loadUsers = async () => {
-    if (usersLoaded) return;
-    const { data: profiles } = await supabase.from("profiles").select("user_id, full_name");
-    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
-    if (profiles && roles) {
-      const merged: UserWithRole[] = profiles.map((p: any) => {
-        const r = roles.find((r: any) => r.user_id === p.user_id);
-        return { user_id: p.user_id, full_name: p.full_name || "Unknown", email: "", role: r?.role || "sales" };
+  const loadUsers = async (force = false) => {
+    if (usersLoaded && !force) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ action: "list" }),
       });
-      setUsers(merged);
+      const result = await res.json();
+      if (res.ok && result.users) {
+        setUsers(result.users);
+      } else {
+        toast.error(result.error || "Failed to load users");
+      }
+    } catch (err: any) {
+      toast.error("Failed to load users: " + err.message);
     }
     setUsersLoaded(true);
+  };
+
+  // Edit user dialog state
+  const [editUser, setEditUser] = useState<UserWithRole | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEditUser = (u: UserWithRole) => {
+    setEditUser(u);
+    setEditName(u.full_name || "");
+    setEditEmail(u.email || "");
+    setEditPhone(u.phone || "");
+    setEditPassword("");
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editUser) return;
+    if (editPassword && editPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    setSavingEdit(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          action: "update",
+          userId: editUser.user_id,
+          fullName: editName.trim(),
+          phone: editPhone.trim(),
+          email: editEmail.trim() && editEmail.trim() !== editUser.email ? editEmail.trim() : undefined,
+          password: editPassword || undefined,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) { toast.error(result.error || "Update failed"); }
+      else {
+        toast.success("User updated");
+        setEditUser(null);
+        await loadUsers(true);
+      }
+    } catch (err: any) { toast.error("Failed: " + err.message); }
+    setSavingEdit(false);
   };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -307,7 +361,7 @@ export default function Settings() {
           <TabsTrigger value="backup" className="gap-1.5 text-xs"><Database className="w-3.5 h-3.5" /> Backup</TabsTrigger>
           <TabsTrigger value="export" className="gap-1.5 text-xs"><FileDown className="w-3.5 h-3.5" /> Export</TabsTrigger>
           {role === "admin" && (
-            <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={loadUsers}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
+            <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={() => loadUsers()}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
           )}
         </TabsList>
 
@@ -654,6 +708,7 @@ export default function Settings() {
                     <thead>
                       <tr className="bg-muted/50">
                         <th className="text-left px-4 py-3 font-medium">Name</th>
+                        <th className="text-left px-4 py-3 font-medium">Email</th>
                         <th className="text-left px-4 py-3 font-medium">Role</th>
                         <th className="text-right px-4 py-3 font-medium">Actions</th>
                       </tr>
@@ -667,6 +722,7 @@ export default function Settings() {
                               {u.user_id === user?.id && <Badge variant="outline" className="text-[10px]">You</Badge>}
                             </div>
                           </td>
+                          <td className="px-4 py-3 text-muted-foreground break-all">{u.email || "—"}</td>
                           <td className="px-4 py-3"><Badge variant="secondary" className="capitalize">{u.role}</Badge></td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
@@ -680,6 +736,9 @@ export default function Settings() {
                                       <SelectItem value="sales">Sales</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditUser(u)} title="Edit user">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteUser(u.user_id)}>
                                     <Trash2 className="w-4 h-4" />
                                   </Button>
@@ -699,6 +758,40 @@ export default function Settings() {
           </TabsContent>
         )}
       </Tabs>
+
+      <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Full Name</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label>New Password <span className="text-xs text-muted-foreground">(leave blank to keep current)</span></Label>
+              <Input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Min 6 characters" className="mt-1" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)} disabled={savingEdit}>Cancel</Button>
+            <Button onClick={handleSaveEditUser} disabled={savingEdit} className="gap-2">
+              {savingEdit && <Loader2 className="w-4 h-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <div className="flex justify-end">
         <Button onClick={handleSave} className="gap-2" disabled={uploading}>

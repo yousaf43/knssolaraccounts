@@ -75,9 +75,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    // UPDATE USER (email/password)
+    // LIST USERS (with emails from auth)
+    if (action === "list") {
+      const { data: profiles } = await adminClient.from("profiles").select("user_id, full_name, phone");
+      const { data: roles } = await adminClient.from("user_roles").select("user_id, role");
+      const { data: authList, error: listErr } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (listErr) {
+        return new Response(JSON.stringify({ error: listErr.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const users = (profiles || []).map((p: any) => {
+        const authU = authList.users.find((u: any) => u.id === p.user_id);
+        const r = (roles || []).find((r: any) => r.user_id === p.user_id);
+        return {
+          user_id: p.user_id,
+          full_name: p.full_name || "",
+          phone: p.phone || "",
+          email: authU?.email || "",
+          role: r?.role || "sales",
+        };
+      });
+      return new Response(JSON.stringify({ success: true, users }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // UPDATE USER (email/password/full_name/phone)
     if (action === "update") {
-      const { userId, email, password } = body;
+      const { userId, email, password, fullName, phone } = body;
       if (!userId) {
         return new Response(JSON.stringify({ error: "Missing userId" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -86,13 +112,29 @@ Deno.serve(async (req) => {
       const updates: Record<string, unknown> = {};
       if (email) updates.email = email;
       if (password) updates.password = password;
-      
-      const { error } = await adminClient.auth.admin.updateUserById(userId, updates);
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (email) updates.email_confirm = true;
+
+      if (email || password) {
+        const { error } = await adminClient.auth.admin.updateUserById(userId, updates);
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
+
+      const profileUpdates: Record<string, unknown> = {};
+      if (typeof fullName === "string") profileUpdates.full_name = fullName;
+      if (typeof phone === "string") profileUpdates.phone = phone;
+      if (Object.keys(profileUpdates).length > 0) {
+        const { error: pErr } = await adminClient.from("profiles").update(profileUpdates).eq("user_id", userId);
+        if (pErr) {
+          return new Response(JSON.stringify({ error: pErr.message }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
