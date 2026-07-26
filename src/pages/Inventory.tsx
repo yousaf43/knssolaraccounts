@@ -3,7 +3,7 @@ import StockAdjustmentSection from "@/components/StockAdjustmentSection";
 import { BundleComponentSearch } from "@/components/BundleComponentSearch";
 import type { InventoryItem, StockAdjustment } from "@/data/mockData";
 import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } from "@/hooks/useAppData";
-import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package, Filter } from "lucide-react";
+import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { HighlightText } from "@/components/HighlightText";
@@ -734,35 +734,40 @@ export default function Inventory() {
 
       {/* Pagination */}
       {filteredInventory.length > ITEMS_PER_PAGE && (() => {
-        const totalPages = Math.ceil(filteredInventory.length / ITEMS_PER_PAGE);
+        const totalPages = Math.max(1, Math.ceil(filteredInventory.length / ITEMS_PER_PAGE));
+        const safePage = Math.min(Math.max(1, currentPage), totalPages);
         const getPages = (): (number | "...")[] => {
           const pages: (number | "...")[] = [];
           if (totalPages <= 7) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
           } else {
             pages.push(1);
-            if (currentPage > 3) pages.push("...");
-            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
-            if (currentPage < totalPages - 2) pages.push("...");
+            if (safePage > 3) pages.push("...");
+            for (let i = Math.max(2, safePage - 1); i <= Math.min(totalPages - 1, safePage + 1); i++) pages.push(i);
+            if (safePage < totalPages - 2) pages.push("...");
             pages.push(totalPages);
           }
           return pages;
         };
         return (
-          <div className="flex flex-wrap items-center justify-between gap-2 px-2">
-            <p className="text-sm text-muted-foreground">
-              Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredInventory.length)} of {filteredInventory.length}
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2 w-full min-w-0">
+            <p className="text-xs text-muted-foreground">
+              Showing {((safePage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(safePage * ITEMS_PER_PAGE, filteredInventory.length)} of {filteredInventory.length}
             </p>
-            <div className="flex flex-wrap items-center gap-1">
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</Button>
+            <div className="flex items-center gap-1 flex-nowrap">
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safePage <= 1} onClick={() => setCurrentPage(safePage - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
               {getPages().map((p, i) =>
                 p === "..." ? (
-                  <span key={`e${i}`} className="px-2 text-sm text-muted-foreground">…</span>
+                  <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
                 ) : (
-                  <Button key={p} variant={currentPage === p ? "default" : "outline"} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(p)}>{p}</Button>
+                  <Button key={p} variant={safePage === p ? "default" : "ghost"} size="icon" className="h-8 w-8 text-xs" onClick={() => setCurrentPage(p)}>{p}</Button>
                 )
               )}
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={safePage >= totalPages} onClick={() => setCurrentPage(safePage + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         );
