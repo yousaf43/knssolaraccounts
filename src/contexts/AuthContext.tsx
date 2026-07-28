@@ -98,13 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          setTwoFAVerifiedState(sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
+          const enabled = localStorage.getItem(twoFAEnabledKey(session.user.id)) !== "0";
+          setTwoFAEnabledState(enabled);
+          setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
           // Use setTimeout to avoid Supabase deadlock
           setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
           setRole(null);
           setTwoFAVerifiedState(false);
+          setTwoFAEnabledState(true);
         }
         setLoading(false);
       }
@@ -115,11 +118,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setTwoFAVerifiedState(sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
+        const enabled = localStorage.getItem(twoFAEnabledKey(session.user.id)) !== "0";
+        setTwoFAEnabledState(enabled);
+        setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
         fetchProfile(session.user.id);
       }
       setLoading(false);
     });
+
 
     return () => subscription.unsubscribe();
   }, []);
