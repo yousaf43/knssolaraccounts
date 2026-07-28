@@ -46,7 +46,7 @@ type UserWithRole = {
 
 export default function Settings() {
   const { settings, setSettings } = useSettings();
-  const { profile, role, user, refreshProfile } = useAuth();
+  const { profile, role, user, refreshProfile, twoFAEnabled, setTwoFAEnabled } = useAuth();
   const [form, setForm] = useState<AppSettings>({ ...settings });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>(settings.logoUrl || "");
