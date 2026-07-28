@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [twoFAVerified, setTwoFAVerifiedState] = useState(false);
+  const [twoFAEnabled, setTwoFAEnabledState] = useState(true);
 
   const setTwoFAVerified = (v: boolean) => {
     setTwoFAVerifiedState(v);
@@ -50,6 +51,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else sessionStorage.removeItem(twoFAKey(user.id));
     }
   };
+
+  const setTwoFAEnabled = (v: boolean) => {
+    setTwoFAEnabledState(v);
+    if (user) {
+      localStorage.setItem(twoFAEnabledKey(user.id), v ? "1" : "0");
+      if (!v) {
+        sessionStorage.setItem(twoFAKey(user.id), "1");
+        setTwoFAVerifiedState(true);
+      }
+    }
+  };
+
 
   const fetchProfile = async (userId: string) => {
     const { data: profileData } = await supabase
