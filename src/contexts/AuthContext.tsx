@@ -21,6 +21,8 @@ type AuthContextType = {
   loading: boolean;
   twoFAVerified: boolean;
   setTwoFAVerified: (v: boolean) => void;
+  twoFAEnabled: boolean;
+  setTwoFAEnabled: (v: boolean) => void;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -28,6 +30,8 @@ type AuthContextType = {
 };
 
 const twoFAKey = (uid: string) => `2fa_verified_${uid}`;
+const twoFAEnabledKey = (uid: string) => `2fa_enabled_${uid}`;
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
