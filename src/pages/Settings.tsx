@@ -504,10 +504,33 @@ export default function Settings() {
               <Badge variant="secondary" className="capitalize">{role}</Badge>
               <span className="text-xs text-muted-foreground">Your current role</span>
             </div>
+            <div className="border-t pt-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" />
+                    <h3 className="font-medium text-sm">Two-Factor Authentication (Email OTP)</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {twoFAEnabled
+                      ? "Enabled — you'll get a 6-digit code on your email at sign-in."
+                      : "Disabled — sign-in requires only your password."}
+                  </p>
+                </div>
+                <Switch
+                  checked={twoFAEnabled}
+                  onCheckedChange={(v) => {
+                    setTwoFAEnabled(v);
+                    toast.success(v ? "2FA enabled" : "2FA disabled");
+                  }}
+                />
+              </div>
+            </div>
             <Button onClick={handleSaveProfile} disabled={savingProfile} className="gap-1.5">
               {savingProfile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               Save Profile
             </Button>
+
           </div>
         </TabsContent>
 
