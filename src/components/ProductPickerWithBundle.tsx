@@ -54,9 +54,12 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
   const chooseBundle = () => {
     setChooserOpen(false);
     setBundleLines([]);
+    setBundleTitle("");
+    setBundleDescription("");
     setSearch("");
     setBundleOpen(true);
   };
+
 
   const filtered = search.trim()
     ? inventory.filter((inv) => {
