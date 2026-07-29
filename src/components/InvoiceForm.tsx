@@ -213,27 +213,34 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const addItem = () => setItems((prev) => [...prev, { description: "", qty: 1, rate: 0, amount: 0 }]);
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
-  const insertAdhocBundle = (index: number, lines: AdhocBundleLine[]) => {
+  const insertAdhocBundle = (index: number, result: import("@/components/ProductPickerWithBundle").AdhocBundleResult) => {
     setItems((prev) => {
-      const expanded: InvoiceItem[] = lines.map((l) => {
-        const inv = inventory.find((i) => i.id === l.itemId);
-        return {
-          description: inv?.name || "",
-          qty: l.qty,
-          rate: l.rate,
-          amount: l.qty * l.rate,
-          inventoryItemId: l.itemId,
-          discount: 0,
-        };
-      });
+      const { title, description, lines } = result;
+      const total = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+      const componentsText = lines
+        .map((l) => {
+          const inv = inventory.find((i) => i.id === l.itemId);
+          const name = inv?.name || "Item";
+          return `• ${name} × ${l.qty} @ ${l.rate}`;
+        })
+        .join("\n");
+      const fullDescription = [title, description, componentsText].filter(Boolean).join("\n");
+      const bundled: InvoiceItem = {
+        description: fullDescription,
+        qty: 1,
+        rate: total,
+        amount: total,
+        discount: 0,
+      };
       const current = prev[index];
       const isEmpty = current && !current.description && !current.inventoryItemId && !current.rate;
       const next = [...prev];
-      if (isEmpty) next.splice(index, 1, ...expanded);
-      else next.splice(index + 1, 0, ...expanded);
+      if (isEmpty) next.splice(index, 1, bundled);
+      else next.splice(index + 1, 0, bundled);
       return next;
     });
   };
+
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const discountAmount = discount;
