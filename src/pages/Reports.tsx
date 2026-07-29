@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
+import { useSortableTables } from "@/hooks/useSortableTables";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder, type PurchaseOrder } from "@/data/mockData";
@@ -434,8 +435,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
 
+  const reportRootRef = useRef<HTMLDivElement>(null);
+  useSortableTables(reportRootRef, [report.code]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={reportRootRef}>
+
       {/* Header */}
       <div className="flex items-center gap-4 flex-wrap">
         <button onClick={onBack} className="flex items-center gap-1 text-primary hover:underline text-sm">
