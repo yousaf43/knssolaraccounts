@@ -92,11 +92,18 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
 
   const confirmBundle = () => {
     if (bundleLines.length === 0) return;
-    onBundleSelect(bundleLines);
+    onBundleSelect({
+      title: bundleTitle.trim() || "Bundle",
+      description: bundleDescription.trim(),
+      lines: bundleLines,
+    });
     setBundleOpen(false);
     setBundleLines([]);
+    setBundleTitle("");
+    setBundleDescription("");
     setMode("idle");
   };
+
 
   // If user picked "single" mode (or already has a selection) render normal combobox
   if (mode === "single" || selectedItemId) {
