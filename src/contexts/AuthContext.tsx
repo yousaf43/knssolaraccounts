@@ -93,6 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchProfile(user.id);
   };
 
+  const resolveTwoFAEnabled = (u: User) => {
+    const meta = (u.user_metadata as { two_fa_enabled?: boolean } | null)?.two_fa_enabled;
+    if (typeof meta === "boolean") {
+      // Sync local cache so subsequent reads match metadata
+      localStorage.setItem(twoFAEnabledKey(u.id), meta ? "1" : "0");
+      return meta;
+    }
+    return localStorage.getItem(twoFAEnabledKey(u.id)) !== "0";
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -101,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          const enabled = localStorage.getItem(twoFAEnabledKey(session.user.id)) !== "0";
+          const enabled = resolveTwoFAEnabled(session.user);
           setTwoFAEnabledState(enabled);
           setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
           // Use setTimeout to avoid Supabase deadlock
@@ -121,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        const enabled = localStorage.getItem(twoFAEnabledKey(session.user.id)) !== "0";
+        const enabled = resolveTwoFAEnabled(session.user);
         setTwoFAEnabledState(enabled);
         setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(session.user.id)) === "1");
         fetchProfile(session.user.id);
@@ -132,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({
