@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Package, Box, Plus, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ProductCombobox } from "@/components/ProductCombobox";
@@ -16,21 +17,29 @@ export type AdhocBundleLine = {
   rate: number;
 };
 
+export type AdhocBundleResult = {
+  title: string;
+  description: string;
+  lines: AdhocBundleLine[];
+};
+
 type Props = {
   inventory: InventoryItem[];
   selectedItemId?: string;
   onSelect: (itemId: string) => void;
-  onBundleSelect: (lines: AdhocBundleLine[]) => void;
+  onBundleSelect: (result: AdhocBundleResult) => void;
   hidePrices?: boolean;
 };
-
 export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices }: Props) {
   const { formatCurrency } = useSettings();
   const [chooserOpen, setChooserOpen] = useState(false);
   const [mode, setMode] = useState<"idle" | "single" | "bundle">("idle");
   const [bundleOpen, setBundleOpen] = useState(false);
   const [bundleLines, setBundleLines] = useState<AdhocBundleLine[]>([]);
+  const [bundleTitle, setBundleTitle] = useState("");
+  const [bundleDescription, setBundleDescription] = useState("");
   const [search, setSearch] = useState("");
+
 
   const openChooser = () => {
     if (selectedItemId) return; // already selected → show as-is
@@ -45,9 +54,12 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
   const chooseBundle = () => {
     setChooserOpen(false);
     setBundleLines([]);
+    setBundleTitle("");
+    setBundleDescription("");
     setSearch("");
     setBundleOpen(true);
   };
+
 
   const filtered = search.trim()
     ? inventory.filter((inv) => {
@@ -80,11 +92,18 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
 
   const confirmBundle = () => {
     if (bundleLines.length === 0) return;
-    onBundleSelect(bundleLines);
+    onBundleSelect({
+      title: bundleTitle.trim() || "Bundle",
+      description: bundleDescription.trim(),
+      lines: bundleLines,
+    });
     setBundleOpen(false);
     setBundleLines([]);
+    setBundleTitle("");
+    setBundleDescription("");
     setMode("idle");
   };
+
 
   // If user picked "single" mode (or already has a selection) render normal combobox
   if (mode === "single" || selectedItemId) {
@@ -151,7 +170,30 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-4">
+            {/* Bundle title + description */}
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <Label className="text-xs">Bundle Title *</Label>
+                <Input
+                  value={bundleTitle}
+                  onChange={(e) => setBundleTitle(e.target.value)}
+                  placeholder="e.g. Accessories, Installation Kit, Mounting Set"
+                  className="mt-1 h-9"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Description (optional)</Label>
+                <Textarea
+                  value={bundleDescription}
+                  onChange={(e) => setBundleDescription(e.target.value)}
+                  placeholder="Additional notes about this bundle..."
+                  className="mt-1 min-h-[60px] text-xs"
+                />
+              </div>
+            </div>
+
             {/* Search + add */}
+
             <div>
               <Label className="text-xs">Add products to bundle</Label>
               <div className="relative mt-1">
