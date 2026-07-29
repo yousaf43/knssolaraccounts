@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Package, Box, Plus, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ProductCombobox } from "@/components/ProductCombobox";
@@ -15,6 +16,21 @@ export type AdhocBundleLine = {
   qty: number;
   rate: number;
 };
+
+export type AdhocBundleResult = {
+  title: string;
+  description: string;
+  lines: AdhocBundleLine[];
+};
+
+type Props = {
+  inventory: InventoryItem[];
+  selectedItemId?: string;
+  onSelect: (itemId: string) => void;
+  onBundleSelect: (result: AdhocBundleResult) => void;
+  hidePrices?: boolean;
+};
+
 
 type Props = {
   inventory: InventoryItem[];
