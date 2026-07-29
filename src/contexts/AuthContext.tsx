@@ -60,8 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.setItem(twoFAKey(user.id), "1");
         setTwoFAVerifiedState(true);
       }
+      // Persist across devices via auth metadata
+      supabase.auth.updateUser({ data: { two_fa_enabled: v } }).catch(() => {});
     }
   };
+
 
 
   const fetchProfile = async (userId: string) => {
