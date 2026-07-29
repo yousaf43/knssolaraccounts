@@ -197,7 +197,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
             {invoice.items.map((item, i) => (
               <tr key={i} className="border-b border-gray-200">
                 <td className="px-3 py-2 text-center text-gray-600">{i + 1}</td>
-                <td className="px-3 py-2">{item.description}</td>
+                <td className="px-3 py-2 whitespace-pre-line">{item.description}</td>
                 <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
                 <td className="px-3 py-2 text-right">{item.qty}</td>
                 <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
