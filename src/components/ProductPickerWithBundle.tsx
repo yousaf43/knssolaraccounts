@@ -30,23 +30,16 @@ type Props = {
   onBundleSelect: (result: AdhocBundleResult) => void;
   hidePrices?: boolean;
 };
-
-
-type Props = {
-  inventory: InventoryItem[];
-  selectedItemId?: string;
-  onSelect: (itemId: string) => void;
-  onBundleSelect: (lines: AdhocBundleLine[]) => void;
-  hidePrices?: boolean;
-};
-
 export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices }: Props) {
   const { formatCurrency } = useSettings();
   const [chooserOpen, setChooserOpen] = useState(false);
   const [mode, setMode] = useState<"idle" | "single" | "bundle">("idle");
   const [bundleOpen, setBundleOpen] = useState(false);
   const [bundleLines, setBundleLines] = useState<AdhocBundleLine[]>([]);
+  const [bundleTitle, setBundleTitle] = useState("");
+  const [bundleDescription, setBundleDescription] = useState("");
   const [search, setSearch] = useState("");
+
 
   const openChooser = () => {
     if (selectedItemId) return; // already selected → show as-is
