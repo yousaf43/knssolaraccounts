@@ -427,7 +427,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                       </td>
                     )}
                     <td className="px-3 py-2">
-                      <Input value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Item description" className="h-8" required />
+                      <Textarea value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Item description" className="min-h-8 py-1 text-sm resize-y" rows={1} required />
                     </td>
                     <td className="px-3 py-2">
                       <Input type="number" min={1} value={item.qty} onChange={(e) => updateItem(i, "qty", Number(e.target.value))} className="h-8 text-right" required />
