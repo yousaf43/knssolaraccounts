@@ -411,10 +411,11 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                   <tr className="border-b last:border-0">
                     {hasInventory && (
                       <td className="px-3 py-2">
-                        <ProductCombobox
+                        <ProductPickerWithBundle
                           inventory={inventory}
                           selectedItemId={item.inventoryItemId}
                           onSelect={(id) => selectInventoryItem(i, id)}
+                          onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
                         />
                       </td>
                     )}
