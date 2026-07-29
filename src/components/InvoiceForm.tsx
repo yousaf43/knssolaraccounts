@@ -9,7 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Plus, Trash2, X, UserPlus, ChevronsUpDown, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ProductCombobox } from "@/components/ProductCombobox";
+import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/ProductPickerWithBundle";
 import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -213,6 +213,28 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const addItem = () => setItems((prev) => [...prev, { description: "", qty: 1, rate: 0, amount: 0 }]);
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
+  const insertAdhocBundle = (index: number, lines: AdhocBundleLine[]) => {
+    setItems((prev) => {
+      const expanded: InvoiceItem[] = lines.map((l) => {
+        const inv = inventory.find((i) => i.id === l.itemId);
+        return {
+          description: inv?.name || "",
+          qty: l.qty,
+          rate: l.rate,
+          amount: l.qty * l.rate,
+          inventoryItemId: l.itemId,
+          discount: 0,
+        };
+      });
+      const current = prev[index];
+      const isEmpty = current && !current.description && !current.inventoryItemId && !current.rate;
+      const next = [...prev];
+      if (isEmpty) next.splice(index, 1, ...expanded);
+      else next.splice(index + 1, 0, ...expanded);
+      return next;
+    });
+  };
+
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const discountAmount = discount;
   const afterDiscount = Math.max(0, subtotal - discountAmount);
@@ -389,10 +411,11 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                   <tr className="border-b last:border-0">
                     {hasInventory && (
                       <td className="px-3 py-2">
-                        <ProductCombobox
+                        <ProductPickerWithBundle
                           inventory={inventory}
                           selectedItemId={item.inventoryItemId}
                           onSelect={(id) => selectInventoryItem(i, id)}
+                          onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
                         />
                       </td>
                     )}

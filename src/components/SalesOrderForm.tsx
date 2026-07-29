@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import type { SalesOrder, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
-import { ProductCombobox } from "@/components/ProductCombobox";
+import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/ProductPickerWithBundle";
 import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 
@@ -177,6 +177,28 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   const addItem = () => setItems((prev) => [...prev, { description: "", qty: 1, rate: 0, amount: 0 }]);
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
+  const insertAdhocBundle = (index: number, lines: AdhocBundleLine[]) => {
+    setItems((prev) => {
+      const expanded: InvoiceItem[] = lines.map((l) => {
+        const inv = inventory.find((i) => i.id === l.itemId);
+        return {
+          description: inv?.name || "",
+          qty: l.qty,
+          rate: l.rate,
+          amount: l.qty * l.rate,
+          inventoryItemId: l.itemId,
+          discount: 0,
+        };
+      });
+      const current = prev[index];
+      const isEmpty = current && !current.description && !current.inventoryItemId && !current.rate;
+      const next = [...prev];
+      if (isEmpty) next.splice(index, 1, ...expanded);
+      else next.splice(index + 1, 0, ...expanded);
+      return next;
+    });
+  };
+
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const taxAmount = subtotal * (tax / 100);
   const total = subtotal + taxAmount;
@@ -337,10 +359,12 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                   <React.Fragment key={i}>
                   <tr className="border-b last:border-0">
                     <td className="px-3 py-2">
-                      <ProductCombobox
+                      <ProductPickerWithBundle
                         inventory={inventory}
                         selectedItemId={item.inventoryItemId}
                         onSelect={(id) => selectInventoryItem(i, id)}
+                        onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
+                        hidePrices={hidePrices}
                       />
                     </td>
                     <td className="px-3 py-2">
