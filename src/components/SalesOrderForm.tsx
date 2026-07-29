@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import type { SalesOrder, InvoiceItem, Customer, InventoryItem } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
-import { ProductCombobox } from "@/components/ProductCombobox";
+import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/ProductPickerWithBundle";
 import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 
