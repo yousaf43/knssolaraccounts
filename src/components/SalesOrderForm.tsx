@@ -359,10 +359,12 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                   <React.Fragment key={i}>
                   <tr className="border-b last:border-0">
                     <td className="px-3 py-2">
-                      <ProductCombobox
+                      <ProductPickerWithBundle
                         inventory={inventory}
                         selectedItemId={item.inventoryItemId}
                         onSelect={(id) => selectInventoryItem(i, id)}
+                        onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
+                        hidePrices={hidePrices}
                       />
                     </td>
                     <td className="px-3 py-2">
