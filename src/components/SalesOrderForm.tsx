@@ -190,6 +190,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
         .join("\n");
       const fullDescription = [title, description, componentsText].filter(Boolean).join("\n");
       const bundled: InvoiceItem = {
+        bundleTitle: title,
         description: fullDescription,
         qty: 1,
         rate: total,
@@ -370,6 +371,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                         selectedItemId={item.inventoryItemId}
                         onSelect={(id) => selectInventoryItem(i, id)}
                         onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
+                        bundleLabel={item.bundleTitle}
                         hidePrices={hidePrices}
                       />
                     </td>

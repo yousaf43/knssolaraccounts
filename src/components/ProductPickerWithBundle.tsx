@@ -29,8 +29,10 @@ type Props = {
   onSelect: (itemId: string) => void;
   onBundleSelect: (result: AdhocBundleResult) => void;
   hidePrices?: boolean;
+  /** When this line is an ad-hoc bundle, its title is shown instead of the product picker */
+  bundleLabel?: string;
 };
-export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices }: Props) {
+export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices, bundleLabel }: Props) {
   const { formatCurrency } = useSettings();
   const [chooserOpen, setChooserOpen] = useState(false);
   const [mode, setMode] = useState<"idle" | "single" | "bundle">("idle");
@@ -104,6 +106,16 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
     setMode("idle");
   };
 
+
+  // Ad-hoc bundle line: show its title instead of the product picker
+  if (bundleLabel) {
+    return (
+      <div className="flex items-center gap-1.5 h-8 rounded-md border border-input bg-muted/40 px-2 text-xs font-medium">
+        <Package className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span className="truncate" title={bundleLabel}>{bundleLabel}</span>
+      </div>
+    );
+  }
 
   // If user picked "single" mode (or already has a selection) render normal combobox
   if (mode === "single" || selectedItemId) {
