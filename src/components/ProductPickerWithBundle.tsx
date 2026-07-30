@@ -29,8 +29,10 @@ type Props = {
   onSelect: (itemId: string) => void;
   onBundleSelect: (result: AdhocBundleResult) => void;
   hidePrices?: boolean;
+  /** When this line is an ad-hoc bundle, its title is shown instead of the product picker */
+  bundleLabel?: string;
 };
-export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices }: Props) {
+export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices, bundleLabel }: Props) {
   const { formatCurrency } = useSettings();
   const [chooserOpen, setChooserOpen] = useState(false);
   const [mode, setMode] = useState<"idle" | "single" | "bundle">("idle");

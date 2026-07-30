@@ -17,6 +17,8 @@ export type InvoiceItem = {
   inventoryItemId?: string;
   discount?: number;
   bundleItemPrices?: { itemId: string; price: number; qty?: number }[];
+  /** Title of an ad-hoc (on-the-spot) bundle line, shown in the Product column */
+  bundleTitle?: string;
 };
 
 export type Invoice = {
