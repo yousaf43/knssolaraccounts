@@ -107,6 +107,16 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
   };
 
 
+  // Ad-hoc bundle line: show its title instead of the product picker
+  if (bundleLabel) {
+    return (
+      <div className="flex items-center gap-1.5 h-8 rounded-md border border-input bg-muted/40 px-2 text-xs font-medium">
+        <Package className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span className="truncate" title={bundleLabel}>{bundleLabel}</span>
+      </div>
+    );
+  }
+
   // If user picked "single" mode (or already has a selection) render normal combobox
   if (mode === "single" || selectedItemId) {
     return (
