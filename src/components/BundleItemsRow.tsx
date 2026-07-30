@@ -49,8 +49,10 @@ export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, hi
         <div className="flex items-start gap-2">
           <Package className="w-3 h-3 text-primary mt-0.5 shrink-0" />
           <div className="space-y-0.5 w-full">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Bundle Contents</span>
-            {invItem.bundleItems.map((bi, idx) => {
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+              {item.bundleTitle ? `${item.bundleTitle} — Bundle Contents` : "Bundle Contents"}
+            </span>
+            {components.map((bi, idx) => {
               const subItem = inventory.find((i) => i.id === bi.itemId);
               if (!subItem) return null;
               const price = getPrice(bi);
