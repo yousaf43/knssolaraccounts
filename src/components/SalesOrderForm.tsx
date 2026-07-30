@@ -119,13 +119,18 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
 
   const recalcBundleRate = (item: InvoiceItem, prices: { itemId: string; price: number; qty?: number }[]) => {
     const invItem = inventory.find(i => i.id === item.inventoryItemId);
-    if (!invItem?.bundleItems) return;
-    const newRate = invItem.bundleItems.reduce((sum, bi) => {
-      const override = prices.find(bp => bp.itemId === bi.itemId);
-      const p = override?.price ?? (bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0);
-      const q = override?.qty !== undefined ? override.qty : bi.qty;
-      return sum + p * q;
-    }, 0);
+    let newRate: number;
+    if (invItem?.bundleItems?.length) {
+      newRate = invItem.bundleItems.reduce((sum, bi) => {
+        const override = prices.find(bp => bp.itemId === bi.itemId);
+        const p = override?.price ?? (bi.price ?? inventory.find(i => i.id === bi.itemId)?.salePrice ?? 0);
+        const q = override?.qty !== undefined ? override.qty : bi.qty;
+        return sum + p * q;
+      }, 0);
+    } else {
+      // Ad-hoc bundle line: rate is the sum of its own components
+      newRate = prices.reduce((sum, p) => sum + p.price * (p.qty ?? 1), 0);
+    }
     item.rate = newRate;
     item.amount = item.qty * newRate;
   };
@@ -137,7 +142,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       const prices = [...(item.bundleItemPrices || [])];
       const idx = prices.findIndex(p => p.itemId === subItemId);
       if (idx >= 0) prices[idx] = { ...prices[idx], price };
-      else prices.push({ itemId: subItemId, price });
+      else prices.push({ itemId: subItemId, price, qty: 1 });
       item.bundleItemPrices = prices;
       recalcBundleRate(item, prices);
       updated[lineIndex] = item;
@@ -150,12 +155,13 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       const updated = [...prev];
       const item = { ...updated[lineIndex] };
       const prices = [...(item.bundleItemPrices || [])];
+      const safeQty = Number.isFinite(qty) && qty >= 0 ? qty : 0;
       const idx = prices.findIndex(p => p.itemId === subItemId);
-      if (idx >= 0) prices[idx] = { ...prices[idx], qty };
+      if (idx >= 0) prices[idx] = { ...prices[idx], qty: safeQty };
       else {
         const invItem = inventory.find(i => i.id === item.inventoryItemId);
         const bi = invItem?.bundleItems?.find(b => b.itemId === subItemId);
-        prices.push({ itemId: subItemId, price: bi?.price ?? inventory.find(i => i.id === subItemId)?.salePrice ?? 0, qty });
+        prices.push({ itemId: subItemId, price: bi?.price ?? inventory.find(i => i.id === subItemId)?.salePrice ?? 0, qty: safeQty });
       }
       item.bundleItemPrices = prices;
       recalcBundleRate(item, prices);
@@ -163,6 +169,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       return updated;
     });
   };
+
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
     setItems((prev) => {
