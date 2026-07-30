@@ -140,7 +140,13 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
             {order.items.map((item, i) => {
               // Find inventory item to check if it's a bundle
               const invItem = item.inventoryItemId ? inventory.find(inv => inv.id === item.inventoryItemId) : null;
-              const isBundleItem = invItem?.productType === "bundle" && invItem.bundleItems && invItem.bundleItems.length > 0;
+              const isBundleItem = !!invItem?.productType && invItem.productType === "bundle" && !!invItem.bundleItems?.length;
+              const isAdhocBundle = !item.inventoryItemId && !!item.bundleTitle && !!item.bundleItemPrices?.length;
+              const components: { itemId: string; qty: number }[] = isBundleItem
+                ? invItem!.bundleItems!.map(bi => ({ itemId: bi.itemId, qty: bi.qty }))
+                : isAdhocBundle
+                  ? item.bundleItemPrices!.map(p => ({ itemId: p.itemId, qty: p.qty ?? 1 }))
+                  : [];
               return (
                 <React.Fragment key={i}>
                   <tr className="border-b border-gray-200">
@@ -154,7 +160,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                     </>}
                   </tr>
                   {/* Show bundle components in delivery order */}
-                  {isBundleItem && invItem.bundleItems!.map((bi, bIdx) => {
+                  {components.map((bi, bIdx) => {
                     const compItem = inventory.find(inv => inv.id === bi.itemId);
                     if (!compItem) return null;
                     return (
@@ -170,6 +176,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                       </tr>
                     );
                   })}
+
                 </React.Fragment>
               );
             })}
