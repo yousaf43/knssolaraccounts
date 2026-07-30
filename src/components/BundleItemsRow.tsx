@@ -4,7 +4,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import type { InventoryItem } from "@/data/mockData";
 
 type Props = {
-  item: { inventoryItemId?: string; bundleItemPrices?: { itemId: string; price: number; qty?: number }[] };
+  item: { inventoryItemId?: string; bundleTitle?: string; bundleItemPrices?: { itemId: string; price: number; qty?: number }[] };
   inventory: InventoryItem[];
   colSpan: number;
   lineQty: number;
@@ -17,10 +17,16 @@ type Props = {
 export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, hidePrices, onBundlePriceChange, onBundleQtyChange }: Props) {
   const { formatCurrency } = useSettings();
 
-  if (!item.inventoryItemId) return null;
+  const invItem = item.inventoryItemId ? inventory.find((i) => i.id === item.inventoryItemId) : undefined;
+  const isCatalogBundle = invItem?.productType === "bundle" && !!invItem.bundleItems?.length;
+  const isAdhocBundle = !item.inventoryItemId && !!item.bundleTitle && !!item.bundleItemPrices?.length;
 
-  const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-  if (!invItem || invItem.productType !== "bundle" || !invItem.bundleItems?.length) return null;
+  if (!isCatalogBundle && !isAdhocBundle) return null;
+
+  // Normalised component list for both catalog and ad-hoc bundles
+  const components: { itemId: string; qty: number; price?: number }[] = isCatalogBundle
+    ? invItem!.bundleItems!
+    : item.bundleItemPrices!.map((p) => ({ itemId: p.itemId, qty: p.qty ?? 1, price: p.price }));
 
   const getPrice = (bi: { itemId: string; qty: number; price?: number }) => {
     const override = item.bundleItemPrices?.find(p => p.itemId === bi.itemId);
@@ -34,7 +40,8 @@ export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, hi
     return bi.qty;
   };
 
-  const bundleTotal = invItem.bundleItems.reduce((sum, bi) => sum + getPrice(bi) * getQty(bi) * lineQty, 0);
+  const bundleTotal = components.reduce((sum, bi) => sum + getPrice(bi) * getQty(bi) * lineQty, 0);
+
 
   return (
     <tr className="bg-muted/20">
