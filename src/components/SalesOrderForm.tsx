@@ -181,14 +181,11 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
     setItems((prev) => {
       const { title, description, lines } = result;
       const total = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
-      const componentsText = lines
-        .map((l) => {
-          const inv = inventory.find((i) => i.id === l.itemId);
-          const name = inv?.name || "Item";
-          return `• ${name} × ${l.qty} @ ${l.rate}`;
-        })
+      // Only user-typed title/description go into the printed details
+      const fullDescription = [title, description]
+        .map((t) => (t ?? "").trim())
+        .filter(Boolean)
         .join("\n");
-      const fullDescription = [title, description, componentsText].filter(Boolean).join("\n");
       const bundled: InvoiceItem = {
         bundleTitle: title,
         description: fullDescription,
