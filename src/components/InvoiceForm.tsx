@@ -226,6 +226,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
         .join("\n");
       const fullDescription = [title, description, componentsText].filter(Boolean).join("\n");
       const bundled: InvoiceItem = {
+        bundleTitle: title,
         description: fullDescription,
         qty: 1,
         rate: total,
@@ -423,6 +424,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                           selectedItemId={item.inventoryItemId}
                           onSelect={(id) => selectInventoryItem(i, id)}
                           onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
+                        bundleLabel={item.bundleTitle}
+                          bundleLabel={item.bundleTitle}
                         />
                       </td>
                     )}
