@@ -199,7 +199,11 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
         qty: 1,
         rate: total,
         amount: total,
+        // Keep the picked components (with their own qty/rate) on the line so the
+        // bundle contents can be shown and edited below the line, like catalog bundles.
+        bundleItemPrices: lines.map((l) => ({ itemId: l.itemId, price: l.rate, qty: l.qty })),
       };
+
       const current = prev[index];
       const isEmpty = current && !current.description && !current.inventoryItemId && !current.rate;
       const next = [...prev];
