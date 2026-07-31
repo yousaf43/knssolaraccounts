@@ -31,12 +31,17 @@ type Props = {
   hidePrices?: boolean;
   /** When this line is an ad-hoc bundle, its title is shown instead of the product picker */
   bundleLabel?: string;
+  /** Current ad-hoc bundle contents — enables re-opening the builder to edit the bundle */
+  bundleValue?: AdhocBundleResult;
+  /** Called when an existing ad-hoc bundle is edited and saved */
+  onBundleUpdate?: (result: AdhocBundleResult) => void;
 };
-export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices, bundleLabel }: Props) {
+export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, onBundleSelect, hidePrices, bundleLabel, bundleValue, onBundleUpdate }: Props) {
   const { formatCurrency } = useSettings();
   const [chooserOpen, setChooserOpen] = useState(false);
   const [mode, setMode] = useState<"idle" | "single" | "bundle">("idle");
   const [bundleOpen, setBundleOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [bundleLines, setBundleLines] = useState<AdhocBundleLine[]>([]);
   const [bundleTitle, setBundleTitle] = useState("");
   const [bundleDescription, setBundleDescription] = useState("");
@@ -55,12 +60,24 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
 
   const chooseBundle = () => {
     setChooserOpen(false);
+    setEditing(false);
     setBundleLines([]);
     setBundleTitle("");
     setBundleDescription("");
     setSearch("");
     setBundleOpen(true);
   };
+
+  const openBundleEditor = () => {
+    if (!onBundleUpdate) return;
+    setEditing(true);
+    setBundleLines(bundleValue?.lines ? bundleValue.lines.map((l) => ({ ...l })) : []);
+    setBundleTitle(bundleValue?.title ?? bundleLabel ?? "");
+    setBundleDescription(bundleValue?.description ?? "");
+    setSearch("");
+    setBundleOpen(true);
+  };
+
 
 
   const filtered = search.trim()
