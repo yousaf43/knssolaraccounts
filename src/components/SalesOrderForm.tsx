@@ -403,6 +403,8 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                         onSelect={(id) => selectInventoryItem(i, id)}
                         onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
                         bundleLabel={item.bundleTitle}
+                        bundleValue={item.bundleTitle ? { title: item.bundleTitle, description: item.bundleDescription || "", lines: item.adhocLines || (item.bundleItemPrices || []).map((p) => ({ itemId: p.itemId, qty: p.qty ?? 1, rate: p.price })) } : undefined}
+                        onBundleUpdate={(result) => updateAdhocBundle(i, result)}
                         hidePrices={hidePrices}
                       />
                     </td>
