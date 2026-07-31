@@ -10,11 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database, Cloud, Trash2, RotateCcw, Loader2, UserCircle, Edit, X, Check, FileDown, FileSpreadsheet, FileJson } from "lucide-react";
+import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database, Cloud, Trash2, RotateCcw, Loader2, UserCircle, Edit, X, Check, FileDown, FileSpreadsheet, FileJson, FileCode, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCloudBackup } from "@/hooks/useCloudBackup";
 import { useUserSettingsCloud } from "@/hooks/useAppData";
 import { exportAsJson, exportAsCsvZip } from "@/utils/exportData";
+import { downloadSqlDump } from "@/utils/sqlDump";
+
 
 const currencies = [
   { code: "PKR", locale: "en-PK", label: "PKR - Pakistani Rupee (₨)" },
@@ -79,6 +81,26 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [dumping, setDumping] = useState(false);
+  const [dumpStatus, setDumpStatus] = useState("");
+  const migrateFileRef = useRef<HTMLInputElement>(null);
+
+  const handleSqlDump = async () => {
+    setDumping(true);
+    setDumpStatus("Starting...");
+    try {
+      await downloadSqlDump((current, total, table) => {
+        setDumpStatus(`Reading ${table} (${current}/${total})`);
+      });
+      toast.success("SQL dump downloaded — restore it with psql on any PostgreSQL server.");
+    } catch (err) {
+      toast.error("SQL dump failed: " + (err instanceof Error ? err.message : String(err)));
+    }
+    setDumpStatus("");
+    setDumping(false);
+  };
+
+
 
   const handleSave = async () => {
     let logoUrl = form.logoUrl || "";
@@ -324,7 +346,10 @@ export default function Settings() {
         other_receipts: "other_receipts",
         transfers: "transfers",
         reconcile_entries: "reconcile_entries",
+        solar_washing: "solar_washing",
+        activity_logs: "activity_logs",
         user_settings: "user_settings",
+
       };
 
       let imported = 0;
@@ -678,7 +703,47 @@ export default function Settings() {
                   Download CSV ZIP
                 </Button>
               </div>
+
+              {/* Full SQL Dump */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileCode className="w-4 h-4 text-primary" />
+                  <h3 className="font-medium">SQL Dump (.sql)</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Complete PostgreSQL script (schema + all rows). Kisi bhi Postgres server par restore karein:
+                  <code className="block mt-1 bg-muted px-1.5 py-1 rounded break-all">psql "postgres://user:pass@host:5432/db" -f dump.sql</code>
+                </p>
+                <Button size="sm" variant="outline" className="gap-2 w-full" disabled={dumping} onClick={handleSqlDump}>
+                  {dumping ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode className="w-4 h-4" />}
+                  {dumping ? dumpStatus || "Building dump..." : "Download SQL Dump"}
+                </Button>
+              </div>
+
+              {/* Migrate / Import */}
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <ArrowRightLeft className="w-4 h-4 text-primary" />
+                  <h3 className="font-medium">Migrate In (JSON)</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Kisi doosre system/backup ka JSON file yahan upload karein — sab records is database mein merge ho jayen ge (same ID wale records update honge, duplicate nahi banenge).
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 w-full"
+                  disabled={importing}
+                  onClick={() => migrateFileRef.current?.click()}
+                >
+                  {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  Import / Migrate JSON
+                </Button>
+                <input ref={migrateFileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImportBackup} />
+              </div>
             </div>
+
+
 
             <div className="text-xs text-muted-foreground border-t pt-3 space-y-1">
               <p><strong>Included Tables (21):</strong> Customers, Suppliers, Inventory, Invoices, Sales Orders, Quotations, Receipts, Expenses, Purchase Orders, Bills, Purchase Payments, Stock Adjustments, Accounts, Ledger Entries, Other Payments, Other Receipts, Transfers, Reconcile Entries, Solar Washing, Activity Logs, User Settings</p>
