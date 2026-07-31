@@ -4,6 +4,7 @@ import { Printer, X } from "lucide-react";
 import type { SalesOrder, Customer, InventoryItem } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
 import ksLogo from "@/assets/ks-logo.png";
+import { stripTitleLine } from "@/lib/adhocBundle";
 
 type Props = {
   order: SalesOrder;
@@ -170,9 +171,13 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                       {item.bundleTitle ? (
                         <>
                           <span className="font-semibold">{item.bundleTitle}</span>
-                          {item.description && item.description !== item.bundleTitle && (
-                            <div className="text-xs text-gray-600 whitespace-pre-line">{item.description}</div>
-                          )}
+                          {(() => {
+                            // Legacy lines stored "Title\nNotes" in description — avoid repeating the title.
+                            const notes = item.bundleDescription ?? stripTitleLine(item.description, item.bundleTitle);
+                            return notes ? (
+                              <div className="text-xs text-gray-600 whitespace-pre-line">{notes}</div>
+                            ) : null;
+                          })()}
                         </>
                       ) : (
                         item.description

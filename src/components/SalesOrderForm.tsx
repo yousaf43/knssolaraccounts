@@ -15,6 +15,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/ProductPickerWithBundle";
 import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
+import { getAdhocBundleValue } from "@/lib/adhocBundle";
 
 type Props = {
   customers: Customer[];
@@ -195,7 +196,10 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
     base?: InvoiceItem,
   ): InvoiceItem => {
     const { title, description, lines } = result;
-    const rate = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    const linesTotal = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    // Keep the original line rate when the components carry no pricing
+    // (delivery-challan mode / legacy bundles priced as a lump sum).
+    const rate = linesTotal > 0 ? linesTotal : Number(base?.rate || 0);
     // Only user-typed title/description go into the printed details
     const fullDescription = [title, description]
       .map((t) => (t ?? "").trim())
@@ -409,7 +413,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                         onSelect={(id) => selectInventoryItem(i, id)}
                         onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
                         bundleLabel={item.bundleTitle}
-                        bundleValue={item.bundleTitle ? { title: item.bundleTitle, description: item.bundleDescription || "", lines: item.adhocLines || (item.bundleItemPrices || []).map((p) => ({ itemId: p.itemId, qty: p.qty ?? 1, rate: p.price })) } : undefined}
+                        bundleValue={getAdhocBundleValue(item)}
                         onBundleUpdate={(result) => updateAdhocBundle(i, result)}
                         hidePrices={hidePrices}
                       />
