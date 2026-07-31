@@ -175,9 +175,12 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
 
                     <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
                     <td className="px-3 py-2 text-right">{item.qty}</td>
-                    {showPrices && <>
+                    {showPrices ? <>
                       <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
+                    </> : <>
+                      <td className="write-cell px-3 py-2"></td>
+                      <td className="write-cell px-3 py-2"></td>
                     </>}
                   </tr>
                   {/* Show bundle components in delivery order */}
