@@ -141,12 +141,18 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
               // Find inventory item to check if it's a bundle
               const invItem = item.inventoryItemId ? inventory.find(inv => inv.id === item.inventoryItemId) : null;
               const isBundleItem = !!invItem?.productType && invItem.productType === "bundle" && !!invItem.bundleItems?.length;
-              const isAdhocBundle = !item.inventoryItemId && !!item.bundleTitle && !!item.bundleItemPrices?.length;
+              // Ad-hoc bundle: components may live in adhocLines (new) or bundleItemPrices (legacy)
+              const adhocSource = !item.inventoryItemId
+                ? (item.adhocLines?.length
+                    ? item.adhocLines.map(l => ({ itemId: l.itemId, qty: l.qty }))
+                    : (item.bundleItemPrices?.length
+                        ? item.bundleItemPrices.map(p => ({ itemId: p.itemId, qty: p.qty ?? 1 }))
+                        : []))
+                : [];
               const components: { itemId: string; qty: number }[] = isBundleItem
                 ? invItem!.bundleItems!.map(bi => ({ itemId: bi.itemId, qty: bi.qty }))
-                : isAdhocBundle
-                  ? item.bundleItemPrices!.map(p => ({ itemId: p.itemId, qty: p.qty ?? 1 }))
-                  : [];
+                : adhocSource;
+
               return (
                 <React.Fragment key={i}>
                   <tr className="border-b border-gray-200">
