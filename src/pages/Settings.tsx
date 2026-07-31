@@ -346,7 +346,10 @@ export default function Settings() {
         other_receipts: "other_receipts",
         transfers: "transfers",
         reconcile_entries: "reconcile_entries",
+        solar_washing: "solar_washing",
+        activity_logs: "activity_logs",
         user_settings: "user_settings",
+
       };
 
       let imported = 0;
