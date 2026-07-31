@@ -369,7 +369,9 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={() => setBundleOpen(false)}>Cancel</Button>
             <Button type="button" onClick={confirmBundle} disabled={bundleLines.length === 0}>
-              Add {bundleLines.length > 0 ? `${bundleLines.length} ` : ""}Line{bundleLines.length !== 1 ? "s" : ""} to Document
+              {editing
+                ? `Save Bundle (${bundleLines.length} item${bundleLines.length !== 1 ? "s" : ""})`
+                : `Add ${bundleLines.length > 0 ? `${bundleLines.length} ` : ""}Line${bundleLines.length !== 1 ? "s" : ""} to Document`}
             </Button>
           </DialogFooter>
         </DialogContent>
