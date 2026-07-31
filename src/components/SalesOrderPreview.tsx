@@ -60,6 +60,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         .totals-box .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
         .totals-box .grand-total { display: flex; justify-content: space-between; padding: 6px 0; font-size: 15px; font-weight: bold; border-top: 2px solid #1e3a8a; margin-top: 4px; color: #1e3a8a; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
+        .write-cell { border-left: 1px solid #cbd5e1; height: 26px; }
         .bundle-row { background: #f9fafb; }
         .bundle-row td { padding: 3px 10px; font-size: 11px; color: #666; border-bottom: 1px solid #f0f0f0; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
