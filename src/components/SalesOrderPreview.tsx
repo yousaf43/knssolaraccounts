@@ -130,9 +130,12 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
               <th className="bg-blue-900 text-white px-3 py-2 text-left">Details</th>
               <th className="bg-blue-900 text-white px-3 py-2 text-center w-16">Unit</th>
               <th className="bg-blue-900 text-white px-3 py-2 text-right w-20">Quantity</th>
-              {showPrices && <>
+              {showPrices ? <>
                 <th className="bg-blue-900 text-white px-3 py-2 text-right w-24">UM Rate</th>
                 <th className="bg-blue-900 text-white px-3 py-2 text-right w-28">Amount</th>
+              </> : <>
+                <th className="bg-blue-900 text-white px-3 py-2 text-center w-24">Used</th>
+                <th className="bg-blue-900 text-white px-3 py-2 text-center w-24">Return</th>
               </>}
             </tr>
           </thead>
