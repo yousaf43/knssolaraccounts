@@ -77,6 +77,15 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
   };
 
   const docTitle = showPrices ? "Sales Order" : "Delivery Challan";
+  const resolveInventoryItem = (identifier?: string) => {
+    const key = norm(identifier);
+    if (!key) return undefined;
+    return inventory.find((candidate) =>
+      norm(candidate.id) === key ||
+      norm(candidate.sku) === key ||
+      norm(candidate.uniqueCode) === key
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -144,7 +153,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
           <tbody>
             {order.items.map((item, i) => {
               // Find inventory item to check if it's a bundle
-              const invItem = item.inventoryItemId ? inventory.find(inv => inv.id === item.inventoryItemId) : null;
+              const invItem = resolveInventoryItem(item.inventoryItemId);
               const isBundleItem = !!invItem?.productType && invItem.productType === "bundle" && !!invItem.bundleItems?.length;
               // Ad-hoc bundle components: adhocLines (new) and/or bundleItemPrices (edited sub-row quantities).
               // bundleItemPrices carries the authoritative per-item quantity when present.
@@ -159,9 +168,12 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                 itemId: l.itemId,
                 qty: priceQtyMap.has(l.itemId) ? priceQtyMap.get(l.itemId)! : l.qty,
               }));
-              const components: { itemId: string; qty: number }[] = isBundleItem
-                ? invItem!.bundleItems!.map(bi => ({ itemId: bi.itemId, qty: bi.qty }))
+              const components: { itemId: string; qty: number }[] = isBundleItem && invItem?.bundleItems
+                ? invItem.bundleItems.map(bi => ({ itemId: bi.itemId, qty: bi.qty }))
                 : adhocSource;
+              const legacyBundleDetails = item.bundleTitle && components.length === 0
+                ? (item.bundleDescription ?? stripTitleLine(item.description, item.bundleTitle)).trim()
+                : "";
 
               return (
                 <React.Fragment key={i}>
@@ -173,7 +185,9 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                           <span className="font-semibold">{item.bundleTitle}</span>
                           {(() => {
                             // Legacy lines stored "Title\nNotes" in description — avoid repeating the title.
-                            const notes = item.bundleDescription ?? stripTitleLine(item.description, item.bundleTitle);
+                            const notes = components.length > 0
+                              ? item.bundleDescription ?? stripTitleLine(item.description, item.bundleTitle)
+                              : "";
                             return notes ? (
                               <div className="text-xs text-gray-600 whitespace-pre-line">{notes}</div>
                             ) : null;
@@ -196,7 +210,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                   </tr>
                   {/* Show bundle components in delivery order */}
                   {components.map((bi, bIdx) => {
-                    const compItem = inventory.find(inv => inv.id === bi.itemId);
+                    const compItem = resolveInventoryItem(bi.itemId);
                     if (!compItem) return null;
                     return (
                       <tr key={`${i}-bundle-${bIdx}`} className="border-b border-gray-100 bg-gray-50">
@@ -214,6 +228,24 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                       </tr>
                     );
                   })}
+
+                  {/* Old orders did not persist component IDs. Keep their saved detail
+                      visible in the same indented bundle layout instead of dropping it. */}
+                  {legacyBundleDetails && (
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <td className="px-3 py-1 text-center text-gray-400 text-xs"></td>
+                      <td className="px-3 py-1 text-xs text-gray-600 pl-8 whitespace-pre-line">↳ {legacyBundleDetails}</td>
+                      <td className="px-3 py-1 text-center text-gray-400 text-xs">UNIT</td>
+                      <td className="px-3 py-1 text-right text-xs text-gray-600">{item.qty}</td>
+                      {showPrices ? <>
+                        <td className="px-3 py-1"></td>
+                        <td className="px-3 py-1"></td>
+                      </> : <>
+                        <td className="write-cell border-l border-gray-300 px-3 py-3"></td>
+                        <td className="write-cell border-l border-gray-300 px-3 py-3"></td>
+                      </>}
+                    </tr>
+                  )}
 
                 </React.Fragment>
               );
