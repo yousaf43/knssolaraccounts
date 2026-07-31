@@ -15,6 +15,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/ProductPickerWithBundle";
 import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
+import { getAdhocBundleValue } from "@/lib/adhocBundle";
 
 type Props = {
   customers: Customer[];
