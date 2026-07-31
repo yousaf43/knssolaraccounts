@@ -19,7 +19,12 @@ export type InvoiceItem = {
   bundleItemPrices?: { itemId: string; price: number; qty?: number }[];
   /** Title of an ad-hoc (on-the-spot) bundle line, shown in the Product column */
   bundleTitle?: string;
+  /** Free-text notes typed by the user when building an ad-hoc bundle (kept for re-editing) */
+  bundleDescription?: string;
+  /** Components picked for an ad-hoc bundle (kept so the bundle can be re-opened and edited) */
+  adhocLines?: { itemId: string; qty: number; rate: number }[];
 };
+
 
 export type Invoice = {
   id: string;

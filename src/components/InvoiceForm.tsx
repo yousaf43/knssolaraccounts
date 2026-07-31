@@ -213,23 +213,35 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const addItem = () => setItems((prev) => [...prev, { description: "", qty: 1, rate: 0, amount: 0 }]);
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i));
 
+  const buildAdhocBundleItem = (
+    result: import("@/components/ProductPickerWithBundle").AdhocBundleResult,
+    base?: InvoiceItem,
+  ): InvoiceItem => {
+    const { title, description, lines } = result;
+    const rate = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    // Only user-typed title/description go into the printed details
+    const fullDescription = [title, description]
+      .map((t) => (t ?? "").trim())
+      .filter(Boolean)
+      .join("\n");
+    const qty = base?.qty && base.qty > 0 ? base.qty : 1;
+    const discount = Number(base?.discount || 0);
+    const amount = qty * (rate - (rate * discount) / 100);
+    return {
+      bundleTitle: title,
+      bundleDescription: description,
+      adhocLines: lines.map((l) => ({ ...l })),
+      description: fullDescription,
+      qty,
+      rate,
+      amount,
+      discount,
+    };
+  };
+
   const insertAdhocBundle = (index: number, result: import("@/components/ProductPickerWithBundle").AdhocBundleResult) => {
     setItems((prev) => {
-      const { title, description, lines } = result;
-      const total = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
-      // Only user-typed title/description go into the printed details
-      const fullDescription = [title, description]
-        .map((t) => (t ?? "").trim())
-        .filter(Boolean)
-        .join("\n");
-      const bundled: InvoiceItem = {
-        bundleTitle: title,
-        description: fullDescription,
-        qty: 1,
-        rate: total,
-        amount: total,
-        discount: 0,
-      };
+      const bundled = buildAdhocBundleItem(result);
       const current = prev[index];
       const isEmpty = current && !current.description && !current.inventoryItemId && !current.rate;
       const next = [...prev];
@@ -238,6 +250,16 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       return next;
     });
   };
+
+  const updateAdhocBundle = (index: number, result: import("@/components/ProductPickerWithBundle").AdhocBundleResult) => {
+    setItems((prev) => {
+      const next = [...prev];
+      if (!next[index]) return prev;
+      next[index] = buildAdhocBundleItem(result, next[index]);
+      return next;
+    });
+  };
+
 
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
@@ -422,6 +444,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                           onSelect={(id) => selectInventoryItem(i, id)}
                           onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
                           bundleLabel={item.bundleTitle}
+                          bundleValue={item.bundleTitle ? { title: item.bundleTitle, description: item.bundleDescription || "", lines: item.adhocLines || [] } : undefined}
+                          onBundleUpdate={(result) => updateAdhocBundle(i, result)}
                         />
                       </td>
                     )}
