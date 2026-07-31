@@ -193,9 +193,12 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                         <td className="px-3 py-1 text-xs text-gray-600 pl-8">↳ {compItem.name} {compItem.model ? `(${compItem.model})` : ""}</td>
                         <td className="px-3 py-1 text-center text-gray-400 text-xs">{compItem.unit || "pcs"}</td>
                         <td className="px-3 py-1 text-right text-xs text-gray-600">{bi.qty * item.qty}</td>
-                        {showPrices && <>
+                        {showPrices ? <>
                           <td className="px-3 py-1"></td>
                           <td className="px-3 py-1"></td>
+                        </> : <>
+                          <td className="write-cell px-3 py-3"></td>
+                          <td className="write-cell px-3 py-3"></td>
                         </>}
                       </tr>
                     );
