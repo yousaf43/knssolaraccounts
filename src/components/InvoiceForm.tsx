@@ -447,7 +447,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                           onSelect={(id) => selectInventoryItem(i, id)}
                           onBundleSelect={(lines) => insertAdhocBundle(i, lines)}
                           bundleLabel={item.bundleTitle}
-                          bundleValue={item.bundleTitle ? { title: item.bundleTitle, description: item.bundleDescription || "", lines: item.adhocLines || [] } : undefined}
+                          bundleValue={getAdhocBundleValue(item)}
                           onBundleUpdate={(result) => updateAdhocBundle(i, result)}
                         />
                       </td>
