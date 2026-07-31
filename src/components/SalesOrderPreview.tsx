@@ -166,7 +166,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                 : (item.bundleItemPrices || []).map((p) => ({ itemId: p.itemId, qty: p.qty ?? 1 }));
               const adhocSource = adhocBase.map((l) => ({
                 itemId: l.itemId,
-                qty: priceQtyMap.has(l.itemId) ? priceQtyMap.get(l.itemId)! : l.qty,
+                qty: priceQtyMap.get(l.itemId) ?? l.qty,
               }));
               const components: { itemId: string; qty: number }[] = isBundleItem && invItem?.bundleItems
                 ? invItem.bundleItems.map(bi => ({ itemId: bi.itemId, qty: bi.qty }))
