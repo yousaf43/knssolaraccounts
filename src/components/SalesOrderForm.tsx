@@ -144,6 +144,9 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       if (idx >= 0) prices[idx] = { ...prices[idx], price };
       else prices.push({ itemId: subItemId, price, qty: 1 });
       item.bundleItemPrices = prices;
+      if (item.adhocLines?.length) {
+        item.adhocLines = item.adhocLines.map((l) => (l.itemId === subItemId ? { ...l, rate: price } : l));
+      }
       recalcBundleRate(item, prices);
       updated[lineIndex] = item;
       return updated;
@@ -164,6 +167,9 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
         prices.push({ itemId: subItemId, price: bi?.price ?? inventory.find(i => i.id === subItemId)?.salePrice ?? 0, qty: safeQty });
       }
       item.bundleItemPrices = prices;
+      if (item.adhocLines?.length) {
+        item.adhocLines = item.adhocLines.map((l) => (l.itemId === subItemId ? { ...l, qty: safeQty } : l));
+      }
       recalcBundleRate(item, prices);
       updated[lineIndex] = item;
       return updated;

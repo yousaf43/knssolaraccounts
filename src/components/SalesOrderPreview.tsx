@@ -145,14 +145,19 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
               // Find inventory item to check if it's a bundle
               const invItem = item.inventoryItemId ? inventory.find(inv => inv.id === item.inventoryItemId) : null;
               const isBundleItem = !!invItem?.productType && invItem.productType === "bundle" && !!invItem.bundleItems?.length;
-              // Ad-hoc bundle: components may live in adhocLines (new) or bundleItemPrices (legacy)
-              const adhocSource = !item.inventoryItemId
-                ? (item.adhocLines?.length
-                    ? item.adhocLines.map(l => ({ itemId: l.itemId, qty: l.qty }))
-                    : (item.bundleItemPrices?.length
-                        ? item.bundleItemPrices.map(p => ({ itemId: p.itemId, qty: p.qty ?? 1 }))
-                        : []))
-                : [];
+              // Ad-hoc bundle components: adhocLines (new) and/or bundleItemPrices (edited sub-row quantities).
+              // bundleItemPrices carries the authoritative per-item quantity when present.
+              const priceQtyMap = new Map<string, number>();
+              (item.bundleItemPrices || []).forEach((p) => {
+                if (p.itemId) priceQtyMap.set(p.itemId, p.qty ?? 1);
+              });
+              const adhocBase = item.adhocLines?.length
+                ? item.adhocLines.map((l) => ({ itemId: l.itemId, qty: l.qty }))
+                : (item.bundleItemPrices || []).map((p) => ({ itemId: p.itemId, qty: p.qty ?? 1 }));
+              const adhocSource = adhocBase.map((l) => ({
+                itemId: l.itemId,
+                qty: priceQtyMap.has(l.itemId) ? priceQtyMap.get(l.itemId)! : l.qty,
+              }));
               const components: { itemId: string; qty: number }[] = isBundleItem
                 ? invItem!.bundleItems!.map(bi => ({ itemId: bi.itemId, qty: bi.qty }))
                 : adhocSource;
