@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Package, Box, Plus, Trash2, Search } from "lucide-react";
+import { Package, Box, Plus, Trash2, Search, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
