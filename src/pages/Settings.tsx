@@ -81,6 +81,26 @@ export default function Settings() {
   const [exporting, setExporting] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [dumping, setDumping] = useState(false);
+  const [dumpStatus, setDumpStatus] = useState("");
+  const migrateFileRef = useRef<HTMLInputElement>(null);
+
+  const handleSqlDump = async () => {
+    setDumping(true);
+    setDumpStatus("Starting...");
+    try {
+      await downloadSqlDump((current, total, table) => {
+        setDumpStatus(`Reading ${table} (${current}/${total})`);
+      });
+      toast.success("SQL dump downloaded — restore it with psql on any PostgreSQL server.");
+    } catch (err) {
+      toast.error("SQL dump failed: " + (err instanceof Error ? err.message : String(err)));
+    }
+    setDumpStatus("");
+    setDumping(false);
+  };
+
+
 
   const handleSave = async () => {
     let logoUrl = form.logoUrl || "";
