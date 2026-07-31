@@ -204,7 +204,7 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-primary" /> Build Custom Bundle
+              <Package className="w-4 h-4 text-primary" /> {editing ? "Edit Custom Bundle" : "Build Custom Bundle"}
             </DialogTitle>
           </DialogHeader>
 
