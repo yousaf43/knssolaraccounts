@@ -200,7 +200,7 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
       </Dialog>
 
       {/* Bundle builder dialog */}
-      <Dialog open={bundleOpen} onOpenChange={setBundleOpen}>
+      <Dialog open={bundleOpen} onOpenChange={(open) => { setBundleOpen(open); if (!open) setEditing(false); }}>
         <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
