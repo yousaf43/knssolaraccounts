@@ -4,6 +4,7 @@ import { Printer, X } from "lucide-react";
 import type { SalesOrder, Customer, InventoryItem } from "@/data/mockData";
 import { useSettings } from "@/contexts/SettingsContext";
 import ksLogo from "@/assets/ks-logo.png";
+import { stripTitleLine } from "@/lib/adhocBundle";
 
 type Props = {
   order: SalesOrder;
