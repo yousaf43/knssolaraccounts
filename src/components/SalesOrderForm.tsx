@@ -195,7 +195,10 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
     base?: InvoiceItem,
   ): InvoiceItem => {
     const { title, description, lines } = result;
-    const rate = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    const linesTotal = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    // Keep the original line rate when the components carry no pricing
+    // (delivery-challan mode / legacy bundles priced as a lump sum).
+    const rate = linesTotal > 0 ? linesTotal : Number(base?.rate || 0);
     // Only user-typed title/description go into the printed details
     const fullDescription = [title, description]
       .map((t) => (t ?? "").trim())
