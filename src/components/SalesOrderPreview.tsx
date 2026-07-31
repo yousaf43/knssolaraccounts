@@ -60,6 +60,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         .totals-box .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
         .totals-box .grand-total { display: flex; justify-content: space-between; padding: 6px 0; font-size: 15px; font-weight: bold; border-top: 2px solid #1e3a8a; margin-top: 4px; color: #1e3a8a; }
         .footer-bar { background: #1e3a8a; height: 12px; margin-top: 24px; border-radius: 2px; }
+        .write-cell { border-left: 1px solid #cbd5e1; height: 26px; }
         .bundle-row { background: #f9fafb; }
         .bundle-row td { padding: 3px 10px; font-size: 11px; color: #666; border-bottom: 1px solid #f0f0f0; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
@@ -130,9 +131,12 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
               <th className="bg-blue-900 text-white px-3 py-2 text-left">Details</th>
               <th className="bg-blue-900 text-white px-3 py-2 text-center w-16">Unit</th>
               <th className="bg-blue-900 text-white px-3 py-2 text-right w-20">Quantity</th>
-              {showPrices && <>
+              {showPrices ? <>
                 <th className="bg-blue-900 text-white px-3 py-2 text-right w-24">UM Rate</th>
                 <th className="bg-blue-900 text-white px-3 py-2 text-right w-28">Amount</th>
+              </> : <>
+                <th className="bg-blue-900 text-white px-3 py-2 text-center w-24">Used</th>
+                <th className="bg-blue-900 text-white px-3 py-2 text-center w-24">Return</th>
               </>}
             </tr>
           </thead>
@@ -172,9 +176,12 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
 
                     <td className="px-3 py-2 text-center text-gray-600">UNIT</td>
                     <td className="px-3 py-2 text-right">{item.qty}</td>
-                    {showPrices && <>
+                    {showPrices ? <>
                       <td className="px-3 py-2 text-right">{item.rate.toLocaleString()}</td>
                       <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.amount)}</td>
+                    </> : <>
+                      <td className="write-cell border-l border-gray-300 px-3 py-2"></td>
+                      <td className="write-cell border-l border-gray-300 px-3 py-2"></td>
                     </>}
                   </tr>
                   {/* Show bundle components in delivery order */}
@@ -187,9 +194,12 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
                         <td className="px-3 py-1 text-xs text-gray-600 pl-8">↳ {compItem.name} {compItem.model ? `(${compItem.model})` : ""}</td>
                         <td className="px-3 py-1 text-center text-gray-400 text-xs">{compItem.unit || "pcs"}</td>
                         <td className="px-3 py-1 text-right text-xs text-gray-600">{bi.qty * item.qty}</td>
-                        {showPrices && <>
+                        {showPrices ? <>
                           <td className="px-3 py-1"></td>
                           <td className="px-3 py-1"></td>
+                        </> : <>
+                          <td className="write-cell border-l border-gray-300 px-3 py-3"></td>
+                          <td className="write-cell border-l border-gray-300 px-3 py-3"></td>
                         </>}
                       </tr>
                     );
