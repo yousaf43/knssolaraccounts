@@ -111,31 +111,25 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
 
   const confirmBundle = () => {
     if (bundleLines.length === 0) return;
-    onBundleSelect({
+    const result: AdhocBundleResult = {
       title: bundleTitle.trim() || "Bundle",
       description: bundleDescription.trim(),
       lines: bundleLines,
-    });
+    };
+    if (editing && onBundleUpdate) onBundleUpdate(result);
+    else onBundleSelect(result);
     setBundleOpen(false);
+    setEditing(false);
     setBundleLines([]);
     setBundleTitle("");
     setBundleDescription("");
     setMode("idle");
   };
 
-
-  // Ad-hoc bundle line: show its title instead of the product picker
-  if (bundleLabel) {
-    return (
-      <div className="flex items-center gap-1.5 h-8 rounded-md border border-input bg-muted/40 px-2 text-xs font-medium">
-        <Package className="w-3.5 h-3.5 text-primary shrink-0" />
-        <span className="truncate" title={bundleLabel}>{bundleLabel}</span>
-      </div>
-    );
-  }
+  const isBundleLine = !!bundleLabel;
 
   // If user picked "single" mode (or already has a selection) render normal combobox
-  if (mode === "single" || selectedItemId) {
+  if (!isBundleLine && (mode === "single" || selectedItemId)) {
     return (
       <ProductCombobox
         inventory={inventory}
@@ -150,15 +144,31 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
 
   return (
     <>
-      {/* Trigger button that mimics the combobox input */}
-      <button
-        type="button"
-        onClick={openChooser}
-        className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-2 text-xs text-left text-muted-foreground hover:bg-accent transition-colors relative"
-      >
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-        Search product...
-      </button>
+      {isBundleLine ? (
+        // Ad-hoc bundle line: show its title; click to re-open the builder and edit it
+        <button
+          type="button"
+          onClick={openBundleEditor}
+          disabled={!onBundleUpdate}
+          title={onBundleUpdate ? `Edit bundle: ${bundleLabel}` : bundleLabel}
+          className="w-full flex items-center gap-1.5 h-8 rounded-md border border-input bg-muted/40 px-2 text-xs font-medium text-left enabled:hover:bg-accent transition-colors disabled:cursor-default"
+        >
+          <Package className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="truncate flex-1">{bundleLabel}</span>
+          {onBundleUpdate && <Pencil className="w-3 h-3 text-muted-foreground shrink-0" />}
+        </button>
+      ) : (
+        /* Trigger button that mimics the combobox input */
+        <button
+          type="button"
+          onClick={openChooser}
+          className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-2 text-xs text-left text-muted-foreground hover:bg-accent transition-colors relative"
+        >
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+          Search product...
+        </button>
+      )}
+
 
       {/* Mode chooser dialog */}
       <Dialog open={chooserOpen} onOpenChange={setChooserOpen}>
