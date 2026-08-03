@@ -7,6 +7,7 @@ import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loa
 import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { HighlightText } from "@/components/HighlightText";
+import { tokenize, matchesTokens } from "@/lib/search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
