@@ -7,158 +7,277 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const num = (v: unknown) => (typeof v === "number" && isFinite(v) ? v : Number(v) || 0);
+const money = (v: number) =>
+  new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(Math.round(v));
+
+type Msg = { role: "user" | "assistant" | "system"; content: string };
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
-    if (!messages || !Array.isArray(messages)) {
+    const body = await req.json().catch(() => null);
+    const rawMessages = body?.messages;
+    if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
       return new Response(JSON.stringify({ error: "messages array required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-    if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY not configured");
+    // Keep only the last 12 turns to bound prompt size, drop empty content.
+    const messages: Msg[] = rawMessages
+      .filter((m: Msg) => m && typeof m.content === "string" && m.content.trim())
+      .slice(-12)
+      .map((m: Msg) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content.slice(0, 4000),
+      }));
 
     const authHeader = req.headers.get("Authorization");
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     let userId: string | null = null;
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id ?? null;
+      const { data } = await supabase.auth.getUser(token);
+      userId = data?.user?.id ?? null;
     }
 
     let businessContext = "";
     if (userId) {
       try {
         const [
-          { data: invoices },
-          { data: customers },
-          { data: inventory },
-          { data: receipts },
-          { data: expenses },
-          { data: salesOrders },
-          { data: suppliers },
-          { data: bills },
-          { data: accounts },
-          { data: ledgerEntries },
-          { data: quotations },
-          { data: purchaseOrders },
-          { data: purchasePayments },
-          { data: solarWashing },
+          invoices,
+          customers,
+          inventory,
+          receipts,
+          expenses,
+          salesOrders,
+          suppliers,
+          bills,
+          accounts,
+          ledgerEntries,
+          quotations,
+          purchaseOrders,
+          purchasePayments,
+          solarWashing,
         ] = await Promise.all([
-          supabase.from("invoices").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(40),
-          supabase.from("customers").select("name,phone,total_billed,outstanding").limit(80),
-          supabase.from("inventory").select("name,sku,qty,sale_price,cost_price,reorder_level").limit(80),
-          supabase.from("receipts").select("number,customer,amount,date").order("created_at", { ascending: false }).limit(40),
-          supabase.from("expenses").select("description,amount,category,date").order("created_at", { ascending: false }).limit(40),
-          supabase.from("sales_orders").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(30),
-          supabase.from("suppliers").select("name,phone,outstanding").limit(60),
-          supabase.from("bills").select("number,supplier,date,amount,status").order("created_at", { ascending: false }).limit(30),
-          supabase.from("accounts").select("name,balance,currency").limit(30),
-          supabase.from("ledger_entries").select("amount,type,bank").order("created_at", { ascending: false }).limit(500),
-          supabase.from("quotations").select("number,customer,date,amount,status").order("created_at", { ascending: false }).limit(20),
-          supabase.from("purchase_orders").select("number,supplier,date,amount,status").order("created_at", { ascending: false }).limit(20),
-          supabase.from("purchase_payments").select("supplier,date,amount").order("created_at", { ascending: false }).limit(20),
-          supabase.from("solar_washing").select("date,customer,amount").order("created_at", { ascending: false }).limit(30),
-        ]);
+          supabase.from("invoices").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(400),
+          supabase.from("customers").select("name,phone,total_billed,outstanding").limit(400),
+          supabase.from("inventory").select("name,sku,qty,sale_price,cost_price,reorder_level,category,location").limit(500),
+          supabase.from("receipts").select("number,customer,amount,date").order("date", { ascending: false }).limit(300),
+          supabase.from("expenses").select("description,amount,category,date").order("date", { ascending: false }).limit(300),
+          supabase.from("sales_orders").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(150),
+          supabase.from("suppliers").select("name,phone,outstanding").limit(200),
+          supabase.from("bills").select("number,supplier,date,amount,status").order("date", { ascending: false }).limit(150),
+          supabase.from("accounts").select("name,balance,currency").limit(50),
+          supabase.from("ledger_entries").select("amount,type,bank").limit(2000),
+          supabase.from("quotations").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(80),
+          supabase.from("purchase_orders").select("number,supplier,date,amount,status").order("date", { ascending: false }).limit(120),
+          supabase.from("purchase_payments").select("supplier,date,amount").order("date", { ascending: false }).limit(120),
+          supabase.from("solar_washing").select("date,customer,amount").order("date", { ascending: false }).limit(200),
+        ]).then((rs) => rs.map((r) => (r.data ?? []) as Record<string, unknown>[]));
 
-        const balances: Record<string, { in: number; out: number }> = {};
-        for (const e of ledgerEntries || []) {
-          const b = e.bank || "";
-          if (!balances[b]) balances[b] = { in: 0, out: 0 };
-          if (e.type === "incoming") balances[b].in += (e.amount || 0);
-          else balances[b].out += (e.amount || 0);
+        // ---- Account balances (opening + ledger movement) ----
+        const movement: Record<string, { in: number; out: number }> = {};
+        for (const e of ledgerEntries) {
+          const b = String(e.bank ?? "");
+          movement[b] ??= { in: 0, out: 0 };
+          if (e.type === "incoming") movement[b].in += num(e.amount);
+          else movement[b].out += num(e.amount);
         }
-        const enrichedAccounts = (accounts || []).map((a) => {
-          const l = balances[a.name] || { in: 0, out: 0 };
-          return { name: a.name, currency: a.currency, actual_balance: (a.balance || 0) + l.in - l.out };
+        const enrichedAccounts = accounts.map((a) => {
+          const m = movement[String(a.name)] || { in: 0, out: 0 };
+          return {
+            name: a.name,
+            currency: a.currency ?? "PKR",
+            actual_balance: num(a.balance) + m.in - m.out,
+          };
         });
+        const cashTotal = enrichedAccounts.reduce((s, a) => s + a.actual_balance, 0);
 
-        // Compact JSON without null/empty
-        const compact = (arr: any[]) => JSON.stringify(arr || []);
+        // ---- Inventory (main location only, deduped by sku) ----
+        const mainInv = new Map<string, Record<string, unknown>>();
+        for (const p of inventory) {
+          const loc = String(p.location ?? "main");
+          if (loc !== "main") continue;
+          const key = String(p.sku || p.name);
+          if (!mainInv.has(key)) mainInv.set(key, p);
+        }
+        const invItems = [...mainInv.values()];
+        const stockValue = invItems.reduce((s, p) => s + num(p.qty) * num(p.cost_price), 0);
+        const lowStock = invItems
+          .filter((p) => num(p.qty) <= num(p.reorder_level))
+          .map((p) => ({ name: p.name, qty: num(p.qty), reorder: num(p.reorder_level) }))
+          .slice(0, 40);
 
-        businessContext = `\n## LIVE BUSINESS DATA (Today: ${new Date().toISOString().split("T")[0]})
-### Accounts: ${compact(enrichedAccounts)}
-### Customers (${customers?.length || 0}): ${compact(customers || [])}
-### Suppliers (${suppliers?.length || 0}): ${compact(suppliers || [])}
-### Inventory (${inventory?.length || 0}): ${compact(inventory || [])}
-### Recent Invoices: ${compact(invoices || [])}
-### Sales Orders: ${compact(salesOrders || [])}
-### Recent Receipts: ${compact(receipts || [])}
-### Recent Expenses: ${compact(expenses || [])}
-### Bills: ${compact(bills || [])}
-### Quotations: ${compact(quotations || [])}
-### Purchase Orders: ${compact(purchaseOrders || [])}
-### Purchase Payments: ${compact(purchasePayments || [])}
-### Solar Washing: ${compact(solarWashing || [])}
+        // ---- KPIs ----
+        const sum = (arr: Record<string, unknown>[], k = "amount") =>
+          arr.reduce((s, r) => s + num(r[k]), 0);
+        const today = new Date();
+        const ym = (d: unknown) => String(d ?? "").slice(0, 7);
+        const thisMonth = today.toISOString().slice(0, 7);
+        const inMonth = (arr: Record<string, unknown>[], m: string) =>
+          arr.filter((r) => ym(r.date) === m);
+
+        const receivables = customers.reduce((s, c) => s + num(c.outstanding), 0);
+        const payables = suppliers.reduce((s, c) => s + num(c.outstanding), 0);
+
+        const monthly: Record<string, number> = {};
+        for (const i of invoices) monthly[ym(i.date)] = (monthly[ym(i.date)] ?? 0) + num(i.amount);
+        const monthlySales = Object.entries(monthly)
+          .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+          .slice(0, 12)
+          .map(([m, v]) => `${m}: ${money(v)}`)
+          .join(" | ");
+
+        const topCustomers = [...customers]
+          .sort((a, b) => num(b.total_billed) - num(a.total_billed))
+          .slice(0, 15)
+          .map((c) => ({ name: c.name, billed: num(c.total_billed), due: num(c.outstanding) }));
+
+        const topDebtors = [...customers]
+          .filter((c) => num(c.outstanding) > 0)
+          .sort((a, b) => num(b.outstanding) - num(a.outstanding))
+          .slice(0, 15)
+          .map((c) => ({ name: c.name, due: num(c.outstanding) }));
+
+        const kpi = {
+          cash_and_bank_total: money(cashTotal),
+          stock_value_at_cost: money(stockValue),
+          total_assets_estimate: money(cashTotal + stockValue + receivables),
+          receivables_total: money(receivables),
+          payables_total: money(payables),
+          lifetime_sales: money(sum(invoices)),
+          sales_this_month: money(sum(inMonth(invoices, thisMonth))),
+          receipts_this_month: money(sum(inMonth(receipts, thisMonth))),
+          expenses_this_month: money(sum(inMonth(expenses, thisMonth))),
+          solar_washing_total: money(sum(solarWashing)),
+          solar_washing_this_month: money(sum(inMonth(solarWashing, thisMonth))),
+          solar_washing_jobs: solarWashing.length,
+          unpaid_invoices: invoices.filter((i) => String(i.status).toLowerCase() !== "paid").length,
+          products_in_main_inventory: invItems.length,
+          low_stock_items: lowStock.length,
+        };
+
+        const j = (v: unknown) => JSON.stringify(v);
+
+        businessContext = `
+## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, currency PKR)
+### KPI SUMMARY (already calculated — inhe seedha use kar, dobara jama mat kar):
+${j(kpi)}
+NOTE: "total_assets_estimate" = cash/bank + stock value at cost + receivables. Fixed assets (equipment) is estimate me shamil nahi.
+### Monthly sales (last 12): ${monthlySales}
+### Accounts: ${j(enrichedAccounts)}
+### Top customers: ${j(topCustomers)}
+### Top debtors: ${j(topDebtors)}
+### Low stock: ${j(lowStock)}
+### Inventory (main, ${invItems.length}): ${j(invItems.slice(0, 200).map((p) => ({ n: p.name, sku: p.sku, qty: num(p.qty), cost: num(p.cost_price), sale: num(p.sale_price), cat: p.category })))}
+### Invoices (recent 120): ${j(invoices.slice(0, 120))}
+### Sales Orders (recent 40): ${j(salesOrders.slice(0, 40))}
+### Receipts (recent 60): ${j(receipts.slice(0, 60))}
+### Expenses (recent 60): ${j(expenses.slice(0, 60))}
+### Bills (recent 40): ${j(bills.slice(0, 40))}
+### Quotations (recent 25): ${j(quotations.slice(0, 25))}
+### Purchase Orders (recent 40): ${j(purchaseOrders.slice(0, 40))}
+### Purchase Payments (recent 30): ${j(purchasePayments.slice(0, 30))}
+### Solar Washing (recent 40): ${j(solarWashing.slice(0, 40))}
+### Suppliers: ${j(suppliers.slice(0, 80))}
 `;
 
-        // Hard cap to stay well below Groq's per-request token limit (~6000 chars ≈ 1500 tokens buffer)
-        const MAX = 24000;
+        const MAX = 120000; // Gemini has a large context; still bound it.
         if (businessContext.length > MAX) {
-          businessContext = businessContext.slice(0, MAX) + "\n...[truncated for size]";
+          businessContext = businessContext.slice(0, MAX) + "\n...[truncated]";
         }
-
       } catch (e) {
         console.error("data fetch error:", e);
+        businessContext = "\n(Live data load nahin ho saka — user ko batao ke data abhi available nahin.)";
       }
+    } else {
+      businessContext = "\n(User logged-in nahin hai, is liye live business data available nahin.)";
     }
 
-    const systemPrompt = `Tu Nexia hai — K&S Solar Energy ki AI business assistant LARKI. Read-only access hai — sirf data dekh sakti hai, create/edit/delete NAHIN kar sakti.
+    const systemPrompt = `Tu Nexia hai — K&S Solar Energy ki AI business assistant LARKI. Read-only access hai: data dekh sakti hai, create/edit/delete NAHIN kar sakti.
 
-ZABAN: Urdu (Roman Urdu) mein jawab de jab user Urdu likhay, English mein jab user English likhay. Feminine forms use kar (karungi, bataungi, dekhi). Pakistani style, warm aur friendly.
+ZABAN: User Roman Urdu likhay to Roman Urdu, English likhay to English. Feminine forms (karungi, bataungi, dekhi). Warm, Pakistani, professional.
 
-TERA KAAM: Business analytics, inventory, invoices, accounts, reports, software guidance, general knowledge — sab bata sakti hai. Currency PKR. Numbers accurate rakh. Account balance ke liye "actual_balance" field use kar.
+RULES:
+- Currency PKR. Numbers KPI SUMMARY se lo — wo pehle se calculated hain, dobara jama mat karo.
+- Account balance ke liye hamesha "actual_balance" use karo.
+- Agar koi figure data me maujood nahin to saaf keh do "ye data available nahin" — andaza mat lagao.
+- Jawab short (2-5 lines). Lists ke liye chhoti bullet list. Amounts thousands separator ke sath.
+- Yeh jawab voice me bhi bola ja sakta hai, is liye lamba paragraph mat likho jab tak user detail na maangay.
 
-CREATOR: Yousuf ne banaya hai (Yousuf Enterprises). Contact: +923101734582.
-
-JAWAB CHOTA rakh (2-4 sentences) kyunki yeh voice mein bhi bolay ga — long paragraphs mat likh unless user detail maangay.
+CREATOR: Yousuf (Yousuf Enterprises), contact +923101734582.
 ${businessContext}`;
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        temperature: 0.7,
-        stream: false,
-      }),
-    });
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("Groq error:", response.status, t);
-      return new Response(JSON.stringify({ error: `Groq API error: ${response.status}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const callModel = async () => {
+      if (LOVABLE_API_KEY) {
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3.6-flash",
+            messages: [{ role: "system", content: systemPrompt }, ...messages],
+          }),
+        });
+        if (res.ok) return await res.json();
+        const text = await res.text();
+        console.error("Lovable AI error:", res.status, text);
+        if (res.status === 429) throw { status: 429, msg: "Bohot zyada requests. Thori dair baad koshish karein." };
+        if (res.status === 402) throw { status: 402, msg: "AI credits khatam ho gaye hain." };
+        // fall through to Groq
+      }
+      if (!GROQ_API_KEY) throw { status: 500, msg: "AI service configure nahin hai." };
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          // Groq has a small context window — send a trimmed prompt.
+          messages: [
+            { role: "system", content: systemPrompt.slice(0, 20000) },
+            ...messages.slice(-6),
+          ],
+          temperature: 0.6,
+        }),
       });
-    }
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("Groq error:", res.status, t);
+        throw { status: res.status, msg: `AI service error (${res.status}).` };
+      }
+      return await res.json();
+    };
 
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "";
+    const data = await callModel();
+    const reply: string = data?.choices?.[0]?.message?.content?.trim() || "";
+    if (!reply) throw { status: 502, msg: "AI ne khali jawab diya. Dobara koshish karein." };
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("nexia-grok error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
+    const err = e as { status?: number; msg?: string } & Error;
+    const status = err?.status && err.status >= 400 ? err.status : 500;
+    const message = err?.msg || err?.message || "Unknown error";
+    console.error("nexia-grok error:", status, message);
+    return new Response(JSON.stringify({ error: message }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
