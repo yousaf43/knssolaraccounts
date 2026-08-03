@@ -11,7 +11,7 @@ type Msg = { role: "user" | "assistant"; content: string; error?: boolean };
 
 const GREETING: Msg = {
   role: "assistant",
-  content: "Assalam-o-Alaikum! Main **Nexia** hun — aap ki business assistant. Sales, stock, accounts ya reports — kuch bhi poochein 😊",
+  content: "Assalam-o-Alaikum! Main **Nexia** hun — aap ka business assistant. Sales, stock, accounts ya reports — kuch bhi poochein 😊",
 };
 
 const SUGGESTIONS = [
@@ -206,7 +206,7 @@ export function NexiaAssistant() {
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground">
             <div>
               <div className="font-semibold text-sm">Nexia AI</div>
-              <div className="text-[11px] opacity-80">Aap ki business assistant</div>
+              <div className="text-[11px] opacity-80">Aap ka business assistant</div>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -280,7 +280,7 @@ export function NexiaAssistant() {
             {loading && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-2xl rounded-bl-sm px-3 py-2 text-sm flex items-center gap-2">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Soch rahi hun...
+                  <Loader2 className="w-3 h-3 animate-spin" /> Soch raha hun...
                 </div>
               </div>
             )}
