@@ -71,10 +71,11 @@ export default function Inventory() {
   }, [inventory, allCategories]);
 
   const filteredInventory = useMemo(() => {
-    const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const tokens = tokenize(searchQuery);
     return inventory.filter((item) => {
-      if (tokens.length) {
-        const haystack = [
+      if (
+        !matchesTokens(
+          tokens,
           item.name,
           item.sku,
           item.model,
@@ -82,12 +83,11 @@ export default function Inventory() {
           item.category,
           item.unit,
           (item as any).description,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!tokens.every((t) => haystack.includes(t))) return false;
-      }
+          item.qty,
+          item.salePrice,
+        )
+      )
+        return false;
       if (filterCategory !== "__all__" && item.category !== filterCategory) return false;
       if (filterStatus === "low" && item.qty > item.reorderLevel) return false;
       if (filterStatus === "in_stock" && item.qty <= item.reorderLevel) return false;
