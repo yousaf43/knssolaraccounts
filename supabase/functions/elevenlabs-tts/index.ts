@@ -20,8 +20,8 @@ serve(async (req) => {
     const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
     if (!apiKey) throw new Error("ELEVENLABS_API_KEY not configured");
 
-    // Female voice - Sarah (default)
-    const voice = voiceId || "EXAVITQu4vr4xnSDxMaL";
+    // Male voice - George (default)
+    const voice = voiceId || "JBFqnCBsd6RMkjVDRZzb";
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
