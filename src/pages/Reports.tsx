@@ -694,7 +694,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 if (toDate && d > toDate) return false;
               }
               if (!matchesTokens(invTokens, inv.number, inv.customer, (inv as any).documentNumber, inv.status)) return false;
-              }
               return true;
             });
             const today = new Date();
