@@ -1,17 +1,29 @@
-import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant"; content: string; error?: boolean };
+
+const GREETING: Msg = {
+  role: "assistant",
+  content: "Assalam-o-Alaikum! Main **Nexia** hun — aap ki business assistant. Sales, stock, accounts ya reports — kuch bhi poochein 😊",
+};
+
+const SUGGESTIONS = [
+  "Aaj tak ki total sales?",
+  "Cash aur bank balance batao",
+  "Low stock items kaunse hain?",
+  "Sab se zyada udhaar kis customer ka hai?",
+];
 
 export function NexiaAssistant() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: "Assalam-o-Alaikum! Main Nexia hun. Aap ka business assistant. Kya madad chahiye? 😊" },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([GREETING]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -19,25 +31,42 @@ export function NexiaAssistant() {
   const [transcribing, setTranscribing] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastUserMsgRef = useRef<string>("");
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
 
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 60);
+  }, [open]);
+
+  // Stop any playing audio when voice is turned off or panel closes.
+  const stopAudio = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!voiceEnabled || !open) stopAudio();
+  }, [voiceEnabled, open, stopAudio]);
+
   const speak = async (text: string) => {
     if (!voiceEnabled || !text.trim()) return;
     try {
+      // Strip markdown so TTS doesn't read asterisks/hashes aloud.
+      const clean = text.replace(/[*_#`>-]/g, " ").replace(/\s{2,}/g, " ").trim();
       const { data, error } = await supabase.functions.invoke("elevenlabs-tts", {
-        body: { text: text.slice(0, 800) },
+        body: { text: clean.slice(0, 800) },
       });
       if (error || !data?.audio) return;
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      stopAudio();
       const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
       audioRef.current = audio;
       audio.play().catch(() => {});
@@ -46,32 +75,71 @@ export function NexiaAssistant() {
     }
   };
 
-  const sendMessage = async (text: string) => {
-    const content = text.trim();
-    if (!content || loading) return;
+  const extractError = async (error: unknown): Promise<string> => {
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const body = await error.context.json();
+        if (body?.error) return String(body.error);
+      } catch {
+        /* body not JSON */
+      }
+    }
+    return error instanceof Error ? error.message : "Unknown error";
+  };
 
-    const newMessages: Msg[] = [...messages, { role: "user" as const, content }];
-    setMessages(newMessages);
-    setInput("");
+  const runChat = async (history: Msg[]) => {
     setLoading(true);
-
     try {
       const { data, error } = await supabase.functions.invoke("nexia-grok", {
         body: {
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: history
+            .filter((m) => !m.error)
+            .map((m) => ({ role: m.role, content: m.content })),
         },
       });
       if (error) throw error;
-      const reply = data?.reply || "Maaf karein, jawab nahin mil paya.";
+      const reply = data?.reply?.trim();
+      if (!reply) throw new Error("Khali jawab mila");
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       speak(reply);
-    } catch (e: any) {
-      console.error(e);
-      toast.error("AI response mein error aya");
-      setMessages((prev) => [...prev, { role: "assistant", content: "Maaf karein, abhi kuch technical issue hai." }]);
+    } catch (e) {
+      const detail = await extractError(e);
+      console.error("nexia error:", detail);
+      toast.error(detail);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `⚠️ ${detail}`, error: true },
+      ]);
     } finally {
       setLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 60);
     }
+  };
+
+  const sendMessage = (text: string) => {
+    const content = text.trim();
+    if (!content || loading) return;
+    lastUserMsgRef.current = content;
+    const next: Msg[] = [...messages, { role: "user", content }];
+    setMessages(next);
+    setInput("");
+    void runChat(next);
+  };
+
+  const retry = () => {
+    if (loading) return;
+    // Drop trailing error bubble and resend the last user message.
+    const cleaned = messages.filter((m) => !m.error);
+    if (!lastUserMsgRef.current) return;
+    setMessages(cleaned);
+    void runChat(cleaned);
+  };
+
+  const clearChat = () => {
+    stopAudio();
+    setMessages([GREETING]);
+    lastUserMsgRef.current = "";
+    setTimeout(() => inputRef.current?.focus(), 60);
   };
 
   const startRecording = async () => {
@@ -99,8 +167,7 @@ export function NexiaAssistant() {
           if (text) sendMessage(text);
           else toast.error("Awaaz samajh nahin ayi");
         } catch (err) {
-          console.error(err);
-          toast.error("Transcription fail hui");
+          toast.error(await extractError(err));
         } finally {
           setTranscribing(false);
         }
@@ -108,7 +175,7 @@ export function NexiaAssistant() {
       mediaRecorderRef.current = mr;
       mr.start();
       setRecording(true);
-    } catch (e) {
+    } catch {
       toast.error("Microphone access nahin mila");
     }
   };
@@ -118,9 +185,11 @@ export function NexiaAssistant() {
     setRecording(false);
   };
 
+  const lastIsError = messages[messages.length - 1]?.error;
+  const showSuggestions = messages.length === 1 && !loading;
+
   return (
     <>
-      {/* Floating trigger */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -132,7 +201,7 @@ export function NexiaAssistant() {
       )}
 
       {open && (
-        <div className="fixed bottom-5 right-5 z-50 w-[min(380px,calc(100vw-2rem))] h-[min(600px,calc(100vh-2rem))] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-5 right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[min(620px,calc(100vh-2rem))] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground">
             <div>
@@ -141,13 +210,22 @@ export function NexiaAssistant() {
             </div>
             <div className="flex items-center gap-1">
               <button
+                onClick={clearChat}
+                className="p-1.5 rounded-md hover:bg-white/10"
+                title="Nayi guftagu"
+                aria-label="Clear conversation"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => setVoiceEnabled((v) => !v)}
                 className="p-1.5 rounded-md hover:bg-white/10"
                 title={voiceEnabled ? "Voice on" : "Voice off"}
+                aria-label="Toggle voice"
               >
                 {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </button>
-              <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/10">
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-md hover:bg-white/10" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -158,16 +236,47 @@ export function NexiaAssistant() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+                  className={`max-w-[88%] rounded-2xl px-3 py-2 text-sm ${
                     m.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-muted text-foreground rounded-bl-sm"
+                      ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
+                      : m.error
+                        ? "bg-destructive/10 text-destructive rounded-bl-sm"
+                        : "bg-muted text-foreground rounded-bl-sm"
                   }`}
                 >
-                  {m.content}
+                  {m.role === "assistant" && !m.error ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    m.content
+                  )}
                 </div>
               </div>
             ))}
+
+            {lastIsError && !loading && (
+              <div className="flex justify-start">
+                <Button size="sm" variant="outline" onClick={retry} className="gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5" /> Dobara koshish karein
+                </Button>
+              </div>
+            )}
+
+            {showSuggestions && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => sendMessage(s)}
+                    className="text-[11px] px-2.5 py-1.5 rounded-full border border-border bg-muted/50 hover:bg-muted transition-colors text-left"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {loading && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-2xl rounded-bl-sm px-3 py-2 text-sm flex items-center gap-2">
@@ -190,6 +299,7 @@ export function NexiaAssistant() {
               {transcribing ? <Loader2 className="w-4 h-4 animate-spin" /> : recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </Button>
             <Input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
