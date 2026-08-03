@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { tokenize, matchesTokens } from "@/lib/search";
+import { HighlightText } from "@/components/HighlightText";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
@@ -347,14 +349,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     else if (report.code === "148") data = inventory;
 
     if (data) {
-      const q = stockSearch.trim().toLowerCase();
+      const tokens = tokenize(stockSearch);
       data = data.filter(i => {
         if (stockCategoryFilter !== "all" && i.category !== stockCategoryFilter) return false;
-        if (q) {
-          const hay = `${i.name} ${i.sku} ${i.model || ""} ${i.category} ${i.uniqueCode || ""}`.toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
-        return true;
+        return matchesTokens(tokens, i.name, i.sku, i.model, i.category, i.uniqueCode, i.unit);
       });
 
       if (report.code === "148") {
@@ -534,10 +532,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                        <td className="px-3 py-2 font-medium">{item.name}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{item.sku}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{item.model || "—"}</td>
-                        <td className="px-3 py-2">{item.category}</td>
+                        <td className="px-3 py-2 font-medium"><HighlightText text={item.name} query={stockSearch} /></td>
+                        <td className="px-3 py-2 text-muted-foreground"><HighlightText text={item.sku} query={stockSearch} /></td>
+                        <td className="px-3 py-2 text-muted-foreground">{item.model ? <HighlightText text={item.model} query={stockSearch} /> : "—"}</td>
+                        <td className="px-3 py-2"><HighlightText text={item.category} query={stockSearch} /></td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
@@ -688,16 +686,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {/* Invoice Data Table (028, 037) */}
           {["028", "037"].includes(report.code) && (() => {
             const invList = report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices;
-            const q = invoiceSearch.trim().toLowerCase();
+            const invTokens = tokenize(invoiceSearch);
             const filtered = invList.filter(inv => {
               if (inv.date) {
                 const d = new Date(inv.date);
                 if (fromDate && d < fromDate) return false;
                 if (toDate && d > toDate) return false;
               }
-              if (q) {
-                const hay = `${inv.number || ""} ${inv.customer || ""} ${inv.documentNumber || ""} ${inv.status || ""}`.toLowerCase();
-                if (!hay.includes(q)) return false;
+              if (!matchesTokens(invTokens, inv.number, inv.customer, (inv as any).documentNumber, inv.status)) return false;
               }
               return true;
             });
@@ -831,11 +827,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             }
 
 
-            const cq = customerSearch.trim().toLowerCase();
-            const visibleCust = cq
-              ? custData.filter((c: any) =>
-                  `${c.name || ""} ${c.company || ""} ${c.phone || ""} ${c.email || ""}`.toLowerCase().includes(cq)
-                )
+            const custTokens = tokenize(customerSearch);
+            const visibleCust = custTokens.length
+              ? custData.filter((c: any) => matchesTokens(custTokens, c.name, c.company, c.phone, c.email))
               : custData;
 
             return (
@@ -1039,7 +1033,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const allLines = Object.values(productMap);
             const categories = Array.from(new Set(allLines.map(l => l.category))).sort();
             const productTypes = Array.from(new Set(allLines.map(l => l.productType))).sort();
-            const q = productSearch.trim().toLowerCase();
+            const prodTokens = tokenize(productSearch);
 
             // Product-type filter
             const typeFiltered = productTypeFilter === "all"
@@ -1053,7 +1047,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             // Product search filter
             const searchFiltered = catFiltered
-              .filter(p => !q || p.name.toLowerCase().includes(q))
+              .filter((p: any) => matchesTokens(prodTokens, p.name, p.sku, p.category, p.productType))
               .sort((a, b) => b.revenue - a.revenue);
 
             // Report 236: group by category
@@ -1563,11 +1557,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
           {/* Payment Receipts Summary (063) */}
           {report.code === "063" && (() => {
-            const rq = receiptSearch.trim().toLowerCase();
-            const filteredReceipts = rq
-              ? receipts.filter(r =>
-                  `${r.number || ""} ${r.customer || ""} ${r.invoiceNumber || ""} ${r.paymentMethod || ""}`.toLowerCase().includes(rq)
-                )
+            const rTokens = tokenize(receiptSearch);
+            const filteredReceipts = rTokens.length
+              ? receipts.filter(r => matchesTokens(rTokens, r.number, r.customer, (r as any).invoiceNumber, (r as any).paymentMethod))
               : receipts;
             return (
             <div className="bg-card rounded-lg border p-6">
@@ -1659,9 +1651,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             map[key].count += 1;
           });
         });
-        const q = txnSearch.trim().toLowerCase();
+        const txnTokens = tokenize(txnSearch);
         const rows = Object.values(map)
-          .filter(p => !q || p.name.toLowerCase().includes(q))
+          .filter(p => matchesTokens(txnTokens, p.name))
           .sort((a, b) => b.qtyOut - a.qtyOut);
         return (
           <div className="bg-card rounded-lg border p-6">
