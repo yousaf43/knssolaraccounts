@@ -741,9 +741,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         return (
                           <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
                             <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                            <td className="px-3 py-2 font-medium whitespace-nowrap">{inv.number}</td>
+                            <td className="px-3 py-2 font-medium whitespace-nowrap"><HighlightText text={inv.number} query={invoiceSearch} /></td>
                             <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
-                            <td className="px-3 py-2 font-medium">{inv.customer}</td>
+                            <td className="px-3 py-2 font-medium"><HighlightText text={inv.customer} query={invoiceSearch} /></td>
                             <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
                             <td className="px-3 py-2 text-right">{formatCurrency(subTotal)}</td>
                             <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(tax)}</td>
@@ -1289,7 +1289,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                                     onClick={() => setSelectedProductKey(p.key)}
                                     title="Click to view sales detail"
                                   >
-                                    {p.name}
+                                    <HighlightText text={p.name} query={productSearch} />
                                   </td>
                                   <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
                                   <td className="px-3 py-2 text-right">{p.count}</td>
@@ -1526,7 +1526,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               onClick={() => setSelectedProductKey(p.key)}
                               title="Click to view detail"
                             >
-                              {p.name}
+                              <HighlightText text={p.name} query={productSearch} />
                             </td>
                             <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
                             <td className="px-3 py-2 text-right">{p.count}</td>
@@ -1588,8 +1588,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     {filteredReceipts.map((r, idx) => (
                       <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                        <td className="px-3 py-2 font-medium">{r.number}</td>
-                        <td className="px-3 py-2">{r.customer}</td>
+                        <td className="px-3 py-2 font-medium"><HighlightText text={r.number} query={receiptSearch} /></td>
+                        <td className="px-3 py-2"><HighlightText text={r.customer} query={receiptSearch} /></td>
                         <td className="px-3 py-2 text-muted-foreground">{r.date}</td>
                         <td className="px-3 py-2 text-muted-foreground">{r.invoiceNumber}</td>
                         <td className="px-3 py-2">{r.paymentMethod}</td>
@@ -1680,7 +1680,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   {rows.map((p, idx) => (
                     <tr key={p.name} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                      <td className="px-3 py-2 font-medium">{p.name}</td>
+                      <td className="px-3 py-2 font-medium"><HighlightText text={p.name} query={txnSearch} /></td>
                       <td className="px-3 py-2 text-right">{p.count}</td>
                       <td className="px-3 py-2 text-right font-semibold">{p.qtyOut}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(p.revenue)}</td>
