@@ -323,8 +323,21 @@ export function NexiaAssistant() {
                         : "bg-muted text-foreground rounded-bl-sm"
                   }`}
                 >
+                  {m.files && m.files.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-1.5">
+                      {m.files.map((f) => (
+                        <span
+                          key={f}
+                          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-black/15 max-w-[160px]"
+                        >
+                          <FileText className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{f}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {m.role === "assistant" && !m.error ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_table]:text-[11px] [&_table]:w-full [&_th]:border [&_td]:border [&_th]:px-1 [&_td]:px-1 overflow-x-auto">
                       <ReactMarkdown>{m.content}</ReactMarkdown>
                     </div>
                   ) : (
@@ -333,6 +346,7 @@ export function NexiaAssistant() {
                 </div>
               </div>
             ))}
+
 
             {lastIsError && !loading && (
               <div className="flex justify-start">
