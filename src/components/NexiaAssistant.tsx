@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
-type Msg = { role: "user" | "assistant"; content: string; error?: boolean };
+type Attachment = { name: string; mimeType: string; data: string; size: number };
+type Msg = { role: "user" | "assistant"; content: string; error?: boolean; files?: string[] };
+
+const MAX_FILE_BYTES = 12 * 1024 * 1024; // 12 MB per file
+const MAX_FILES = 5;
+const ACCEPTED = ".pdf,image/*";
+
+/** Read a File as raw base64 (no data: prefix). */
+const fileToBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("File parhi nahin ja saki"));
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const comma = result.indexOf(",");
+      if (comma < 0) reject(new Error("File parhi nahin ja saki"));
+      else resolve(result.slice(comma + 1));
+    };
+    reader.readAsDataURL(file);
+  });
+
 
 const GREETING: Msg = {
   role: "assistant",
