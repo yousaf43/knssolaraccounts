@@ -379,8 +379,53 @@ export function NexiaAssistant() {
             )}
           </div>
 
+          {/* Attachment chips */}
+          {attachments.length > 0 && (
+            <div className="border-t px-2 pt-2 flex flex-wrap gap-1.5 bg-card">
+              {attachments.map((f) => (
+                <span
+                  key={f.name}
+                  className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-muted max-w-[180px]"
+                >
+                  {f.mimeType.startsWith("image/") ? (
+                    <ImageIcon className="w-3 h-3 shrink-0" />
+                  ) : (
+                    <FileText className="w-3 h-3 shrink-0" />
+                  )}
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    onClick={() => removeAttachment(f.name)}
+                    className="shrink-0 hover:text-destructive"
+                    aria-label={`Remove ${f.name}`}
+                    disabled={loading}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Composer */}
           <div className="border-t p-2 flex items-center gap-2 bg-card">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED}
+              multiple
+              className="hidden"
+              onChange={(e) => void pickFiles(e.target.files)}
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading || attaching || recording}
+              title="PDF ya image attach karein"
+            >
+              {attaching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+            </Button>
             <Button
               type="button"
               size="icon"
@@ -396,14 +441,19 @@ export function NexiaAssistant() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-              placeholder={recording ? "Recording..." : "Message likhein..."}
+              placeholder={recording ? "Recording..." : attachments.length ? "File ke bara me poochein..." : "Message likhein..."}
               disabled={loading || recording || transcribing}
               className="flex-1"
             />
-            <Button size="icon" onClick={() => sendMessage(input)} disabled={loading || !input.trim()}>
+            <Button
+              size="icon"
+              onClick={() => sendMessage(input)}
+              disabled={loading || (!input.trim() && attachments.length === 0)}
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>
+
         </div>
       )}
     </>
