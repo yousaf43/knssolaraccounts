@@ -297,6 +297,10 @@ ${businessContext}${attachmentNote}`;
         if (res.status === 402) throw { status: 402, msg: "AI credits khatam ho gaye hain." };
         // fall through to Groq
       }
+      if (attachmentNote) {
+        // Groq (text-only) cannot read PDFs/images — don't silently drop them.
+        throw { status: 503, msg: "File parhne wali AI service abhi available nahin. Thori dair baad koshish karein." };
+      }
       if (!GROQ_API_KEY) throw { status: 500, msg: "AI service configure nahin hai." };
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -309,8 +313,14 @@ ${businessContext}${attachmentNote}`;
           // Groq has a small context window — send a trimmed prompt.
           messages: [
             { role: "system", content: systemPrompt.slice(0, 20000) },
-            ...messages.slice(-6),
+            ...messages.slice(-6).map((m) => ({
+              role: m.role,
+              content: typeof m.content === "string"
+                ? m.content
+                : m.content.map((b) => (b.type === "text" ? b.text : "")).join(" ").trim(),
+            })),
           ],
+
           temperature: 0.6,
         }),
       });
