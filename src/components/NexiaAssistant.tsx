@@ -1,13 +1,34 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
-type Msg = { role: "user" | "assistant"; content: string; error?: boolean };
+type Attachment = { name: string; mimeType: string; data: string; size: number };
+type Msg = { role: "user" | "assistant"; content: string; error?: boolean; files?: string[] };
+
+const MAX_FILE_BYTES = 12 * 1024 * 1024; // 12 MB per file
+const MAX_FILES = 5;
+const ACCEPTED = ".pdf,image/*";
+
+/** Read a File as raw base64 (no data: prefix). */
+const fileToBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("File parhi nahin ja saki"));
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const comma = result.indexOf(",");
+      if (comma < 0) reject(new Error("File parhi nahin ja saki"));
+      else resolve(result.slice(comma + 1));
+    };
+    reader.readAsDataURL(file);
+  });
+
 
 const GREETING: Msg = {
   role: "assistant",
@@ -29,13 +50,18 @@ export function NexiaAssistant() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attaching, setAttaching] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastUserMsgRef = useRef<string>("");
+  const lastAttachmentsRef = useRef<Attachment[]>([]);
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -87,7 +113,7 @@ export function NexiaAssistant() {
     return error instanceof Error ? error.message : "Unknown error";
   };
 
-  const runChat = async (history: Msg[]) => {
+  const runChat = async (history: Msg[], files: Attachment[] = []) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("nexia-grok", {
@@ -95,6 +121,7 @@ export function NexiaAssistant() {
           messages: history
             .filter((m) => !m.error)
             .map((m) => ({ role: m.role, content: m.content })),
+          attachments: files.map((f) => ({ name: f.name, mimeType: f.mimeType, data: f.data })),
         },
       });
       if (error) throw error;
@@ -116,14 +143,64 @@ export function NexiaAssistant() {
     }
   };
 
+  const pickFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    setAttaching(true);
+    try {
+      const current = [...attachments];
+      for (const file of Array.from(list)) {
+        if (current.length >= MAX_FILES) {
+          toast.error(`Zyada se zyada ${MAX_FILES} files bhej sakte hain`);
+          break;
+        }
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        const isImage = file.type.startsWith("image/");
+        if (!isPdf && !isImage) {
+          toast.error(`${file.name}: sirf PDF ya image support hai`);
+          continue;
+        }
+        if (file.size > MAX_FILE_BYTES) {
+          toast.error(`${file.name}: file 12 MB se bari hai`);
+          continue;
+        }
+        try {
+          const data = await fileToBase64(file);
+          current.push({
+            name: file.name,
+            mimeType: isPdf ? "application/pdf" : file.type,
+            data,
+            size: file.size,
+          });
+        } catch {
+          toast.error(`${file.name}: parhi nahin ja saki`);
+        }
+      }
+      setAttachments(current);
+    } finally {
+      setAttaching(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setTimeout(() => inputRef.current?.focus(), 60);
+    }
+  };
+
+  const removeAttachment = (name: string) =>
+    setAttachments((prev) => prev.filter((f) => f.name !== name));
+
   const sendMessage = (text: string) => {
     const content = text.trim();
-    if (!content || loading) return;
-    lastUserMsgRef.current = content;
-    const next: Msg[] = [...messages, { role: "user", content }];
+    const files = attachments;
+    if ((!content && files.length === 0) || loading) return;
+    const prompt = content || "Ye file parh kar batao is me kya hai, aur software ke data se compare karo.";
+    lastUserMsgRef.current = prompt;
+    lastAttachmentsRef.current = files;
+    const next: Msg[] = [
+      ...messages,
+      { role: "user", content: prompt, files: files.map((f) => f.name) },
+    ];
     setMessages(next);
     setInput("");
-    void runChat(next);
+    setAttachments([]);
+    void runChat(next, files);
   };
 
   const retry = () => {
@@ -132,15 +209,18 @@ export function NexiaAssistant() {
     const cleaned = messages.filter((m) => !m.error);
     if (!lastUserMsgRef.current) return;
     setMessages(cleaned);
-    void runChat(cleaned);
+    void runChat(cleaned, lastAttachmentsRef.current);
   };
 
   const clearChat = () => {
     stopAudio();
     setMessages([GREETING]);
+    setAttachments([]);
     lastUserMsgRef.current = "";
+    lastAttachmentsRef.current = [];
     setTimeout(() => inputRef.current?.focus(), 60);
   };
+
 
   const startRecording = async () => {
     try {
@@ -244,9 +324,22 @@ export function NexiaAssistant() {
                         : "bg-muted text-foreground rounded-bl-sm"
                   }`}
                 >
+                  {m.files && m.files.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-1.5">
+                      {m.files.map((f) => (
+                        <span
+                          key={f}
+                          className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-black/15 max-w-[160px]"
+                        >
+                          <FileText className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{f}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {m.role === "assistant" && !m.error ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_table]:text-[11px] [&_table]:w-full [&_th]:border [&_td]:border [&_th]:px-1 [&_td]:px-1 overflow-x-auto">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                     </div>
                   ) : (
                     m.content
@@ -254,6 +347,7 @@ export function NexiaAssistant() {
                 </div>
               </div>
             ))}
+
 
             {lastIsError && !loading && (
               <div className="flex justify-start">
@@ -286,8 +380,53 @@ export function NexiaAssistant() {
             )}
           </div>
 
+          {/* Attachment chips */}
+          {attachments.length > 0 && (
+            <div className="border-t px-2 pt-2 flex flex-wrap gap-1.5 bg-card">
+              {attachments.map((f) => (
+                <span
+                  key={f.name}
+                  className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-md border border-border bg-muted max-w-[180px]"
+                >
+                  {f.mimeType.startsWith("image/") ? (
+                    <ImageIcon className="w-3 h-3 shrink-0" />
+                  ) : (
+                    <FileText className="w-3 h-3 shrink-0" />
+                  )}
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    onClick={() => removeAttachment(f.name)}
+                    className="shrink-0 hover:text-destructive"
+                    aria-label={`Remove ${f.name}`}
+                    disabled={loading}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Composer */}
           <div className="border-t p-2 flex items-center gap-2 bg-card">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED}
+              multiple
+              className="hidden"
+              onChange={(e) => void pickFiles(e.target.files)}
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading || attaching || recording}
+              title="PDF ya image attach karein"
+            >
+              {attaching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+            </Button>
             <Button
               type="button"
               size="icon"
@@ -303,14 +442,19 @@ export function NexiaAssistant() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-              placeholder={recording ? "Recording..." : "Message likhein..."}
+              placeholder={recording ? "Recording..." : attachments.length ? "File ke bara me poochein..." : "Message likhein..."}
               disabled={loading || recording || transcribing}
               className="flex-1"
             />
-            <Button size="icon" onClick={() => sendMessage(input)} disabled={loading || !input.trim()}>
+            <Button
+              size="icon"
+              onClick={() => sendMessage(input)}
+              disabled={loading || (!input.trim() && attachments.length === 0)}
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>
+
         </div>
       )}
     </>
