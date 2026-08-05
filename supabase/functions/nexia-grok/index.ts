@@ -11,7 +11,15 @@ const num = (v: unknown) => (typeof v === "number" && isFinite(v) ? v : Number(v
 const money = (v: number) =>
   new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(Math.round(v));
 
-type Msg = { role: "user" | "assistant" | "system"; content: string };
+type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } }
+  | { type: "file"; file: { filename: string; file_data: string } };
+type Msg = { role: "user" | "assistant" | "system"; content: string | ContentBlock[] };
+type Attachment = { name?: string; mimeType?: string; data?: string };
+
+// ~15 MB of base64 across all attachments keeps us inside provider limits.
+const MAX_ATTACH_B64 = 15_000_000;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -28,12 +36,52 @@ serve(async (req) => {
 
     // Keep only the last 12 turns to bound prompt size, drop empty content.
     const messages: Msg[] = rawMessages
-      .filter((m: Msg) => m && typeof m.content === "string" && m.content.trim())
+      .filter((m: Msg) => m && typeof m.content === "string" && (m.content as string).trim())
       .slice(-12)
       .map((m: Msg) => ({
         role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content.slice(0, 4000),
+        content: (m.content as string).slice(0, 4000),
       }));
+
+    // ---- Attachments (scanned PDFs / images) go on the LAST user message ----
+    const rawAttachments: Attachment[] = Array.isArray(body?.attachments) ? body.attachments : [];
+    let attachmentNote = "";
+    if (rawAttachments.length > 0) {
+      let budget = MAX_ATTACH_B64;
+      const blocks: ContentBlock[] = [];
+      const accepted: string[] = [];
+      const skipped: string[] = [];
+      for (const a of rawAttachments.slice(0, 5)) {
+        const data = typeof a?.data === "string" ? a.data : "";
+        const mime = typeof a?.mimeType === "string" && a.mimeType ? a.mimeType : "application/pdf";
+        const name = typeof a?.name === "string" && a.name ? a.name : "attachment";
+        if (!data) continue;
+        if (data.length > budget) { skipped.push(name); continue; }
+        budget -= data.length;
+        if (mime.startsWith("image/")) {
+          blocks.push({ type: "image_url", image_url: { url: `data:${mime};base64,${data}` } });
+        } else {
+          blocks.push({ type: "file", file: { filename: name, file_data: `data:${mime};base64,${data}` } });
+        }
+        accepted.push(name);
+      }
+      if (blocks.length > 0) {
+        // Find last user message; append file blocks to it.
+        let idx = -1;
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].role === "user") { idx = i; break; }
+        }
+        const text = idx >= 0 ? String(messages[idx].content) : "Is file ko parhein aur summary dein.";
+        const merged: ContentBlock[] = [{ type: "text", text }, ...blocks];
+        if (idx >= 0) messages[idx] = { role: "user", content: merged };
+        else messages.push({ role: "user", content: merged });
+        attachmentNote = `\n### ATTACHED FILES (user ne abhi bheji hain): ${accepted.join(", ")}\nIn files ka data parh kar upar di gayi LIVE BUSINESS DATA se compare karo jab user kahay (item name/qty/rate match karo, difference table banao).`;
+      }
+      if (skipped.length > 0) {
+        attachmentNote += `\n(Ye files bohot bari thin is liye skip hui: ${skipped.join(", ")} — user ko batao.)`;
+      }
+    }
+
 
     const authHeader = req.headers.get("Authorization");
     const supabase = createClient(
