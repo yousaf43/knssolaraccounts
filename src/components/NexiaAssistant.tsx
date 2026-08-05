@@ -112,7 +112,7 @@ export function NexiaAssistant() {
     return error instanceof Error ? error.message : "Unknown error";
   };
 
-  const runChat = async (history: Msg[]) => {
+  const runChat = async (history: Msg[], files: Attachment[] = []) => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("nexia-grok", {
@@ -120,6 +120,7 @@ export function NexiaAssistant() {
           messages: history
             .filter((m) => !m.error)
             .map((m) => ({ role: m.role, content: m.content })),
+          attachments: files.map((f) => ({ name: f.name, mimeType: f.mimeType, data: f.data })),
         },
       });
       if (error) throw error;
@@ -141,14 +142,64 @@ export function NexiaAssistant() {
     }
   };
 
+  const pickFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    setAttaching(true);
+    try {
+      const current = [...attachments];
+      for (const file of Array.from(list)) {
+        if (current.length >= MAX_FILES) {
+          toast.error(`Zyada se zyada ${MAX_FILES} files bhej sakte hain`);
+          break;
+        }
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        const isImage = file.type.startsWith("image/");
+        if (!isPdf && !isImage) {
+          toast.error(`${file.name}: sirf PDF ya image support hai`);
+          continue;
+        }
+        if (file.size > MAX_FILE_BYTES) {
+          toast.error(`${file.name}: file 12 MB se bari hai`);
+          continue;
+        }
+        try {
+          const data = await fileToBase64(file);
+          current.push({
+            name: file.name,
+            mimeType: isPdf ? "application/pdf" : file.type,
+            data,
+            size: file.size,
+          });
+        } catch {
+          toast.error(`${file.name}: parhi nahin ja saki`);
+        }
+      }
+      setAttachments(current);
+    } finally {
+      setAttaching(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setTimeout(() => inputRef.current?.focus(), 60);
+    }
+  };
+
+  const removeAttachment = (name: string) =>
+    setAttachments((prev) => prev.filter((f) => f.name !== name));
+
   const sendMessage = (text: string) => {
     const content = text.trim();
-    if (!content || loading) return;
-    lastUserMsgRef.current = content;
-    const next: Msg[] = [...messages, { role: "user", content }];
+    const files = attachments;
+    if ((!content && files.length === 0) || loading) return;
+    const prompt = content || "Ye file parh kar batao is me kya hai, aur software ke data se compare karo.";
+    lastUserMsgRef.current = prompt;
+    lastAttachmentsRef.current = files;
+    const next: Msg[] = [
+      ...messages,
+      { role: "user", content: prompt, files: files.map((f) => f.name) },
+    ];
     setMessages(next);
     setInput("");
-    void runChat(next);
+    setAttachments([]);
+    void runChat(next, files);
   };
 
   const retry = () => {
@@ -157,15 +208,18 @@ export function NexiaAssistant() {
     const cleaned = messages.filter((m) => !m.error);
     if (!lastUserMsgRef.current) return;
     setMessages(cleaned);
-    void runChat(cleaned);
+    void runChat(cleaned, lastAttachmentsRef.current);
   };
 
   const clearChat = () => {
     stopAudio();
     setMessages([GREETING]);
+    setAttachments([]);
     lastUserMsgRef.current = "";
+    lastAttachmentsRef.current = [];
     setTimeout(() => inputRef.current?.focus(), 60);
   };
+
 
   const startRecording = async () => {
     try {
