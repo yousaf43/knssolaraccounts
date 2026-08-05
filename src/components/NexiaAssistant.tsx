@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -338,7 +339,7 @@ export function NexiaAssistant() {
                   )}
                   {m.role === "assistant" && !m.error ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_table]:text-[11px] [&_table]:w-full [&_th]:border [&_td]:border [&_th]:px-1 [&_td]:px-1 overflow-x-auto">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                     </div>
                   ) : (
                     m.content
