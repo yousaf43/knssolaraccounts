@@ -227,7 +227,8 @@ function useTable<T extends { id: string }>(
   const upsert = useCallback(async (item: T) => {
     if (!user) return;
     const row = toDb(item, user.id);
-    await supabase.from(tableName as never).upsert(row as never, { onConflict: "id" });
+    const { error } = await supabase.from(tableName as never).upsert(row as never, { onConflict: "id" });
+    if (error) throw error;
     setData((prev) => {
       const exists = prev.find((d) => d.id === item.id);
       return exists ? prev.map((d) => d.id === item.id ? item : d) : [item, ...prev];

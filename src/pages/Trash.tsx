@@ -4,6 +4,7 @@ import { useActivityLog } from "@/hooks/useActivityLog";
 import {
   useInvoicesCloud,
   useSalesOrdersCloud,
+  useQuotationsCloud,
   useStockAdjustmentsCloud,
   useCustomersCloud,
   useSuppliersCloud,
@@ -13,6 +14,7 @@ import {
   useBillsCloud,
   usePurchaseOrdersCloud,
   usePurchasePaymentsCloud,
+  useSolarWashingCloud,
 } from "@/hooks/useAppData";
 import { Loader2, RotateCcw, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ import { toast } from "sonner";
 const TYPE_LABELS: Record<string, string> = {
   invoice: "Invoice",
   sales_order: "Sales Order",
+  quotation: "Quotation",
   stock_adjustment: "Stock Adjustment",
   customer: "Customer",
   supplier: "Supplier",
@@ -32,18 +35,40 @@ const TYPE_LABELS: Record<string, string> = {
   bill: "Bill",
   purchase_order: "Purchase Order",
   purchase_payment: "Purchase Payment",
+  solar_washing: "Solar Washing",
 };
+
+/**
+ * Trash rows were written by different call-sites: some stored the camelCase
+ * app object, others stored the snake_case DB row. The cloud `upsert` mappers
+ * only read camelCase props, so snake_case payloads used to be written back as
+ * empty rows (or rejected). Normalise by exposing every key in both shapes.
+ */
+const normalizePayload = (data: Record<string, unknown>): Record<string, unknown> => {
+  const out: Record<string, unknown> = { ...data };
+  for (const [key, value] of Object.entries(data)) {
+    if (key.includes("_")) {
+      const camel = key.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
+      if (out[camel] === undefined || out[camel] === null || out[camel] === "") out[camel] = value;
+    }
+  }
+  if (!out.id) out.id = crypto.randomUUID();
+  return out;
+};
+
 
 export default function TrashPage() {
   const { items, loading, restoreFromTrash, permanentDelete, emptyTrash } = useTrash();
   const { log } = useActivityLog();
   const [search, setSearch] = useState("");
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   // Load cloud hooks for each restorable type so we can upsert via the
   // proper camelCase → snake_case mapper (raw supabase upsert with the
   // camelCase JS object silently fails because columns don't match).
   const invoices = useInvoicesCloud();
   const salesOrders = useSalesOrdersCloud();
+  const quotations = useQuotationsCloud();
   const stockAdjustments = useStockAdjustmentsCloud();
   const customers = useCustomersCloud();
   const suppliers = useSuppliersCloud();
@@ -53,10 +78,12 @@ export default function TrashPage() {
   const bills = useBillsCloud();
   const purchaseOrders = usePurchaseOrdersCloud();
   const purchasePayments = usePurchasePaymentsCloud();
+  const solarWashing = useSolarWashingCloud();
 
   const restoreDispatch: Record<string, (data: Record<string, unknown>) => Promise<void>> = {
     invoice: (d) => invoices.upsert(d as never),
     sales_order: (d) => salesOrders.upsert(d as never),
+    quotation: (d) => quotations.upsert(d as never),
     stock_adjustment: (d) => stockAdjustments.upsert(d as never),
     customer: (d) => customers.upsert(d as never),
     supplier: (d) => suppliers.upsert(d as never),
@@ -66,6 +93,7 @@ export default function TrashPage() {
     bill: (d) => bills.upsert(d as never),
     purchase_order: (d) => purchaseOrders.upsert(d as never),
     purchase_payment: (d) => purchasePayments.upsert(d as never),
+    solar_washing: (d) => solarWashing.upsert(d as never),
   };
 
   const handleRestore = async (trashId: string) => {
@@ -76,16 +104,22 @@ export default function TrashPage() {
       toast.error(`Cannot restore item of type "${trashItem.itemType}"`);
       return;
     }
+    setRestoringId(trashId);
     try {
-      await restorer(trashItem.itemData);
+      const payload = normalizePayload(trashItem.itemData || {});
+      await restorer(payload);
       await restoreFromTrash(trashId);
       await log("restore", trashItem.itemType, trashItem.itemId, getLabel(trashItem.itemType, trashItem.itemData), "Restored from trash");
       toast.success("Item restored successfully");
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.error("Restore failed:", err);
-      toast.error("Failed to restore item");
+      toast.error(`Failed to restore item: ${message}`);
+    } finally {
+      setRestoringId(null);
     }
   };
+
 
   const handlePermanentDelete = async (trashId: string) => {
     await permanentDelete(trashId);
@@ -155,8 +189,10 @@ export default function TrashPage() {
                   </td>
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <Button variant="outline" size="sm" onClick={() => handleRestore(item.id)}>
-                        <RotateCcw className="w-3 h-3 mr-1" /> Restore
+                      <Button variant="outline" size="sm" disabled={restoringId === item.id} onClick={() => handleRestore(item.id)}>
+                        {restoringId === item.id
+                          ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          : <RotateCcw className="w-3 h-3 mr-1" />} Restore
                       </Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handlePermanentDelete(item.id)}>
                         <Trash2 className="w-3 h-3 mr-1" /> Delete
