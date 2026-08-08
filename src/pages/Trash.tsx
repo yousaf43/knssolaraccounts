@@ -189,8 +189,10 @@ export default function TrashPage() {
                   </td>
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
-                      <Button variant="outline" size="sm" onClick={() => handleRestore(item.id)}>
-                        <RotateCcw className="w-3 h-3 mr-1" /> Restore
+                      <Button variant="outline" size="sm" disabled={restoringId === item.id} onClick={() => handleRestore(item.id)}>
+                        {restoringId === item.id
+                          ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          : <RotateCcw className="w-3 h-3 mr-1" />} Restore
                       </Button>
                       <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handlePermanentDelete(item.id)}>
                         <Trash2 className="w-3 h-3 mr-1" /> Delete
