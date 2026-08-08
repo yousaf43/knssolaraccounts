@@ -4,6 +4,7 @@ import { useActivityLog } from "@/hooks/useActivityLog";
 import {
   useInvoicesCloud,
   useSalesOrdersCloud,
+  useQuotationsCloud,
   useStockAdjustmentsCloud,
   useCustomersCloud,
   useSuppliersCloud,
@@ -13,6 +14,7 @@ import {
   useBillsCloud,
   usePurchaseOrdersCloud,
   usePurchasePaymentsCloud,
+  useSolarWashingCloud,
 } from "@/hooks/useAppData";
 import { Loader2, RotateCcw, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ import { toast } from "sonner";
 const TYPE_LABELS: Record<string, string> = {
   invoice: "Invoice",
   sales_order: "Sales Order",
+  quotation: "Quotation",
   stock_adjustment: "Stock Adjustment",
   customer: "Customer",
   supplier: "Supplier",
@@ -32,7 +35,27 @@ const TYPE_LABELS: Record<string, string> = {
   bill: "Bill",
   purchase_order: "Purchase Order",
   purchase_payment: "Purchase Payment",
+  solar_washing: "Solar Washing",
 };
+
+/**
+ * Trash rows were written by different call-sites: some stored the camelCase
+ * app object, others stored the snake_case DB row. The cloud `upsert` mappers
+ * only read camelCase props, so snake_case payloads used to be written back as
+ * empty rows (or rejected). Normalise by exposing every key in both shapes.
+ */
+const normalizePayload = (data: Record<string, unknown>): Record<string, unknown> => {
+  const out: Record<string, unknown> = { ...data };
+  for (const [key, value] of Object.entries(data)) {
+    if (key.includes("_")) {
+      const camel = key.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
+      if (out[camel] === undefined || out[camel] === null || out[camel] === "") out[camel] = value;
+    }
+  }
+  if (!out.id) out.id = crypto.randomUUID();
+  return out;
+};
+
 
 export default function TrashPage() {
   const { items, loading, restoreFromTrash, permanentDelete, emptyTrash } = useTrash();
