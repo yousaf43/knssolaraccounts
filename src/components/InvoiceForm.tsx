@@ -17,6 +17,8 @@ import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, Customer, InventoryItem, Receipt } from "@/data/mockData";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { getAdhocBundleValue } from "@/lib/adhocBundle";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import type { DraftKind } from "@/lib/drafts";
 
 type Props = {
   customers: Customer[];
@@ -28,28 +30,52 @@ type Props = {
   onAddCustomer?: (customer: Customer) => void;
   accounts?: Account[];
   receipts?: Receipt[];
+  /** Which draft bucket this form writes to ("invoice" by default). */
+  draftKind?: DraftKind;
+  /** Previously auto-saved form state to resume from. */
+  initialDraft?: Record<string, unknown> | null;
 };
 
-export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [] }: Props) {
+type InvoiceDraftData = {
+  customNumber: string;
+  documentNumber: string;
+  projectName: string;
+  customer: string;
+  selectedCustomerId: string;
+  date: string;
+  dueDate: string;
+  status: Invoice["status"];
+  tax: number;
+  discount: number;
+  notes: string;
+  items: InvoiceItem[];
+  advanceAmount: number;
+  advanceMethod: string;
+  advanceRef: string;
+};
+
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [], draftKind = "invoice", initialDraft = null }: Props) {
   const { formatCurrency } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
-  const [customNumber, setCustomNumber] = useState(editInvoice?.number || "");
-  const [documentNumber, setDocumentNumber] = useState(editInvoice?.documentNumber || "");
-  const [projectName, setProjectName] = useState(editInvoice?.projectName || "");
-  const [customer, setCustomer] = useState(editInvoice?.customer || "");
+  const draft = (initialDraft || undefined) as Partial<InvoiceDraftData> | undefined;
+  const [customNumber, setCustomNumber] = useState(draft?.customNumber ?? editInvoice?.number ?? "");
+  const [documentNumber, setDocumentNumber] = useState(draft?.documentNumber ?? editInvoice?.documentNumber ?? "");
+  const [projectName, setProjectName] = useState(draft?.projectName ?? editInvoice?.projectName ?? "");
+  const [customer, setCustomer] = useState(draft?.customer ?? editInvoice?.customer ?? "");
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(() => {
+    if (draft?.selectedCustomerId !== undefined) return draft.selectedCustomerId;
     if (!editInvoice?.customer) return "";
     return customers.find(c => c.name === editInvoice.customer)?.id || "";
   });
-  const [date, setDate] = useState(editInvoice?.date || new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState(editInvoice?.dueDate || "");
-  const [status, setStatus] = useState<Invoice["status"]>(editInvoice?.status || "pending");
-  const [tax, setTax] = useState(editInvoice?.tax ?? 0);
-  const [discount, setDiscount] = useState(editInvoice?.discount ?? 0);
-  const [notes, setNotes] = useState(editInvoice?.notes || "");
+  const [date, setDate] = useState(draft?.date ?? editInvoice?.date ?? new Date().toISOString().split("T")[0]);
+  const [dueDate, setDueDate] = useState(draft?.dueDate ?? editInvoice?.dueDate ?? "");
+  const [status, setStatus] = useState<Invoice["status"]>(draft?.status ?? editInvoice?.status ?? "pending");
+  const [tax, setTax] = useState(draft?.tax ?? editInvoice?.tax ?? 0);
+  const [discount, setDiscount] = useState(draft?.discount ?? editInvoice?.discount ?? 0);
+  const [notes, setNotes] = useState(draft?.notes ?? editInvoice?.notes ?? "");
   const [items, setItems] = useState<InvoiceItem[]>(
-    editInvoice?.items || [{ description: "", qty: 1, rate: 0, amount: 0 }]
+    draft?.items ?? editInvoice?.items ?? [{ description: "", qty: 1, rate: 0, amount: 0 }]
   );
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
@@ -57,9 +83,9 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [quickPhone, setQuickPhone] = useState("");
   const [quickCNIC, setQuickCNIC] = useState("");
   const [quickEmail, setQuickEmail] = useState("");
-  const [advanceAmount, setAdvanceAmount] = useState(0);
-  const [advanceMethod, setAdvanceMethod] = useState("Cash on Hand");
-  const [advanceRef, setAdvanceRef] = useState("");
+  const [advanceAmount, setAdvanceAmount] = useState(draft?.advanceAmount ?? 0);
+  const [advanceMethod, setAdvanceMethod] = useState(draft?.advanceMethod ?? "Cash on Hand");
+  const [advanceRef, setAdvanceRef] = useState(draft?.advanceRef ?? "");
   const [paymentMode, setPaymentMode] = useState("");
 
   // Build payment options from accounts (unique key using id)
@@ -272,6 +298,32 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const taxAmount = afterDiscount * (tax / 100);
   const total = afterDiscount + taxAmount;
 
+  // ---- Auto-save draft (crash / accidental close protection) ----
+  const draftData: InvoiceDraftData = {
+    customNumber, documentNumber, projectName, customer, selectedCustomerId,
+    date, dueDate, status, tax, discount, notes, items,
+    advanceAmount, advanceMethod, advanceRef,
+  };
+  const hasContent =
+    !!customer.trim() ||
+    !!projectName.trim() ||
+    !!notes.trim() ||
+    items.some((i) => (i.description || "").trim() || Number(i.rate) > 0);
+  const draftLabel = customNumber.trim() || editInvoice?.number || nextNumber;
+  const { savedAt, discard: discardDraft } = useFormDraft({
+    id: `${draftKind}:${editInvoice?.id || "new"}`,
+    kind: draftKind,
+    label: draftLabel,
+    summary: [customer.trim() || "No customer", formatCurrency(total)].join(" • "),
+    data: draftData as unknown as Record<string, unknown>,
+    isEmpty: !hasContent,
+  });
+
+  const handleCancel = () => {
+    discardDraft();
+    onCancel();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.trim() || !date || !dueDate || items.length === 0) return;
@@ -279,6 +331,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     const validItems = items.filter((i) => i.description.trim() && i.qty > 0 && i.rate > 0);
     if (validItems.length === 0) return;
 
+    discardDraft();
     onSave({
       id: editInvoice?.id || crypto.randomUUID(),
       number: customNumber.trim() || nextNumber,
@@ -298,11 +351,19 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
 
   const hasInventory = inventory.length > 0;
 
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">{editInvoice ? "Edit Invoice" : "New Invoice"}</h2>
-        <Button type="button" variant="ghost" size="icon" onClick={onCancel}>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold">{editInvoice ? "Edit Invoice" : "New Invoice"}</h2>
+          {savedAt && (
+            <span className="text-xs text-muted-foreground">
+              Draft saved {new Date(savedAt).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+        <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
           <X className="w-5 h-5" />
         </Button>
       </div>
@@ -594,7 +655,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       </div>
 
       <div className="flex gap-3 justify-end">
-        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
         <Button type="submit">{editInvoice ? "Update Invoice" : "Create Invoice"}</Button>
       </div>
     </form>

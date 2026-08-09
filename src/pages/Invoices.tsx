@@ -25,6 +25,8 @@ import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
+import { getDraft, type DraftKind } from "@/lib/drafts";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -99,6 +101,10 @@ export default function Invoices() {
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
+  const [resumeDraft, setResumeDraft] = useState<{ id: string; kind: DraftKind; data: Record<string, unknown> } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const draftParam = searchParams.get("draft");
+  const draftHandledRef = useRef<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const [stickyHeaderH, setStickyHeaderH] = useState(0);
@@ -171,7 +177,51 @@ export default function Invoices() {
     }
   }, [view]);
 
-  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); };
+  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); setResumeDraft(null); };
+
+  // --- Resume an auto-saved draft (?draft=<kind>:<docId>) ---
+  useEffect(() => {
+    if (!draftParam || draftHandledRef.current === draftParam) return;
+    const stored = getDraft(draftParam);
+    const clearParam = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete("draft");
+      setSearchParams(next, { replace: true });
+    };
+    if (!stored) {
+      draftHandledRef.current = draftParam;
+      clearParam();
+      toast.error("Draft not found — it may already have been saved or removed.");
+      return;
+    }
+    const docId = stored.id.slice(stored.kind.length + 1);
+    // For drafts of existing documents wait until that document is loaded.
+    if (docId !== "new") {
+      const source =
+        stored.kind === "invoice" ? invoices :
+        stored.kind === "quotation" ? quotations : salesOrders;
+      if (source.length === 0) return; // still loading
+    }
+    draftHandledRef.current = draftParam;
+    setResumeDraft({ id: stored.id, kind: stored.kind, data: stored.data });
+    if (stored.kind === "quotation") {
+      setEditQuotation(docId === "new" ? null : quotations.find(q => q.id === docId) || null);
+      setActiveTab("quotations");
+      setView("quotation-form");
+    } else if (stored.kind === "sales-order") {
+      setEditOrder(docId === "new" ? null : salesOrders.find(s => s.id === docId) || null);
+      setActiveTab("sales-orders");
+      setView("form");
+    } else {
+      setEditInvoice(docId === "new" ? null : invoices.find(i => i.id === docId) || null);
+      setActiveTab("invoices");
+      setView("form");
+    }
+    clearParam();
+  }, [draftParam, invoices, quotations, salesOrders, searchParams, setSearchParams]);
+
+  const draftDataFor = (kind: DraftKind) =>
+    resumeDraft && resumeDraft.kind === kind ? resumeDraft.data : null;
 
   const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
@@ -743,16 +793,16 @@ export default function Invoices() {
     return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} prefillInvoice={receivePaymentInvoice} />;
   }
   if (view === "quotation-form") {
-    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} draftKind="quotation" initialDraft={draftDataFor("quotation")} />;
   }
   if (view === "form") {
     if (activeTab === "sales-orders" || editOrder) {
-      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} />;
+      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} initialDraft={draftDataFor("sales-order")} />;
     }
     if (activeTab === "receipts" || editReceipt) {
       return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
-    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} />;
+    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} draftKind="invoice" initialDraft={draftDataFor("invoice")} />;
   }
 
   // --- Export CSV ---
