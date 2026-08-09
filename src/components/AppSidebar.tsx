@@ -36,6 +36,7 @@ const allNavItems = [
   { title: "Assets", url: "/assets", icon: Building2, roles: ["admin", "accountant"] },
   { title: "Reports", url: "/reports", icon: BarChart3, roles: ["admin", "accountant"] },
   { title: "Solar Washing", url: "/solar-washing", icon: Droplets, roles: ["admin", "accountant", "sales"] },
+  { title: "Drafts", url: "/drafts", icon: FileEdit, roles: ["admin", "accountant", "sales"] },
   { title: "Activity Logs", url: "/activity-logs", icon: History, roles: ["admin", "accountant", "sales"] },
   { title: "Trash", url: "/trash", icon: Trash2, roles: ["admin", "accountant", "sales"] },
 ];
