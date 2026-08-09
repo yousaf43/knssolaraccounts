@@ -563,7 +563,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       </div>
 
       <div className="flex gap-3 justify-end">
-        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="button" variant="outline" onClick={handleCancel}>Cancel</Button>
         <Button type="submit">{editOrder ? "Update Order" : "Create Order"}</Button>
       </div>
     </form>
