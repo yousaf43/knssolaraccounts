@@ -177,7 +177,51 @@ export default function Invoices() {
     }
   }, [view]);
 
-  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); };
+  const goList = () => { setView("list"); setEditInvoice(null); setEditOrder(null); setEditReceipt(null); setEditQuotation(null); setPreviewInvoice(null); setPreviewSO(null); setReceivePaymentInvoice(null); setResumeDraft(null); };
+
+  // --- Resume an auto-saved draft (?draft=<kind>:<docId>) ---
+  useEffect(() => {
+    if (!draftParam || draftHandledRef.current === draftParam) return;
+    const stored = getDraft(draftParam);
+    const clearParam = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete("draft");
+      setSearchParams(next, { replace: true });
+    };
+    if (!stored) {
+      draftHandledRef.current = draftParam;
+      clearParam();
+      toast.error("Draft not found — it may already have been saved or removed.");
+      return;
+    }
+    const docId = stored.id.slice(stored.kind.length + 1);
+    // For drafts of existing documents wait until that document is loaded.
+    if (docId !== "new") {
+      const source =
+        stored.kind === "invoice" ? invoices :
+        stored.kind === "quotation" ? quotations : salesOrders;
+      if (source.length === 0) return; // still loading
+    }
+    draftHandledRef.current = draftParam;
+    setResumeDraft({ id: stored.id, kind: stored.kind, data: stored.data });
+    if (stored.kind === "quotation") {
+      setEditQuotation(docId === "new" ? null : quotations.find(q => q.id === docId) || null);
+      setActiveTab("quotations");
+      setView("quotation-form");
+    } else if (stored.kind === "sales-order") {
+      setEditOrder(docId === "new" ? null : salesOrders.find(s => s.id === docId) || null);
+      setActiveTab("sales-orders");
+      setView("form");
+    } else {
+      setEditInvoice(docId === "new" ? null : invoices.find(i => i.id === docId) || null);
+      setActiveTab("invoices");
+      setView("form");
+    }
+    clearParam();
+  }, [draftParam, invoices, quotations, salesOrders, searchParams, setSearchParams]);
+
+  const draftDataFor = (kind: DraftKind) =>
+    resumeDraft && resumeDraft.kind === kind ? resumeDraft.data : null;
 
   const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
