@@ -25,8 +25,6 @@ const formatWhen = (iso: string) => {
 export default function Drafts() {
   const navigate = useNavigate();
   const [drafts, setDrafts] = useState<Draft[]>(() => listDrafts());
-  const [deleteTarget, setDeleteTarget] = useState<Draft | null>(null);
-  const [clearAllOpen, setClearAllOpen] = useState(false);
 
   useEffect(() => subscribeDrafts(() => setDrafts(listDrafts())), []);
 
