@@ -45,9 +45,18 @@ export default function Drafts() {
           </p>
         </div>
         {drafts.length > 0 && (
-          <Button variant="outline" size="sm" onClick={() => setClearAllOpen(true)}>
-            <Trash2 className="w-4 h-4 mr-2" /> Clear All
-          </Button>
+          <ConfirmDeleteDialog
+            title={`Clear all ${drafts.length} drafts?`}
+            description="Saare saved drafts permanently delete ho jayenge."
+            onConfirm={() => {
+              clearDrafts();
+              toast.success("All drafts cleared");
+            }}
+          >
+            <Button variant="outline" size="sm">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear All
+            </Button>
+          </ConfirmDeleteDialog>
         )}
       </div>
 
