@@ -99,6 +99,10 @@ export default function Invoices() {
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
+  const [resumeDraft, setResumeDraft] = useState<{ id: string; kind: DraftKind; data: Record<string, unknown> } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const draftParam = searchParams.get("draft");
+  const draftHandledRef = useRef<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
   const [stickyHeaderH, setStickyHeaderH] = useState(0);
