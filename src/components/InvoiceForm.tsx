@@ -355,8 +355,15 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">{editInvoice ? "Edit Invoice" : "New Invoice"}</h2>
-        <Button type="button" variant="ghost" size="icon" onClick={onCancel}>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold">{editInvoice ? "Edit Invoice" : "New Invoice"}</h2>
+          {savedAt && (
+            <span className="text-xs text-muted-foreground">
+              Draft saved {new Date(savedAt).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+        <Button type="button" variant="ghost" size="icon" onClick={handleCancel}>
           <X className="w-5 h-5" />
         </Button>
       </div>
