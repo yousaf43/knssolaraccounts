@@ -298,6 +298,32 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const taxAmount = afterDiscount * (tax / 100);
   const total = afterDiscount + taxAmount;
 
+  // ---- Auto-save draft (crash / accidental close protection) ----
+  const draftData: InvoiceDraftData = {
+    customNumber, documentNumber, projectName, customer, selectedCustomerId,
+    date, dueDate, status, tax, discount, notes, items,
+    advanceAmount, advanceMethod, advanceRef,
+  };
+  const hasContent =
+    !!customer.trim() ||
+    !!projectName.trim() ||
+    !!notes.trim() ||
+    items.some((i) => (i.description || "").trim() || Number(i.rate) > 0);
+  const draftLabel = customNumber.trim() || editInvoice?.number || nextNumber;
+  const { savedAt, discard: discardDraft } = useFormDraft({
+    id: `${draftKind}:${editInvoice?.id || "new"}`,
+    kind: draftKind,
+    label: draftLabel,
+    summary: [customer.trim() || "No customer", formatCurrency(total)].join(" • "),
+    data: draftData as unknown as Record<string, unknown>,
+    isEmpty: !hasContent,
+  });
+
+  const handleCancel = () => {
+    discardDraft();
+    onCancel();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.trim() || !date || !dueDate || items.length === 0) return;
@@ -305,6 +331,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     const validItems = items.filter((i) => i.description.trim() && i.qty > 0 && i.rate > 0);
     if (validItems.length === 0) return;
 
+    discardDraft();
     onSave({
       id: editInvoice?.id || crypto.randomUUID(),
       number: customNumber.trim() || nextNumber,
@@ -323,6 +350,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   };
 
   const hasInventory = inventory.length > 0;
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
