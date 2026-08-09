@@ -25,6 +25,8 @@ import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { supabase } from "@/integrations/supabase/client";
+import { useSearchParams } from "react-router-dom";
+import { getDraft, deleteDraft, type DraftKind } from "@/lib/drafts";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
