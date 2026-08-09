@@ -283,6 +283,30 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   };
 
 
+  // ---- Auto-save draft (crash / accidental close protection) ----
+  const draftData: SalesOrderDraftData = {
+    customNumber, projectName, customer, date, deliveryDate, status, tax, notes, items,
+    showAdvance, advancePayment, advancePaymentMethod, advancePaymentRef,
+  };
+  const hasContent =
+    !!customer.trim() ||
+    !!projectName.trim() ||
+    !!notes.trim() ||
+    items.some((i) => (i.description || "").trim() || Number(i.rate) > 0);
+  const { savedAt, discard: discardDraft } = useFormDraft({
+    id: `sales-order:${editOrder?.id || "new"}`,
+    kind: "sales-order",
+    label: customNumber.trim() || editOrder?.number || nextNumber,
+    summary: [customer.trim() || "No customer", formatCurrency(total)].join(" • "),
+    data: draftData as unknown as Record<string, unknown>,
+    isEmpty: !hasContent,
+  });
+
+  const handleCancel = () => {
+    discardDraft();
+    onCancel();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customer.trim() || !date || !deliveryDate) return;
@@ -291,6 +315,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
       : items.filter((i) => i.description.trim() && i.qty > 0 && i.rate > 0);
     if (validItems.length === 0) return;
 
+    discardDraft();
     onSave({
       id: editOrder?.id || crypto.randomUUID(),
       number: customNumber.trim() || nextNumber,
@@ -313,9 +338,17 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">{editOrder ? "Edit Sales Order" : "New Sales Order"}</h2>
-        <Button type="button" variant="ghost" size="icon" onClick={onCancel}><X className="w-5 h-5" /></Button>
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold">{editOrder ? "Edit Sales Order" : "New Sales Order"}</h2>
+          {savedAt && (
+            <span className="text-xs text-muted-foreground">
+              Draft saved {new Date(savedAt).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+        <Button type="button" variant="ghost" size="icon" onClick={handleCancel}><X className="w-5 h-5" /></Button>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
