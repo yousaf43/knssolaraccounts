@@ -20,6 +20,7 @@ import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import ActivityLogs from "@/pages/ActivityLogs";
 import TrashPage from "@/pages/Trash";
+import DraftsPage from "@/pages/Drafts";
 import SolarWashing from "@/pages/SolarWashing";
 import Auth from "@/pages/Auth";
 import TwoFactorVerify from "@/pages/TwoFactorVerify";
@@ -61,6 +62,7 @@ function ProtectedRoutes() {
         {!isSales && <Route path="/reports" element={<Reports />} />}
         <Route path="/activity-logs" element={<ActivityLogs />} />
         <Route path="/solar-washing" element={<SolarWashing />} />
+        <Route path="/drafts" element={<DraftsPage />} />
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

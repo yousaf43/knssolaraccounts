@@ -14,6 +14,7 @@ import {
   ChevronRight,
   History,
   Trash2,
+  FileEdit,
   Droplets,
   
 } from "lucide-react";
