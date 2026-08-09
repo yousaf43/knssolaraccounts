@@ -87,9 +87,18 @@ export default function Drafts() {
                       <Button size="sm" onClick={() => resume(d)}>
                         <Play className="w-4 h-4 mr-1" /> Resume
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(d)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      <ConfirmDeleteDialog
+                        title={`Delete draft "${d.label || "Untitled"}"?`}
+                        description="Yeh draft permanently delete ho jayega — Trash me nahi jayega."
+                        onConfirm={() => {
+                          deleteDraft(d.id);
+                          toast.success("Draft deleted");
+                        }}
+                      >
+                        <Button size="sm" variant="ghost">
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </ConfirmDeleteDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -98,28 +107,6 @@ export default function Drafts() {
           </Table>
         )}
       </Card>
-
-      <ConfirmDeleteDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        itemName={deleteTarget?.label || "Draft"}
-        onConfirm={() => {
-          if (deleteTarget) deleteDraft(deleteTarget.id);
-          setDeleteTarget(null);
-          toast.success("Draft deleted");
-        }}
-      />
-
-      <ConfirmDeleteDialog
-        open={clearAllOpen}
-        onOpenChange={setClearAllOpen}
-        itemName={`all ${drafts.length} drafts`}
-        onConfirm={() => {
-          clearDrafts();
-          setClearAllOpen(false);
-          toast.success("All drafts cleared");
-        }}
-      />
     </div>
   );
 }
