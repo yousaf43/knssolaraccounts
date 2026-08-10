@@ -195,8 +195,10 @@ export default function Invoices() {
       return;
     }
     const docId = stored.id.slice(stored.kind.length + 1);
+    // AI-generated drafts ("ai-<ts>") are new documents, just like "new".
+    const isNewDoc = docId === "new" || docId.startsWith("ai-");
     // For drafts of existing documents wait until that document is loaded.
-    if (docId !== "new") {
+    if (!isNewDoc) {
       const source =
         stored.kind === "invoice" ? invoices :
         stored.kind === "quotation" ? quotations : salesOrders;
@@ -205,15 +207,15 @@ export default function Invoices() {
     draftHandledRef.current = draftParam;
     setResumeDraft({ id: stored.id, kind: stored.kind, data: stored.data });
     if (stored.kind === "quotation") {
-      setEditQuotation(docId === "new" ? null : quotations.find(q => q.id === docId) || null);
+      setEditQuotation(isNewDoc ? null : quotations.find(q => q.id === docId) || null);
       setActiveTab("quotations");
       setView("quotation-form");
     } else if (stored.kind === "sales-order") {
-      setEditOrder(docId === "new" ? null : salesOrders.find(s => s.id === docId) || null);
+      setEditOrder(isNewDoc ? null : salesOrders.find(s => s.id === docId) || null);
       setActiveTab("sales-orders");
       setView("form");
     } else {
-      setEditInvoice(docId === "new" ? null : invoices.find(i => i.id === docId) || null);
+      setEditInvoice(isNewDoc ? null : invoices.find(i => i.id === docId) || null);
       setActiveTab("invoices");
       setView("form");
     }
