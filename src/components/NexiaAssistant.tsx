@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2, Paperclip, FileText, Image as ImageIcon, FilePlus2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { saveDraft } from "@/lib/drafts";
+
 
 type Attachment = { name: string; mimeType: string; data: string; size: number };
 type Msg = { role: "user" | "assistant"; content: string; error?: boolean; files?: string[] };
