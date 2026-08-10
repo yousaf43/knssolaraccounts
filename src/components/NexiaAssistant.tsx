@@ -55,6 +55,9 @@ export function NexiaAssistant() {
   const [transcribing, setTranscribing] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attaching, setAttaching] = useState(false);
+  const [creatingDraft, setCreatingDraft] = useState(false);
+  const navigate = useNavigate();
+
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
