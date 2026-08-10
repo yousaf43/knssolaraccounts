@@ -495,8 +495,21 @@ export function NexiaAssistant() {
                   </button>
                 </span>
               ))}
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-7 text-[11px] gap-1.5"
+                onClick={() => void createQuotationDraft()}
+                disabled={loading || creatingDraft || attaching}
+                title="Scanned quotation se draft quotation banayein"
+              >
+                {creatingDraft ? <Loader2 className="w-3 h-3 animate-spin" /> : <FilePlus2 className="w-3 h-3" />}
+                Quotation draft banayein
+              </Button>
             </div>
           )}
+
 
           {/* Composer */}
           <div className="border-t p-2 flex items-center gap-2 bg-card">
