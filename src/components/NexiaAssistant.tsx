@@ -192,6 +192,91 @@ export function NexiaAssistant() {
   const removeAttachment = (name: string) =>
     setAttachments((prev) => prev.filter((f) => f.name !== name));
 
+  /** Scan attached company quotation(s) and turn them into a resumable draft. */
+  const createQuotationDraft = async () => {
+    if (attachments.length === 0 || creatingDraft || loading) return;
+    const files = attachments;
+    setCreatingDraft(true);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: "Is quotation file se draft quotation bana do (accessories bundle me).",
+        files: files.map((f) => f.name),
+      },
+    ]);
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-quotation", {
+        body: {
+          attachments: files.map((f) => ({ name: f.name, mimeType: f.mimeType, data: f.data })),
+          note: input.trim(),
+        },
+      });
+      if (error) throw error;
+      const q = data?.quotation;
+      if (!q || !Array.isArray(q.items) || q.items.length === 0) {
+        throw new Error("File se koi line item nahin mila");
+      }
+
+      const draftId = `quotation:ai-${Date.now()}`;
+      const today = new Date().toISOString().split("T")[0];
+      saveDraft({
+        id: draftId,
+        kind: "quotation",
+        label: q.documentNumber || "Scanned Quotation",
+        summary: `${q.customer || "Unknown customer"} • ${q.items.length} lines • PKR ${Math.round(q.total || 0).toLocaleString()}`,
+        data: {
+          customNumber: "",
+          documentNumber: q.documentNumber || "",
+          projectName: q.projectName || "",
+          customer: q.customer || "",
+          selectedCustomerId: q.selectedCustomerId || "",
+          date: q.date || today,
+          dueDate: q.dueDate || "",
+          status: "pending",
+          tax: q.tax || 0,
+          discount: 0,
+          notes: q.notes || "",
+          items: q.items,
+          advanceAmount: 0,
+          advanceMethod: "Cash on Hand",
+          advanceRef: "",
+        },
+      });
+
+      const unmatched: string[] = data?.meta?.unmatchedProducts ?? [];
+      const bundles: number = data?.meta?.bundleCount ?? 0;
+      const summary = [
+        `✅ Draft quotation ban gaya — **${q.items.length}** lines${bundles ? `, jin me **${bundles}** bundle` : ""}.`,
+        q.customer ? `Customer: **${q.customer}**${q.customerMatched ? "" : " (system me match nahin mila — form me select kar lein)"}` : "",
+        `Total: **PKR ${Math.round(q.total || 0).toLocaleString()}**`,
+        unmatched.length
+          ? `⚠️ Ye products inventory se match nahin hue, form me manually chunein: ${unmatched.join(", ")}`
+          : "",
+        "Neeche **Draft kholein** button se Quotation form me continue karein.",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      setMessages((prev) => [...prev, { role: "assistant", content: summary }]);
+      setAttachments([]);
+      setInput("");
+      toast.success("Draft quotation ban gaya");
+      setTimeout(() => {
+        navigate(`/invoices?draft=${encodeURIComponent(draftId)}`);
+        setOpen(false);
+      }, 400);
+    } catch (e) {
+      const detail = await extractError(e);
+      console.error("parse-quotation error:", detail);
+      toast.error(detail);
+      setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ ${detail}`, error: true }]);
+    } finally {
+      setCreatingDraft(false);
+    }
+  };
+
+
   const sendMessage = (text: string) => {
     const content = text.trim();
     const files = attachments;
