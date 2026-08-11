@@ -370,15 +370,38 @@ export function useUserSettingsCloud() {
 
   const fetch = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from("user_settings").select("*").eq("user_id", user.id).single();
-    if (data) {
-      setCustomUnitsState((data.custom_units as string[]) || []);
-      setCustomAccountsState((data.custom_accounts as string[]) || []);
-      setCustomCategoriesState((data.custom_categories as string[]) || []);
-    }
+    // Custom units/accounts/categories are shared across the whole team:
+    // merge every user's saved lists, but keep writes scoped to the current user's row.
+    const { data, error } = await supabase
+      .from("user_settings")
+      .select("user_id, custom_units, custom_accounts, custom_categories");
+    if (error || !data) return;
+
+    const mergeAll = (key: "custom_units" | "custom_accounts" | "custom_categories") => {
+      const seen = new Set<string>();
+      const out: string[] = [];
+      for (const row of data) {
+        const list = (row[key] as string[] | null) || [];
+        if (!Array.isArray(list)) continue;
+        for (const v of list) {
+          const val = typeof v === "string" ? v.trim() : "";
+          if (!val) continue;
+          const k = val.toLowerCase();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          out.push(val);
+        }
+      }
+      return out;
+    };
+
+    setCustomUnitsState(mergeAll("custom_units"));
+    setCustomAccountsState(mergeAll("custom_accounts"));
+    setCustomCategoriesState(mergeAll("custom_categories"));
   }, [user]);
 
   useEffect(() => { fetch(); }, [fetch]);
+
 
   const save = useCallback(async (units: string[], accounts: string[], categories: string[]) => {
     if (!user) return;
