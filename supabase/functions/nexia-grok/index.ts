@@ -274,10 +274,68 @@ CREATOR: Yousuf (Yousuf Enterprises), contact +923101734582.
 ${businessContext}${attachmentNote}`;
 
 
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
 
+    // Convert our OpenAI-style messages to Google Gemini "contents" format.
+    const toGeminiContents = () =>
+      messages.map((m) => {
+        const parts: Record<string, unknown>[] = [];
+        if (typeof m.content === "string") {
+          parts.push({ text: m.content });
+        } else {
+          for (const b of m.content) {
+            if (b.type === "text") {
+              parts.push({ text: b.text });
+            } else {
+              const url = b.type === "image_url" ? b.image_url.url : b.file.file_data;
+              const match = /^data:([^;]+);base64,(.*)$/s.exec(url);
+              if (match) {
+                parts.push({ inline_data: { mime_type: match[1], data: match[2] } });
+              }
+            }
+          }
+        }
+        if (parts.length === 0) parts.push({ text: "" });
+        return { role: m.role === "assistant" ? "model" : "user", parts };
+      });
+
+    const callGemini = async () => {
+      const res = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": GEMINI_API_KEY!,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: toGeminiContents(),
+            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 },
+          }),
+        },
+      );
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("Gemini error:", res.status, t);
+        return null;
+      }
+      const json = await res.json();
+      const text: string = (json?.candidates?.[0]?.content?.parts || [])
+        .map((p: { text?: string }) => p?.text || "")
+        .join("")
+        .trim();
+      return text || null;
+    };
+
     const callModel = async () => {
+      if (GEMINI_API_KEY) {
+        const geminiText = await callGemini();
+        if (geminiText) return { choices: [{ message: { content: geminiText } }] };
+        // Gemini failed (quota/key/model) — fall back to the other providers below.
+      }
       if (LOVABLE_API_KEY) {
         const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -297,6 +355,7 @@ ${businessContext}${attachmentNote}`;
         if (res.status === 402) throw { status: 402, msg: "AI credits khatam ho gaye hain." };
         // fall through to Groq
       }
+
       if (attachmentNote) {
         // Groq (text-only) cannot read PDFs/images — don't silently drop them.
         throw { status: 503, msg: "File parhne wali AI service abhi available nahin. Thori dair baad koshish karein." };
