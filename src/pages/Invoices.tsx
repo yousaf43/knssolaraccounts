@@ -264,8 +264,40 @@ export default function Invoices() {
       }
     }
 
+    // --- Stock sync on status change / item edit ---
+    // Stock is considered deducted only while an invoice is "approved" or "paid".
+    const previous = invoices.find((i) => i.id === invoice.id);
+    const isDeductedStatus = (s?: Invoice["status"]) => s === "approved" || s === "paid";
+
+    const qtyByItem = (inv?: Invoice) => {
+      const map = new Map<string, number>();
+      if (!inv) return map;
+      for (const line of inv.items || []) {
+        if (!line.inventoryItemId) continue;
+        map.set(line.inventoryItemId, (map.get(line.inventoryItemId) || 0) + (Number(line.qty) || 0));
+      }
+      return map;
+    };
+
+    const oldQty = isDeductedStatus(previous?.status) ? qtyByItem(previous) : new Map<string, number>();
+    const newQty = isDeductedStatus(invoice.status) ? qtyByItem(invoice) : new Map<string, number>();
+
+    const affected = new Set<string>([...oldQty.keys(), ...newQty.keys()]);
+    for (const itemId of affected) {
+      // Positive delta = give stock back, negative = take stock out
+      const delta = (oldQty.get(itemId) || 0) - (newQty.get(itemId) || 0);
+      if (delta === 0) continue;
+      const invItem = inventory.find((i) => i.id === itemId);
+      if (!invItem || invItem.productType === "non-stock") continue;
+      await upsertInventory({ ...invItem, qty: invItem.qty + delta });
+    }
+
     await upsertInvoice(invoice);
+    if (previous && isDeductedStatus(previous.status) && !isDeductedStatus(invoice.status)) {
+      toast.info(`Stock restored for ${invoice.number}`);
+    }
     // Do NOT deduct inventory on creation — stock deducts only on Approve
+
     if (!editInvoice) {
       // Create advance payment receipt if provided
       if (advanceAmount && advanceAmount > 0) {
