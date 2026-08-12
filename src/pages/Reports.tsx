@@ -809,6 +809,18 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       {/* P&L Reports */}
       {["121", "123", "125"].includes(report.code) && (
         <>
+          <IncomeStatement
+            report={report}
+            invoices={invoices}
+            expenses={expenses}
+            bills={bills}
+            inventory={inventory}
+            getAvgCost={getAvgCost}
+            fromDate={fromDate}
+            toDate={toDate}
+            dateRange={dateRange}
+            companyName={companyName}
+          />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">{formatCurrency(filteredData.reduce((s, d) => s + d.sales, 0))}</p></div>
             <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Expenses</p><p className="text-2xl font-bold text-destructive">{formatCurrency(filteredData.reduce((s, d) => s + d.expenses, 0))}</p></div>
