@@ -531,7 +531,7 @@ function IncomeStatement({
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders, purchaseOrders }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders }: {
   report: Report; onBack: () => void;
   monthlySales: { month: string; sales: number; expenses: number }[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -539,6 +539,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   inventory: InventoryItem[];
   assets: CompanyAsset[];
   invoices: Invoice[];
+  expenses: Expense[];
+  bills: Bill[];
   customers: Customer[];
   receipts: Receipt[];
   salesOrders: SalesOrder[];
