@@ -288,8 +288,250 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
   );
 }
 
+// --- Income Statement (Profit & Loss) ---
+const DISTRIBUTION_KEYWORDS = [
+  "sale", "sales", "marketing", "advertis", "commission", "delivery", "transport",
+  "freight", "fuel", "vehicle", "travel", "distribution", "shipping", "installation", "labour", "labor",
+];
+
+function classifyExpenseCategory(category: string): "distribution" | "administrative" {
+  const c = (category || "").toLowerCase();
+  return DISTRIBUTION_KEYWORDS.some(k => c.includes(k)) ? "distribution" : "administrative";
+}
+
+function parseDateSafe(value?: string | null): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function inRange(value: string | undefined, from?: Date, to?: Date) {
+  const d = parseDateSafe(value);
+  if (!d) return !from && !to; // undated rows only in "All Time"
+  if (from && d < new Date(from.getFullYear(), from.getMonth(), from.getDate())) return false;
+  if (to && d > new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59, 999)) return false;
+  return true;
+}
+
+type StatementRow = {
+  key: string;
+  label: string;
+  indent: 0 | 1 | 2 | 3;
+  /** Value shown in the inner (detail) column */
+  detail?: number;
+  /** Value shown in the outer (total) column */
+  total?: number;
+  bold?: boolean;
+  /** Draw a top border above the numeric cell (sub-total rule) */
+  ruleDetail?: boolean;
+  ruleTotal?: boolean;
+  /** Double underline (final figure) */
+  doubleRule?: boolean;
+};
+
+function IncomeStatement({
+  report, invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+}: {
+  report: Report;
+  invoices: Invoice[];
+  expenses: Expense[];
+  bills: Bill[];
+  inventory: InventoryItem[];
+  getAvgCost: (item: InventoryItem) => number;
+  fromDate?: Date;
+  toDate?: Date;
+  dateRange: string;
+  companyName: string;
+}) {
+  const { formatCurrency } = useSettings();
+  const detailed = report.code === "125";
+  const summaryOnly = report.code === "123";
+
+  const statement = useMemo(() => {
+    const invById = new Map(inventory.map(i => [i.id, i]));
+    const invByName = new Map(inventory.map(i => [normName(i.name), i]));
+
+    const costOfInventoryId = (id?: string, description?: string) => {
+      const item = (id && invById.get(id)) || (description ? invByName.get(normName(description)) : undefined);
+      return item ? getAvgCost(item) : 0;
+    };
+
+    const lineCost = (line: Invoice["items"][number]) => {
+      if (line.adhocLines && line.adhocLines.length > 0) {
+        const perBundle = line.adhocLines.reduce(
+          (s, l) => s + (l.qty || 0) * costOfInventoryId(l.itemId),
+          0
+        );
+        return perBundle * (line.qty || 1);
+      }
+      return (line.qty || 0) * costOfInventoryId(line.inventoryItemId, line.description);
+    };
+
+    const periodInvoices = invoices.filter(i => inRange(i.date, fromDate, toDate));
+    const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned");
+    const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
+
+    const grossSales = sales.reduce((s, i) => s + (i.amount || 0), 0);
+    const salesReturns = returns.reduce((s, i) => s + Math.abs(i.amount || 0), 0);
+    const netSales = grossSales - salesReturns;
+
+    const cogsSales = sales.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + lineCost(l), 0), 0);
+    const cogsReturns = returns.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + Math.abs(lineCost(l)), 0), 0);
+    let costOfSales = cogsSales - cogsReturns;
+
+    // Fallback: if no product costs are recorded, use purchases (bills) for the period.
+    const periodBills = bills.filter(b => inRange(b.date, fromDate, toDate));
+    const purchasesTotal = periodBills.reduce((s, b) => s + (b.amount || 0), 0);
+    const usedPurchasesFallback = costOfSales <= 0 && purchasesTotal > 0;
+    if (usedPurchasesFallback) costOfSales = purchasesTotal;
+
+    const grossIncome = netSales - costOfSales;
+
+    const periodExpenses = expenses.filter(e => inRange(e.date, fromDate, toDate));
+    const groups: Record<"distribution" | "administrative", Map<string, { total: number; lines: Expense[] }>> = {
+      distribution: new Map(),
+      administrative: new Map(),
+    };
+    for (const e of periodExpenses) {
+      const group = classifyExpenseCategory(e.category);
+      const key = e.category?.trim() || "Uncategorised";
+      const bucket = groups[group].get(key) || { total: 0, lines: [] };
+      bucket.total += e.amount || 0;
+      bucket.lines.push(e);
+      groups[group].set(key, bucket);
+    }
+
+    const distributionTotal = Array.from(groups.distribution.values()).reduce((s, g) => s + g.total, 0);
+    const administrativeTotal = Array.from(groups.administrative.values()).reduce((s, g) => s + g.total, 0);
+    const operatingExpenses = distributionTotal + administrativeTotal;
+    const operatingIncome = grossIncome - operatingExpenses;
+    const netIncome = operatingIncome;
+
+    return {
+      grossSales, salesReturns, netSales, costOfSales, grossIncome,
+      groups, distributionTotal, administrativeTotal, operatingExpenses,
+      operatingIncome, netIncome, usedPurchasesFallback,
+      hasData: periodInvoices.length > 0 || periodExpenses.length > 0 || periodBills.length > 0,
+    };
+  }, [invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate]);
+
+  const rows = useMemo<StatementRow[]>(() => {
+    const out: StatementRow[] = [];
+    if (statement.salesReturns > 0) {
+      out.push({ key: "gross-sales", label: "Gross sales", indent: 0, total: statement.grossSales });
+      out.push({ key: "returns", label: "Less: Sales returns", indent: 1, total: statement.salesReturns });
+    }
+    out.push({ key: "net-sales", label: "Net sales", indent: 0, total: statement.netSales, ruleTotal: statement.salesReturns > 0 });
+    out.push({ key: "cos", label: statement.usedPurchasesFallback ? "Cost of sales (purchases)" : "Cost of sales", indent: 0, total: statement.costOfSales, ruleTotal: true });
+    out.push({ key: "gross-income", label: "Gross income", indent: 0, total: statement.grossIncome, bold: true, ruleTotal: true });
+
+    out.push({ key: "opex", label: "Operating expenses", indent: 0, bold: true });
+
+    const section = (
+      title: string,
+      map: Map<string, { total: number; lines: Expense[] }>,
+      total: number,
+      totalLabel: string,
+      keyPrefix: string
+    ) => {
+      if (map.size === 0) return;
+      if (summaryOnly) {
+        out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 1, total });
+        return;
+      }
+      out.push({ key: `${keyPrefix}-title`, label: title, indent: 1 });
+      const entries = Array.from(map.entries()).sort((a, b) => b[1].total - a[1].total);
+      entries.forEach(([category, bucket]) => {
+        out.push({ key: `${keyPrefix}-${category}`, label: category, indent: 2, detail: bucket.total });
+        if (detailed) {
+          bucket.lines
+            .slice()
+            .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+            .forEach((line, idx) => {
+              out.push({
+                key: `${keyPrefix}-${category}-${line.id || idx}`,
+                label: `${line.date ? `${line.date} — ` : ""}${line.description || "Expense"}`,
+                indent: 3,
+                detail: line.amount,
+              });
+            });
+        }
+      });
+      out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 2, total, ruleDetail: true });
+    };
+
+    section("Distribution costs", statement.groups.distribution, statement.distributionTotal, "Total distribution costs", "dist");
+    section("Administrative costs", statement.groups.administrative, statement.administrativeTotal, "Total administrative costs", "admin");
+
+    if (statement.groups.distribution.size === 0 && statement.groups.administrative.size === 0) {
+      out.push({ key: "no-opex", label: "No operating expenses recorded", indent: 1, total: 0 });
+    }
+
+    out.push({ key: "op-income", label: "Operating income", indent: 0, total: statement.operatingIncome, bold: true, ruleTotal: true });
+    out.push({ key: "net-income", label: "Net income", indent: 0, total: statement.netIncome, bold: true, ruleTotal: true, doubleRule: true });
+    return out;
+  }, [statement, detailed, summaryOnly]);
+
+  const indentClass = ["pl-0", "pl-5", "pl-10", "pl-16"] as const;
+
+  return (
+    <div className="bg-card rounded-lg border overflow-hidden">
+      <div className="bg-primary text-primary-foreground text-center py-4 px-4">
+        <h2 className="text-lg font-bold uppercase tracking-wide">{companyName}</h2>
+        <p className="text-sm font-semibold">Income Statement (Profit &amp; Loss)</p>
+        <p className="text-xs opacity-90">{dateRange}</p>
+      </div>
+      {!statement.hasData ? (
+        <p className="text-muted-foreground text-sm text-center py-10">No data available for the selected period.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table id="report-print-table" className="w-full text-sm">
+            <thead className="sr-only">
+              <tr>
+                <th>Description</th>
+                <th>Detail</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.key} className="align-baseline">
+                  <td className={`py-1.5 px-4 ${indentClass[row.indent]} ${row.bold ? "font-semibold" : ""}`}>
+                    {row.label}
+                  </td>
+                  <td className="py-1.5 px-4 text-right w-40 tabular-nums whitespace-nowrap">
+                    {row.detail !== undefined && (
+                      <span className={`inline-block ${row.ruleDetail ? "border-t pt-1" : ""}`}>
+                        {formatCurrency(row.detail)}
+                      </span>
+                    )}
+                  </td>
+                  <td className={`py-1.5 px-4 text-right w-44 tabular-nums whitespace-nowrap ${row.bold ? "font-semibold" : ""}`}>
+                    {row.total !== undefined && (
+                      <span
+                        className={`inline-block ${row.ruleTotal ? "border-t pt-1" : ""} ${row.doubleRule ? "border-b-4 border-double pb-1" : ""}`}
+                      >
+                        {formatCurrency(row.total)}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {statement.usedPurchasesFallback && (
+        <p className="text-[11px] text-muted-foreground px-4 py-2 border-t">
+          Cost of sales is based on purchase bills for this period because product cost prices were not available on the sold items.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, customers, receipts, salesOrders, purchaseOrders }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders }: {
   report: Report; onBack: () => void;
   monthlySales: { month: string; sales: number; expenses: number }[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -297,6 +539,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   inventory: InventoryItem[];
   assets: CompanyAsset[];
   invoices: Invoice[];
+  expenses: Expense[];
+  bills: Bill[];
   customers: Customer[];
   receipts: Receipt[];
   salesOrders: SalesOrder[];
@@ -565,6 +809,18 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       {/* P&L Reports */}
       {["121", "123", "125"].includes(report.code) && (
         <>
+          <IncomeStatement
+            report={report}
+            invoices={invoices}
+            expenses={expenses}
+            bills={bills}
+            inventory={inventory}
+            getAvgCost={getAvgCost}
+            fromDate={fromDate}
+            toDate={toDate}
+            dateRange={dateRange}
+            companyName={companyName}
+          />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">{formatCurrency(filteredData.reduce((s, d) => s + d.sales, 0))}</p></div>
             <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Expenses</p><p className="text-2xl font-bold text-destructive">{formatCurrency(filteredData.reduce((s, d) => s + d.expenses, 0))}</p></div>
@@ -2048,7 +2304,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} />;
   }
 
   return (
