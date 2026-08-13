@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
+import { countsAsSale } from "@/lib/salesStatus";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
@@ -122,7 +123,7 @@ function buildMonthlyData(invoices: Invoice[], expenses: Expense[], bills: Bill[
   const expensesByMonth: Record<string, number> = {};
   MONTHS.forEach(m => { salesByMonth[m] = 0; expensesByMonth[m] = 0; });
 
-  invoices.forEach(inv => {
+  invoices.filter(countsAsSale).forEach(inv => {
     const d = new Date(inv.date);
     const m = MONTHS[d.getMonth()];
     if (m) salesByMonth[m] += inv.amount;
@@ -368,7 +369,7 @@ function IncomeStatement({
     };
 
     const periodInvoices = invoices.filter(i => inRange(i.date, fromDate, toDate));
-    const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned");
+    const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i));
     const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
 
     const grossSales = sales.reduce((s, i) => s + (i.amount || 0), 0);
@@ -1255,7 +1256,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
             };
             const productMap: Record<string, Line> = {};
-            invoices.forEach(inv => {
+            invoices.filter(countsAsSale).forEach(inv => {
               // Date range filter (applies here so per-product report respects it)
               if (fromDate || toDate) {
                 if (!inv.date) return;
@@ -1892,7 +1893,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       {/* Inventory Transactions Summary By Product (366) */}
       {report.code === "366" && (() => {
         const map: Record<string, { name: string; qtyOut: number; revenue: number; count: number }> = {};
-        invoices.forEach(inv => {
+        invoices.filter(countsAsSale).forEach(inv => {
           if (inv.date) {
             const d = new Date(inv.date);
             if (fromDate && d < fromDate) return;
@@ -2268,7 +2269,7 @@ export default function Reports() {
 
   // Build KPI data
   const kpiData = useMemo(() => {
-    const totalSales = invoices.reduce((s, i) => s + i.amount, 0);
+    const totalSales = invoices.filter(countsAsSale).reduce((s, i) => s + i.amount, 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0) + bills.reduce((s, b) => s + b.amount, 0);
     const outstandingReceivables = invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
     const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((s, b) => s + b.amount, 0);
