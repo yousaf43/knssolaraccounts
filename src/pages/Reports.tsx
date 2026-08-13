@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
-import { countsAsSale, isPendingSale } from "@/lib/salesStatus";
+import { countsAsSale } from "@/lib/salesStatus";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
