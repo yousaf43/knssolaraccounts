@@ -4,6 +4,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
 import { type Invoice, type InventoryItem, type Expense, type Bill } from "@/data/mockData";
+import { countsAsSale, isPendingSale } from "@/lib/salesStatus";
 import {
   useInvoicesCloud, useInventoryCloud, useExpensesCloud, useBillsCloud,
   useAccountsCloud, useLedgerEntriesCloud,
@@ -165,7 +166,8 @@ export default function Dashboard() {
   }, [inventory]);
 
   // KPI summary
-  const totalSales = useMemo(() => invoices.reduce((s, i) => s + i.amount, 0), [invoices]);
+  const totalSales = useMemo(() => invoices.filter(countsAsSale).reduce((s, i) => s + i.amount, 0), [invoices]);
+  const pendingBalance = useMemo(() => invoices.filter(isPendingSale).reduce((s, i) => s + i.amount, 0), [invoices]);
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
   const totalBills = useMemo(() => bills.reduce((s, b) => s + b.amount, 0), [bills]);
   const netProfit = totalSales - totalExpenses - totalBills;
@@ -184,6 +186,12 @@ export default function Dashboard() {
         <div className="bg-card rounded-lg border p-4">
           <p className="text-xs text-muted-foreground">Total Sales</p>
           <p className="text-xl font-bold text-primary">{formatCurrency(totalSales)}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Approved invoices only</p>
+        </div>
+        <div className="bg-card rounded-lg border p-4">
+          <p className="text-xs text-muted-foreground">Pending Balance</p>
+          <p className="text-xl font-bold text-warning">{formatCurrency(pendingBalance)}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Not approved yet</p>
         </div>
         {!isSales && (
           <div className="bg-card rounded-lg border p-4">
