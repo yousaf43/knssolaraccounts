@@ -1903,8 +1903,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={5}>Total ({selected.category})</td>
+                          <td className="px-3 py-2" colSpan={report.code === "085" ? 6 : 5}>Total ({selected.category})</td>
                           <td className="px-3 py-2 text-right">{selected.qty}</td>
+                          {report.code === "085" && (
+                            <td className="px-3 py-2 text-right">{formatCurrency(selected.details.reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
+                          )}
                           <td className="px-3 py-2 text-right"></td>
                           <td className="px-3 py-2 text-right">{formatCurrency(selected.revenue)}</td>
                         </tr>
