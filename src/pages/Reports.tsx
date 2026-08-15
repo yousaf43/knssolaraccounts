@@ -319,16 +319,26 @@ type StatementRow = {
   key: string;
   label: string;
   indent: 0 | 1 | 2 | 3;
+  /** Small grey helper text under the label */
+  note?: string;
   /** Value shown in the inner (detail) column */
   detail?: number;
   /** Value shown in the outer (total) column */
   total?: number;
   bold?: boolean;
+  /** Section heading style (tinted background) */
+  heading?: boolean;
+  /** Highlighted result row */
+  highlight?: boolean;
   /** Draw a top border above the numeric cell (sub-total rule) */
   ruleDetail?: boolean;
   ruleTotal?: boolean;
   /** Double underline (final figure) */
   doubleRule?: boolean;
+  /** % of net sales shown in its own column */
+  pct?: number;
+  /** Colour negative values red / positive green */
+  signed?: boolean;
 };
 
 function IncomeStatement({
@@ -376,6 +386,7 @@ function IncomeStatement({
     const grossSales = sales.reduce((s, i) => s + saleAmount(i, inventory), 0);
     const salesReturns = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
     const netSales = grossSales - salesReturns;
+    const carriedOldBalance = periodInvoices.reduce((s, i) => s + oldBalanceAmount(i, inventory), 0);
 
     const cogsSales = sales.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + lineCost(l), 0), 0);
     const cogsReturns = returns.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + Math.abs(lineCost(l)), 0), 0);
@@ -412,22 +423,74 @@ function IncomeStatement({
     return {
       grossSales, salesReturns, netSales, costOfSales, grossIncome,
       groups, distributionTotal, administrativeTotal, operatingExpenses,
-      operatingIncome, netIncome, usedPurchasesFallback,
+      operatingIncome, netIncome, usedPurchasesFallback, carriedOldBalance,
+      salesCount: sales.length, returnsCount: returns.length,
+      expenseCount: periodExpenses.length, billCount: periodBills.length,
+      grossMargin: netSales !== 0 ? (grossIncome / netSales) * 100 : 0,
+      netMargin: netSales !== 0 ? (netIncome / netSales) * 100 : 0,
+      opexRatio: netSales !== 0 ? (operatingExpenses / netSales) * 100 : 0,
       hasData: periodInvoices.length > 0 || periodExpenses.length > 0 || periodBills.length > 0,
     };
   }, [invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate]);
 
+  const pctOf = (v: number) => (statement.netSales !== 0 ? (v / statement.netSales) * 100 : undefined);
+
   const rows = useMemo<StatementRow[]>(() => {
     const out: StatementRow[] = [];
-    if (statement.salesReturns > 0) {
-      out.push({ key: "gross-sales", label: "Gross sales", indent: 0, total: statement.grossSales });
-      out.push({ key: "returns", label: "Less: Sales returns", indent: 1, total: statement.salesReturns });
-    }
-    out.push({ key: "net-sales", label: "Net sales", indent: 0, total: statement.netSales, ruleTotal: statement.salesReturns > 0 });
-    out.push({ key: "cos", label: statement.usedPurchasesFallback ? "Cost of sales (purchases)" : "Cost of sales", indent: 0, total: statement.costOfSales, ruleTotal: true });
-    out.push({ key: "gross-income", label: "Gross income", indent: 0, total: statement.grossIncome, bold: true, ruleTotal: true });
 
-    out.push({ key: "opex", label: "Operating expenses", indent: 0, bold: true });
+    out.push({ key: "rev-head", label: "Revenue", indent: 0, heading: true });
+    out.push({
+      key: "gross-sales",
+      label: "Gross sales",
+      note: `${statement.salesCount} approved invoice${statement.salesCount === 1 ? "" : "s"}`,
+      indent: 1,
+      detail: statement.grossSales,
+    });
+    if (statement.salesReturns > 0) {
+      out.push({
+        key: "returns",
+        label: "Less: Sales returns",
+        note: `${statement.returnsCount} return document${statement.returnsCount === 1 ? "" : "s"}`,
+        indent: 1,
+        detail: -statement.salesReturns,
+      });
+    }
+    if (statement.carriedOldBalance > 0) {
+      out.push({
+        key: "old-balance",
+        label: "Carried-forward old balance (not revenue)",
+        note: "Receivable only — excluded from sales",
+        indent: 1,
+        detail: 0,
+      });
+    }
+    out.push({ key: "net-sales", label: "Net sales", indent: 0, total: statement.netSales, bold: true, ruleTotal: true, pct: 100 });
+
+    out.push({ key: "cost-head", label: "Cost of sales", indent: 0, heading: true });
+    out.push({
+      key: "cos",
+      label: statement.usedPurchasesFallback ? "Cost of goods sold (from purchase bills)" : "Cost of goods sold",
+      note: statement.usedPurchasesFallback
+        ? `${statement.billCount} purchase bill${statement.billCount === 1 ? "" : "s"} in period`
+        : "Weighted average cost of items sold",
+      indent: 1,
+      detail: statement.costOfSales,
+    });
+    out.push({ key: "total-cos", label: "Total cost of sales", indent: 0, total: statement.costOfSales, ruleTotal: true, pct: pctOf(statement.costOfSales) });
+    out.push({
+      key: "gross-income",
+      label: "Gross income",
+      note: `Gross margin ${statement.grossMargin.toFixed(1)}%`,
+      indent: 0,
+      total: statement.grossIncome,
+      bold: true,
+      highlight: true,
+      ruleTotal: true,
+      signed: true,
+      pct: pctOf(statement.grossIncome),
+    });
+
+    out.push({ key: "opex", label: "Operating expenses", indent: 0, heading: true });
 
     const section = (
       title: string,
@@ -438,13 +501,20 @@ function IncomeStatement({
     ) => {
       if (map.size === 0) return;
       if (summaryOnly) {
-        out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 1, total });
+        out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 1, total, pct: pctOf(total) });
         return;
       }
-      out.push({ key: `${keyPrefix}-title`, label: title, indent: 1 });
+      out.push({ key: `${keyPrefix}-title`, label: title, indent: 1, bold: true });
       const entries = Array.from(map.entries()).sort((a, b) => b[1].total - a[1].total);
       entries.forEach(([category, bucket]) => {
-        out.push({ key: `${keyPrefix}-${category}`, label: category, indent: 2, detail: bucket.total });
+        out.push({
+          key: `${keyPrefix}-${category}`,
+          label: category,
+          note: `${bucket.lines.length} entr${bucket.lines.length === 1 ? "y" : "ies"}`,
+          indent: 2,
+          detail: bucket.total,
+          pct: pctOf(bucket.total),
+        });
         if (detailed) {
           bucket.lines
             .slice()
@@ -453,13 +523,14 @@ function IncomeStatement({
               out.push({
                 key: `${keyPrefix}-${category}-${line.id || idx}`,
                 label: `${line.date ? `${line.date} — ` : ""}${line.description || "Expense"}`,
+                note: line.paymentMethod || undefined,
                 indent: 3,
                 detail: line.amount,
               });
             });
         }
       });
-      out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 2, total, ruleDetail: true });
+      out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 1, total, bold: true, ruleTotal: true, pct: pctOf(total) });
     };
 
     section("Distribution costs", statement.groups.distribution, statement.distributionTotal, "Total distribution costs", "dist");
@@ -467,67 +538,166 @@ function IncomeStatement({
 
     if (statement.groups.distribution.size === 0 && statement.groups.administrative.size === 0) {
       out.push({ key: "no-opex", label: "No operating expenses recorded", indent: 1, total: 0 });
+    } else {
+      out.push({
+        key: "opex-total",
+        label: "Total operating expenses",
+        note: `${statement.expenseCount} expense entr${statement.expenseCount === 1 ? "y" : "ies"}`,
+        indent: 0,
+        total: statement.operatingExpenses,
+        bold: true,
+        ruleTotal: true,
+        pct: pctOf(statement.operatingExpenses),
+      });
     }
 
-    out.push({ key: "op-income", label: "Operating income", indent: 0, total: statement.operatingIncome, bold: true, ruleTotal: true });
-    out.push({ key: "net-income", label: "Net income", indent: 0, total: statement.netIncome, bold: true, ruleTotal: true, doubleRule: true });
+    out.push({
+      key: "op-income",
+      label: "Operating income",
+      indent: 0,
+      total: statement.operatingIncome,
+      bold: true,
+      highlight: true,
+      ruleTotal: true,
+      signed: true,
+      pct: pctOf(statement.operatingIncome),
+    });
+    out.push({
+      key: "net-income",
+      label: "Net income",
+      note: `Net margin ${statement.netMargin.toFixed(1)}%`,
+      indent: 0,
+      total: statement.netIncome,
+      bold: true,
+      highlight: true,
+      ruleTotal: true,
+      doubleRule: true,
+      signed: true,
+      pct: pctOf(statement.netIncome),
+    });
     return out;
   }, [statement, detailed, summaryOnly]);
 
-  const indentClass = ["pl-0", "pl-5", "pl-10", "pl-16"] as const;
+  const indentPx = [12, 28, 48, 68];
+  const fmtPct = (v?: number) => (v === undefined || !isFinite(v) ? "" : `${v.toFixed(1)}%`);
+
+  const cards = [
+    { label: "Net sales", value: statement.netSales, sub: `${statement.salesCount} invoices`, color: "#1d4ed8" },
+    { label: "Cost of sales", value: statement.costOfSales, sub: `${fmtPct(pctOf(statement.costOfSales))} of net sales`, color: "#b45309" },
+    { label: "Gross income", value: statement.grossIncome, sub: `Margin ${statement.grossMargin.toFixed(1)}%`, color: statement.grossIncome >= 0 ? "#15803d" : "#b91c1c" },
+    { label: "Operating expenses", value: statement.operatingExpenses, sub: `${fmtPct(statement.opexRatio)} of net sales`, color: "#7c3aed" },
+    { label: "Net income", value: statement.netIncome, sub: `Margin ${statement.netMargin.toFixed(1)}%`, color: statement.netIncome >= 0 ? "#15803d" : "#b91c1c" },
+  ];
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
-      <div className="bg-primary text-primary-foreground text-center py-4 px-4">
-        <h2 className="text-lg font-bold uppercase tracking-wide">{companyName}</h2>
-        <p className="text-sm font-semibold">Income Statement (Profit &amp; Loss)</p>
-        <p className="text-xs opacity-90">{dateRange}</p>
-      </div>
-      {!statement.hasData ? (
-        <p className="text-muted-foreground text-sm text-center py-10">No data available for the selected period.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table id="report-print-table" className="w-full text-sm">
-            <thead className="sr-only">
-              <tr>
-                <th>Description</th>
-                <th>Detail</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.key} className="align-baseline">
-                  <td className={`py-1.5 px-4 ${indentClass[row.indent]} ${row.bold ? "font-semibold" : ""}`}>
-                    {row.label}
-                  </td>
-                  <td className="py-1.5 px-4 text-right w-40 tabular-nums whitespace-nowrap">
-                    {row.detail !== undefined && (
-                      <span className={`inline-block ${row.ruleDetail ? "border-t pt-1" : ""}`}>
-                        {formatCurrency(row.detail)}
-                      </span>
-                    )}
-                  </td>
-                  <td className={`py-1.5 px-4 text-right w-44 tabular-nums whitespace-nowrap ${row.bold ? "font-semibold" : ""}`}>
-                    {row.total !== undefined && (
-                      <span
-                        className={`inline-block ${row.ruleTotal ? "border-t pt-1" : ""} ${row.doubleRule ? "border-b-4 border-double pb-1" : ""}`}
-                      >
-                        {formatCurrency(row.total)}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div id="report-print-table">
+        <div
+          className="text-center py-4 px-4"
+          style={{ background: "#1d4ed8", color: "#ffffff" }}
+        >
+          <h2 className="text-lg font-bold uppercase tracking-wide" style={{ margin: 0 }}>{companyName}</h2>
+          <p className="text-sm font-semibold" style={{ margin: "4px 0 0" }}>Income Statement (Profit &amp; Loss)</p>
+          <p className="text-xs" style={{ margin: "2px 0 0", opacity: 0.9 }}>{dateRange}</p>
         </div>
-      )}
-      {statement.usedPurchasesFallback && (
-        <p className="text-[11px] text-muted-foreground px-4 py-2 border-t">
-          Cost of sales is based on purchase bills for this period because product cost prices were not available on the sold items.
-        </p>
-      )}
+
+        {!statement.hasData ? (
+          <p className="text-muted-foreground text-sm text-center py-10">No data available for the selected period.</p>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div
+              className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4"
+              style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", padding: "14px" }}
+            >
+              {cards.map(c => (
+                <div
+                  key={c.label}
+                  style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 10px", background: "#f9fafb" }}
+                >
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em", color: "#6b7280" }}>{c.label}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: c.color, marginTop: 2 }}>{formatCurrency(c.value)}</div>
+                  <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 1 }}>{c.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f3f4f6" }}>
+                    <th style={{ textAlign: "left", padding: "6px 12px", fontSize: 11, color: "#374151", border: "1px solid #e5e7eb" }}>Description</th>
+                    <th style={{ textAlign: "right", padding: "6px 12px", fontSize: 11, color: "#374151", width: 150, border: "1px solid #e5e7eb" }}>Detail</th>
+                    <th style={{ textAlign: "right", padding: "6px 12px", fontSize: 11, color: "#374151", width: 160, border: "1px solid #e5e7eb" }}>Amount</th>
+                    <th style={{ textAlign: "right", padding: "6px 12px", fontSize: 11, color: "#374151", width: 90, border: "1px solid #e5e7eb" }}>% Sales</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => {
+                    const valueColor = (v?: number) =>
+                      row.signed && v !== undefined ? (v >= 0 ? "#15803d" : "#b91c1c") : undefined;
+                    return (
+                      <tr
+                        key={row.key}
+                        style={{
+                          background: row.heading ? "#eef2ff" : row.highlight ? "#f8fafc" : undefined,
+                          borderBottom: "1px solid #f1f5f9",
+                        }}
+                      >
+                        <td
+                          style={{
+                            padding: "6px 12px",
+                            paddingLeft: indentPx[row.indent],
+                            fontWeight: row.bold || row.heading ? 700 : 400,
+                            textTransform: row.heading ? "uppercase" : undefined,
+                            fontSize: row.heading ? 11 : 12,
+                            letterSpacing: row.heading ? "0.04em" : undefined,
+                            color: row.heading ? "#3730a3" : "#111827",
+                          }}
+                        >
+                          {row.label}
+                          {row.note && (
+                            <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
+                              {row.note}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: "6px 12px", textAlign: "right", fontSize: 12, whiteSpace: "nowrap", borderTop: row.ruleDetail ? "1px solid #9ca3af" : undefined }}>
+                          {row.detail !== undefined ? formatCurrency(row.detail) : ""}
+                        </td>
+                        <td
+                          style={{
+                            padding: "6px 12px",
+                            textAlign: "right",
+                            fontSize: row.bold ? 13 : 12,
+                            fontWeight: row.bold ? 700 : 400,
+                            whiteSpace: "nowrap",
+                            color: valueColor(row.total),
+                            borderTop: row.ruleTotal ? "1px solid #9ca3af" : undefined,
+                            borderBottom: row.doubleRule ? "4px double #111827" : undefined,
+                          }}
+                        >
+                          {row.total !== undefined ? formatCurrency(row.total) : ""}
+                        </td>
+                        <td style={{ padding: "6px 12px", textAlign: "right", fontSize: 11, color: "#6b7280", whiteSpace: "nowrap" }}>
+                          {fmtPct(row.pct)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ padding: "10px 14px", fontSize: 10, color: "#6b7280", borderTop: "1px solid #e5e7eb" }}>
+              <div>Basis: only approved / paid invoices are counted as sales. Carried-forward old balance lines are treated as receivables, not revenue.</div>
+              {statement.usedPurchasesFallback && (
+                <div>Cost of sales is based on purchase bills for this period because product cost prices were not available on the sold items.</div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
