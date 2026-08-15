@@ -421,7 +421,7 @@ function IncomeStatement({
 
     return {
       grossSales, salesReturns, netSales, costOfSales, grossIncome,
-      groups, distributionTotal, administrativeTotal, operatingExpenses,
+      groups, administrativeTotal, operatingExpenses,
       operatingIncome, netIncome, usedPurchasesFallback, carriedOldBalance,
       salesCount: sales.length, returnsCount: returns.length,
       expenseCount: periodExpenses.length, billCount: periodBills.length,
