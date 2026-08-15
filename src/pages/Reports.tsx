@@ -1933,6 +1933,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                          {report.code === "085" && (
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
+                          )}
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
                         </tr>
                       </thead>
