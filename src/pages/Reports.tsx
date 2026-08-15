@@ -1974,11 +1974,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           <tr><td colSpan={report.code === "085" ? 8 : 7} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
                         )}
                       </tbody>
-                      <tfoot>
+                        <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={4}>Total</td>
+                          <td className="px-3 py-2" colSpan={report.code === "085" ? 5 : 4}>Total</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
+                          {report.code === "085" && (
+                            <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.qty * p.costPrice, 0))}</td>
+                          )}
                           <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.revenue, 0))}</td>
                         </tr>
                       </tfoot>
