@@ -1420,10 +1420,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               name: string;
               category: string;
               productType: string;
+              costPrice: number;
               qty: number;
               revenue: number;
               count: number;
-              details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
+              details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number; costPrice: number }[];
             };
             const productMap: Record<string, Line> = {};
             invoices.filter(countsAsSale).forEach(inv => {
@@ -1440,7 +1441,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 const name = invItem?.name || item.description || "Unknown";
                 const category = invItem?.category || "Uncategorized";
                 const productType = (invItem?.productType as string | undefined) || "unknown";
-                if (!productMap[key]) productMap[key] = { key, name, category, productType, qty: 0, revenue: 0, count: 0, details: [] };
+                const costPrice = invItem?.costPrice ?? 0;
+                if (!productMap[key]) productMap[key] = { key, name, category, productType, costPrice, qty: 0, revenue: 0, count: 0, details: [] };
                 productMap[key].qty += item.qty;
                 productMap[key].revenue += item.amount;
                 productMap[key].count += 1;
@@ -1452,6 +1454,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   qty: item.qty,
                   rate: item.rate,
                   amount: item.amount,
+                  costPrice,
                 });
               });
             });
@@ -1811,6 +1814,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
+                          {report.code === "085" && (
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
+                          )}
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Rate</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
                         </tr>
@@ -1829,18 +1835,24 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
                               <td className="px-3 py-2">{d.customer}</td>
                               <td className="px-3 py-2 text-right">{d.qty}</td>
+                              {report.code === "085" && (
+                                <td className="px-3 py-2 text-right">{formatCurrency(d.costPrice)}</td>
+                              )}
                               <td className="px-3 py-2 text-right">{formatCurrency(d.rate)}</td>
                               <td className="px-3 py-2 text-right font-semibold">{formatCurrency(d.amount)}</td>
                             </tr>
                           ))}
                         {multiSelected.every(p => p.details.length === 0) && (
-                          <tr><td colSpan={9} className="text-center py-6 text-muted-foreground">No sales for selected products.</td></tr>
+                          <tr><td colSpan={report.code === "085" ? 10 : 9} className="text-center py-6 text-muted-foreground">No sales for selected products.</td></tr>
                         )}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={6}>Total ({multiSelected.length} products)</td>
+                          <td className="px-3 py-2" colSpan={report.code === "085" ? 7 : 6}>Total ({multiSelected.length} products)</td>
                           <td className="px-3 py-2 text-right">{multiSelected.reduce((s, p) => s + p.qty, 0)}</td>
+                          {report.code === "085" && (
+                            <td className="px-3 py-2 text-right">{formatCurrency(multiSelected.flatMap(p => p.details).reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
+                          )}
                           <td className="px-3 py-2 text-right"></td>
                           <td className="px-3 py-2 text-right">{formatCurrency(multiSelected.reduce((s, p) => s + p.revenue, 0))}</td>
                         </tr>
@@ -1859,6 +1871,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
+                          {report.code === "085" && (
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
+                          )}
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Rate</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
                         </tr>
@@ -1875,18 +1890,24 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
                               <td className="px-3 py-2">{d.customer}</td>
                               <td className="px-3 py-2 text-right">{d.qty}</td>
+                              {report.code === "085" && (
+                                <td className="px-3 py-2 text-right">{formatCurrency(d.costPrice)}</td>
+                              )}
                               <td className="px-3 py-2 text-right">{formatCurrency(d.rate)}</td>
                               <td className="px-3 py-2 text-right font-semibold">{formatCurrency(d.amount)}</td>
                             </tr>
                           ))}
                         {selected.details.length === 0 && (
-                          <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
+                          <tr><td colSpan={report.code === "085" ? 9 : 8} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
                         )}
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={5}>Total ({selected.category})</td>
+                          <td className="px-3 py-2" colSpan={report.code === "085" ? 6 : 5}>Total ({selected.category})</td>
                           <td className="px-3 py-2 text-right">{selected.qty}</td>
+                          {report.code === "085" && (
+                            <td className="px-3 py-2 text-right">{formatCurrency(selected.details.reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
+                          )}
                           <td className="px-3 py-2 text-right"></td>
                           <td className="px-3 py-2 text-right">{formatCurrency(selected.revenue)}</td>
                         </tr>
@@ -1930,6 +1951,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Times Sold</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Qty</th>
+                          {report.code === "085" && (
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
+                          )}
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Revenue</th>
                         </tr>
                       </thead>
@@ -1958,18 +1982,24 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
                             <td className="px-3 py-2 text-right">{p.count}</td>
                             <td className="px-3 py-2 text-right">{p.qty}</td>
+                            {report.code === "085" && (
+                              <td className="px-3 py-2 text-right">{formatCurrency(p.costPrice)}</td>
+                            )}
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.revenue)}</td>
                           </tr>
                         ))}
                         {searchFiltered.length === 0 && (
-                          <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
+                          <tr><td colSpan={report.code === "085" ? 8 : 7} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
                         )}
                       </tbody>
-                      <tfoot>
+                        <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={4}>Total</td>
+                          <td className="px-3 py-2" colSpan={report.code === "085" ? 5 : 4}>Total</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
+                          {report.code === "085" && (
+                            <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.qty * p.costPrice, 0))}</td>
+                          )}
                           <td className="px-3 py-2 text-right">{formatCurrency(searchFiltered.reduce((s, p) => s + p.revenue, 0))}</td>
                         </tr>
                       </tfoot>
