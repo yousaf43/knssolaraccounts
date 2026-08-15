@@ -5,8 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMemo } from "react";
 import { type Invoice, type InventoryItem, type Expense, type Bill } from "@/data/mockData";
 import { countsAsSale, isPendingSale } from "@/lib/salesStatus";
-import {
 import { saleAmount } from "@/lib/oldBalance";
+import {
   useInvoicesCloud, useInventoryCloud, useExpensesCloud, useBillsCloud,
   useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
