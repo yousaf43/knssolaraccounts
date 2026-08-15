@@ -361,8 +361,12 @@ function IncomeStatement({
 
     const costOfInventoryId = (id?: string, description?: string) => {
       const item = (id && invById.get(id)) || (description ? invByName.get(normName(description)) : undefined);
-      return item ? getAvgCost(item) : 0;
+      if (!item) return 0;
+      // Cost of goods = main inventory cost price (fallback to avg purchase cost)
+      const cp = Number(item.costPrice) || 0;
+      return cp > 0 ? cp : getAvgCost(item);
     };
+
 
     const lineCost = (line: Invoice["items"][number]) => {
       if (line.adhocLines && line.adhocLines.length > 0) {
