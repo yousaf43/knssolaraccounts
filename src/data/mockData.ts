@@ -178,7 +178,7 @@ export type InventoryItem = {
   stockAssetAccount: string;
   saleDiscount: number;
   purchaseDiscount: number;
-  productType?: "stock" | "non-stock" | "bundle";
+  productType?: "stock" | "non-stock" | "bundle" | "old-balance";
   bundleItems?: { itemId: string; qty: number; price?: number }[];
   location?: "main" | "store";
 };
