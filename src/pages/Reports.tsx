@@ -1890,12 +1890,15 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
                               <td className="px-3 py-2">{d.customer}</td>
                               <td className="px-3 py-2 text-right">{d.qty}</td>
+                              {report.code === "085" && (
+                                <td className="px-3 py-2 text-right">{formatCurrency(d.costPrice)}</td>
+                              )}
                               <td className="px-3 py-2 text-right">{formatCurrency(d.rate)}</td>
                               <td className="px-3 py-2 text-right font-semibold">{formatCurrency(d.amount)}</td>
                             </tr>
                           ))}
                         {selected.details.length === 0 && (
-                          <tr><td colSpan={8} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
+                          <tr><td colSpan={report.code === "085" ? 9 : 8} className="text-center py-6 text-muted-foreground">No sales for this product.</td></tr>
                         )}
                       </tbody>
                       <tfoot>
