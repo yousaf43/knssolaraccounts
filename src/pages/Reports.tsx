@@ -388,8 +388,13 @@ function IncomeStatement({
     const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i));
     const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
 
-    const grossSales = sales.reduce((s, i) => s + saleAmount(i, inventory), 0);
-    const salesReturns = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
+    const grossSalesRaw = sales.reduce((s, i) => s + saleAmount(i, inventory), 0);
+    const salesReturnsRaw = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
+    // Sales tax is treated as included in invoice amounts; exclude it to get net (tax-exclusive) revenue.
+    const stRate = Math.max(0, salesTaxRate) / 100;
+    const grossSales = stRate > 0 ? grossSalesRaw / (1 + stRate) : grossSalesRaw;
+    const salesReturns = stRate > 0 ? salesReturnsRaw / (1 + stRate) : salesReturnsRaw;
+    const salesTaxExcluded = (grossSalesRaw - salesReturnsRaw) - (grossSales - salesReturns);
     const netSales = grossSales - salesReturns;
     const carriedOldBalance = periodInvoices.reduce((s, i) => s + oldBalanceAmount(i, inventory), 0);
 
