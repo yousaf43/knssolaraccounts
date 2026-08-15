@@ -19,6 +19,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { isStockTrackedItem } from "@/lib/oldBalance";
 
 export default function CompletedSites() {
   const { log } = useActivityLog();
@@ -94,7 +95,7 @@ export default function CompletedSites() {
       const delta = (next.get(id) || 0) - (prev.get(id) || 0);
       if (!delta) continue;
       const inv = mainInventory.find((i) => i.id === id);
-      if (!inv || inv.productType === "non-stock") continue;
+      if (!inv || !isStockTrackedItem(inv)) continue;
       await upsertInv({ ...inv, qty: Math.max(0, (inv.qty || 0) - delta) });
     }
   };
@@ -148,7 +149,7 @@ export default function CompletedSites() {
       const delta = (next.get(id) || 0) - (prev.get(id) || 0);
       if (!delta) continue;
       const inv = storeInventory.find((i) => i.id === id);
-      if (!inv || inv.productType === "non-stock") continue;
+      if (!inv || !isStockTrackedItem(inv)) continue;
       await upsertInv({ ...inv, qty: Math.max(0, (inv.qty || 0) - delta) });
     }
   };
@@ -187,7 +188,7 @@ export default function CompletedSites() {
     const totals = totalsFor(so.items || []);
     for (const [id, qty] of totals) {
       const inv = mainInventory.find((i) => i.id === id);
-      if (!inv || inv.productType === "non-stock") continue;
+      if (!inv || !isStockTrackedItem(inv)) continue;
       await upsertInv({ ...inv, qty: Math.max(0, (inv.qty || 0) - qty) });
     }
 

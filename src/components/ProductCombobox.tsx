@@ -52,6 +52,7 @@ export function ProductCombobox({ inventory, selectedItemId, onSelect }: Props) 
   const getTypeLabel = (item: InventoryItem) => {
     if (item.productType === "non-stock") return "Non-Stock";
     if (item.productType === "bundle") return "Bundle";
+    if (item.productType === "old-balance") return "Old Balance";
     return null;
   };
 
@@ -109,7 +110,7 @@ export function ProductCombobox({ inventory, selectedItemId, onSelect }: Props) 
                     </span>
                   </span>
                   <span className="text-muted-foreground shrink-0 pt-0.5">
-                    {inv.productType === "non-stock" ? "∞" : `${inv.qty} ${inv.unit}`}
+                    {inv.productType === "non-stock" || inv.productType === "old-balance" ? "—" : `${inv.qty} ${inv.unit}`}
                   </span>
                 </button>
               );
