@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { countsAsSale } from "@/lib/salesStatus";
-import { saleAmount } from "@/lib/oldBalance";
+import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
