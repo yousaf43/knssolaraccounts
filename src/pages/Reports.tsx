@@ -471,7 +471,7 @@ function IncomeStatement({
       label: statement.usedPurchasesFallback ? "Cost of goods sold (from purchase bills)" : "Cost of goods sold",
       note: statement.usedPurchasesFallback
         ? `${statement.billCount} purchase bill${statement.billCount === 1 ? "" : "s"} in period`
-        : "Weighted average cost of items sold",
+        : "Inventory cost price of items sold",
       indent: 1,
       detail: statement.costOfSales,
     });
@@ -532,7 +532,7 @@ function IncomeStatement({
       out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 1, total, bold: true, ruleTotal: true, pct: pctOf(total) });
     };
 
-    section("Operating expenses", statement.groups.administrative, statement.administrativeTotal, "Total operating expenses", "admin");
+    section("Operating expenses", statement.groups.administrative, statement.administrativeTotal, "Sub-total", "admin");
 
     if (statement.groups.administrative.size === 0) {
 
