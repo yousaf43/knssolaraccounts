@@ -42,7 +42,14 @@ function ProtectedRoutes() {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="*" element={<Navigate to="/auth" replace />} />
+      </Routes>
+    );
+  }
   if (!twoFAVerified) return <TwoFactorVerify />;
 
   const isSales = role === "sales";
