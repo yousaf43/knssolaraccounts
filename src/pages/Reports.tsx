@@ -1964,11 +1964,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-muted-foreground">{p.category}</td>
                             <td className="px-3 py-2 text-right">{p.count}</td>
                             <td className="px-3 py-2 text-right">{p.qty}</td>
+                            {report.code === "085" && (
+                              <td className="px-3 py-2 text-right">{formatCurrency(p.costPrice)}</td>
+                            )}
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(p.revenue)}</td>
                           </tr>
                         ))}
                         {searchFiltered.length === 0 && (
-                          <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
+                          <tr><td colSpan={report.code === "085" ? 8 : 7} className="text-center py-6 text-muted-foreground">No sales in selected range.</td></tr>
                         )}
                       </tbody>
                       <tfoot>
