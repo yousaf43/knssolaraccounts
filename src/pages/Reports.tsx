@@ -1441,7 +1441,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 const name = invItem?.name || item.description || "Unknown";
                 const category = invItem?.category || "Uncategorized";
                 const productType = (invItem?.productType as string | undefined) || "unknown";
-                if (!productMap[key]) productMap[key] = { key, name, category, productType, qty: 0, revenue: 0, count: 0, details: [] };
+                const costPrice = invItem?.costPrice ?? 0;
+                if (!productMap[key]) productMap[key] = { key, name, category, productType, costPrice, qty: 0, revenue: 0, count: 0, details: [] };
                 productMap[key].qty += item.qty;
                 productMap[key].revenue += item.amount;
                 productMap[key].count += 1;
@@ -1453,6 +1454,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   qty: item.qty,
                   rate: item.rate,
                   amount: item.amount,
+                  costPrice,
                 });
               });
             });
