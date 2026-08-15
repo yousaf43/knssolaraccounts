@@ -445,7 +445,7 @@ function IncomeStatement({
       opexRatio: netSales !== 0 ? (operatingExpenses / netSales) * 100 : 0,
       hasData: periodInvoices.length > 0 || periodExpenses.length > 0 || periodBills.length > 0,
     };
-  }, [invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate]);
+  }, [invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate, salesTaxRate, incomeTaxRate]);
 
   const pctOf = (v: number) => (statement.netSales !== 0 ? (v / statement.netSales) * 100 : undefined);
 
