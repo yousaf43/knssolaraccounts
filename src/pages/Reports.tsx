@@ -291,15 +291,11 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Income Statement (Profit & Loss) ---
-const DISTRIBUTION_KEYWORDS = [
-  "sale", "sales", "marketing", "advertis", "commission", "delivery", "transport",
-  "freight", "fuel", "vehicle", "travel", "distribution", "shipping", "installation", "labour", "labor",
-];
-
-function classifyExpenseCategory(category: string): "distribution" | "administrative" {
-  const c = (category || "").toLowerCase();
-  return DISTRIBUTION_KEYWORDS.some(k => c.includes(k)) ? "distribution" : "administrative";
+// All operating expenses are shown under a single "Operating expenses" section.
+function classifyExpenseCategory(_category: string): "administrative" {
+  return "administrative";
 }
+
 
 function parseDateSafe(value?: string | null): Date | null {
   if (!value) return null;
@@ -365,8 +361,12 @@ function IncomeStatement({
 
     const costOfInventoryId = (id?: string, description?: string) => {
       const item = (id && invById.get(id)) || (description ? invByName.get(normName(description)) : undefined);
-      return item ? getAvgCost(item) : 0;
+      if (!item) return 0;
+      // Cost of goods = main inventory cost price (fallback to avg purchase cost)
+      const cp = Number(item.costPrice) || 0;
+      return cp > 0 ? cp : getAvgCost(item);
     };
+
 
     const lineCost = (line: Invoice["items"][number]) => {
       if (line.adhocLines && line.adhocLines.length > 0) {
@@ -401,8 +401,7 @@ function IncomeStatement({
     const grossIncome = netSales - costOfSales;
 
     const periodExpenses = expenses.filter(e => inRange(e.date, fromDate, toDate));
-    const groups: Record<"distribution" | "administrative", Map<string, { total: number; lines: Expense[] }>> = {
-      distribution: new Map(),
+    const groups: Record<"administrative", Map<string, { total: number; lines: Expense[] }>> = {
       administrative: new Map(),
     };
     for (const e of periodExpenses) {
@@ -414,15 +413,15 @@ function IncomeStatement({
       groups[group].set(key, bucket);
     }
 
-    const distributionTotal = Array.from(groups.distribution.values()).reduce((s, g) => s + g.total, 0);
     const administrativeTotal = Array.from(groups.administrative.values()).reduce((s, g) => s + g.total, 0);
-    const operatingExpenses = distributionTotal + administrativeTotal;
+    const operatingExpenses = administrativeTotal;
+
     const operatingIncome = grossIncome - operatingExpenses;
     const netIncome = operatingIncome;
 
     return {
       grossSales, salesReturns, netSales, costOfSales, grossIncome,
-      groups, distributionTotal, administrativeTotal, operatingExpenses,
+      groups, administrativeTotal, operatingExpenses,
       operatingIncome, netIncome, usedPurchasesFallback, carriedOldBalance,
       salesCount: sales.length, returnsCount: returns.length,
       expenseCount: periodExpenses.length, billCount: periodBills.length,
@@ -472,7 +471,7 @@ function IncomeStatement({
       label: statement.usedPurchasesFallback ? "Cost of goods sold (from purchase bills)" : "Cost of goods sold",
       note: statement.usedPurchasesFallback
         ? `${statement.billCount} purchase bill${statement.billCount === 1 ? "" : "s"} in period`
-        : "Weighted average cost of items sold",
+        : "Inventory cost price of items sold",
       indent: 1,
       detail: statement.costOfSales,
     });
@@ -533,10 +532,10 @@ function IncomeStatement({
       out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 1, total, bold: true, ruleTotal: true, pct: pctOf(total) });
     };
 
-    section("Distribution costs", statement.groups.distribution, statement.distributionTotal, "Total distribution costs", "dist");
-    section("Administrative costs", statement.groups.administrative, statement.administrativeTotal, "Total administrative costs", "admin");
+    section("Operating expenses", statement.groups.administrative, statement.administrativeTotal, "Sub-total", "admin");
 
-    if (statement.groups.distribution.size === 0 && statement.groups.administrative.size === 0) {
+    if (statement.groups.administrative.size === 0) {
+
       out.push({ key: "no-opex", label: "No operating expenses recorded", indent: 1, total: 0 });
     } else {
       out.push({
