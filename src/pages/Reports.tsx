@@ -339,6 +339,7 @@ type StatementRow = {
 
 function IncomeStatement({
   report, invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  salesTaxRate = 0, incomeTaxRate = 0,
 }: {
   report: Report;
   invoices: Invoice[];
@@ -350,6 +351,10 @@ function IncomeStatement({
   toDate?: Date;
   dateRange: string;
   companyName: string;
+  /** % of gross sales treated as sales tax and excluded from revenue */
+  salesTaxRate?: number;
+  /** % income tax applied on profit before tax */
+  incomeTaxRate?: number;
 }) {
   const { formatCurrency } = useSettings();
   const detailed = report.code === "125";
