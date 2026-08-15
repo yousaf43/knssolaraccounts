@@ -339,6 +339,7 @@ type StatementRow = {
 
 function IncomeStatement({
   report, invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  salesTaxRate = 0, incomeTaxRate = 0,
 }: {
   report: Report;
   invoices: Invoice[];
@@ -350,6 +351,10 @@ function IncomeStatement({
   toDate?: Date;
   dateRange: string;
   companyName: string;
+  /** % of gross sales treated as sales tax and excluded from revenue */
+  salesTaxRate?: number;
+  /** % income tax applied on profit before tax */
+  incomeTaxRate?: number;
 }) {
   const { formatCurrency } = useSettings();
   const detailed = report.code === "125";
@@ -383,8 +388,13 @@ function IncomeStatement({
     const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i));
     const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
 
-    const grossSales = sales.reduce((s, i) => s + saleAmount(i, inventory), 0);
-    const salesReturns = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
+    const grossSalesRaw = sales.reduce((s, i) => s + saleAmount(i, inventory), 0);
+    const salesReturnsRaw = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
+    // Sales tax is treated as included in invoice amounts; exclude it to get net (tax-exclusive) revenue.
+    const stRate = Math.max(0, salesTaxRate) / 100;
+    const grossSales = stRate > 0 ? grossSalesRaw / (1 + stRate) : grossSalesRaw;
+    const salesReturns = stRate > 0 ? salesReturnsRaw / (1 + stRate) : salesReturnsRaw;
+    const salesTaxExcluded = (grossSalesRaw - salesReturnsRaw) - (grossSales - salesReturns);
     const netSales = grossSales - salesReturns;
     const carriedOldBalance = periodInvoices.reduce((s, i) => s + oldBalanceAmount(i, inventory), 0);
 
@@ -417,9 +427,14 @@ function IncomeStatement({
     const operatingExpenses = administrativeTotal;
 
     const operatingIncome = grossIncome - operatingExpenses;
-    const netIncome = operatingIncome;
+    const profitBeforeTax = operatingIncome;
+    const itRate = Math.max(0, incomeTaxRate) / 100;
+    const incomeTax = profitBeforeTax > 0 ? profitBeforeTax * itRate : 0;
+    const netIncome = profitBeforeTax - incomeTax;
 
     return {
+      grossSalesRaw, salesReturnsRaw, salesTaxExcluded, salesTaxRate, incomeTaxRate,
+      profitBeforeTax, incomeTax,
       grossSales, salesReturns, netSales, costOfSales, grossIncome,
       groups, administrativeTotal, operatingExpenses,
       operatingIncome, netIncome, usedPurchasesFallback, carriedOldBalance,
@@ -430,7 +445,7 @@ function IncomeStatement({
       opexRatio: netSales !== 0 ? (operatingExpenses / netSales) * 100 : 0,
       hasData: periodInvoices.length > 0 || periodExpenses.length > 0 || periodBills.length > 0,
     };
-  }, [invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate]);
+  }, [invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate, salesTaxRate, incomeTaxRate]);
 
   const pctOf = (v: number) => (statement.netSales !== 0 ? (v / statement.netSales) * 100 : undefined);
 
@@ -443,7 +458,7 @@ function IncomeStatement({
       label: "Gross sales",
       note: `${statement.salesCount} approved invoice${statement.salesCount === 1 ? "" : "s"}`,
       indent: 1,
-      detail: statement.grossSales,
+      detail: statement.salesTaxExcluded > 0 ? statement.grossSalesRaw : statement.grossSales,
     });
     if (statement.salesReturns > 0) {
       out.push({
@@ -451,7 +466,16 @@ function IncomeStatement({
         label: "Less: Sales returns",
         note: `${statement.returnsCount} return document${statement.returnsCount === 1 ? "" : "s"}`,
         indent: 1,
-        detail: -statement.salesReturns,
+        detail: -(statement.salesTaxExcluded > 0 ? statement.salesReturnsRaw : statement.salesReturns),
+      });
+    }
+    if (statement.salesTaxExcluded > 0) {
+      out.push({
+        key: "sales-tax",
+        label: `Less: Sales tax @ ${statement.salesTaxRate}% (excluded)`,
+        note: "Tax portion removed from invoice amounts",
+        indent: 1,
+        detail: -statement.salesTaxExcluded,
       });
     }
     if (statement.carriedOldBalance > 0) {
@@ -561,9 +585,28 @@ function IncomeStatement({
       signed: true,
       pct: pctOf(statement.operatingIncome),
     });
+    if (statement.incomeTaxRate > 0) {
+      out.push({
+        key: "pbt",
+        label: "Profit before tax",
+        indent: 0,
+        total: statement.profitBeforeTax,
+        bold: true,
+        ruleTotal: true,
+        signed: true,
+        pct: pctOf(statement.profitBeforeTax),
+      });
+      out.push({
+        key: "income-tax",
+        label: `Less: Income tax @ ${statement.incomeTaxRate}%`,
+        note: statement.profitBeforeTax > 0 ? "Applied on profit before tax" : "No tax on loss",
+        indent: 1,
+        detail: -statement.incomeTax,
+      });
+    }
     out.push({
       key: "net-income",
-      label: "Net income",
+      label: statement.incomeTaxRate > 0 ? "Net income after tax" : "Net income",
       note: `Net margin ${statement.netMargin.toFixed(1)}%`,
       indent: 0,
       total: statement.netIncome,
@@ -585,8 +628,16 @@ function IncomeStatement({
     { label: "Cost of sales", value: statement.costOfSales, sub: `${fmtPct(pctOf(statement.costOfSales))} of net sales`, color: "#b45309" },
     { label: "Gross income", value: statement.grossIncome, sub: `Margin ${statement.grossMargin.toFixed(1)}%`, color: statement.grossIncome >= 0 ? "#15803d" : "#b91c1c" },
     { label: "Operating expenses", value: statement.operatingExpenses, sub: `${fmtPct(statement.opexRatio)} of net sales`, color: "#7c3aed" },
-    { label: "Net income", value: statement.netIncome, sub: `Margin ${statement.netMargin.toFixed(1)}%`, color: statement.netIncome >= 0 ? "#15803d" : "#b91c1c" },
+    { label: statement.incomeTaxRate > 0 ? "Net income (after tax)" : "Net income", value: statement.netIncome, sub: `Margin ${statement.netMargin.toFixed(1)}%`, color: statement.netIncome >= 0 ? "#15803d" : "#b91c1c" },
   ];
+  if (statement.incomeTaxRate > 0 || statement.salesTaxExcluded > 0) {
+    cards.push({
+      label: "Tax",
+      value: statement.incomeTax + statement.salesTaxExcluded,
+      sub: `${statement.salesTaxRate ? `Sales tax ${statement.salesTaxRate}% · ` : ""}${statement.incomeTaxRate ? `Income tax ${statement.incomeTaxRate}%` : ""}`.replace(/ · $/, ""),
+      color: "#be123c",
+    });
+  }
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
@@ -607,7 +658,7 @@ function IncomeStatement({
             {/* Summary cards */}
             <div
               className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4"
-              style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", padding: "14px" }}
+              style={{ display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: "10px", padding: "14px" }}
             >
               {cards.map(c => (
                 <div
@@ -689,6 +740,12 @@ function IncomeStatement({
             </div>
 
             <div style={{ padding: "10px 14px", fontSize: 10, color: "#6b7280", borderTop: "1px solid #e5e7eb" }}>
+              {statement.salesTaxExcluded > 0 && (
+                <div>Sales tax @ {statement.salesTaxRate}% is treated as included in invoice amounts and excluded from revenue.</div>
+              )}
+              {statement.incomeTaxRate > 0 && (
+                <div>Income tax @ {statement.incomeTaxRate}% is applied on profit before tax (no tax charged on a loss).</div>
+              )}
               <div>Basis: only approved / paid invoices are counted as sales. Carried-forward old balance lines are treated as receivables, not revenue.</div>
               {statement.usedPurchasesFallback && (
                 <div>Cost of sales is based on purchase bills for this period because product cost prices were not available on the sold items.</div>
@@ -732,6 +789,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [multiSelectedKeys, setMultiSelectedKeys] = useState<string[]>([]);
   const [viewMultiSelected, setViewMultiSelected] = useState(false);
   const [stockSearch, setStockSearch] = useState("");
+  const [salesTaxRate, setSalesTaxRate] = useState("");
+  const [incomeTaxRate, setIncomeTaxRate] = useState("");
   const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
   
   const toggleMultiSelected = (key: string) =>
@@ -847,6 +906,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
+  const isPnL = ["121", "123", "125"].includes(report.code);
 
   const reportRootRef = useRef<HTMLDivElement>(null);
   useSortableTables(reportRootRef, [report.code]);
@@ -870,6 +930,42 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFromDate(undefined); setToDate(undefined); }}>
             Clear
           </Button>
+        )}
+        {isPnL && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Tax %:</span>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={salesTaxRate}
+                onChange={(e) => setSalesTaxRate(e.target.value)}
+                placeholder="Sales tax"
+                className="h-8 text-xs w-28"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={incomeTaxRate}
+                onChange={(e) => setIncomeTaxRate(e.target.value)}
+                placeholder="Income tax"
+                className="h-8 text-xs w-28"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+            {(salesTaxRate || incomeTaxRate) && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setSalesTaxRate(""); setIncomeTaxRate(""); }}>
+                Reset tax
+              </Button>
+            )}
+          </div>
         )}
         {showInventoryTable && (
           <>
@@ -991,6 +1087,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             toDate={toDate}
             dateRange={dateRange}
             companyName={companyName}
+            salesTaxRate={Number(salesTaxRate) || 0}
+            incomeTaxRate={Number(incomeTaxRate) || 0}
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">{formatCurrency(filteredData.reduce((s, d) => s + d.sales, 0))}</p></div>
