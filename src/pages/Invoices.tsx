@@ -27,6 +27,7 @@ import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { getDraft, type DraftKind } from "@/lib/drafts";
+import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -288,7 +289,7 @@ export default function Invoices() {
       const delta = (oldQty.get(itemId) || 0) - (newQty.get(itemId) || 0);
       if (delta === 0) continue;
       const invItem = inventory.find((i) => i.id === itemId);
-      if (!invItem || invItem.productType === "non-stock") continue;
+      if (!invItem || !isStockTrackedItem(invItem)) continue;
       await upsertInventory({ ...invItem, qty: invItem.qty + delta });
     }
 
@@ -336,7 +337,7 @@ export default function Invoices() {
     for (const item of inv.items) {
       if (item.inventoryItemId) {
         const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && invItem.productType !== "non-stock") {
+        if (invItem && isStockTrackedItem(invItem)) {
           await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
         }
       }
@@ -352,7 +353,7 @@ export default function Invoices() {
     for (const item of inv.items) {
       if (item.inventoryItemId) {
         const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && invItem.productType !== "non-stock") {
+        if (invItem && isStockTrackedItem(invItem)) {
           await upsertInventory({ ...invItem, qty: invItem.qty + item.qty });
         }
       }
@@ -408,7 +409,7 @@ export default function Invoices() {
     for (const item of retItems) {
       if (item.inventoryItemId) {
         const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && invItem.productType !== "non-stock") {
+        if (invItem && isStockTrackedItem(invItem)) {
           await upsertInventory({ ...invItem, qty: invItem.qty + item.returnQty });
         }
       }
@@ -469,7 +470,7 @@ export default function Invoices() {
       for (const item of exchItems) {
         if (item.inventoryItemId) {
           const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-          if (invItem && invItem.productType !== "non-stock") {
+          if (invItem && isStockTrackedItem(invItem)) {
             await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
           }
         }
@@ -537,7 +538,7 @@ export default function Invoices() {
     for (const item of so.items) {
       if (item.inventoryItemId) {
         const invItem = inventory.find((inv) => inv.id === item.inventoryItemId);
-        if (invItem && invItem.productType !== "non-stock") await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
+        if (invItem && isStockTrackedItem(invItem)) await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
       }
     }
     if (so.advancePayment && so.advancePayment > 0) {
