@@ -606,7 +606,7 @@ function IncomeStatement({
     }
     out.push({
       key: "net-income",
-      label: statement.incomeTaxRate > 0 ? "Net income after tax" : "Net income",
+      label: statement.incomeTaxRate > 0 ? "Profit after tax" : "Profit",
       note: `Net margin ${statement.netMargin.toFixed(1)}%`,
       indent: 0,
       total: statement.netIncome,
@@ -628,7 +628,7 @@ function IncomeStatement({
     { label: "Cost of sales", value: statement.costOfSales, sub: `${fmtPct(pctOf(statement.costOfSales))} of net sales`, color: "#b45309" },
     { label: "Gross income", value: statement.grossIncome, sub: `Margin ${statement.grossMargin.toFixed(1)}%`, color: statement.grossIncome >= 0 ? "#15803d" : "#b91c1c" },
     { label: "Operating expenses", value: statement.operatingExpenses, sub: `${fmtPct(statement.opexRatio)} of net sales`, color: "#7c3aed" },
-    { label: statement.incomeTaxRate > 0 ? "Net income (after tax)" : "Net income", value: statement.netIncome, sub: `Margin ${statement.netMargin.toFixed(1)}%`, color: statement.netIncome >= 0 ? "#15803d" : "#b91c1c" },
+    { label: statement.incomeTaxRate > 0 ? "Profit (after tax)" : "Profit", value: statement.netIncome, sub: `Margin ${statement.netMargin.toFixed(1)}%`, color: statement.netIncome >= 0 ? "#15803d" : "#b91c1c" },
   ];
   if (statement.incomeTaxRate > 0 || statement.salesTaxExcluded > 0) {
     cards.push({
