@@ -1814,6 +1814,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
+                          {report.code === "085" && (
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>
+                          )}
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Rate</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
                         </tr>
