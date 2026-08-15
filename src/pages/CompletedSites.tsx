@@ -19,7 +19,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
+import { isStockTrackedItem } from "@/lib/oldBalance";
 
 export default function CompletedSites() {
   const { log } = useActivityLog();

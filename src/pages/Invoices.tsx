@@ -1222,6 +1222,11 @@ export default function Invoices() {
                           <td className="px-4 py-3 text-right text-success font-medium">{formatCurrency(totalPaid)}</td>
                           <td className={`px-4 py-3 text-right font-medium ${remaining > 0 ? "text-warning" : "text-success"}`}>
                             {formatCurrency(remaining)}
+                            {oldBalanceAmount(inv, inventory) > 0 && (
+                              <div className="text-[10px] font-normal text-muted-foreground">
+                                Old Balance: {formatCurrency(oldBalanceAmount(inv, inventory))}
+                              </div>
+                            )}
                             {overpaid > 0 && (
                               <div className="text-[10px] font-normal text-muted-foreground">Advance: {formatCurrency(overpaid)}</div>
                             )}
