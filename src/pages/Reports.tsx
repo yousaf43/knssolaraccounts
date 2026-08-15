@@ -469,6 +469,15 @@ function IncomeStatement({
         detail: -statement.salesReturns,
       });
     }
+    if (statement.salesTaxExcluded > 0) {
+      out.push({
+        key: "sales-tax",
+        label: `Less: Sales tax @ ${statement.salesTaxRate}% (excluded)`,
+        note: "Tax portion removed from invoice amounts",
+        indent: 1,
+        detail: -statement.salesTaxExcluded,
+      });
+    }
     if (statement.carriedOldBalance > 0) {
       out.push({
         key: "old-balance",
