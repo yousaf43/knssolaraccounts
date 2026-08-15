@@ -458,7 +458,7 @@ function IncomeStatement({
       label: "Gross sales",
       note: `${statement.salesCount} approved invoice${statement.salesCount === 1 ? "" : "s"}`,
       indent: 1,
-      detail: statement.grossSales,
+      detail: statement.salesTaxExcluded > 0 ? statement.grossSalesRaw : statement.grossSales,
     });
     if (statement.salesReturns > 0) {
       out.push({
@@ -466,7 +466,7 @@ function IncomeStatement({
         label: "Less: Sales returns",
         note: `${statement.returnsCount} return document${statement.returnsCount === 1 ? "" : "s"}`,
         indent: 1,
-        detail: -statement.salesReturns,
+        detail: -(statement.salesTaxExcluded > 0 ? statement.salesReturnsRaw : statement.salesReturns),
       });
     }
     if (statement.salesTaxExcluded > 0) {
