@@ -1848,8 +1848,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={6}>Total ({multiSelected.length} products)</td>
+                          <td className="px-3 py-2" colSpan={report.code === "085" ? 7 : 6}>Total ({multiSelected.length} products)</td>
                           <td className="px-3 py-2 text-right">{multiSelected.reduce((s, p) => s + p.qty, 0)}</td>
+                          {report.code === "085" && (
+                            <td className="px-3 py-2 text-right">{formatCurrency(multiSelected.flatMap(p => p.details).reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
+                          )}
                           <td className="px-3 py-2 text-right"></td>
                           <td className="px-3 py-2 text-right">{formatCurrency(multiSelected.reduce((s, p) => s + p.revenue, 0))}</td>
                         </tr>
