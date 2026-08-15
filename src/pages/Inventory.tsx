@@ -6,6 +6,7 @@ import { useInventoryCloud, useUserSettingsCloud, useStockAdjustmentsCloud } fro
 import { AlertTriangle, Plus, Edit, Trash2, X, Search, CalendarIcon, Upload, Loader2, Package, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { isStockTrackedType } from "@/lib/oldBalance";
 import { HighlightText } from "@/components/HighlightText";
 import { tokenize, matchesTokens } from "@/lib/search";
 import { Button } from "@/components/ui/button";
@@ -490,6 +491,7 @@ export default function Inventory() {
                   <SelectItem value="stock">Stock (Tracked)</SelectItem>
                   <SelectItem value="non-stock">Non-Stock (Service)</SelectItem>
                   <SelectItem value="bundle">Bundle (Composite)</SelectItem>
+                  <SelectItem value="old-balance">Old Balance (Carry Forward)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -519,7 +521,7 @@ export default function Inventory() {
             <div><Label>Cost Price</Label><Input type="number" min={0} step={0.01} value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: Number(e.target.value) })} className="mt-1" /></div>
             <div><Label>Sale Price</Label><Input type="number" min={0} step={0.01} value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: Number(e.target.value) })} className="mt-1" /></div>
 
-            {form.productType !== "non-stock" && (
+            {isStockTrackedType(form.productType) && (
               <>
                 <div><Label>Quantity</Label><Input type="number" min={0} value={form.qty} onChange={(e) => setForm({ ...form, qty: Number(e.target.value) })} className="mt-1" /></div>
                 <div><Label>Reorder Level</Label><Input type="number" min={0} value={form.reorderLevel} onChange={(e) => setForm({ ...form, reorderLevel: Number(e.target.value) })} className="mt-1" /></div>
@@ -547,7 +549,7 @@ export default function Inventory() {
 
             <div><Label>Weight</Label><Input type="number" min={0} step={0.01} value={form.weight} onChange={(e) => setForm({ ...form, weight: Number(e.target.value) })} className="mt-1" /></div>
 
-            {form.productType !== "non-stock" && (
+            {isStockTrackedType(form.productType) && (
               <div>
                 <Label>Stock Asset Account</Label>
                 {addingAccount ? (
@@ -693,8 +695,8 @@ export default function Inventory() {
               const safeCurrentPage = Math.min(currentPage, totalPages || 1);
               return filteredInventory.slice((safeCurrentPage - 1) * ITEMS_PER_PAGE, safeCurrentPage * ITEMS_PER_PAGE);
             })().map((item) => {
-              const typeLabel = item.productType === "non-stock" ? "Non-Stock" : item.productType === "bundle" ? "Bundle" : "Stock";
-              const typeVariant = item.productType === "non-stock" ? "outline" : item.productType === "bundle" ? "secondary" : "default";
+              const typeLabel = item.productType === "non-stock" ? "Non-Stock" : item.productType === "bundle" ? "Bundle" : item.productType === "old-balance" ? "Old Balance" : "Stock";
+              const typeVariant = item.productType === "non-stock" ? "outline" : item.productType === "bundle" ? "secondary" : item.productType === "old-balance" ? "outline" : "default";
               return (
                 <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-3 font-medium"><HighlightText text={item.name} query={searchQuery} /></td>
@@ -707,9 +709,9 @@ export default function Inventory() {
                   <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
                   <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>
-                  <td className={`px-3 py-3 text-right ${item.productType !== "non-stock" && item.qty < 0 ? "text-destructive font-semibold" : ""}`}>{item.productType === "non-stock" ? "∞" : item.qty}</td>
+                  <td className={`px-3 py-3 text-right ${isStockTrackedType(item.productType) && item.qty < 0 ? "text-destructive font-semibold" : ""}`}>{!isStockTrackedType(item.productType) ? "—" : item.qty}</td>
                   <td className="px-3 py-3 text-center">
-                    {item.productType === "non-stock" ? (
+                    {!isStockTrackedType(item.productType) ? (
                       <Badge className="bg-primary/10 text-primary border-0">Service</Badge>
                     ) : item.qty < 0 ? (
                       <Badge className="bg-destructive/15 text-destructive border-0">Out of Stock</Badge>
