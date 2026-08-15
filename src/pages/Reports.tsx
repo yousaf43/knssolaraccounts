@@ -585,9 +585,28 @@ function IncomeStatement({
       signed: true,
       pct: pctOf(statement.operatingIncome),
     });
+    if (statement.incomeTaxRate > 0) {
+      out.push({
+        key: "pbt",
+        label: "Profit before tax",
+        indent: 0,
+        total: statement.profitBeforeTax,
+        bold: true,
+        ruleTotal: true,
+        signed: true,
+        pct: pctOf(statement.profitBeforeTax),
+      });
+      out.push({
+        key: "income-tax",
+        label: `Less: Income tax @ ${statement.incomeTaxRate}%`,
+        note: statement.profitBeforeTax > 0 ? "Applied on profit before tax" : "No tax on loss",
+        indent: 1,
+        detail: -statement.incomeTax,
+      });
+    }
     out.push({
       key: "net-income",
-      label: "Net income",
+      label: statement.incomeTaxRate > 0 ? "Net income after tax" : "Net income",
       note: `Net margin ${statement.netMargin.toFixed(1)}%`,
       indent: 0,
       total: statement.netIncome,
@@ -609,8 +628,16 @@ function IncomeStatement({
     { label: "Cost of sales", value: statement.costOfSales, sub: `${fmtPct(pctOf(statement.costOfSales))} of net sales`, color: "#b45309" },
     { label: "Gross income", value: statement.grossIncome, sub: `Margin ${statement.grossMargin.toFixed(1)}%`, color: statement.grossIncome >= 0 ? "#15803d" : "#b91c1c" },
     { label: "Operating expenses", value: statement.operatingExpenses, sub: `${fmtPct(statement.opexRatio)} of net sales`, color: "#7c3aed" },
-    { label: "Net income", value: statement.netIncome, sub: `Margin ${statement.netMargin.toFixed(1)}%`, color: statement.netIncome >= 0 ? "#15803d" : "#b91c1c" },
+    { label: statement.incomeTaxRate > 0 ? "Net income (after tax)" : "Net income", value: statement.netIncome, sub: `Margin ${statement.netMargin.toFixed(1)}%`, color: statement.netIncome >= 0 ? "#15803d" : "#b91c1c" },
   ];
+  if (statement.incomeTaxRate > 0 || statement.salesTaxExcluded > 0) {
+    cards.push({
+      label: "Tax",
+      value: statement.incomeTax + statement.salesTaxExcluded,
+      sub: `${statement.salesTaxRate ? `Sales tax ${statement.salesTaxRate}% · ` : ""}${statement.incomeTaxRate ? `Income tax ${statement.incomeTaxRate}%` : ""}`.replace(/ · $/, ""),
+      color: "#be123c",
+    });
+  }
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
@@ -631,7 +658,7 @@ function IncomeStatement({
             {/* Summary cards */}
             <div
               className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4"
-              style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", padding: "14px" }}
+              style={{ display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: "10px", padding: "14px" }}
             >
               {cards.map(c => (
                 <div
@@ -713,6 +740,12 @@ function IncomeStatement({
             </div>
 
             <div style={{ padding: "10px 14px", fontSize: 10, color: "#6b7280", borderTop: "1px solid #e5e7eb" }}>
+              {statement.salesTaxExcluded > 0 && (
+                <div>Sales tax @ {statement.salesTaxRate}% is treated as included in invoice amounts and excluded from revenue.</div>
+              )}
+              {statement.incomeTaxRate > 0 && (
+                <div>Income tax @ {statement.incomeTaxRate}% is applied on profit before tax (no tax charged on a loss).</div>
+              )}
               <div>Basis: only approved / paid invoices are counted as sales. Carried-forward old balance lines are treated as receivables, not revenue.</div>
               {statement.usedPurchasesFallback && (
                 <div>Cost of sales is based on purchase bills for this period because product cost prices were not available on the sold items.</div>
