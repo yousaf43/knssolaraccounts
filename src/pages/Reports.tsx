@@ -532,10 +532,10 @@ function IncomeStatement({
       out.push({ key: `${keyPrefix}-total`, label: totalLabel, indent: 1, total, bold: true, ruleTotal: true, pct: pctOf(total) });
     };
 
-    section("Distribution costs", statement.groups.distribution, statement.distributionTotal, "Total distribution costs", "dist");
-    section("Administrative costs", statement.groups.administrative, statement.administrativeTotal, "Total administrative costs", "admin");
+    section("Operating expenses", statement.groups.administrative, statement.administrativeTotal, "Total operating expenses", "admin");
 
-    if (statement.groups.distribution.size === 0 && statement.groups.administrative.size === 0) {
+    if (statement.groups.administrative.size === 0) {
+
       out.push({ key: "no-opex", label: "No operating expenses recorded", indent: 1, total: 0 });
     } else {
       out.push({
