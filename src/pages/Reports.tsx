@@ -427,9 +427,14 @@ function IncomeStatement({
     const operatingExpenses = administrativeTotal;
 
     const operatingIncome = grossIncome - operatingExpenses;
-    const netIncome = operatingIncome;
+    const profitBeforeTax = operatingIncome;
+    const itRate = Math.max(0, incomeTaxRate) / 100;
+    const incomeTax = profitBeforeTax > 0 ? profitBeforeTax * itRate : 0;
+    const netIncome = profitBeforeTax - incomeTax;
 
     return {
+      grossSalesRaw, salesReturnsRaw, salesTaxExcluded, salesTaxRate, incomeTaxRate,
+      profitBeforeTax, incomeTax,
       grossSales, salesReturns, netSales, costOfSales, grossIncome,
       groups, administrativeTotal, operatingExpenses,
       operatingIncome, netIncome, usedPurchasesFallback, carriedOldBalance,
