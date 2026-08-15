@@ -291,15 +291,11 @@ function ReportList({ reports, onSelect, favorites, onToggleFav }: {
 }
 
 // --- Income Statement (Profit & Loss) ---
-const DISTRIBUTION_KEYWORDS = [
-  "sale", "sales", "marketing", "advertis", "commission", "delivery", "transport",
-  "freight", "fuel", "vehicle", "travel", "distribution", "shipping", "installation", "labour", "labor",
-];
-
-function classifyExpenseCategory(category: string): "distribution" | "administrative" {
-  const c = (category || "").toLowerCase();
-  return DISTRIBUTION_KEYWORDS.some(k => c.includes(k)) ? "distribution" : "administrative";
+// All operating expenses are shown under a single "Operating expenses" section.
+function classifyExpenseCategory(_category: string): "administrative" {
+  return "administrative";
 }
+
 
 function parseDateSafe(value?: string | null): Date | null {
   if (!value) return null;
