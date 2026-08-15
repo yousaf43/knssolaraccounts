@@ -1420,10 +1420,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               name: string;
               category: string;
               productType: string;
+              costPrice: number;
               qty: number;
               revenue: number;
               count: number;
-              details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number }[];
+              details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number; costPrice: number }[];
             };
             const productMap: Record<string, Line> = {};
             invoices.filter(countsAsSale).forEach(inv => {
