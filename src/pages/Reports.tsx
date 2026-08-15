@@ -401,8 +401,7 @@ function IncomeStatement({
     const grossIncome = netSales - costOfSales;
 
     const periodExpenses = expenses.filter(e => inRange(e.date, fromDate, toDate));
-    const groups: Record<"distribution" | "administrative", Map<string, { total: number; lines: Expense[] }>> = {
-      distribution: new Map(),
+    const groups: Record<"administrative", Map<string, { total: number; lines: Expense[] }>> = {
       administrative: new Map(),
     };
     for (const e of periodExpenses) {
@@ -414,9 +413,9 @@ function IncomeStatement({
       groups[group].set(key, bucket);
     }
 
-    const distributionTotal = Array.from(groups.distribution.values()).reduce((s, g) => s + g.total, 0);
     const administrativeTotal = Array.from(groups.administrative.values()).reduce((s, g) => s + g.total, 0);
-    const operatingExpenses = distributionTotal + administrativeTotal;
+    const operatingExpenses = administrativeTotal;
+
     const operatingIncome = grossIncome - operatingExpenses;
     const netIncome = operatingIncome;
 
