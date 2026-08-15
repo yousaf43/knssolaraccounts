@@ -50,9 +50,7 @@ export default function Auth() {
       <div className="w-full max-w-md">
         <div className="bg-card border rounded-xl shadow-lg p-8 space-y-6">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
-              <Landmark className="w-7 h-7 text-primary-foreground" />
-            </div>
+            <img src={ksLogo} alt="K&S Solar Energy logo" className="h-16 w-auto object-contain" />
             <div className="text-center">
               <h1 className="text-2xl font-bold">K&S Solar Energy</h1>
               <p className="text-sm text-muted-foreground mt-1">
