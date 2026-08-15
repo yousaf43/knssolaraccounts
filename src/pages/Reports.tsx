@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { countsAsSale } from "@/lib/salesStatus";
+import { saleAmount, isOldBalanceItem } from "@/lib/oldBalance";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
@@ -118,7 +119,7 @@ const analyticalCategories = ["Favourites", "Sales", "Purchases", "Cash & Bank",
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // Build monthly data from real invoices/expenses/bills
-function buildMonthlyData(invoices: Invoice[], expenses: Expense[], bills: Bill[]) {
+function buildMonthlyData(invoices: Invoice[], expenses: Expense[], bills: Bill[], inventory: InventoryItem[] = []) {
   const salesByMonth: Record<string, number> = {};
   const expensesByMonth: Record<string, number> = {};
   MONTHS.forEach(m => { salesByMonth[m] = 0; expensesByMonth[m] = 0; });
@@ -126,7 +127,7 @@ function buildMonthlyData(invoices: Invoice[], expenses: Expense[], bills: Bill[
   invoices.filter(countsAsSale).forEach(inv => {
     const d = new Date(inv.date);
     const m = MONTHS[d.getMonth()];
-    if (m) salesByMonth[m] += inv.amount;
+    if (m) salesByMonth[m] += saleAmount(inv, inventory);
   });
 
   expenses.forEach(exp => {
@@ -372,8 +373,8 @@ function IncomeStatement({
     const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i));
     const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
 
-    const grossSales = sales.reduce((s, i) => s + (i.amount || 0), 0);
-    const salesReturns = returns.reduce((s, i) => s + Math.abs(i.amount || 0), 0);
+    const grossSales = sales.reduce((s, i) => s + saleAmount(i, inventory), 0);
+    const salesReturns = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
     const netSales = grossSales - salesReturns;
 
     const cogsSales = sales.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + lineCost(l), 0), 0);
@@ -2257,7 +2258,7 @@ export default function Reports() {
   const { data: purchaseOrders } = usePurchaseOrdersCloud();
 
   // Build monthly data from real data
-  const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills), [invoices, expenses, bills]);
+  const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills, inventory), [invoices, expenses, bills, inventory]);
 
   // Build expense breakdown by category
   const expenseBreakdown = useMemo(() => {
@@ -2269,7 +2270,7 @@ export default function Reports() {
 
   // Build KPI data
   const kpiData = useMemo(() => {
-    const totalSales = invoices.filter(countsAsSale).reduce((s, i) => s + i.amount, 0);
+    const totalSales = invoices.filter(countsAsSale).reduce((s, i) => s + saleAmount(i, inventory), 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0) + bills.reduce((s, b) => s + b.amount, 0);
     const outstandingReceivables = invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
     const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((s, b) => s + b.amount, 0);

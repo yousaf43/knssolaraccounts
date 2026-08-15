@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { type Invoice, type InventoryItem, type Expense, type Bill } from "@/data/mockData";
 import { countsAsSale, isPendingSale } from "@/lib/salesStatus";
 import {
+import { saleAmount } from "@/lib/oldBalance";
   useInvoicesCloud, useInventoryCloud, useExpensesCloud, useBillsCloud,
   useAccountsCloud, useLedgerEntriesCloud,
 } from "@/hooks/useAppData";
@@ -166,7 +167,7 @@ export default function Dashboard() {
   }, [inventory]);
 
   // KPI summary
-  const totalSales = useMemo(() => invoices.filter(countsAsSale).reduce((s, i) => s + i.amount, 0), [invoices]);
+  const totalSales = useMemo(() => invoices.filter(countsAsSale).reduce((s, i) => s + saleAmount(i, inventory), 0), [invoices, inventory]);
   const pendingBalance = useMemo(() => invoices.filter(isPendingSale).reduce((s, i) => s + i.amount, 0), [invoices]);
   const totalExpenses = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
   const totalBills = useMemo(() => bills.reduce((s, b) => s + b.amount, 0), [bills]);
