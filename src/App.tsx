@@ -26,6 +26,7 @@ import Auth from "@/pages/Auth";
 import TwoFactorVerify from "@/pages/TwoFactorVerify";
 import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Landing from "@/pages/Landing";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
