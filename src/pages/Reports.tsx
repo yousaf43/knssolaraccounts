@@ -789,6 +789,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [multiSelectedKeys, setMultiSelectedKeys] = useState<string[]>([]);
   const [viewMultiSelected, setViewMultiSelected] = useState(false);
   const [stockSearch, setStockSearch] = useState("");
+  const [salesTaxRate, setSalesTaxRate] = useState("");
+  const [incomeTaxRate, setIncomeTaxRate] = useState("");
   const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
   
   const toggleMultiSelected = (key: string) =>
@@ -904,6 +906,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
+  const isPnL = ["121", "123", "125"].includes(report.code);
 
   const reportRootRef = useRef<HTMLDivElement>(null);
   useSortableTables(reportRootRef, [report.code]);
@@ -927,6 +930,42 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setFromDate(undefined); setToDate(undefined); }}>
             Clear
           </Button>
+        )}
+        {isPnL && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Tax %:</span>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={salesTaxRate}
+                onChange={(e) => setSalesTaxRate(e.target.value)}
+                placeholder="Sales tax"
+                className="h-8 text-xs w-28"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={incomeTaxRate}
+                onChange={(e) => setIncomeTaxRate(e.target.value)}
+                placeholder="Income tax"
+                className="h-8 text-xs w-28"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+            {(salesTaxRate || incomeTaxRate) && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setSalesTaxRate(""); setIncomeTaxRate(""); }}>
+                Reset tax
+              </Button>
+            )}
+          </div>
         )}
         {showInventoryTable && (
           <>
@@ -1048,6 +1087,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             toDate={toDate}
             dateRange={dateRange}
             companyName={companyName}
+            salesTaxRate={Number(salesTaxRate) || 0}
+            incomeTaxRate={Number(incomeTaxRate) || 0}
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">{formatCurrency(filteredData.reduce((s, d) => s + d.sales, 0))}</p></div>
