@@ -1557,7 +1557,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               });
             });
 
-            const allLines = Object.values(productMap);
+            // Report 085: only tracked stock products (exclude non-stock, bundle, old-balance, unknown)
+            const allLines = report.code === "085"
+              ? Object.values(productMap).filter(l => l.productType === "stock")
+              : Object.values(productMap);
             const categories = Array.from(new Set(allLines.map(l => l.category))).sort();
             const productTypes = Array.from(new Set(allLines.map(l => l.productType))).sort();
             const prodTokens = tokenize(productSearch);
