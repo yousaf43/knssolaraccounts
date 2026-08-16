@@ -270,15 +270,8 @@ export default function Invoices() {
     const previous = invoices.find((i) => i.id === invoice.id);
     const isDeductedStatus = (s?: Invoice["status"]) => s === "approved" || s === "paid";
 
-    const qtyByItem = (inv?: Invoice) => {
-      const map = new Map<string, number>();
-      if (!inv) return map;
-      for (const line of inv.items || []) {
-        if (!line.inventoryItemId) continue;
-        map.set(line.inventoryItemId, (map.get(line.inventoryItemId) || 0) + (Number(line.qty) || 0));
-      }
-      return map;
-    };
+    const qtyByItem = (inv?: Invoice) =>
+      inv ? expandStockQty(inv.items, inventory) : new Map<string, number>();
 
     const oldQty = isDeductedStatus(previous?.status) ? qtyByItem(previous) : new Map<string, number>();
     const newQty = isDeductedStatus(invoice.status) ? qtyByItem(invoice) : new Map<string, number>();
