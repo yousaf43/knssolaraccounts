@@ -339,14 +339,10 @@ export default function Invoices() {
 
   // Return Sale Invoice → Restore inventory stock + create return invoice
   const handleReturnInvoice = async (inv: Invoice) => {
-    // Restore inventory stock
-    for (const item of inv.items) {
-      if (item.inventoryItemId) {
-        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && isStockTrackedItem(invItem)) {
-          await upsertInventory({ ...invItem, qty: invItem.qty + item.qty });
-        }
-      }
+    // Restore inventory stock (bundles expand into their components)
+    for (const [itemId, qty] of expandStockQty(inv.items, inventory)) {
+      const invItem = inventory.find((i) => i.id === itemId);
+      if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty + qty });
     }
     // Create return credit note
     const returnInvoice: Invoice = {
