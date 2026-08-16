@@ -391,14 +391,10 @@ export default function Invoices() {
     const { originalInvoice, returnType, returnItems: retItems, exchangeItems: exchItems, refundAmount, refundMethod, notes: retNotes } = data;
     const retNumber = `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`;
 
-    // 1. Restore stock for returned items
-    for (const item of retItems) {
-      if (item.inventoryItemId) {
-        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && isStockTrackedItem(invItem)) {
-          await upsertInventory({ ...invItem, qty: invItem.qty + item.returnQty });
-        }
-      }
+    // 1. Restore stock for returned items (bundles expand into their components)
+    for (const [itemId, qty] of expandStockQty(retItems, inventory, (l) => (l as typeof retItems[number]).returnQty)) {
+      const invItem = inventory.find((i) => i.id === itemId);
+      if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty + qty });
     }
 
     // Calculate return value
