@@ -328,13 +328,9 @@ export default function Invoices() {
 
   // Approve Invoice → Deduct inventory stock
   const handleApproveInvoice = async (inv: Invoice) => {
-    for (const item of inv.items) {
-      if (item.inventoryItemId) {
-        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && isStockTrackedItem(invItem)) {
-          await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
-        }
-      }
+    for (const [itemId, qty] of expandStockQty(inv.items, inventory)) {
+      const invItem = inventory.find((i) => i.id === itemId);
+      if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty - qty });
     }
     await upsertInvoice({ ...inv, status: "approved" });
     await log("edit", "invoice", inv.id, inv.number, `Approved — inventory deducted`);
