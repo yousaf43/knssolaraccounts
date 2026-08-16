@@ -452,14 +452,10 @@ export default function Invoices() {
         notes: `Exchange against ${originalInvoice.number} (${retNumber})`,
         projectName: originalInvoice.projectName,
       };
-      // Deduct stock for exchange items
-      for (const item of exchItems) {
-        if (item.inventoryItemId) {
-          const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-          if (invItem && isStockTrackedItem(invItem)) {
-            await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
-          }
-        }
+      // Deduct stock for exchange items (bundles expand into their components)
+      for (const [itemId, qty] of expandStockQty(exchItems, inventory)) {
+        const invItem = inventory.find((i) => i.id === itemId);
+        if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty - qty });
       }
       await upsertInvoice(exchInvoice);
       await log("create", "invoice", exchInvoice.id, exchInvoice.number, `Exchange invoice from ${originalInvoice.number}`);
