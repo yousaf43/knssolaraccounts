@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProductCombobox } from "@/components/ProductCombobox";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
+
 
 const ADJUSTMENT_REASONS = [
   "Damaged", "Returned", "Correction", "Theft/Loss",
@@ -136,14 +138,13 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Item *</Label>
-              <Select value={selectedItemId} onValueChange={setSelectedItemId}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select item" /></SelectTrigger>
-                <SelectContent>
-                  {inventory.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>{item.name} (Qty: {item.qty})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="mt-1">
+                <ProductCombobox
+                  inventory={inventory}
+                  selectedItemId={selectedItemId}
+                  onSelect={(id) => setSelectedItemId(id)}
+                />
+              </div>
             </div>
             <div>
               <Label>Type *</Label>
