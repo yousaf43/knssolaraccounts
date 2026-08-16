@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { getDraft, type DraftKind } from "@/lib/drafts";
 import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
+import { expandStockQty } from "@/lib/stockLines";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
