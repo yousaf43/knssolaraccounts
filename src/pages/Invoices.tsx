@@ -1243,13 +1243,16 @@ export default function Invoices() {
                                             <span>Rate: {formatCurrency(item.rate)}</span>
                                             <span>Amt: {formatCurrency(item.amount)}</span>
                                           </div>
-                                          {item.bundleItems && item.bundleItems.length > 0 && (
+                                          {item.adhocLines && item.adhocLines.length > 0 && (
                                             <div className="mt-1 pl-2 border-l-2 border-muted">
-                                              {item.bundleItems.map((bi, bidx) => (
-                                                <div key={bidx} className="text-[10px] text-muted-foreground">
-                                                  ↳ {bi.description} x{bi.qty}
-                                                </div>
-                                              ))}
+                                              {item.adhocLines.map((bi, bidx) => {
+                                                const comp = inventory.find((i) => i.id === bi.itemId);
+                                                return (
+                                                  <div key={bidx} className="text-[10px] text-muted-foreground">
+                                                    ↳ {comp ? `${comp.name} (${comp.sku})` : "Unknown"} x{bi.qty}
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
                                           )}
                                         </div>
