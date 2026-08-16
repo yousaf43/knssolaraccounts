@@ -667,14 +667,14 @@ function IncomeStatement({
                   style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 10px", background: "#f9fafb" }}
                 >
                   <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.04em", color: "#6b7280" }}>{c.label}</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: c.color, marginTop: 2 }}>{formatCompactAmount(c.value)}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: c.color, marginTop: 2 }} title={formatCurrency(c.value)}>{formatCompactAmount(c.value)}</div>
+                  <div style={{ fontSize: 10, color: "#6b7280", marginTop: 1 }}>{formatCurrency(c.value)}</div>
                   <div
-                    style={{ fontSize: 9, color: "#4b5563", marginTop: 2, fontStyle: "italic", lineHeight: 1.3 }}
-                    title={formatCurrency(c.value)}
+                    style={{ fontSize: 10, color: "#374151", marginTop: 3, fontStyle: "italic", lineHeight: 1.35, textTransform: "capitalize" }}
                   >
                     {amountToWords(c.value)}
                   </div>
-                  <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 1 }}>{c.sub}</div>
+                  <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{c.sub}</div>
                 </div>
               ))}
             </div>
