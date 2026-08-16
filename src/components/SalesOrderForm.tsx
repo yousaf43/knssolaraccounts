@@ -478,7 +478,7 @@ export function SalesOrderForm({ customers, inventory, onSave, onCancel, editOrd
                       <Textarea value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} placeholder="Description" className="min-h-8 py-1 text-sm resize-y" rows={1} required />
                     </td>
                     <td className="px-3 py-2">
-                      <Input type="number" min={1} value={item.qty} onChange={(e) => updateItem(i, "qty", Number(e.target.value))} className="h-8 text-right" required />
+                      <Input type="number" min={0} step="any" value={item.qty} onChange={(e) => updateItem(i, "qty", Number(e.target.value))} className="h-8 text-right" required />
                     </td>
                     <td className="px-3 py-2 text-center">
                       {remaining !== null ? (

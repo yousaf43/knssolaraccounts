@@ -431,7 +431,7 @@ export default function Purchases() {
             onSelect={(id) => selectProductForItem(items, setItems, i, id)}
           />
           <Input value={item.description} onChange={e => updateItem(items, setItems, i, "description", e.target.value)} placeholder="Item description" className="h-8 text-sm" />
-          <Input type="number" value={item.qty} onChange={e => updateItem(items, setItems, i, "qty", e.target.value)} className="h-8 text-sm" min={1} />
+          <Input type="number" value={item.qty} onChange={e => updateItem(items, setItems, i, "qty", e.target.value)} className="h-8 text-sm" min={0} step="any" />
           <Input type="number" value={item.rate} onChange={e => updateItem(items, setItems, i, "rate", e.target.value)} className="h-8 text-sm" min={0} />
           <Input value={formatCurrency(item.amount)} className="h-8 text-sm bg-muted" readOnly />
           <button type="button" onClick={() => setItems(items.filter((_, j) => j !== i))} className="p-1 rounded hover:bg-destructive/10" disabled={items.length === 1}>

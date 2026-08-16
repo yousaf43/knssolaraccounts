@@ -313,7 +313,7 @@ export function ProductPickerWithBundle({ inventory, selectedItemId, onSelect, o
                             <td className="px-3 py-2">
                               <Input
                                 type="number"
-                                min={1}
+                                min={0} step="any"
                                 value={line.qty}
                                 onChange={(e) => updateBundleLine(line.itemId, "qty", Number(e.target.value))}
                                 className="h-7 text-right text-xs"

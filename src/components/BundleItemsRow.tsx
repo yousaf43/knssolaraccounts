@@ -66,7 +66,7 @@ export function BundleItemsRow({ item, inventory, colSpan, lineQty, editable, hi
                     <Input
                       type="number"
                       min={0}
-                      step={1}
+                      step="any"
                       value={qty}
                       onChange={(e) => onBundleQtyChange?.(bi.itemId, Number(e.target.value))}
                       className="h-6 w-16 text-xs text-right"
