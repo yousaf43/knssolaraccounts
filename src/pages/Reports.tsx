@@ -1540,6 +1540,35 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               details: { invoiceNumber: string; documentNumber: string; date: string; customer: string; qty: number; rate: number; amount: number; costPrice: number }[];
             };
             const productMap: Record<string, Line> = {};
+            const addProductSale = (
+              inv: Invoice,
+              invItem: InventoryItem | undefined,
+              fallbackName: string,
+              qty: number,
+              rate: number,
+              amount: number,
+            ) => {
+              const key = invItem?.id || `name:${normName(fallbackName) || "unknown"}`;
+              const name = invItem?.name || fallbackName || "Unknown";
+              const category = invItem?.category || "Uncategorized";
+              const productType = (invItem?.productType as string | undefined) || "unknown";
+              const costPrice = invItem?.costPrice ?? 0;
+              if (!productMap[key]) productMap[key] = { key, name, category, productType, costPrice, qty: 0, revenue: 0, count: 0, details: [] };
+              productMap[key].qty += qty;
+              productMap[key].revenue += amount;
+              productMap[key].count += 1;
+              productMap[key].details.push({
+                invoiceNumber: inv.number,
+                documentNumber: inv.documentNumber || "",
+                date: inv.date,
+                customer: inv.customer,
+                qty,
+                rate,
+                amount,
+                costPrice,
+              });
+            };
+
             invoices.filter(countsAsSale).forEach(inv => {
               // Date range filter (applies here so per-product report respects it)
               if (fromDate || toDate) {
@@ -1550,25 +1579,39 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               }
               inv.items.forEach(item => {
                 const invItem = resolveInv(item);
-                const key = invItem?.id || `name:${normName(item.description) || "unknown"}`;
-                const name = invItem?.name || item.description || "Unknown";
-                const category = invItem?.category || "Uncategorized";
-                const productType = (invItem?.productType as string | undefined) || "unknown";
-                const costPrice = invItem?.costPrice ?? 0;
-                if (!productMap[key]) productMap[key] = { key, name, category, productType, costPrice, qty: 0, revenue: 0, count: 0, details: [] };
-                productMap[key].qty += item.qty;
-                productMap[key].revenue += item.amount;
-                productMap[key].count += 1;
-                productMap[key].details.push({
-                  invoiceNumber: inv.number,
-                  documentNumber: (inv as any).documentNumber || "",
-                  date: inv.date,
-                  customer: inv.customer,
-                  qty: item.qty,
-                  rate: item.rate,
-                  amount: item.amount,
-                  costPrice,
-                });
+
+                // Report 085 follows the actual stock movement: bundles are shown as
+                // their tracked components rather than as one top-level bundle line.
+                if (report.code === "085") {
+                  const lineQty = Number(item.qty) || 0;
+                  const catalogComponents = invItem?.productType === "bundle" && invItem.bundleItems?.length
+                    ? invItem.bundleItems.map(component => {
+                        const override = item.bundleItemPrices?.find(saved => saved.itemId === component.itemId);
+                        return {
+                          itemId: component.itemId,
+                          qty: override?.qty ?? component.qty ?? 1,
+                          rate: override?.price ?? component.price,
+                        };
+                      })
+                    : [];
+                  const savedComponents = item.adhocLines?.length
+                    ? item.adhocLines.map(component => ({ itemId: component.itemId, qty: component.qty, rate: component.rate }))
+                    : (item.bundleItemPrices || []).map(component => ({ itemId: component.itemId, qty: component.qty ?? 1, rate: component.price }));
+                  const components = catalogComponents.length ? catalogComponents : savedComponents;
+
+                  if (components.length) {
+                    components.forEach(component => {
+                      const componentItem = invById[component.itemId];
+                      if (!componentItem) return;
+                      const qty = (Number(component.qty) || 0) * lineQty;
+                      const rate = Number(component.rate ?? componentItem.salePrice ?? 0) || 0;
+                      addProductSale(inv, componentItem, componentItem.name, qty, rate, qty * rate);
+                    });
+                    return;
+                  }
+                }
+
+                addProductSale(inv, invItem, item.description, Number(item.qty) || 0, Number(item.rate) || 0, Number(item.amount) || 0);
               });
             });
 
