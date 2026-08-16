@@ -39,17 +39,18 @@ export function expandStockQty(
       return;
     }
 
-    if (line.inventoryItemId) {
-      add(line.inventoryItemId, lineQty);
-      return;
-    }
-
-    // Ad-hoc bundle line (no inventoryItemId)
+    // Ad-hoc and legacy bundles can carry a stale/non-bundle inventoryItemId.
+    // Their saved component list is the authoritative stock breakdown.
     const components =
       line.adhocLines?.map((l) => ({ itemId: l.itemId, qty: l.qty })) ??
       line.bundleItemPrices?.map((p) => ({ itemId: p.itemId, qty: p.qty ?? 1 })) ??
       [];
-    for (const c of components) add(c.itemId, (Number(c.qty) || 0) * lineQty);
+    if (components.length > 0) {
+      for (const c of components) add(c.itemId, (Number(c.qty) || 0) * lineQty);
+      return;
+    }
+
+    if (line.inventoryItemId) add(line.inventoryItemId, lineQty);
   });
 
   return map;
