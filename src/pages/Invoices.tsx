@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams } from "react-router-dom";
 import { getDraft, type DraftKind } from "@/lib/drafts";
 import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
+import { expandStockQty } from "@/lib/stockLines";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -270,15 +271,8 @@ export default function Invoices() {
     const previous = invoices.find((i) => i.id === invoice.id);
     const isDeductedStatus = (s?: Invoice["status"]) => s === "approved" || s === "paid";
 
-    const qtyByItem = (inv?: Invoice) => {
-      const map = new Map<string, number>();
-      if (!inv) return map;
-      for (const line of inv.items || []) {
-        if (!line.inventoryItemId) continue;
-        map.set(line.inventoryItemId, (map.get(line.inventoryItemId) || 0) + (Number(line.qty) || 0));
-      }
-      return map;
-    };
+    const qtyByItem = (inv?: Invoice) =>
+      inv ? expandStockQty(inv.items, inventory) : new Map<string, number>();
 
     const oldQty = isDeductedStatus(previous?.status) ? qtyByItem(previous) : new Map<string, number>();
     const newQty = isDeductedStatus(invoice.status) ? qtyByItem(invoice) : new Map<string, number>();
@@ -334,13 +328,9 @@ export default function Invoices() {
 
   // Approve Invoice → Deduct inventory stock
   const handleApproveInvoice = async (inv: Invoice) => {
-    for (const item of inv.items) {
-      if (item.inventoryItemId) {
-        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && isStockTrackedItem(invItem)) {
-          await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
-        }
-      }
+    for (const [itemId, qty] of expandStockQty(inv.items, inventory)) {
+      const invItem = inventory.find((i) => i.id === itemId);
+      if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty - qty });
     }
     await upsertInvoice({ ...inv, status: "approved" });
     await log("edit", "invoice", inv.id, inv.number, `Approved — inventory deducted`);
@@ -349,14 +339,10 @@ export default function Invoices() {
 
   // Return Sale Invoice → Restore inventory stock + create return invoice
   const handleReturnInvoice = async (inv: Invoice) => {
-    // Restore inventory stock
-    for (const item of inv.items) {
-      if (item.inventoryItemId) {
-        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && isStockTrackedItem(invItem)) {
-          await upsertInventory({ ...invItem, qty: invItem.qty + item.qty });
-        }
-      }
+    // Restore inventory stock (bundles expand into their components)
+    for (const [itemId, qty] of expandStockQty(inv.items, inventory)) {
+      const invItem = inventory.find((i) => i.id === itemId);
+      if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty + qty });
     }
     // Create return credit note
     const returnInvoice: Invoice = {
@@ -405,14 +391,10 @@ export default function Invoices() {
     const { originalInvoice, returnType, returnItems: retItems, exchangeItems: exchItems, refundAmount, refundMethod, notes: retNotes } = data;
     const retNumber = `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`;
 
-    // 1. Restore stock for returned items
-    for (const item of retItems) {
-      if (item.inventoryItemId) {
-        const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-        if (invItem && isStockTrackedItem(invItem)) {
-          await upsertInventory({ ...invItem, qty: invItem.qty + item.returnQty });
-        }
-      }
+    // 1. Restore stock for returned items (bundles expand into their components)
+    for (const [itemId, qty] of expandStockQty(retItems, inventory, (l) => (l as typeof retItems[number]).returnQty)) {
+      const invItem = inventory.find((i) => i.id === itemId);
+      if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty + qty });
     }
 
     // Calculate return value
@@ -466,14 +448,10 @@ export default function Invoices() {
         notes: `Exchange against ${originalInvoice.number} (${retNumber})`,
         projectName: originalInvoice.projectName,
       };
-      // Deduct stock for exchange items
-      for (const item of exchItems) {
-        if (item.inventoryItemId) {
-          const invItem = inventory.find((i) => i.id === item.inventoryItemId);
-          if (invItem && isStockTrackedItem(invItem)) {
-            await upsertInventory({ ...invItem, qty: invItem.qty - item.qty });
-          }
-        }
+      // Deduct stock for exchange items (bundles expand into their components)
+      for (const [itemId, qty] of expandStockQty(exchItems, inventory)) {
+        const invItem = inventory.find((i) => i.id === itemId);
+        if (invItem) await upsertInventory({ ...invItem, qty: invItem.qty - qty });
       }
       await upsertInvoice(exchInvoice);
       await log("create", "invoice", exchInvoice.id, exchInvoice.number, `Exchange invoice from ${originalInvoice.number}`);
