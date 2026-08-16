@@ -16,7 +16,6 @@ import { useCloudBackup } from "@/hooks/useCloudBackup";
 import { useUserSettingsCloud } from "@/hooks/useAppData";
 import { exportAsJson, exportAsCsvZip } from "@/utils/exportData";
 import { downloadSqlDump } from "@/utils/sqlDump";
-import BundleStockBackfill from "@/components/BundleStockBackfill";
 
 
 const currencies = [
@@ -742,9 +741,6 @@ export default function Settings() {
                 </Button>
                 <input ref={migrateFileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImportBackup} />
               </div>
-
-              {/* Bundle stock backfill */}
-              <BundleStockBackfill />
             </div>
 
 
