@@ -1215,7 +1215,55 @@ export default function Invoices() {
                         <tr className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-medium">{inv.number}</td>
                           <td className="px-4 py-3 text-muted-foreground text-xs">{inv.documentNumber || "—"}</td>
-                          <td className="px-4 py-3">{inv.customer}</td>
+                          <td className="px-4 py-3">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="font-medium hover:text-primary hover:underline text-left flex items-center gap-1">
+                                  {inv.customer}
+                                  <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80 p-0" align="start" sideOffset={4}>
+                                <div className="p-3 border-b bg-muted/50">
+                                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Products in {inv.number}</p>
+                                  <p className="text-sm font-medium truncate">{inv.customer}</p>
+                                </div>
+                                <div className="max-h-[260px] overflow-y-auto">
+                                  {inv.items.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground p-3 text-center">No products</p>
+                                  ) : (
+                                    <div className="divide-y">
+                                      {inv.items.map((item, idx) => (
+                                        <div key={idx} className="px-3 py-2 text-xs">
+                                          <div className="flex justify-between items-start gap-2">
+                                            <span className="font-medium line-clamp-2">{item.description}</span>
+                                            <span className="shrink-0 text-muted-foreground">x{item.qty}</span>
+                                          </div>
+                                          <div className="flex justify-between mt-1 text-muted-foreground">
+                                            <span>Rate: {formatCurrency(item.rate)}</span>
+                                            <span>Amt: {formatCurrency(item.amount)}</span>
+                                          </div>
+                                          {item.bundleItems && item.bundleItems.length > 0 && (
+                                            <div className="mt-1 pl-2 border-l-2 border-muted">
+                                              {item.bundleItems.map((bi, bidx) => (
+                                                <div key={bidx} className="text-[10px] text-muted-foreground">
+                                                  ↳ {bi.description} x{bi.qty}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="p-2.5 border-t bg-muted/30 flex justify-between text-xs font-semibold">
+                                  <span>Total</span>
+                                  <span>{formatCurrency(inv.amount)}</span>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </td>
                           <td className="px-4 py-3 text-muted-foreground">{inv.date}</td>
                           <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
                           <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.amount)}</td>
