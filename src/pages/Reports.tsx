@@ -1098,9 +1098,17 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             incomeTaxRate={Number(incomeTaxRate) || 0}
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Revenue</p><p className="text-2xl font-bold text-primary">{formatCurrency(filteredData.reduce((s, d) => s + d.sales, 0))}</p></div>
-            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Total Expenses</p><p className="text-2xl font-bold text-destructive">{formatCurrency(filteredData.reduce((s, d) => s + d.expenses, 0))}</p></div>
-            <div className="bg-card border rounded-lg p-4"><p className="text-sm text-muted-foreground">Net Profit</p><p className="text-2xl font-bold text-success">{formatCurrency(filteredData.reduce((s, d) => s + d.sales - d.expenses, 0))}</p></div>
+            {[
+              { label: "Total Revenue", value: filteredData.reduce((s, d) => s + d.sales, 0), cls: "text-primary" },
+              { label: "Total Expenses", value: filteredData.reduce((s, d) => s + d.expenses, 0), cls: "text-destructive" },
+              { label: "Net Profit", value: filteredData.reduce((s, d) => s + d.sales - d.expenses, 0), cls: "text-success" },
+            ].map((m) => (
+              <div key={m.label} className="bg-card border rounded-lg p-4">
+                <p className="text-sm text-muted-foreground">{m.label}</p>
+                <p className={`text-2xl font-bold ${m.cls}`} title={formatCurrency(m.value)}>{formatCompactAmount(m.value)}</p>
+                <p className="text-[11px] text-muted-foreground italic capitalize leading-snug mt-1">{amountToWords(m.value)}</p>
+              </div>
+            ))}
           </div>
           <div className="bg-card rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Monthly Revenue vs Expenses</h2>
