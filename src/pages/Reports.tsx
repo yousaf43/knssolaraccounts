@@ -1597,7 +1597,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   const savedComponents = item.adhocLines?.length
                     ? item.adhocLines.map(component => ({ itemId: component.itemId, qty: component.qty, rate: component.rate }))
                     : (item.bundleItemPrices || []).map(component => ({ itemId: component.itemId, qty: component.qty ?? 1, rate: component.price }));
-                  const components = catalogComponents.length ? catalogComponents : savedComponents;
+                  const components = savedComponents.length ? savedComponents : catalogComponents;
 
                   if (components.length) {
                     components.forEach(component => {

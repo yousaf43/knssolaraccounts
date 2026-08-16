@@ -29,16 +29,6 @@ export function expandStockQty(
 
     const invItem = line.inventoryItemId ? inventory.find((i) => i.id === line.inventoryItemId) : undefined;
 
-    // Catalog bundle → explode into components
-    if (invItem?.productType === "bundle" && invItem.bundleItems?.length) {
-      for (const bi of invItem.bundleItems) {
-        const override = line.bundleItemPrices?.find((p) => p.itemId === bi.itemId);
-        const compQty = override?.qty ?? bi.qty ?? 1;
-        add(bi.itemId, compQty * lineQty);
-      }
-      return;
-    }
-
     // Ad-hoc and legacy bundles can carry a stale/non-bundle inventoryItemId.
     // Their saved component list is the authoritative stock breakdown.
     const components = line.adhocLines?.length
@@ -46,6 +36,12 @@ export function expandStockQty(
       : (line.bundleItemPrices || []).map((p) => ({ itemId: p.itemId, qty: p.qty ?? 1 }));
     if (components.length > 0) {
       for (const c of components) add(c.itemId, (Number(c.qty) || 0) * lineQty);
+      return;
+    }
+
+    // Catalog bundle → explode into components when no saved custom list exists.
+    if (invItem?.productType === "bundle" && invItem.bundleItems?.length) {
+      for (const bi of invItem.bundleItems) add(bi.itemId, (bi.qty ?? 1) * lineQty);
       return;
     }
 
