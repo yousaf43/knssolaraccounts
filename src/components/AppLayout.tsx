@@ -98,7 +98,9 @@ export function AppLayout() {
             Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
           </footer>
         </div>
+        </div>
       </div>
+
       <NexiaAssistant />
     </>
   );
