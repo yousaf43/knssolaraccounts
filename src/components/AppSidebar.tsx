@@ -51,7 +51,7 @@ interface AppSidebarProps {
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
 
   const isCollapsed = isMobile ? false : collapsed;
 
