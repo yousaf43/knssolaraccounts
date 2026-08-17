@@ -124,7 +124,27 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
             )}
           </button>
         )}
+        {!isCollapsed && (
+          <NavLink
+            to="/settings"
+            onClick={onNavigate}
+            className="mt-1 flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3 py-2 transition-colors hover:bg-sidebar-accent"
+          >
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sidebar-primary to-primary text-xs font-semibold text-sidebar-primary-foreground">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                (profile?.full_name?.[0] || "U").toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-sidebar-accent-foreground">{profile?.full_name || "User"}</p>
+              <p className="truncate text-[10px] capitalize text-sidebar-muted">{role || "Account settings"}</p>
+            </div>
+          </NavLink>
+        )}
       </div>
+
     </aside>
   );
 }
