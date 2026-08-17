@@ -62,55 +62,81 @@ export default function Landing() {
 
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden border-b">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_0%,hsl(var(--primary)/0.14),transparent_70%)]" />
-          <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:py-24 lg:grid-cols-2 lg:items-center">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                Secure cloud accounting for solar businesses
-              </span>
-              <h1 className="mt-5 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
-                Complete accounting &amp; inventory software for your business
-              </h1>
-              <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
-                Invoicing, purchases, stock, accounts and profit reports — everything your team needs,
-                in one fast and simple system built for Pakistani SMEs.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Button asChild size="lg">
-                  <Link to="/auth">
-                    Login to your account
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button asChild size="lg" variant="outline">
-                  <a href="#contact">Request a demo</a>
-                </Button>
-              </div>
-              <p className="mt-4 text-xs text-muted-foreground">
-                No public sign up — accounts are created by your administrator.
-              </p>
-            </div>
+        <section className="relative flex h-[calc(100vh-4rem)] flex-col overflow-hidden border-b">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_0%,hsl(var(--primary)/0.12),transparent_70%)]" />
+          <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-4 pt-10 sm:pt-14">
+            <motion.span
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-6 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-1.5 font-body text-sm text-muted-foreground"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              Now with Nexia AI assistant ✨
+            </motion.span>
 
-            <div className="rounded-xl border bg-card p-6 shadow-lg">
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: "Invoices & Quotations", icon: FileText },
-                  { label: "Stock & Bundles", icon: Package },
-                  { label: "Expenses", icon: Receipt },
-                  { label: "Profit & Loss", icon: BarChart3 },
-                ].map((i) => (
-                  <div key={i.label} className="rounded-lg border bg-background p-4">
-                    <i.icon className="h-5 w-5 text-primary" />
-                    <p className="mt-3 text-sm font-medium">{i.label}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Live, always in sync</p>
-                  </div>
-                ))}
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="max-w-3xl text-center font-display text-5xl leading-[0.95] tracking-tight text-foreground md:text-6xl lg:text-[5rem]"
+            >
+              The Future of <span className="italic">Smarter</span> Solar Accounting
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mt-4 max-w-[650px] text-center font-body text-base leading-relaxed text-muted-foreground md:text-lg"
+            >
+              Invoicing, purchases, stock and profit reports in one fast system — built from the real
+              day-to-day work of a solar energy business in Pakistan.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="mt-5 flex items-center gap-3"
+            >
+              <Button asChild className="rounded-full px-6 py-5 font-body text-sm font-medium">
+                <Link to="/auth">
+                  Login to your account
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                className="h-11 w-11 rounded-full border-0 bg-card p-0 shadow-[0_2px_12px_rgba(0,0,0,0.08)] hover:bg-card/80"
+              >
+                <a href="#contact" aria-label="Request a demo">
+                  <Play className="h-4 w-4 fill-foreground" />
+                </a>
+              </Button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="mt-8 w-full max-w-5xl"
+            >
+              <div
+                className="overflow-hidden rounded-2xl p-3 md:p-4"
+                style={{
+                  background: "rgba(255, 255, 255, 0.4)",
+                  border: "1px solid rgba(255, 255, 255, 0.5)",
+                  boxShadow: "var(--shadow-dashboard)",
+                }}
+              >
+                <DashboardPreview />
               </div>
-            </div>
+            </motion.div>
           </div>
         </section>
+
 
         {/* Features */}
         <section id="features" className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
