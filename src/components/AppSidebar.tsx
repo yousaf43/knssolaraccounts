@@ -16,6 +16,8 @@ import {
   Trash2,
   FileEdit,
   Droplets,
+  Search,
+
   
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -49,7 +51,7 @@ interface AppSidebarProps {
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
 
   const isCollapsed = isMobile ? false : collapsed;
 
@@ -57,16 +59,31 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
 
   return (
     <aside
-      className={`relative flex flex-col bg-sidebar bg-[radial-gradient(120%_60%_at_0%_0%,hsl(var(--sidebar-primary)/0.12),transparent_60%)] text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        isCollapsed ? "w-16" : "w-60"
-      } ${isMobile ? "h-full" : "h-screen"} min-h-0 overflow-hidden`}
+      className={`relative flex flex-col bg-sidebar bg-[radial-gradient(120%_60%_at_0%_0%,hsl(var(--sidebar-primary)/0.12),transparent_60%)] text-sidebar-foreground border-r border-sidebar-border lg:rounded-l-3xl transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isCollapsed ? "w-16" : "w-64"
+      } ${isMobile ? "h-full" : "h-full"} min-h-0 overflow-hidden`}
     >
-      <div className="relative flex items-center justify-center px-2 py-3 border-b border-sidebar-border/70">
-        <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-sidebar-primary/50 to-transparent" />
+      <div className="relative flex items-center justify-center px-2 py-3">
         <img src={ksLogo} alt="K&S Solar Energy" className={`${isCollapsed ? "w-10" : "h-12 w-full"} object-contain transition-all duration-300`} />
       </div>
 
-      <nav className="flex-1 min-h-0 space-y-1 overflow-y-auto px-2 py-4">
+      {!isCollapsed && (
+        <div className="px-3 pb-3">
+          <div className="flex items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/50 px-3 py-2 transition-colors focus-within:border-sidebar-primary/60">
+            <Search className="h-4 w-4 text-sidebar-muted" />
+            <input
+              placeholder="Search for..."
+              className="w-full bg-transparent text-xs outline-none placeholder:text-sidebar-muted"
+            />
+          </div>
+        </div>
+      )}
+
+      <nav className="flex-1 min-h-0 space-y-1 overflow-y-auto px-2 pb-4">
+        {!isCollapsed && (
+          <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">Menu</p>
+        )}
+
         {navItems.map((item) => (
           <NavLink
             key={item.title}
@@ -107,7 +124,27 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
             )}
           </button>
         )}
+        {!isCollapsed && (
+          <NavLink
+            to="/settings"
+            onClick={onNavigate}
+            className="mt-1 flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/40 px-3 py-2 transition-colors hover:bg-sidebar-accent"
+          >
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sidebar-primary to-primary text-xs font-semibold text-sidebar-primary-foreground">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                (profile?.full_name?.[0] || "U").toUpperCase()
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-sidebar-accent-foreground">{profile?.full_name || "User"}</p>
+              <p className="truncate text-[10px] capitalize text-sidebar-muted">{role || "Account settings"}</p>
+            </div>
+          </NavLink>
+        )}
       </div>
+
     </aside>
   );
 }

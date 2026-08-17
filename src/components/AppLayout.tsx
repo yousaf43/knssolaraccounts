@@ -18,17 +18,19 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full p-0 lg:p-4">
+        <div className="flex flex-1 min-w-0 rounded-none border-0 lg:rounded-3xl lg:border border-border/60 bg-card/40 shadow-[0_30px_90px_-40px_hsl(var(--primary)/0.45)]">
         {/* Desktop sidebar */}
         {!isMobile && (
-          <div className="sticky top-0 h-screen self-start flex-shrink-0">
+          <div className="sticky top-4 h-[calc(100vh-2rem)] self-start flex-shrink-0">
             <AppSidebar />
           </div>
         )}
 
-        <div className="flex-1 flex min-w-0 flex-col min-h-screen">
+        <div className="flex-1 flex min-w-0 flex-col min-h-[calc(100vh-2rem)]">
           {/* Top bar */}
           <header className="glass-panel h-14 sm:h-16 border-b border-border/60 flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30 shadow-[0_1px_0_0_hsl(var(--border)/0.6),0_10px_30px_-24px_hsl(var(--primary)/0.6)]">
+
             {/* Mobile menu button */}
             {isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -96,7 +98,9 @@ export function AppLayout() {
             Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
           </footer>
         </div>
+        </div>
       </div>
+
       <NexiaAssistant />
     </>
   );
