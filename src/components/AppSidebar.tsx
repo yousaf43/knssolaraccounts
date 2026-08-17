@@ -61,7 +61,8 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         isCollapsed ? "w-16" : "w-60"
       } ${isMobile ? "h-full" : "h-screen"} min-h-0 overflow-hidden`}
     >
-      <div className="flex items-center justify-center px-2 py-3 border-b border-sidebar-border">
+      <div className="relative flex items-center justify-center px-2 py-3 border-b border-sidebar-border/70">
+        <div className="pointer-events-none absolute inset-x-4 bottom-0 h-px bg-gradient-to-r from-transparent via-sidebar-primary/50 to-transparent" />
         <img src={ksLogo} alt="K&S Solar Energy" className={`${isCollapsed ? "w-10" : "h-12 w-full"} object-contain transition-all duration-300`} />
       </div>
 
@@ -72,7 +73,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
             to={item.url}
             end={item.url === "/"}
             className="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
-            activeClassName="bg-sidebar-accent text-sidebar-primary shadow-[inset_3px_0_0_0_hsl(var(--sidebar-primary))]"
+            activeClassName="bg-gradient-to-r from-sidebar-accent to-sidebar-accent/40 text-sidebar-primary shadow-[inset_3px_0_0_0_hsl(var(--sidebar-primary)),0_8px_24px_-16px_hsl(var(--sidebar-primary))]"
             onClick={onNavigate}
           >
             <item.icon className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
@@ -81,11 +82,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border p-2 space-y-1">
+      <div className="border-t border-sidebar-border/70 p-2 space-y-1">
         <NavLink
           to="/settings"
           className="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
-          activeClassName="bg-sidebar-accent text-sidebar-primary shadow-[inset_3px_0_0_0_hsl(var(--sidebar-primary))]"
+          activeClassName="bg-gradient-to-r from-sidebar-accent to-sidebar-accent/40 text-sidebar-primary shadow-[inset_3px_0_0_0_hsl(var(--sidebar-primary)),0_8px_24px_-16px_hsl(var(--sidebar-primary))]"
           onClick={onNavigate}
         >
           <Settings className="w-5 h-5 flex-shrink-0" />

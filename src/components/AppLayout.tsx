@@ -28,7 +28,7 @@ export function AppLayout() {
 
         <div className="flex-1 flex min-w-0 flex-col min-h-screen">
           {/* Top bar */}
-          <header className="glass-panel h-14 sm:h-16 border-b flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30">
+          <header className="glass-panel h-14 sm:h-16 border-b border-border/60 flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30 shadow-[0_1px_0_0_hsl(var(--border)/0.6),0_10px_30px_-24px_hsl(var(--primary)/0.6)]">
             {/* Mobile menu button */}
             {isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -43,11 +43,11 @@ export function AppLayout() {
               </Sheet>
             )}
 
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-md">
-              <Search className="w-4 h-4 text-muted-foreground hidden sm:block" />
+            <div className="group flex items-center gap-2 flex-1 max-w-md rounded-full border border-border/70 bg-background/60 px-3 py-1.5 transition-all duration-300 focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-[0_0_0_4px_hsl(var(--primary)/0.10)]">
+              <Search className="w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search anything..."
                 className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground"
               />
             </div>
@@ -87,11 +87,12 @@ export function AppLayout() {
           <RecentTabs />
           {/* Content */}
           <main id="main-scroll" className="flex-1 p-3 sm:p-6">
+            {/* content */}
             <div key={location.pathname} className="page-enter">
               <Outlet />
             </div>
           </main>
-          <footer className="shrink-0 border-t border-border/30 bg-background py-2 text-center text-[10px] text-muted-foreground/60">
+          <footer className="shrink-0 border-t border-border/40 bg-transparent py-2 text-center text-[10px] text-muted-foreground/60">
             Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
           </footer>
         </div>
