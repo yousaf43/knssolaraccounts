@@ -19,7 +19,7 @@ export function AppLayout() {
   return (
     <>
       <div className="flex min-h-screen w-full p-0 lg:p-4">
-        <div className="flex flex-1 min-w-0 overflow-hidden rounded-none border-0 lg:rounded-3xl lg:border border-border/60 bg-card/40 shadow-[0_30px_90px_-40px_hsl(var(--primary)/0.45)]">
+        <div className="flex flex-1 min-w-0 rounded-none border-0 lg:rounded-3xl lg:border border-border/60 bg-card/40 shadow-[0_30px_90px_-40px_hsl(var(--primary)/0.45)]">
         {/* Desktop sidebar */}
         {!isMobile && (
           <div className="sticky top-4 h-[calc(100vh-2rem)] self-start flex-shrink-0">
