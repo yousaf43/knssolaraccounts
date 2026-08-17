@@ -57,12 +57,12 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
 
   return (
     <aside
-      className={`flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-all duration-300 ${
+      className={`relative flex flex-col bg-sidebar bg-[radial-gradient(120%_60%_at_0%_0%,hsl(var(--sidebar-primary)/0.12),transparent_60%)] text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         isCollapsed ? "w-16" : "w-60"
       } ${isMobile ? "h-full" : "h-screen"} min-h-0 overflow-hidden`}
     >
       <div className="flex items-center justify-center px-2 py-3 border-b border-sidebar-border">
-        <img src={ksLogo} alt="K&S Solar Energy" className={`${isCollapsed ? "w-10" : "h-12 w-full"} object-contain`} />
+        <img src={ksLogo} alt="K&S Solar Energy" className={`${isCollapsed ? "w-10" : "h-12 w-full"} object-contain transition-all duration-300`} />
       </div>
 
       <nav className="flex-1 min-h-0 space-y-1 overflow-y-auto px-2 py-4">
@@ -71,12 +71,12 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
             key={item.title}
             to={item.url}
             end={item.url === "/"}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-            activeClassName="bg-sidebar-accent text-sidebar-primary"
+            className="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
+            activeClassName="bg-sidebar-accent text-sidebar-primary shadow-[inset_3px_0_0_0_hsl(var(--sidebar-primary))]"
             onClick={onNavigate}
           >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span>{item.title}</span>}
+            <item.icon className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
+            {!isCollapsed && <span className="animate-fade-in">{item.title}</span>}
           </NavLink>
         ))}
       </nav>
@@ -84,8 +84,8 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
       <div className="border-t border-sidebar-border p-2 space-y-1">
         <NavLink
           to="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          activeClassName="bg-sidebar-accent text-sidebar-primary"
+          className="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:translate-x-0.5"
+          activeClassName="bg-sidebar-accent text-sidebar-primary shadow-[inset_3px_0_0_0_hsl(var(--sidebar-primary))]"
           onClick={onNavigate}
         >
           <Settings className="w-5 h-5 flex-shrink-0" />
@@ -94,7 +94,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         {!isMobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors w-full"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors w-full press"
           >
             {collapsed ? (
               <ChevronRight className="w-5 h-5 flex-shrink-0" />

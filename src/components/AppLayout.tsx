@@ -8,11 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
 export function AppLayout() {
   const { profile, role, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <>
@@ -26,12 +28,12 @@ export function AppLayout() {
 
         <div className="flex-1 flex min-w-0 flex-col min-h-screen">
           {/* Top bar */}
-          <header className="h-14 sm:h-16 border-b bg-card flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30">
+          <header className="glass-panel h-14 sm:h-16 border-b flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30">
             {/* Mobile menu button */}
             {isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetTrigger asChild>
-                  <button className="p-2 rounded-md hover:bg-muted transition-colors">
+                  <button className="p-2 rounded-md hover:bg-muted transition-colors press">
                     <Menu className="w-5 h-5" />
                   </button>
                 </SheetTrigger>
@@ -50,12 +52,12 @@ export function AppLayout() {
               />
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
-              <button className="relative p-2 rounded-md hover:bg-muted transition-colors">
+              <button className="relative p-2 rounded-md hover:bg-muted transition-colors press">
                 <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive animate-pulse-glow" />
               </button>
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent ring-2 ring-background shadow-sm transition-transform duration-300 hover:scale-105 flex items-center justify-center text-primary-foreground text-sm font-semibold overflow-hidden">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -75,7 +77,7 @@ export function AppLayout() {
               </div>
               <button
                 onClick={signOut}
-                className="p-2 rounded-md hover:bg-muted transition-colors"
+                className="p-2 rounded-md hover:bg-muted transition-colors press"
                 title="Sign out"
               >
                 <LogOut className="w-4 h-4 text-muted-foreground" />
@@ -84,8 +86,10 @@ export function AppLayout() {
           </header>
           <RecentTabs />
           {/* Content */}
-          <main id="main-scroll" className="flex-1 bg-background p-3 sm:p-6">
-            <Outlet />
+          <main id="main-scroll" className="flex-1 p-3 sm:p-6">
+            <div key={location.pathname} className="page-enter">
+              <Outlet />
+            </div>
           </main>
           <footer className="shrink-0 border-t border-border/30 bg-background py-2 text-center text-[10px] text-muted-foreground/60">
             Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
