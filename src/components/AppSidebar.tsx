@@ -59,7 +59,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
 
   return (
     <aside
-      className={`relative flex flex-col bg-sidebar bg-[radial-gradient(120%_60%_at_0%_0%,hsl(var(--sidebar-primary)/0.12),transparent_60%)] text-sidebar-foreground border-r border-sidebar-border transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`relative flex flex-col bg-sidebar bg-[radial-gradient(120%_60%_at_0%_0%,hsl(var(--sidebar-primary)/0.12),transparent_60%)] text-sidebar-foreground border-r border-sidebar-border lg:rounded-l-3xl transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         isCollapsed ? "w-16" : "w-64"
       } ${isMobile ? "h-full" : "h-full"} min-h-0 overflow-hidden`}
     >
