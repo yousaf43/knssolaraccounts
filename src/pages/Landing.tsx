@@ -39,7 +39,172 @@ const benefits = [
   "Print ready invoices, receipts and delivery challans",
 ];
 
+const sidebarItems = [
+  { label: "Dashboard", active: true },
+  { label: "Invoices", badge: "12" },
+  { label: "Quotations" },
+  { label: "Sales Orders" },
+  { label: "Purchases", chevron: true },
+  { label: "Inventory" },
+  { label: "Accounts", chevron: true },
+];
+
+const workflowItems = ["Solar Washing", "Expenses", "Reports", "Settings"];
+
+const accountRows = [
+  { label: "Meezan Bank", amount: "Rs 6,750,200.00" },
+  { label: "Cash on Hand", amount: "Rs 1,592,864.82" },
+  { label: "Petty Cash", amount: "Rs 98,125.50" },
+];
+
+const txRows = [
+  { date: "12 Aug", desc: "INV-498 · Al Noor Traders", amount: "+Rs 125,000", status: "Approved", tone: "text-success" },
+  { date: "11 Aug", desc: "PO-112 · Solar Panels", amount: "-Rs 852,400", status: "Pending", tone: "text-warning" },
+  { date: "10 Aug", desc: "Payroll — August", amount: "-Rs 485,450", status: "Paid", tone: "text-success" },
+  { date: "09 Aug", desc: "Office Supplies", amount: "-Rs 12,000", status: "Paid", tone: "text-success" },
+];
+
+function DashboardPreview() {
+  return (
+    <div className="pointer-events-none select-none overflow-hidden rounded-xl border bg-card text-[11px]">
+      {/* Top bar */}
+      <div className="flex items-center justify-between gap-3 border-b px-3 py-2">
+        <div className="flex items-center gap-2">
+          <div className="flex h-5 w-5 items-center justify-center rounded bg-primary text-[10px] font-semibold text-primary-foreground">K</div>
+          <span className="font-medium">K&amp;S Solar</span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </div>
+        <div className="hidden flex-1 items-center gap-2 rounded-md border bg-background px-2 py-1 text-muted-foreground sm:flex">
+          <Search className="h-3 w-3" />
+          <span>Search invoices, products, customers…</span>
+          <span className="ml-auto rounded border px-1 text-[10px]">⌘K</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground">New Invoice</span>
+          <Bell className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-medium">YK</span>
+        </div>
+      </div>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="hidden w-40 flex-shrink-0 border-r p-2 md:block">
+          {sidebarItems.map((i) => (
+            <div
+              key={i.label}
+              className={`flex items-center justify-between rounded-md px-2 py-1.5 ${i.active ? "bg-secondary font-medium text-foreground" : "text-muted-foreground"}`}
+            >
+              <span>{i.label}</span>
+              {i.badge && <span className="rounded-full bg-primary/10 px-1.5 text-[10px] text-primary">{i.badge}</span>}
+              {i.chevron && <ChevronDown className="h-3 w-3" />}
+            </div>
+          ))}
+          <p className="mt-3 px-2 text-[10px] uppercase tracking-wide text-muted-foreground/70">Workflows</p>
+          {workflowItems.map((w) => (
+            <div key={w} className="rounded-md px-2 py-1.5 text-muted-foreground">{w}</div>
+          ))}
+        </aside>
+
+        {/* Main */}
+        <div className="flex-1 bg-secondary/30 p-3">
+          <p className="text-sm font-semibold">Welcome, Yousaf</p>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {["Invoice", "Quotation", "Receipt", "Purchase", "Expense", "Adjustment"].map((a, idx) => (
+              <span
+                key={a}
+                className={`rounded-full px-2.5 py-1 text-[10px] ${idx === 0 ? "bg-accent text-accent-foreground" : "border bg-card text-muted-foreground"}`}
+              >
+                {a}
+              </span>
+            ))}
+            <span className="text-[10px] text-muted-foreground">Customize</span>
+          </div>
+
+          <div className="mt-3 flex gap-3">
+            {/* Balance card */}
+            <div className="flex flex-1 basis-0 flex-col rounded-lg border bg-card p-3">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span>Total Balance</span>
+                <Check className="h-3 w-3 text-success" />
+              </div>
+              <p className="mt-1 text-lg font-semibold">
+                Rs 8,450,190<span className="text-xs text-muted-foreground">.32</span>
+              </p>
+              <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
+                <span>Last 30 days</span>
+                <span className="text-success">+Rs 1.8M</span>
+                <span className="text-destructive">-Rs 900K</span>
+              </div>
+              <svg viewBox="0 0 300 80" className="mt-2 h-20 w-full" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.15" />
+                    <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,60 C40,55 55,25 90,32 C125,39 140,68 175,55 C210,42 225,12 260,20 C280,25 290,30 300,26 L300,80 L0,80 Z"
+                  fill="url(#areaFill)"
+                />
+                <path
+                  d="M0,60 C40,55 55,25 90,32 C125,39 140,68 175,55 C210,42 225,12 260,20 C280,25 290,30 300,26"
+                  fill="none"
+                  stroke="hsl(var(--accent))"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            </div>
+
+            {/* Accounts card */}
+            <div className="flex flex-1 basis-0 flex-col rounded-lg border bg-card p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Accounts</span>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Plus className="h-3 w-3" />
+                  <MoreHorizontal className="h-3 w-3" />
+                </div>
+              </div>
+              {accountRows.map((a) => (
+                <div key={a.label} className="flex items-center justify-between py-3 text-xs">
+                  <span className="text-muted-foreground">{a.label}</span>
+                  <span className="font-medium">{a.amount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Transactions */}
+          <div className="mt-3 rounded-lg border bg-card p-3">
+            <p className="font-medium">Recent Transactions</p>
+            <table className="mt-2 w-full text-left text-[10px]">
+              <thead className="text-muted-foreground">
+                <tr>
+                  <th className="py-1 font-normal">Date</th>
+                  <th className="py-1 font-normal">Description</th>
+                  <th className="py-1 text-right font-normal">Amount</th>
+                  <th className="py-1 text-right font-normal">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {txRows.map((t) => (
+                  <tr key={t.desc} className="border-t">
+                    <td className="py-1.5 text-muted-foreground">{t.date}</td>
+                    <td className="py-1.5">{t.desc}</td>
+                    <td className="py-1.5 text-right">{t.amount}</td>
+                    <td className={`py-1.5 text-right ${t.tone}`}>{t.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
