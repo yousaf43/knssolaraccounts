@@ -16,6 +16,8 @@ import {
   Trash2,
   FileEdit,
   Droplets,
+  Search,
+
   
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
