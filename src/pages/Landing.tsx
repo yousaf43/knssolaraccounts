@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import ksLogo from "@/assets/ks-logo.png";
 import {
@@ -12,7 +13,15 @@ import {
   Receipt,
   CheckCircle2,
   ArrowRight,
+  Play,
+  Search,
+  Bell,
+  ChevronDown,
+  Plus,
+  MoreHorizontal,
+  Check,
 } from "lucide-react";
+
 
 const features = [
   { icon: FileText, title: "Sales & Invoicing", desc: "Quotations, sales orders, invoices, returns and delivery challans in one flow." },
