@@ -1,6 +1,7 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { NexiaAssistant } from "@/components/NexiaAssistant";
 import { RecentTabs } from "@/components/RecentTabs";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Outlet } from "react-router-dom";
 import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +55,7 @@ export function AppLayout() {
               />
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
+              <ThemeToggle />
               <button className="relative p-2 rounded-md hover:bg-muted transition-colors press">
                 <Bell className="w-5 h-5 text-muted-foreground" />
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive animate-pulse-glow" />
