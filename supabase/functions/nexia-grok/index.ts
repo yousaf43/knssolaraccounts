@@ -275,8 +275,8 @@ ${businessContext}${attachmentNote}`;
 
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+
 
     // Convert our OpenAI-style messages to Google Gemini "contents" format.
     const toGeminiContents = () =>
@@ -334,27 +334,9 @@ ${businessContext}${attachmentNote}`;
       if (GEMINI_API_KEY) {
         const geminiText = await callGemini();
         if (geminiText) return { choices: [{ message: { content: geminiText } }] };
-        // Gemini failed (quota/key/model) — fall back to the other providers below.
+        // Gemini failed (quota/key/model) — fall back to Groq below.
       }
-      if (LOVABLE_API_KEY) {
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3.6-flash",
-            messages: [{ role: "system", content: systemPrompt }, ...messages],
-          }),
-        });
-        if (res.ok) return await res.json();
-        const text = await res.text();
-        console.error("Lovable AI error:", res.status, text);
-        if (res.status === 429) throw { status: 429, msg: "Bohot zyada requests. Thori dair baad koshish karein." };
-        if (res.status === 402) throw { status: 402, msg: "AI credits khatam ho gaye hain." };
-        // fall through to Groq
-      }
+
 
       if (attachmentNote) {
         // Groq (text-only) cannot read PDFs/images — don't silently drop them.
