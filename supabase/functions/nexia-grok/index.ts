@@ -99,6 +99,31 @@ serve(async (req) => {
     let businessContext = "";
     if (userId) {
       try {
+        // Fetch EVERY row (Supabase caps a single request at 1000 rows, so page through).
+        const fetchAll = async (
+          table: string,
+          cols: string,
+          orderCol?: string,
+        ): Promise<Record<string, unknown>[]> => {
+          const out: Record<string, unknown>[] = [];
+          const PAGE = 1000;
+          for (let from = 0; from < 50000; from += PAGE) {
+            let q = supabase.from(table).select(cols).range(from, from + PAGE - 1);
+            if (orderCol) q = q.order(orderCol, { ascending: false });
+            const { data, error } = await q;
+            if (error) break;
+            const rows = (data ?? []) as unknown as Record<string, unknown>[];
+            out.push(...rows);
+            if (rows.length < PAGE) break;
+          }
+          return out;
+        };
+
+        const exactCount = async (table: string): Promise<number> => {
+          const { count } = await supabase.from(table).select("id", { count: "exact", head: true });
+          return count ?? 0;
+        };
+
         const [
           invoices,
           customers,
@@ -115,21 +140,22 @@ serve(async (req) => {
           purchasePayments,
           solarWashing,
         ] = await Promise.all([
-          supabase.from("invoices").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(400),
-          supabase.from("customers").select("name,phone,total_billed,outstanding").limit(400),
-          supabase.from("inventory").select("name,sku,qty,sale_price,cost_price,reorder_level,category,location").limit(500),
-          supabase.from("receipts").select("number,customer,amount,date").order("date", { ascending: false }).limit(300),
-          supabase.from("expenses").select("description,amount,category,date").order("date", { ascending: false }).limit(300),
-          supabase.from("sales_orders").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(150),
-          supabase.from("suppliers").select("name,phone,outstanding").limit(200),
-          supabase.from("bills").select("number,supplier,date,amount,status").order("date", { ascending: false }).limit(150),
-          supabase.from("accounts").select("name,balance,currency").limit(50),
-          supabase.from("ledger_entries").select("amount,type,bank").limit(2000),
-          supabase.from("quotations").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(80),
-          supabase.from("purchase_orders").select("number,supplier,date,amount,status").order("date", { ascending: false }).limit(120),
-          supabase.from("purchase_payments").select("supplier,date,amount").order("date", { ascending: false }).limit(120),
-          supabase.from("solar_washing").select("date,customer,amount").order("date", { ascending: false }).limit(200),
-        ]).then((rs) => rs.map((r) => (r.data ?? []) as Record<string, unknown>[]));
+          fetchAll("invoices", "number,customer,date,amount,status", "date"),
+          fetchAll("customers", "name,phone,total_billed,outstanding"),
+          fetchAll("inventory", "name,sku,model,unique_code,qty,sale_price,cost_price,reorder_level,category,product_type,unit,location"),
+          fetchAll("receipts", "number,customer,amount,date", "date"),
+          fetchAll("expenses", "description,amount,category,date", "date"),
+          fetchAll("sales_orders", "number,customer,date,amount,status", "date"),
+          fetchAll("suppliers", "name,phone,outstanding"),
+          fetchAll("bills", "number,supplier,date,amount,status", "date"),
+          fetchAll("accounts", "name,balance,currency"),
+          fetchAll("ledger_entries", "amount,type,bank"),
+          fetchAll("quotations", "number,customer,date,amount,status", "date"),
+          fetchAll("purchase_orders", "number,supplier,date,amount,status", "date"),
+          fetchAll("purchase_payments", "supplier,date,amount", "date"),
+          fetchAll("solar_washing", "date,customer,amount", "date"),
+        ]);
+
 
         // ---- Account balances (opening + ledger movement) ----
         const movement: Record<string, { in: number; out: number }> = {};
