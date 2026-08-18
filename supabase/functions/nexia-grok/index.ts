@@ -119,10 +119,6 @@ serve(async (req) => {
           return out;
         };
 
-        const exactCount = async (table: string): Promise<number> => {
-          const { count } = await supabase.from(table).select("id", { count: "exact", head: true });
-          return count ?? 0;
-        };
 
         const [
           invoices,
