@@ -473,9 +473,9 @@ ${businessContext}${attachmentNote}`;
         return { role: m.role === "assistant" ? "model" : "user", parts };
       });
 
-    const callGemini = async () => {
+    const callGemini = async (model = "gemini-2.5-pro") => {
       const res = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: "POST",
           headers: {
@@ -485,13 +485,14 @@ ${businessContext}${attachmentNote}`;
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemPrompt }] },
             contents: toGeminiContents(),
-            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 },
+            // Low temperature = deterministic, accurate answers from the data.
+            generationConfig: { temperature: 0.1, topP: 0.8, maxOutputTokens: 2048 },
           }),
         },
       );
       if (!res.ok) {
         const t = await res.text();
-        console.error("Gemini error:", res.status, t);
+        console.error("Gemini error:", model, res.status, t);
         return null;
       }
       const json = await res.json();
