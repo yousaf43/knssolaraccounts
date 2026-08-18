@@ -505,10 +505,13 @@ ${businessContext}${attachmentNote}`;
 
     const callModel = async () => {
       if (GEMINI_API_KEY) {
-        const geminiText = await callGemini();
+        // Pro = best accuracy; Flash only if Pro is unavailable/quota-limited.
+        const geminiText = (await callGemini("gemini-2.5-pro")) ??
+          (await callGemini("gemini-2.5-flash"));
         if (geminiText) return { choices: [{ message: { content: geminiText } }] };
-        // Gemini failed (quota/key/model) — fall back to Groq below.
+        // Both Gemini models failed — fall back to Groq below.
       }
+
 
 
       if (attachmentNote) {
