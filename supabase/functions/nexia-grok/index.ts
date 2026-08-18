@@ -97,8 +97,31 @@ serve(async (req) => {
     }
 
     let businessContext = "";
+    let compactContext = "";
+
     if (userId) {
       try {
+        // Fetch EVERY row (Supabase caps a single request at 1000 rows, so page through).
+        const fetchAll = async (
+          table: string,
+          cols: string,
+          orderCol?: string,
+        ): Promise<Record<string, unknown>[]> => {
+          const out: Record<string, unknown>[] = [];
+          const PAGE = 1000;
+          for (let from = 0; from < 50000; from += PAGE) {
+            let q = supabase.from(table).select(cols).range(from, from + PAGE - 1);
+            if (orderCol) q = q.order(orderCol, { ascending: false });
+            const { data, error } = await q;
+            if (error) break;
+            const rows = (data ?? []) as unknown as Record<string, unknown>[];
+            out.push(...rows);
+            if (rows.length < PAGE) break;
+          }
+          return out;
+        };
+
+
         const [
           invoices,
           customers,
@@ -115,21 +138,22 @@ serve(async (req) => {
           purchasePayments,
           solarWashing,
         ] = await Promise.all([
-          supabase.from("invoices").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(400),
-          supabase.from("customers").select("name,phone,total_billed,outstanding").limit(400),
-          supabase.from("inventory").select("name,sku,qty,sale_price,cost_price,reorder_level,category,location").limit(500),
-          supabase.from("receipts").select("number,customer,amount,date").order("date", { ascending: false }).limit(300),
-          supabase.from("expenses").select("description,amount,category,date").order("date", { ascending: false }).limit(300),
-          supabase.from("sales_orders").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(150),
-          supabase.from("suppliers").select("name,phone,outstanding").limit(200),
-          supabase.from("bills").select("number,supplier,date,amount,status").order("date", { ascending: false }).limit(150),
-          supabase.from("accounts").select("name,balance,currency").limit(50),
-          supabase.from("ledger_entries").select("amount,type,bank").limit(2000),
-          supabase.from("quotations").select("number,customer,date,amount,status").order("date", { ascending: false }).limit(80),
-          supabase.from("purchase_orders").select("number,supplier,date,amount,status").order("date", { ascending: false }).limit(120),
-          supabase.from("purchase_payments").select("supplier,date,amount").order("date", { ascending: false }).limit(120),
-          supabase.from("solar_washing").select("date,customer,amount").order("date", { ascending: false }).limit(200),
-        ]).then((rs) => rs.map((r) => (r.data ?? []) as Record<string, unknown>[]));
+          fetchAll("invoices", "number,customer,date,amount,status", "date"),
+          fetchAll("customers", "name,phone,total_billed,outstanding"),
+          fetchAll("inventory", "name,sku,model,unique_code,qty,sale_price,cost_price,reorder_level,category,product_type,unit,location"),
+          fetchAll("receipts", "number,customer,amount,date", "date"),
+          fetchAll("expenses", "description,amount,category,date", "date"),
+          fetchAll("sales_orders", "number,customer,date,amount,status", "date"),
+          fetchAll("suppliers", "name,phone,outstanding"),
+          fetchAll("bills", "number,supplier,date,amount,status", "date"),
+          fetchAll("accounts", "name,balance,currency"),
+          fetchAll("ledger_entries", "amount,type,bank"),
+          fetchAll("quotations", "number,customer,date,amount,status", "date"),
+          fetchAll("purchase_orders", "number,supplier,date,amount,status", "date"),
+          fetchAll("purchase_payments", "supplier,date,amount", "date"),
+          fetchAll("solar_washing", "date,customer,amount", "date"),
+        ]);
+
 
         // ---- Account balances (opening + ledger movement) ----
         const movement: Record<string, { in: number; out: number }> = {};
@@ -149,20 +173,25 @@ serve(async (req) => {
         });
         const cashTotal = enrichedAccounts.reduce((s, a) => s + a.actual_balance, 0);
 
-        // ---- Inventory (main location only, deduped by sku) ----
-        const mainInv = new Map<string, Record<string, unknown>>();
-        for (const p of inventory) {
-          const loc = String(p.location ?? "main");
-          if (loc !== "main") continue;
-          const key = String(p.sku || p.name);
-          if (!mainInv.has(key)) mainInv.set(key, p);
-        }
-        const invItems = [...mainInv.values()];
+        // ---- Inventory ----
+        const invItems = inventory.filter((p) => String(p.location ?? "main") === "main");
+        const storeItems = inventory.filter((p) => String(p.location ?? "main") !== "main");
+        const uniqueSkus = new Set(invItems.map((p) => String(p.sku || p.name))).size;
         const stockValue = invItems.reduce((s, p) => s + num(p.qty) * num(p.cost_price), 0);
+        const retailValue = invItems.reduce((s, p) => s + num(p.qty) * num(p.sale_price), 0);
+        const totalQty = invItems.reduce((s, p) => s + num(p.qty), 0);
         const lowStock = invItems
           .filter((p) => num(p.qty) <= num(p.reorder_level))
-          .map((p) => ({ name: p.name, qty: num(p.qty), reorder: num(p.reorder_level) }))
-          .slice(0, 40);
+          .map((p) => ({ name: p.name, qty: num(p.qty), reorder: num(p.reorder_level) }));
+        const outOfStock = invItems.filter((p) => num(p.qty) <= 0).length;
+        const invByCategory = Object.entries(
+          invItems.reduce<Record<string, number>>((acc, p) => {
+            const c = String(p.category || "Uncategorized");
+            acc[c] = (acc[c] ?? 0) + 1;
+            return acc;
+          }, {}),
+        ).sort((a, b) => b[1] - a[1]);
+
 
         // ---- KPIs ----
         const sum = (arr: Record<string, unknown>[], k = "amount") =>
@@ -195,9 +224,31 @@ serve(async (req) => {
           .slice(0, 15)
           .map((c) => ({ name: c.name, due: num(c.outstanding) }));
 
+        const counts = {
+          main_inventory_products: invItems.length,
+          main_inventory_unique_skus: uniqueSkus,
+          store_inventory_products: storeItems.length,
+          inventory_rows_total: inventory.length,
+          invoices: invoices.length,
+          quotations: quotations.length,
+          sales_orders: salesOrders.length,
+          customers: customers.length,
+          suppliers: suppliers.length,
+          receipts: receipts.length,
+          expenses: expenses.length,
+          bills: bills.length,
+          purchase_orders: purchaseOrders.length,
+          purchase_payments: purchasePayments.length,
+          solar_washing_jobs: solarWashing.length,
+          accounts: accounts.length,
+          ledger_entries: ledgerEntries.length,
+        };
+
         const kpi = {
           cash_and_bank_total: money(cashTotal),
           stock_value_at_cost: money(stockValue),
+          stock_value_at_retail: money(retailValue),
+          total_stock_qty: totalQty,
           total_assets_estimate: money(cashTotal + stockValue + receivables),
           receivables_total: money(receivables),
           payables_total: money(payables),
@@ -207,41 +258,68 @@ serve(async (req) => {
           expenses_this_month: money(sum(inMonth(expenses, thisMonth))),
           solar_washing_total: money(sum(solarWashing)),
           solar_washing_this_month: money(sum(inMonth(solarWashing, thisMonth))),
-          solar_washing_jobs: solarWashing.length,
           unpaid_invoices: invoices.filter((i) => String(i.status).toLowerCase() !== "paid").length,
-          products_in_main_inventory: invItems.length,
           low_stock_items: lowStock.length,
+          out_of_stock_items: outOfStock,
         };
 
         const j = (v: unknown) => JSON.stringify(v);
+        const compactInv = (p: Record<string, unknown>) => ({
+          n: p.name,
+          sku: p.sku,
+          model: p.model,
+          qty: num(p.qty),
+          cost: num(p.cost_price),
+          sale: num(p.sale_price),
+          cat: p.category,
+          type: p.product_type,
+        });
 
         businessContext = `
 ## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, currency PKR)
+### RECORD COUNTS (AUTHORITATIVE — "kitni entries/records hain" ka jawab SIRF inhi numbers se do, list ginn kar nahi):
+${j(counts)}
+NOTE: Har table ka poora data load kiya gaya hai (koi row miss nahi). Neeche di gayi lists sirf display ke liye chhoti ki gayi ho sakti hain — count hamesha upar wale RECORD COUNTS se lo.
 ### KPI SUMMARY (already calculated — inhe seedha use kar, dobara jama mat kar):
 ${j(kpi)}
 NOTE: "total_assets_estimate" = cash/bank + stock value at cost + receivables. Fixed assets (equipment) is estimate me shamil nahi.
 ### Monthly sales (last 12): ${monthlySales}
 ### Accounts: ${j(enrichedAccounts)}
+### Inventory by category (main): ${j(invByCategory)}
 ### Top customers: ${j(topCustomers)}
 ### Top debtors: ${j(topDebtors)}
-### Low stock: ${j(lowStock)}
-### Inventory (main, ${invItems.length}): ${j(invItems.slice(0, 200).map((p) => ({ n: p.name, sku: p.sku, qty: num(p.qty), cost: num(p.cost_price), sale: num(p.sale_price), cat: p.category })))}
-### Invoices (recent 120): ${j(invoices.slice(0, 120))}
-### Sales Orders (recent 40): ${j(salesOrders.slice(0, 40))}
-### Receipts (recent 60): ${j(receipts.slice(0, 60))}
-### Expenses (recent 60): ${j(expenses.slice(0, 60))}
-### Bills (recent 40): ${j(bills.slice(0, 40))}
-### Quotations (recent 25): ${j(quotations.slice(0, 25))}
-### Purchase Orders (recent 40): ${j(purchaseOrders.slice(0, 40))}
-### Purchase Payments (recent 30): ${j(purchasePayments.slice(0, 30))}
-### Solar Washing (recent 40): ${j(solarWashing.slice(0, 40))}
-### Suppliers: ${j(suppliers.slice(0, 80))}
+### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 100))}
+### Inventory — MAIN, complete list (${invItems.length} products): ${j(invItems.map(compactInv))}
+### Inventory — STORE (${storeItems.length}): ${j(storeItems.slice(0, 150).map(compactInv))}
+### Invoices (showing recent 200 of ${invoices.length}): ${j(invoices.slice(0, 200))}
+### Sales Orders (recent 60 of ${salesOrders.length}): ${j(salesOrders.slice(0, 60))}
+### Receipts (recent 80 of ${receipts.length}): ${j(receipts.slice(0, 80))}
+### Expenses (recent 80 of ${expenses.length}): ${j(expenses.slice(0, 80))}
+### Bills (recent 50 of ${bills.length}): ${j(bills.slice(0, 50))}
+### Quotations (recent 40 of ${quotations.length}): ${j(quotations.slice(0, 40))}
+### Purchase Orders (recent 50 of ${purchaseOrders.length}): ${j(purchaseOrders.slice(0, 50))}
+### Purchase Payments (recent 40 of ${purchasePayments.length}): ${j(purchasePayments.slice(0, 40))}
+### Solar Washing (recent 50 of ${solarWashing.length}): ${j(solarWashing.slice(0, 50))}
+### Customers (${customers.length}): ${j(customers.slice(0, 250).map((c) => ({ n: c.name, billed: num(c.total_billed), due: num(c.outstanding) })))}
+### Suppliers (${suppliers.length}): ${j(suppliers.slice(0, 150))}
 `;
 
-        const MAX = 120000; // Gemini has a large context; still bound it.
+
+        compactContext = `
+## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, PKR)
+### RECORD COUNTS (AUTHORITATIVE): ${j(counts)}
+### KPI SUMMARY: ${j(kpi)}
+### Accounts: ${j(enrichedAccounts)}
+### Monthly sales (last 12): ${monthlySales}
+### Top debtors: ${j(topDebtors)}
+### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 30))}
+`;
+
+        const MAX = 400000; // Gemini has a large context; still bound it.
         if (businessContext.length > MAX) {
           businessContext = businessContext.slice(0, MAX) + "\n...[truncated]";
         }
+
       } catch (e) {
         console.error("data fetch error:", e);
         businessContext = "\n(Live data load nahin ho saka — user ko batao ke data abhi available nahin.)";
@@ -256,8 +334,11 @@ ZABAN: User Roman Urdu likhay to Roman Urdu, English likhay to English. Masculin
 
 RULES:
 - Currency PKR. Numbers KPI SUMMARY se lo — wo pehle se calculated hain, dobara jama mat karo.
+- "Kitni entries / kitne records / total kitne products, invoices, customers hain?" — jawab HAMESHA RECORD COUNTS section se do. Neeche di gayi lists display ke liye chhoti ho sakti hain, unhe gin kar count mat batao.
+- Inventory: "main inventory" = main_inventory_products, "store inventory" = store_inventory_products. Dono alag alag hain, mila kar mat batao.
 - Account balance ke liye hamesha "actual_balance" use karo.
 - Agar koi figure data me maujood nahin to saaf keh do "ye data available nahin" — andaza mat lagao.
+
 - Jawab short (2-5 lines). Lists ke liye chhoti bullet list. Amounts thousands separator ke sath.
 - Yeh jawab voice me bhi bola ja sakta hai, is liye lamba paragraph mat likho jab tak user detail na maangay.
 - User ki wording flexible / ghalat spelling ho sakti hai (Roman Urdu, typos, short forms). Best guess lagao aur kaam kar do; sirf tab poocho jab bilkul samajh na aaye.
@@ -353,7 +434,7 @@ ${businessContext}${attachmentNote}`;
           model: "llama-3.3-70b-versatile",
           // Groq has a small context window — send a trimmed prompt.
           messages: [
-            { role: "system", content: systemPrompt.slice(0, 20000) },
+            { role: "system", content: (compactContext ? systemPrompt.replace(businessContext, compactContext) : systemPrompt).slice(0, 24000) },
             ...messages.slice(-6).map((m) => ({
               role: m.role,
               content: typeof m.content === "string"
