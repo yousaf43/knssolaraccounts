@@ -505,12 +505,20 @@ ${businessContext}${attachmentNote}`;
 
     const callModel = async () => {
       if (GEMINI_API_KEY) {
-        // Pro = best accuracy; Flash only if Pro is unavailable/quota-limited.
-        const geminiText = (await callGemini("gemini-2.5-pro")) ??
-          (await callGemini("gemini-2.5-flash"));
-        if (geminiText) return { choices: [{ message: { content: geminiText } }] };
-        // Both Gemini models failed — fall back to Groq below.
+        // Try newest first, then fall back through cheaper/older models.
+        const geminiModels = [
+          "gemini-3.1-pro-preview",
+          "gemini-2.5-flash",
+          "gemini-flash-latest",
+          "gemini-2.0-flash",
+        ];
+        for (const m of geminiModels) {
+          const geminiText = await callGemini(m);
+          if (geminiText) return { choices: [{ message: { content: geminiText } }] };
+        }
+        // All Gemini models failed — fall back to Groq below.
       }
+
 
 
 
