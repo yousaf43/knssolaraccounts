@@ -275,50 +275,138 @@ serve(async (req) => {
           type: p.product_type,
         });
 
-        businessContext = `
-## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, currency PKR)
-### RECORD COUNTS (AUTHORITATIVE — "kitni entries/records hain" ka jawab SIRF inhi numbers se do, list ginn kar nahi):
-${j(counts)}
-NOTE: Har table ka poora data load kiya gaya hai (koi row miss nahi). Neeche di gayi lists sirf display ke liye chhoti ki gayi ho sakti hain — count hamesha upar wale RECORD COUNTS se lo.
-### KPI SUMMARY (already calculated — inhe seedha use kar, dobara jama mat kar):
-${j(kpi)}
-NOTE: "total_assets_estimate" = cash/bank + stock value at cost + receivables. Fixed assets (equipment) is estimate me shamil nahi.
-### Monthly sales (last 12): ${monthlySales}
-### Accounts: ${j(enrichedAccounts)}
-### Inventory by category (main): ${j(invByCategory)}
-### Top customers: ${j(topCustomers)}
-### Top debtors: ${j(topDebtors)}
-### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 100))}
-### Inventory — MAIN, complete list (${invItems.length} products): ${j(invItems.map(compactInv))}
-### Inventory — STORE (${storeItems.length}): ${j(storeItems.slice(0, 150).map(compactInv))}
-### Invoices (showing recent 200 of ${invoices.length}): ${j(invoices.slice(0, 200))}
-### Sales Orders (recent 60 of ${salesOrders.length}): ${j(salesOrders.slice(0, 60))}
-### Receipts (recent 80 of ${receipts.length}): ${j(receipts.slice(0, 80))}
-### Expenses (recent 80 of ${expenses.length}): ${j(expenses.slice(0, 80))}
-### Bills (recent 50 of ${bills.length}): ${j(bills.slice(0, 50))}
-### Quotations (recent 40 of ${quotations.length}): ${j(quotations.slice(0, 40))}
-### Purchase Orders (recent 50 of ${purchaseOrders.length}): ${j(purchaseOrders.slice(0, 50))}
-### Purchase Payments (recent 40 of ${purchasePayments.length}): ${j(purchasePayments.slice(0, 40))}
-### Solar Washing (recent 50 of ${solarWashing.length}): ${j(solarWashing.slice(0, 50))}
-### Customers (${customers.length}): ${j(customers.slice(0, 250).map((c) => ({ n: c.name, billed: num(c.total_billed), due: num(c.outstanding) })))}
-### Suppliers (${suppliers.length}): ${j(suppliers.slice(0, 150))}
-`;
+        // ---- DASHBOARD-IDENTICAL FIGURES ----
+        // Sale counts only when invoice is approved (not pending/draft/cancelled/rejected)
+        // and old-balance lines are excluded from revenue.
+        const invByName = new Map<string, Record<string, unknown>>();
+        const invById = new Map<string, Record<string, unknown>>();
+        for (const p of inventory) {
+          const n = String(p.name ?? "").toLowerCase().trim();
+          if (n && !invByName.has(n)) invByName.set(n, p);
+          if (p.id) invById.set(String(p.id), p);
+        }
+        const lineTotal = (l: Record<string, unknown>) =>
+          typeof l.amount === "number" ? l.amount : num(l.qty) * num(l.rate);
+        const oldBalanceAmount = (doc: Record<string, unknown>) => {
+          const items = Array.isArray(doc.items) ? doc.items as Record<string, unknown>[] : [];
+          return items.reduce((s, l) => {
+            const p =
+              (l.inventoryItemId ? invById.get(String(l.inventoryItemId)) : undefined) ||
+              invByName.get(String(l.description ?? "").toLowerCase().trim());
+            return String(p?.product_type ?? "") === "old-balance" ? s + lineTotal(l) : s;
+          }, 0);
+        };
+        const countsAsSale = (s: unknown) => {
+          const v = String(s ?? "").toLowerCase();
+          return v !== "pending" && v !== "draft" && v !== "cancelled" && v !== "rejected";
+        };
+        const saleAmountOf = (inv: Record<string, unknown>) => {
+          const total = num(inv.amount);
+          const ob = oldBalanceAmount(inv);
+          if (!ob) return total;
+          return total - (total < 0 ? -1 : 1) * Math.abs(ob);
+        };
+        const approvedInvoices = invoices.filter((i) => countsAsSale(i.status));
+        const totalSalesApproved = approvedInvoices.reduce((s, i) => s + saleAmountOf(i), 0);
+        const pendingBalance = invoices
+          .filter((i) => String(i.status ?? "").toLowerCase() === "pending")
+          .reduce((s, i) => s + num(i.amount), 0);
+        const totalExpensesAll = sum(expenses);
+        const totalBillsAll = sum(bills);
+        const netProfitDash = totalSalesApproved - totalExpensesAll - totalBillsAll;
 
+        const dashboard = {
+          total_sales_approved_only: money(totalSalesApproved),
+          approved_invoices_count: approvedInvoices.length,
+          pending_balance_not_approved: money(pendingBalance),
+          pending_invoices_count: invoices.length - approvedInvoices.length,
+          total_expenses: money(totalExpensesAll),
+          total_bills: money(totalBillsAll),
+          net_profit_or_loss: money(netProfitDash),
+          bank_balance_total: money(cashTotal),
+          lifetime_invoiced_including_pending: money(sum(invoices)),
+        };
+
+        // ---- Exact category & product-type maps (no guessing) ----
+        const groupNames = (rows: Record<string, unknown>[], key: string) => {
+          const m: Record<string, string[]> = {};
+          for (const p of rows) {
+            const k = String(p[key] || "Uncategorized");
+            (m[k] ??= []).push(String(p.name ?? ""));
+          }
+          return m;
+        };
+        const categoryMap = groupNames(invItems, "category");
+        const typeMap = groupNames(invItems, "product_type");
+        const categoryList = Object.keys(categoryMap).sort();
+        const serviceItems = invItems
+          .filter((p) => {
+            const t = String(p.product_type ?? "").toLowerCase();
+            const c = String(p.category ?? "").toLowerCase();
+            return t === "non-stock" || t === "service" || c.includes("service");
+          })
+          .map((p) => ({ n: p.name, cat: p.category, type: p.product_type, rate: num(p.sale_price) }));
+
+        const sections: string[] = [
+          `## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, currency PKR)`,
+          `### DASHBOARD FIGURES (AUTHORITATIVE — software ke Dashboard ke bilkul barabar. Sales/profit/pending ka jawab SIRF inhi se do):\n${j(dashboard)}`,
+          `### RECORD COUNTS (AUTHORITATIVE — "kitni entries/records hain" ka jawab SIRF inhi numbers se do, list gin kar nahi):\n${j(counts)}`,
+          `### KPI SUMMARY (extra calculated figures — dobara jama mat karo):\n${j(kpi)}\nNOTE: "lifetime_sales" me pending invoices bhi shamil hain; jab user "total sales" poochay to DASHBOARD FIGURES ka total_sales_approved_only batao.`,
+          `### PRODUCT CATEGORIES (main inventory) — categories ki mukammal list: ${j(categoryList)}`,
+          `### CATEGORY -> PRODUCT NAMES (mukammal, authoritative — kisi product ki category isi se batao, andaza mat lagao):\n${j(categoryMap)}`,
+          `### PRODUCT TYPE -> PRODUCT NAMES: ${j(typeMap)}`,
+          `### SERVICES / NON-STOCK ITEMS (${serviceItems.length}) — "hamari services kon si hain" ka jawab SIRF isi list se: ${j(serviceItems)}`,
+          `### Monthly sales (last 12): ${monthlySales}`,
+          `### Accounts (actual_balance use karo): ${j(enrichedAccounts)}`,
+          `### Inventory count by category (main): ${j(invByCategory)}`,
+          `### Top customers: ${j(topCustomers)}`,
+          `### Top debtors: ${j(topDebtors)}`,
+          `### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 150))}`,
+          `### Inventory — MAIN, complete list (${invItems.length} products): ${j(invItems.map(compactInv))}`,
+          `### Inventory — STORE (${storeItems.length}): ${j(storeItems.map(compactInv))}`,
+          `### Invoices (recent 200 of ${invoices.length}): ${j(invoices.slice(0, 200).map((i) => ({ number: i.number, customer: i.customer, date: i.date, amount: num(i.amount), status: i.status })))}`,
+          `### Sales Orders (recent 60 of ${salesOrders.length}): ${j(salesOrders.slice(0, 60))}`,
+          `### Receipts (recent 80 of ${receipts.length}): ${j(receipts.slice(0, 80))}`,
+          `### Expenses (recent 80 of ${expenses.length}): ${j(expenses.slice(0, 80))}`,
+          `### Bills (recent 50 of ${bills.length}): ${j(bills.slice(0, 50))}`,
+          `### Quotations (recent 40 of ${quotations.length}): ${j(quotations.slice(0, 40))}`,
+          `### Purchase Orders (recent 50 of ${purchaseOrders.length}): ${j(purchaseOrders.slice(0, 50))}`,
+          `### Purchase Payments (recent 40 of ${purchasePayments.length}): ${j(purchasePayments.slice(0, 40))}`,
+          `### Solar Washing (recent 50 of ${solarWashing.length}): ${j(solarWashing.slice(0, 50))}`,
+          `### Customers (${customers.length}): ${j(customers.map((c) => ({ n: c.name, billed: num(c.total_billed), due: num(c.outstanding) })))}`,
+          `### Suppliers (${suppliers.length}): ${j(suppliers)}`,
+        ];
+
+        // Never cut a section in the middle (adhoora JSON = ghalat jawab).
+        const MAX = 600000;
+        const kept: string[] = [];
+        let used = 0;
+        const dropped: string[] = [];
+        for (const s of sections) {
+          if (used + s.length + 1 <= MAX) {
+            kept.push(s);
+            used += s.length + 1;
+          } else {
+            dropped.push(s.slice(0, 40).replace(/\n/g, " "));
+          }
+        }
+        if (dropped.length) {
+          kept.push(`NOTE: Ye sections size ki wajah se load nahin hue: ${dropped.join(" | ")}. In ke baare me poocha jaye to keh do "ye detail abhi load nahin hui" — andaza mat lagao.`);
+        }
+        businessContext = "\n" + kept.join("\n");
 
         compactContext = `
 ## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, PKR)
+### DASHBOARD FIGURES (AUTHORITATIVE): ${j(dashboard)}
 ### RECORD COUNTS (AUTHORITATIVE): ${j(counts)}
 ### KPI SUMMARY: ${j(kpi)}
 ### Accounts: ${j(enrichedAccounts)}
+### Categories: ${j(categoryList)}
+### Services/non-stock: ${j(serviceItems.slice(0, 40))}
 ### Monthly sales (last 12): ${monthlySales}
 ### Top debtors: ${j(topDebtors)}
 ### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 30))}
 `;
-
-        const MAX = 400000; // Gemini has a large context; still bound it.
-        if (businessContext.length > MAX) {
-          businessContext = businessContext.slice(0, MAX) + "\n...[truncated]";
-        }
 
       } catch (e) {
         console.error("data fetch error:", e);
