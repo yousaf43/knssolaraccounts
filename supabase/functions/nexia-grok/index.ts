@@ -175,20 +175,25 @@ serve(async (req) => {
         });
         const cashTotal = enrichedAccounts.reduce((s, a) => s + a.actual_balance, 0);
 
-        // ---- Inventory (main location only, deduped by sku) ----
-        const mainInv = new Map<string, Record<string, unknown>>();
-        for (const p of inventory) {
-          const loc = String(p.location ?? "main");
-          if (loc !== "main") continue;
-          const key = String(p.sku || p.name);
-          if (!mainInv.has(key)) mainInv.set(key, p);
-        }
-        const invItems = [...mainInv.values()];
+        // ---- Inventory ----
+        const invItems = inventory.filter((p) => String(p.location ?? "main") === "main");
+        const storeItems = inventory.filter((p) => String(p.location ?? "main") !== "main");
+        const uniqueSkus = new Set(invItems.map((p) => String(p.sku || p.name))).size;
         const stockValue = invItems.reduce((s, p) => s + num(p.qty) * num(p.cost_price), 0);
+        const retailValue = invItems.reduce((s, p) => s + num(p.qty) * num(p.sale_price), 0);
+        const totalQty = invItems.reduce((s, p) => s + num(p.qty), 0);
         const lowStock = invItems
           .filter((p) => num(p.qty) <= num(p.reorder_level))
-          .map((p) => ({ name: p.name, qty: num(p.qty), reorder: num(p.reorder_level) }))
-          .slice(0, 40);
+          .map((p) => ({ name: p.name, qty: num(p.qty), reorder: num(p.reorder_level) }));
+        const outOfStock = invItems.filter((p) => num(p.qty) <= 0).length;
+        const invByCategory = Object.entries(
+          invItems.reduce<Record<string, number>>((acc, p) => {
+            const c = String(p.category || "Uncategorized");
+            acc[c] = (acc[c] ?? 0) + 1;
+            return acc;
+          }, {}),
+        ).sort((a, b) => b[1] - a[1]);
+
 
         // ---- KPIs ----
         const sum = (arr: Record<string, unknown>[], k = "amount") =>
