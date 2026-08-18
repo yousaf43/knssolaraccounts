@@ -1,6 +1,7 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { NexiaAssistant } from "@/components/NexiaAssistant";
 import { RecentTabs } from "@/components/RecentTabs";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Outlet } from "react-router-dom";
 import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
