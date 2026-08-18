@@ -138,7 +138,7 @@ serve(async (req) => {
           purchasePayments,
           solarWashing,
         ] = await Promise.all([
-          fetchAll("invoices", "number,customer,date,amount,status", "date"),
+          fetchAll("invoices", "number,customer,date,amount,status,items", "date"),
           fetchAll("customers", "name,phone,total_billed,outstanding"),
           fetchAll("inventory", "name,sku,model,unique_code,qty,sale_price,cost_price,reorder_level,category,product_type,unit,location"),
           fetchAll("receipts", "number,customer,amount,date", "date"),
