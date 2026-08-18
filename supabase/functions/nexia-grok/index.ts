@@ -97,6 +97,8 @@ serve(async (req) => {
     }
 
     let businessContext = "";
+    let compactContext = "";
+
     if (userId) {
       try {
         // Fetch EVERY row (Supabase caps a single request at 1000 rows, so page through).
