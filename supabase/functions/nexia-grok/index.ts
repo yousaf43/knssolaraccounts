@@ -305,10 +305,21 @@ NOTE: "total_assets_estimate" = cash/bank + stock value at cost + receivables. F
 `;
 
 
-        const MAX = 120000; // Gemini has a large context; still bound it.
+        compactContext = `
+## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, PKR)
+### RECORD COUNTS (AUTHORITATIVE): ${j(counts)}
+### KPI SUMMARY: ${j(kpi)}
+### Accounts: ${j(enrichedAccounts)}
+### Monthly sales (last 12): ${monthlySales}
+### Top debtors: ${j(topDebtors)}
+### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 30))}
+`;
+
+        const MAX = 400000; // Gemini has a large context; still bound it.
         if (businessContext.length > MAX) {
           businessContext = businessContext.slice(0, MAX) + "\n...[truncated]";
         }
+
       } catch (e) {
         console.error("data fetch error:", e);
         businessContext = "\n(Live data load nahin ho saka — user ko batao ke data abhi available nahin.)";
