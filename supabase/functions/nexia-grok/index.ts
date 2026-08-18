@@ -538,7 +538,7 @@ ${businessContext}${attachmentNote}`;
             })),
           ],
 
-          temperature: 0.6,
+          temperature: 0.1,
         }),
       });
       if (!res.ok) {
