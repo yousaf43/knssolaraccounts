@@ -138,7 +138,7 @@ serve(async (req) => {
           purchasePayments,
           solarWashing,
         ] = await Promise.all([
-          fetchAll("invoices", "number,customer,date,amount,status", "date"),
+          fetchAll("invoices", "number,customer,date,amount,status,items", "date"),
           fetchAll("customers", "name,phone,total_billed,outstanding"),
           fetchAll("inventory", "name,sku,model,unique_code,qty,sale_price,cost_price,reorder_level,category,product_type,unit,location"),
           fetchAll("receipts", "number,customer,amount,date", "date"),
@@ -275,50 +275,138 @@ serve(async (req) => {
           type: p.product_type,
         });
 
-        businessContext = `
-## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, currency PKR)
-### RECORD COUNTS (AUTHORITATIVE — "kitni entries/records hain" ka jawab SIRF inhi numbers se do, list ginn kar nahi):
-${j(counts)}
-NOTE: Har table ka poora data load kiya gaya hai (koi row miss nahi). Neeche di gayi lists sirf display ke liye chhoti ki gayi ho sakti hain — count hamesha upar wale RECORD COUNTS se lo.
-### KPI SUMMARY (already calculated — inhe seedha use kar, dobara jama mat kar):
-${j(kpi)}
-NOTE: "total_assets_estimate" = cash/bank + stock value at cost + receivables. Fixed assets (equipment) is estimate me shamil nahi.
-### Monthly sales (last 12): ${monthlySales}
-### Accounts: ${j(enrichedAccounts)}
-### Inventory by category (main): ${j(invByCategory)}
-### Top customers: ${j(topCustomers)}
-### Top debtors: ${j(topDebtors)}
-### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 100))}
-### Inventory — MAIN, complete list (${invItems.length} products): ${j(invItems.map(compactInv))}
-### Inventory — STORE (${storeItems.length}): ${j(storeItems.slice(0, 150).map(compactInv))}
-### Invoices (showing recent 200 of ${invoices.length}): ${j(invoices.slice(0, 200))}
-### Sales Orders (recent 60 of ${salesOrders.length}): ${j(salesOrders.slice(0, 60))}
-### Receipts (recent 80 of ${receipts.length}): ${j(receipts.slice(0, 80))}
-### Expenses (recent 80 of ${expenses.length}): ${j(expenses.slice(0, 80))}
-### Bills (recent 50 of ${bills.length}): ${j(bills.slice(0, 50))}
-### Quotations (recent 40 of ${quotations.length}): ${j(quotations.slice(0, 40))}
-### Purchase Orders (recent 50 of ${purchaseOrders.length}): ${j(purchaseOrders.slice(0, 50))}
-### Purchase Payments (recent 40 of ${purchasePayments.length}): ${j(purchasePayments.slice(0, 40))}
-### Solar Washing (recent 50 of ${solarWashing.length}): ${j(solarWashing.slice(0, 50))}
-### Customers (${customers.length}): ${j(customers.slice(0, 250).map((c) => ({ n: c.name, billed: num(c.total_billed), due: num(c.outstanding) })))}
-### Suppliers (${suppliers.length}): ${j(suppliers.slice(0, 150))}
-`;
+        // ---- DASHBOARD-IDENTICAL FIGURES ----
+        // Sale counts only when invoice is approved (not pending/draft/cancelled/rejected)
+        // and old-balance lines are excluded from revenue.
+        const invByName = new Map<string, Record<string, unknown>>();
+        const invById = new Map<string, Record<string, unknown>>();
+        for (const p of inventory) {
+          const n = String(p.name ?? "").toLowerCase().trim();
+          if (n && !invByName.has(n)) invByName.set(n, p);
+          if (p.id) invById.set(String(p.id), p);
+        }
+        const lineTotal = (l: Record<string, unknown>) =>
+          typeof l.amount === "number" ? l.amount : num(l.qty) * num(l.rate);
+        const oldBalanceAmount = (doc: Record<string, unknown>) => {
+          const items = Array.isArray(doc.items) ? doc.items as Record<string, unknown>[] : [];
+          return items.reduce((s, l) => {
+            const p =
+              (l.inventoryItemId ? invById.get(String(l.inventoryItemId)) : undefined) ||
+              invByName.get(String(l.description ?? "").toLowerCase().trim());
+            return String(p?.product_type ?? "") === "old-balance" ? s + lineTotal(l) : s;
+          }, 0);
+        };
+        const countsAsSale = (s: unknown) => {
+          const v = String(s ?? "").toLowerCase();
+          return v !== "pending" && v !== "draft" && v !== "cancelled" && v !== "rejected";
+        };
+        const saleAmountOf = (inv: Record<string, unknown>) => {
+          const total = num(inv.amount);
+          const ob = oldBalanceAmount(inv);
+          if (!ob) return total;
+          return total - (total < 0 ? -1 : 1) * Math.abs(ob);
+        };
+        const approvedInvoices = invoices.filter((i) => countsAsSale(i.status));
+        const totalSalesApproved = approvedInvoices.reduce((s, i) => s + saleAmountOf(i), 0);
+        const pendingBalance = invoices
+          .filter((i) => String(i.status ?? "").toLowerCase() === "pending")
+          .reduce((s, i) => s + num(i.amount), 0);
+        const totalExpensesAll = sum(expenses);
+        const totalBillsAll = sum(bills);
+        const netProfitDash = totalSalesApproved - totalExpensesAll - totalBillsAll;
 
+        const dashboard = {
+          total_sales_approved_only: money(totalSalesApproved),
+          approved_invoices_count: approvedInvoices.length,
+          pending_balance_not_approved: money(pendingBalance),
+          pending_invoices_count: invoices.length - approvedInvoices.length,
+          total_expenses: money(totalExpensesAll),
+          total_bills: money(totalBillsAll),
+          net_profit_or_loss: money(netProfitDash),
+          bank_balance_total: money(cashTotal),
+          lifetime_invoiced_including_pending: money(sum(invoices)),
+        };
+
+        // ---- Exact category & product-type maps (no guessing) ----
+        const groupNames = (rows: Record<string, unknown>[], key: string) => {
+          const m: Record<string, string[]> = {};
+          for (const p of rows) {
+            const k = String(p[key] || "Uncategorized");
+            (m[k] ??= []).push(String(p.name ?? ""));
+          }
+          return m;
+        };
+        const categoryMap = groupNames(invItems, "category");
+        const typeMap = groupNames(invItems, "product_type");
+        const categoryList = Object.keys(categoryMap).sort();
+        const serviceItems = invItems
+          .filter((p) => {
+            const t = String(p.product_type ?? "").toLowerCase();
+            const c = String(p.category ?? "").toLowerCase();
+            return t === "non-stock" || t === "service" || c.includes("service");
+          })
+          .map((p) => ({ n: p.name, cat: p.category, type: p.product_type, rate: num(p.sale_price) }));
+
+        const sections: string[] = [
+          `## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, currency PKR)`,
+          `### DASHBOARD FIGURES (AUTHORITATIVE — software ke Dashboard ke bilkul barabar. Sales/profit/pending ka jawab SIRF inhi se do):\n${j(dashboard)}`,
+          `### RECORD COUNTS (AUTHORITATIVE — "kitni entries/records hain" ka jawab SIRF inhi numbers se do, list gin kar nahi):\n${j(counts)}`,
+          `### KPI SUMMARY (extra calculated figures — dobara jama mat karo):\n${j(kpi)}\nNOTE: "lifetime_sales" me pending invoices bhi shamil hain; jab user "total sales" poochay to DASHBOARD FIGURES ka total_sales_approved_only batao.`,
+          `### PRODUCT CATEGORIES (main inventory) — categories ki mukammal list: ${j(categoryList)}`,
+          `### CATEGORY -> PRODUCT NAMES (mukammal, authoritative — kisi product ki category isi se batao, andaza mat lagao):\n${j(categoryMap)}`,
+          `### PRODUCT TYPE -> PRODUCT NAMES: ${j(typeMap)}`,
+          `### SERVICES / NON-STOCK ITEMS (${serviceItems.length}) — "hamari services kon si hain" ka jawab SIRF isi list se: ${j(serviceItems)}`,
+          `### Monthly sales (last 12): ${monthlySales}`,
+          `### Accounts (actual_balance use karo): ${j(enrichedAccounts)}`,
+          `### Inventory count by category (main): ${j(invByCategory)}`,
+          `### Top customers: ${j(topCustomers)}`,
+          `### Top debtors: ${j(topDebtors)}`,
+          `### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 150))}`,
+          `### Inventory — MAIN, complete list (${invItems.length} products): ${j(invItems.map(compactInv))}`,
+          `### Inventory — STORE (${storeItems.length}): ${j(storeItems.map(compactInv))}`,
+          `### Invoices (recent 200 of ${invoices.length}): ${j(invoices.slice(0, 200).map((i) => ({ number: i.number, customer: i.customer, date: i.date, amount: num(i.amount), status: i.status })))}`,
+          `### Sales Orders (recent 60 of ${salesOrders.length}): ${j(salesOrders.slice(0, 60))}`,
+          `### Receipts (recent 80 of ${receipts.length}): ${j(receipts.slice(0, 80))}`,
+          `### Expenses (recent 80 of ${expenses.length}): ${j(expenses.slice(0, 80))}`,
+          `### Bills (recent 50 of ${bills.length}): ${j(bills.slice(0, 50))}`,
+          `### Quotations (recent 40 of ${quotations.length}): ${j(quotations.slice(0, 40))}`,
+          `### Purchase Orders (recent 50 of ${purchaseOrders.length}): ${j(purchaseOrders.slice(0, 50))}`,
+          `### Purchase Payments (recent 40 of ${purchasePayments.length}): ${j(purchasePayments.slice(0, 40))}`,
+          `### Solar Washing (recent 50 of ${solarWashing.length}): ${j(solarWashing.slice(0, 50))}`,
+          `### Customers (${customers.length}): ${j(customers.map((c) => ({ n: c.name, billed: num(c.total_billed), due: num(c.outstanding) })))}`,
+          `### Suppliers (${suppliers.length}): ${j(suppliers)}`,
+        ];
+
+        // Never cut a section in the middle (adhoora JSON = ghalat jawab).
+        const MAX = 600000;
+        const kept: string[] = [];
+        let used = 0;
+        const dropped: string[] = [];
+        for (const s of sections) {
+          if (used + s.length + 1 <= MAX) {
+            kept.push(s);
+            used += s.length + 1;
+          } else {
+            dropped.push(s.slice(0, 40).replace(/\n/g, " "));
+          }
+        }
+        if (dropped.length) {
+          kept.push(`NOTE: Ye sections size ki wajah se load nahin hue: ${dropped.join(" | ")}. In ke baare me poocha jaye to keh do "ye detail abhi load nahin hui" — andaza mat lagao.`);
+        }
+        businessContext = "\n" + kept.join("\n");
 
         compactContext = `
 ## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, PKR)
+### DASHBOARD FIGURES (AUTHORITATIVE): ${j(dashboard)}
 ### RECORD COUNTS (AUTHORITATIVE): ${j(counts)}
 ### KPI SUMMARY: ${j(kpi)}
 ### Accounts: ${j(enrichedAccounts)}
+### Categories: ${j(categoryList)}
+### Services/non-stock: ${j(serviceItems.slice(0, 40))}
 ### Monthly sales (last 12): ${monthlySales}
 ### Top debtors: ${j(topDebtors)}
 ### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 30))}
 `;
-
-        const MAX = 400000; // Gemini has a large context; still bound it.
-        if (businessContext.length > MAX) {
-          businessContext = businessContext.slice(0, MAX) + "\n...[truncated]";
-        }
 
       } catch (e) {
         console.error("data fetch error:", e);
@@ -332,16 +420,19 @@ NOTE: "total_assets_estimate" = cash/bank + stock value at cost + receivables. F
 
 ZABAN: User Roman Urdu likhay to Roman Urdu, English likhay to English. Masculine forms use karo (karunga, bataunga, dekha). Warm, Pakistani, professional.
 
-RULES:
-- Currency PKR. Numbers KPI SUMMARY se lo — wo pehle se calculated hain, dobara jama mat karo.
-- "Kitni entries / kitne records / total kitne products, invoices, customers hain?" — jawab HAMESHA RECORD COUNTS section se do. Neeche di gayi lists display ke liye chhoti ho sakti hain, unhe gin kar count mat batao.
-- Inventory: "main inventory" = main_inventory_products, "store inventory" = store_inventory_products. Dono alag alag hain, mila kar mat batao.
+RULES (100% ACCURACY LAZMI — ye sab se ahem hai):
+- Currency PKR. HAR number sirf neeche diye gaye data sections se lo. Apni taraf se koi figure, product, category ya customer MAT banao.
+- Sales / profit / pending balance / bank balance ka jawab HAMESHA "DASHBOARD FIGURES" section se do — taake software ke Dashboard aur tumhara jawab bilkul barabar rahe. "total sales" = total_sales_approved_only (sirf approved invoices, old-balance lines nikaal kar).
+- "Kitni entries / kitne records / kitne products, invoices, customers?" — jawab SIRF RECORD COUNTS section se. Lists gin kar count mat batao.
+- Kisi product ki category ya type poocha jaye to SIRF "CATEGORY -> PRODUCT NAMES" / "PRODUCT TYPE -> PRODUCT NAMES" se dekho. Agar product wahan nahin milta to keh do "ye product data me nahin mila".
+- "Services" ka jawab SIRF "SERVICES / NON-STOCK ITEMS" list se do — stock products ko service mat kaho.
+- Inventory: "main inventory" = main_inventory_products, "store inventory" = store_inventory_products. Dono alag hain, mila kar mat batao.
 - Account balance ke liye hamesha "actual_balance" use karo.
-- Agar koi figure data me maujood nahin to saaf keh do "ye data available nahin" — andaza mat lagao.
-
+- "shayad", "ghalti se lagta hai", "approx" jaisi guessing MANA hai. Ya to data se exact jawab do, ya saaf keh do "ye data available nahin".
+- Agar user kahay ke tumhara number ghalat hai, to guess mat karo — dobara usi authoritative section se check kar ke exact value batao.
 - Jawab short (2-5 lines). Lists ke liye chhoti bullet list. Amounts thousands separator ke sath.
 - Yeh jawab voice me bhi bola ja sakta hai, is liye lamba paragraph mat likho jab tak user detail na maangay.
-- User ki wording flexible / ghalat spelling ho sakti hai (Roman Urdu, typos, short forms). Best guess lagao aur kaam kar do; sirf tab poocho jab bilkul samajh na aaye.
+- User ki wording flexible / ghalat spelling ho sakti hai (Roman Urdu, typos, short forms). Matlab samajh kar kaam karo; sirf tab poocho jab bilkul samajh na aaye.
 
 FILES (PDF / scanned images / photos):
 - Agar user file bhejay to us ka poora content parho (scanned page ho to OCR ki tarah text nikalo), tables ko rows me samjho.
@@ -382,9 +473,9 @@ ${businessContext}${attachmentNote}`;
         return { role: m.role === "assistant" ? "model" : "user", parts };
       });
 
-    const callGemini = async () => {
+    const callGemini = async (model = "gemini-2.5-pro") => {
       const res = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: "POST",
           headers: {
@@ -394,13 +485,14 @@ ${businessContext}${attachmentNote}`;
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemPrompt }] },
             contents: toGeminiContents(),
-            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 },
+            // Low temperature = deterministic, accurate answers from the data.
+            generationConfig: { temperature: 0.1, topP: 0.8, maxOutputTokens: 2048 },
           }),
         },
       );
       if (!res.ok) {
         const t = await res.text();
-        console.error("Gemini error:", res.status, t);
+        console.error("Gemini error:", model, res.status, t);
         return null;
       }
       const json = await res.json();
@@ -413,10 +505,13 @@ ${businessContext}${attachmentNote}`;
 
     const callModel = async () => {
       if (GEMINI_API_KEY) {
-        const geminiText = await callGemini();
+        // Pro = best accuracy; Flash only if Pro is unavailable/quota-limited.
+        const geminiText = (await callGemini("gemini-2.5-pro")) ??
+          (await callGemini("gemini-2.5-flash"));
         if (geminiText) return { choices: [{ message: { content: geminiText } }] };
-        // Gemini failed (quota/key/model) — fall back to Groq below.
+        // Both Gemini models failed — fall back to Groq below.
       }
+
 
 
       if (attachmentNote) {
@@ -443,7 +538,7 @@ ${businessContext}${attachmentNote}`;
             })),
           ],
 
-          temperature: 0.6,
+          temperature: 0.1,
         }),
       });
       if (!res.ok) {
