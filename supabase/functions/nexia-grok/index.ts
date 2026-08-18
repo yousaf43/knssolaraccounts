@@ -526,36 +526,42 @@ ${businessContext}${attachmentNote}`;
         // Groq (text-only) cannot read PDFs/images — don't silently drop them.
         throw { status: 503, msg: "File parhne wali AI service abhi available nahin. Thori dair baad koshish karein." };
       }
-      if (!GROQ_API_KEY) throw { status: 500, msg: "AI service configure nahin hai." };
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${GROQ_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          // Groq has a small context window — send a trimmed prompt.
-          messages: [
-            { role: "system", content: (compactContext ? systemPrompt.replace(businessContext, compactContext) : systemPrompt).slice(0, 24000) },
-            ...messages.slice(-6).map((m) => ({
-              role: m.role,
-              content: typeof m.content === "string"
-                ? m.content
-                : m.content.map((b) => (b.type === "text" ? b.text : "")).join(" ").trim(),
-            })),
-          ],
-
-          temperature: 0.1,
-        }),
-      });
-      if (!res.ok) {
-        const t = await res.text();
-        console.error("Groq error:", res.status, t);
-        throw { status: res.status, msg: `AI service error (${res.status}).` };
+      if (!GROQ_API_KEY) throw { status: 503, msg: "AI service abhi busy hai. Thori dair baad koshish karein." };
+      const groqModels = [
+        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant",
+      ];
+      let lastStatus = 503;
+      for (const gm of groqModels) {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: gm,
+            // Groq has a small context window — send a trimmed prompt.
+            messages: [
+              { role: "system", content: (compactContext ? systemPrompt.replace(businessContext, compactContext) : systemPrompt).slice(0, 24000) },
+              ...messages.slice(-6).map((m) => ({
+                role: m.role,
+                content: typeof m.content === "string"
+                  ? m.content
+                  : m.content.map((b) => (b.type === "text" ? b.text : "")).join(" ").trim(),
+              })),
+            ],
+            temperature: 0.1,
+          }),
+        });
+        if (res.ok) return await res.json();
+        lastStatus = res.status;
+        console.error("Groq error:", gm, res.status, await res.text());
       }
-      return await res.json();
+      throw { status: 503, msg: `AI service abhi available nahin (${lastStatus}). Thori dair baad koshish karein.` };
     };
+
 
     const data = await callModel();
     const reply: string = data?.choices?.[0]?.message?.content?.trim() || "";
