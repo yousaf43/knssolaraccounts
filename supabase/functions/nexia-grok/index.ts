@@ -226,9 +226,31 @@ serve(async (req) => {
           .slice(0, 15)
           .map((c) => ({ name: c.name, due: num(c.outstanding) }));
 
+        const counts = {
+          main_inventory_products: invItems.length,
+          main_inventory_unique_skus: uniqueSkus,
+          store_inventory_products: storeItems.length,
+          inventory_rows_total: inventory.length,
+          invoices: invoices.length,
+          quotations: quotations.length,
+          sales_orders: salesOrders.length,
+          customers: customers.length,
+          suppliers: suppliers.length,
+          receipts: receipts.length,
+          expenses: expenses.length,
+          bills: bills.length,
+          purchase_orders: purchaseOrders.length,
+          purchase_payments: purchasePayments.length,
+          solar_washing_jobs: solarWashing.length,
+          accounts: accounts.length,
+          ledger_entries: ledgerEntries.length,
+        };
+
         const kpi = {
           cash_and_bank_total: money(cashTotal),
           stock_value_at_cost: money(stockValue),
+          stock_value_at_retail: money(retailValue),
+          total_stock_qty: totalQty,
           total_assets_estimate: money(cashTotal + stockValue + receivables),
           receivables_total: money(receivables),
           payables_total: money(payables),
@@ -238,36 +260,52 @@ serve(async (req) => {
           expenses_this_month: money(sum(inMonth(expenses, thisMonth))),
           solar_washing_total: money(sum(solarWashing)),
           solar_washing_this_month: money(sum(inMonth(solarWashing, thisMonth))),
-          solar_washing_jobs: solarWashing.length,
           unpaid_invoices: invoices.filter((i) => String(i.status).toLowerCase() !== "paid").length,
-          products_in_main_inventory: invItems.length,
           low_stock_items: lowStock.length,
+          out_of_stock_items: outOfStock,
         };
 
         const j = (v: unknown) => JSON.stringify(v);
+        const compactInv = (p: Record<string, unknown>) => ({
+          n: p.name,
+          sku: p.sku,
+          model: p.model,
+          qty: num(p.qty),
+          cost: num(p.cost_price),
+          sale: num(p.sale_price),
+          cat: p.category,
+          type: p.product_type,
+        });
 
         businessContext = `
 ## LIVE BUSINESS DATA (Today: ${today.toISOString().slice(0, 10)}, currency PKR)
+### RECORD COUNTS (AUTHORITATIVE — "kitni entries/records hain" ka jawab SIRF inhi numbers se do, list ginn kar nahi):
+${j(counts)}
+NOTE: Har table ka poora data load kiya gaya hai (koi row miss nahi). Neeche di gayi lists sirf display ke liye chhoti ki gayi ho sakti hain — count hamesha upar wale RECORD COUNTS se lo.
 ### KPI SUMMARY (already calculated — inhe seedha use kar, dobara jama mat kar):
 ${j(kpi)}
 NOTE: "total_assets_estimate" = cash/bank + stock value at cost + receivables. Fixed assets (equipment) is estimate me shamil nahi.
 ### Monthly sales (last 12): ${monthlySales}
 ### Accounts: ${j(enrichedAccounts)}
+### Inventory by category (main): ${j(invByCategory)}
 ### Top customers: ${j(topCustomers)}
 ### Top debtors: ${j(topDebtors)}
-### Low stock: ${j(lowStock)}
-### Inventory (main, ${invItems.length}): ${j(invItems.slice(0, 200).map((p) => ({ n: p.name, sku: p.sku, qty: num(p.qty), cost: num(p.cost_price), sale: num(p.sale_price), cat: p.category })))}
-### Invoices (recent 120): ${j(invoices.slice(0, 120))}
-### Sales Orders (recent 40): ${j(salesOrders.slice(0, 40))}
-### Receipts (recent 60): ${j(receipts.slice(0, 60))}
-### Expenses (recent 60): ${j(expenses.slice(0, 60))}
-### Bills (recent 40): ${j(bills.slice(0, 40))}
-### Quotations (recent 25): ${j(quotations.slice(0, 25))}
-### Purchase Orders (recent 40): ${j(purchaseOrders.slice(0, 40))}
-### Purchase Payments (recent 30): ${j(purchasePayments.slice(0, 30))}
-### Solar Washing (recent 40): ${j(solarWashing.slice(0, 40))}
-### Suppliers: ${j(suppliers.slice(0, 80))}
+### Low stock (${lowStock.length}): ${j(lowStock.slice(0, 100))}
+### Inventory — MAIN, complete list (${invItems.length} products): ${j(invItems.map(compactInv))}
+### Inventory — STORE (${storeItems.length}): ${j(storeItems.slice(0, 150).map(compactInv))}
+### Invoices (showing recent 200 of ${invoices.length}): ${j(invoices.slice(0, 200))}
+### Sales Orders (recent 60 of ${salesOrders.length}): ${j(salesOrders.slice(0, 60))}
+### Receipts (recent 80 of ${receipts.length}): ${j(receipts.slice(0, 80))}
+### Expenses (recent 80 of ${expenses.length}): ${j(expenses.slice(0, 80))}
+### Bills (recent 50 of ${bills.length}): ${j(bills.slice(0, 50))}
+### Quotations (recent 40 of ${quotations.length}): ${j(quotations.slice(0, 40))}
+### Purchase Orders (recent 50 of ${purchaseOrders.length}): ${j(purchaseOrders.slice(0, 50))}
+### Purchase Payments (recent 40 of ${purchasePayments.length}): ${j(purchasePayments.slice(0, 40))}
+### Solar Washing (recent 50 of ${solarWashing.length}): ${j(solarWashing.slice(0, 50))}
+### Customers (${customers.length}): ${j(customers.slice(0, 250).map((c) => ({ n: c.name, billed: num(c.total_billed), due: num(c.outstanding) })))}
+### Suppliers (${suppliers.length}): ${j(suppliers.slice(0, 150))}
 `;
+
 
         const MAX = 120000; // Gemini has a large context; still bound it.
         if (businessContext.length > MAX) {
