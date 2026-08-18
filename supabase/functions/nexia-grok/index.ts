@@ -434,7 +434,7 @@ ${businessContext}${attachmentNote}`;
           model: "llama-3.3-70b-versatile",
           // Groq has a small context window — send a trimmed prompt.
           messages: [
-            { role: "system", content: systemPrompt.slice(0, 20000) },
+            { role: "system", content: (compactContext ? systemPrompt.replace(businessContext, compactContext) : systemPrompt).slice(0, 24000) },
             ...messages.slice(-6).map((m) => ({
               role: m.role,
               content: typeof m.content === "string"
