@@ -130,6 +130,16 @@ export function useSortableTables(
           sorted.forEach((r) => frag.appendChild(r));
           summaryRows.forEach((r) => frag.appendChild(r));
           tbody.appendChild(frag);
+
+          // Re-index Sr # column after sort so it always stays 1,2,3...
+          const firstHeader = ths[0]?.textContent?.trim().toLowerCase() ?? "";
+          if (firstHeader.includes("sr") || firstHeader.includes("#")) {
+            const dataRowsAfterSort = Array.from(tbody.rows).filter((r) => !isSummaryRow(r));
+            dataRowsAfterSort.forEach((row, rowIdx) => {
+              const srCell = row.cells[0];
+              if (srCell) srCell.textContent = String(rowIdx + 1);
+            });
+          }
         };
 
         th.addEventListener("click", onClick);
