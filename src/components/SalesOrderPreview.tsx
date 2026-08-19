@@ -107,7 +107,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
           <div>
             <img src={ksLogo} alt="Logo" className="logo h-14 max-w-[120px] object-contain" />
           </div>
-          <div className="company-right text-right">
+          <div className="company-right flex-1 text-center">
             <h2 className="text-xl font-bold text-blue-900">{settings.companyName || "K & S Solar Energy Pvt. Ltd"}</h2>
             <p className="text-xs text-gray-500 mt-1">{settings.companyAddress}</p>
             {settings.companyPhone && <p className="text-xs text-gray-500"><strong>Phone :</strong> {settings.companyPhone}</p>}
