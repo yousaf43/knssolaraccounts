@@ -1260,11 +1260,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice Date</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc No.</th>
+                        <th className="text-center px-3 py-2 font-medium text-muted-foreground">Age Days</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Mobile</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
-                        <th className="text-center px-3 py-2 font-medium text-muted-foreground">Age Days</th>
-                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Contact</th>
-                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Mobile</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1280,25 +1279,22 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
                             <td className="px-3 py-2 font-medium"><HighlightText text={inv.customer} query={invoiceSearch} /></td>
                             <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
+                            <td className="px-3 py-2 text-center">{ageDays}</td>
+                            <td className="px-3 py-2 text-muted-foreground text-xs">{cust?.phone || "—"}</td>
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
                             <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-destructive" : "text-success"}`}>
                               {formatCurrency(balance)}
                               {overpaid > 0 && <div className="text-[10px] font-normal text-muted-foreground">Advance: {formatCurrency(overpaid)}</div>}
                             </td>
-                            <td className="px-3 py-2 text-center">{ageDays}</td>
-                            <td className="px-3 py-2 text-muted-foreground text-xs">{cust ? `Mr ${cust.name}` : inv.customer}</td>
-                            <td className="px-3 py-2 text-muted-foreground text-xs">{cust?.phone || "—"}</td>
                           </tr>
                         );
                       })}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
-                        <td className="px-3 py-2" colSpan={5}>Total ({filtered.length} invoices)</td>
-                        
+                        <td className="px-3 py-2" colSpan={7}>Total ({filtered.length} invoices)</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
                         <td className="px-3 py-2 text-right text-destructive">{formatCurrency(filtered.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).remaining, 0))}</td>
-                        <td colSpan={3}></td>
                       </tr>
                     </tfoot>
 
