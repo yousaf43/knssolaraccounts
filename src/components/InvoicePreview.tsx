@@ -86,9 +86,9 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #111; font-size: 13px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1e3a8a; }
-        .company-right { text-align: right; }
-        .company-right h2 { font-size: 18px; font-weight: bold; color: #1e3a8a; }
-        .company-right p { font-size: 11px; color: #444; margin-top: 2px; }
+        .company-right { text-align: center; }
+        .company-right h2 { font-size: 18px; font-weight: bold; color: #1e3a8a; text-align: center; }
+        .company-right p { font-size: 11px; color: #444; margin-top: 2px; text-align: center; }
         .invoice-title { text-align: center; font-size: 22px; font-weight: bold; margin: 16px 0; text-decoration: underline; }
         .customer-info { display: flex; justify-content: space-between; margin-bottom: 16px; }
         .customer-info .left p { font-weight: bold; font-size: 13px; }
