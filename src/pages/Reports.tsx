@@ -224,9 +224,10 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
         padding: 15px 18px !important;
         background: #173f83 !important;
         border-bottom: 4px solid #d7a62f;
+        text-align: center !important;
       }
-      #report-print-table > div:first-child h2 { font-size: 17px !important; letter-spacing: .04em; }
-      #report-print-table > div:first-child p { font-size: 10px !important; }
+      #report-print-table > div:first-child h2 { font-size: 17px !important; letter-spacing: .04em; text-align: center !important; }
+      #report-print-table > div:first-child p { text-align: center !important; }
       #report-print-table [style*="display: grid"] {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;

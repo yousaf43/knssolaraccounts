@@ -39,9 +39,9 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #111; font-size: 13px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1e3a8a; }
-        .company-right { text-align: right; }
-        .company-right h2 { font-size: 18px; font-weight: bold; color: #1e3a8a; }
-        .company-right p { font-size: 11px; color: #444; margin-top: 2px; }
+        .company-right { text-align: center; }
+        .company-right h2 { font-size: 18px; font-weight: bold; color: #1e3a8a; text-align: center; }
+        .company-right p { font-size: 11px; color: #444; margin-top: 2px; text-align: center; }
         .doc-title { text-align: center; font-size: 22px; font-weight: bold; margin: 16px 0; text-decoration: underline; }
         .customer-info { display: flex; justify-content: space-between; margin-bottom: 16px; }
         .customer-info .left p { font-weight: bold; font-size: 13px; }
@@ -107,7 +107,7 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
           <div>
             <img src={ksLogo} alt="Logo" className="logo h-14 max-w-[120px] object-contain" />
           </div>
-          <div className="company-right text-right">
+          <div className="company-right flex-1 text-center">
             <h2 className="text-xl font-bold text-blue-900">{settings.companyName || "K & S Solar Energy Pvt. Ltd"}</h2>
             <p className="text-xs text-gray-500 mt-1">{settings.companyAddress}</p>
             {settings.companyPhone && <p className="text-xs text-gray-500"><strong>Phone :</strong> {settings.companyPhone}</p>}
