@@ -1260,14 +1260,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice Date</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc No.</th>
-                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sub Total</th>
-                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Tax</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total</th>
                         <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
                         <th className="text-center px-3 py-2 font-medium text-muted-foreground">Age Days</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Contact</th>
                         <th className="text-left px-3 py-2 font-medium text-muted-foreground">Mobile</th>
-                        <th className="text-center px-3 py-2 font-medium text-muted-foreground">Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1276,8 +1273,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         const invDate = new Date(inv.date);
                         const ageDays = Math.floor((today.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
                         const cust = customers.find(c => normName(c.name) === normName(inv.customer));
-                        const subTotal = inv.items?.reduce((s: number, it: any) => s + (it.amount || 0), 0) || inv.amount;
-                        const tax = inv.tax || 0;
                         return (
                           <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
                             <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
@@ -1285,8 +1280,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
                             <td className="px-3 py-2 font-medium"><HighlightText text={inv.customer} query={invoiceSearch} /></td>
                             <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
-                            <td className="px-3 py-2 text-right">{formatCurrency(subTotal)}</td>
-                            <td className="px-3 py-2 text-right text-muted-foreground">{formatCurrency(tax)}</td>
                             <td className="px-3 py-2 text-right font-semibold">{formatCurrency(inv.amount)}</td>
                             <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-destructive" : "text-success"}`}>
                               {formatCurrency(balance)}
@@ -1295,7 +1288,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                             <td className="px-3 py-2 text-center">{ageDays}</td>
                             <td className="px-3 py-2 text-muted-foreground text-xs">{cust ? `Mr ${cust.name}` : inv.customer}</td>
                             <td className="px-3 py-2 text-muted-foreground text-xs">{cust?.phone || "—"}</td>
-                            <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{inv.status}</Badge></td>
                           </tr>
                         );
                       })}
@@ -1303,11 +1295,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
                         <td className="px-3 py-2" colSpan={5}>Total ({filtered.length} invoices)</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.items?.reduce((ss: number, it: any) => ss + (it.amount || 0), 0) || i.amount), 0))}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.tax || 0), 0))}</td>
+                        
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
                         <td className="px-3 py-2 text-right text-destructive">{formatCurrency(filtered.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).remaining, 0))}</td>
-                        <td colSpan={4}></td>
+                        <td colSpan={3}></td>
                       </tr>
                     </tfoot>
 
