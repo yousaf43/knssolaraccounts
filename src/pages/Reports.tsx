@@ -1297,7 +1297,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <tfoot>
                       <tr className="border-t-2 font-bold bg-muted/30">
                         <td className="px-3 py-2" colSpan={5}>Total ({filtered.length} invoices)</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + (i.items?.reduce((ss: number, it: any) => ss + (it.amount || 0), 0) || i.amount), 0))}</td>
+                        
                         <td className="px-3 py-2 text-right">{formatCurrency(filtered.reduce((s, i) => s + i.amount, 0))}</td>
                         <td className="px-3 py-2 text-right text-destructive">{formatCurrency(filtered.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).remaining, 0))}</td>
                         <td colSpan={3}></td>
