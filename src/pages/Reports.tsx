@@ -1273,8 +1273,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         const invDate = new Date(inv.date);
                         const ageDays = Math.floor((today.getTime() - invDate.getTime()) / (1000 * 60 * 60 * 24));
                         const cust = customers.find(c => normName(c.name) === normName(inv.customer));
-                        const subTotal = inv.items?.reduce((s: number, it: any) => s + (it.amount || 0), 0) || inv.amount;
-                        const tax = inv.tax || 0;
                         return (
                           <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
                             <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
