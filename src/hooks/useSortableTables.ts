@@ -59,6 +59,8 @@ export function useSortableTables(
 
     const tables = Array.from(root.querySelectorAll("table"));
     tables.forEach((table) => {
+      // Tables whose row order is meaningful (e.g. Income Statement) opt out
+      if (table.hasAttribute("data-no-sort") || table.closest("[data-no-sort]")) return;
       const thead = table.tHead;
       const tbody = table.tBodies[0];
       if (!thead || !tbody) return;
