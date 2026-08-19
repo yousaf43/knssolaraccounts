@@ -186,20 +186,29 @@ function DateRangePicker({ from, to, onFromChange, onToChange }: {
 
 // --- Export helpers ---
 function exportTablePrint(title: string, dateRange: string, tableHtml: string, companyName: string) {
+  // Remove interactive elements (checkboxes/buttons) so nothing spills outside the page
+  const cleanHtml = tableHtml
+    .replace(/<input[^>]*>/gi, "")
+    .replace(/<button[\s\S]*?<\/button>/gi, "")
+    .replace(/<svg[\s\S]*?<\/svg>/gi, "");
   const content = `<html><head><title>${title}</title>
     <style>
-      body { font-family: Arial, sans-serif; padding: 30px; color: #222; font-size: 12px; }
+      @page { size: A4 portrait; margin: 10mm; }
+      * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; padding: 16px; color: #222; font-size: 12px; margin: 0; }
       .header { text-align: center; margin-bottom: 20px; }
       .header h1 { font-size: 22px; font-weight: bold; margin: 0; }
       .header h2 { font-size: 16px; font-weight: normal; margin: 6px 0; color: #333; }
       .meta { font-size: 11px; color: #666; margin-bottom: 16px; }
-      table { width: 100%; border-collapse: collapse; }
+      table { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td { overflow-wrap: break-word; word-break: break-word; }
       th { background: #f3f4f6; text-align: left; padding: 6px 8px; font-size: 11px; border: 1px solid #ddd; }
       td { padding: 5px 8px; font-size: 11px; border: 1px solid #eee; }
+      th:first-child, td:first-child { width: 34px; text-align: center; padding-left: 2px; padding-right: 2px; }
       .text-right { text-align: right; }
       tfoot td { font-weight: bold; border-top: 2px solid #333; background: #f9f9f9; }
       .footer { margin-top: 20px; font-size: 10px; color: #999; text-align: center; }
-      @media print { body { padding: 10px; } }
+      @media print { body { padding: 0; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
     </style></head><body>
     <div class="header"><h1>${companyName}</h1><h2>${title}</h2></div>
     <div class="meta">Period: ${dateRange} | Generated: ${new Date().toLocaleString()}</div>
