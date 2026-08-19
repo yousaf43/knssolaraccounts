@@ -680,7 +680,7 @@ function IncomeStatement({
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table data-no-sort className="w-full text-sm" style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#f3f4f6" }}>
                     <th style={{ textAlign: "left", padding: "6px 12px", fontSize: 11, color: "#374151", border: "1px solid #e5e7eb" }}>Description</th>
