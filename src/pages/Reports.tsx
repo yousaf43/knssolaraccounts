@@ -976,7 +976,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       }
     }
     return data;
-  }, [report.code, inventory, stockSearch, stockCategoryFilter]);
+  }, [report.code, inventory, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly]);
 
   // Weighted average purchase cost per inventory item, computed from PO history.
   // Keyed by both inventory item id and by SKU/uniqueCode/name so merged rows still match.
@@ -1025,7 +1025,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const isPnL = ["121", "123", "125", "127"].includes(report.code);
 
   const reportRootRef = useRef<HTMLDivElement>(null);
-  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter]);
+  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly]);
 
   return (
     <div className="space-y-6" ref={reportRootRef}>
