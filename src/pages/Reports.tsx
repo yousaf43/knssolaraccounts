@@ -18,8 +18,11 @@ import { useSettings } from "@/contexts/SettingsContext";
 import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
   useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud, usePurchaseOrdersCloud,
-  useAccountsCloud, useLedgerEntriesCloud,
+  useAccountsCloud, useLedgerEntriesCloud, usePurchasePaymentsCloud,
+  useStockAdjustmentsCloud, useOtherPaymentsCloud, useOtherReceiptsCloud,
+  useTransfersCloud, useReconcileEntriesCloud,
 } from "@/hooks/useAppData";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -122,35 +125,40 @@ const analyticalCategories = ["Favourites", "Sales", "Purchases", "Cash & Bank",
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Build monthly data from real invoices/expenses/bills
+type MonthlyReportRow = { month: string; monthStart: string; sales: number; expenses: number };
+
+// Build monthly data from real invoices/expenses/bills. The year is part of the
+// key so January 2025 and January 2026 can never be combined accidentally.
 function buildMonthlyData(invoices: Invoice[], expenses: Expense[], bills: Bill[], inventory: InventoryItem[] = []) {
-  const salesByMonth: Record<string, number> = {};
-  const expensesByMonth: Record<string, number> = {};
-  MONTHS.forEach(m => { salesByMonth[m] = 0; expensesByMonth[m] = 0; });
+  const rows = new Map<string, MonthlyReportRow>();
+  const rowFor = (dateValue: string) => {
+    const date = parseDateSafe(dateValue);
+    if (!date) return null;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const existing = rows.get(key) || {
+      month: `${MONTHS[date.getMonth()]} ${date.getFullYear()}`,
+      monthStart: `${key}-01`, sales: 0, expenses: 0,
+    };
+    rows.set(key, existing);
+    return existing;
+  };
 
   invoices.filter(countsAsSale).forEach(inv => {
-    const d = new Date(inv.date);
-    const m = MONTHS[d.getMonth()];
-    if (m) salesByMonth[m] += saleAmount(inv, inventory);
+    const row = rowFor(inv.date);
+    if (row) row.sales += saleAmount(inv, inventory);
   });
 
   expenses.forEach(exp => {
-    const d = new Date(exp.date);
-    const m = MONTHS[d.getMonth()];
-    if (m) expensesByMonth[m] += exp.amount;
+    const row = rowFor(exp.date);
+    if (row) row.expenses += exp.amount;
   });
 
   bills.forEach(bill => {
-    const d = new Date(bill.date);
-    const m = MONTHS[d.getMonth()];
-    if (m) expensesByMonth[m] += bill.amount;
+    const row = rowFor(bill.date);
+    if (row) row.expenses += bill.amount;
   });
 
-  return MONTHS.map(month => ({
-    month,
-    sales: salesByMonth[month],
-    expenses: expensesByMonth[month],
-  })).filter(m => m.sales > 0 || m.expenses > 0);
+  return Array.from(rows.values()).sort((a, b) => a.monthStart.localeCompare(b.monthStart));
 }
 
 // --- Date Picker ---
@@ -290,7 +298,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
 }
 
 
-function exportCSV(report: Report, data: { month: string; sales: number; expenses: number }[], dateRange: string) {
+function exportCSV(report: Report, data: MonthlyReportRow[], dateRange: string) {
   const header = "Month,Sales,Expenses,Net\n";
   const rows = data.map(d => `${d.month},${d.sales},${d.expenses},${d.sales - d.expenses}`).join("\n");
   const csv = `Report: ${report.code} - ${report.title}\nPeriod: ${dateRange}\n\n${header}${rows}`;
@@ -303,7 +311,7 @@ function exportCSV(report: Report, data: { month: string; sales: number; expense
   URL.revokeObjectURL(url);
 }
 
-function exportPDF(report: Report, data: { month: string; sales: number; expenses: number }[], dateRange: string) {
+function exportPDF(report: Report, data: MonthlyReportRow[], dateRange: string) {
   const content = `
     <html><head><title>${report.code} - ${report.title}</title>
     <style>
@@ -848,7 +856,7 @@ function IncomeStatement({
 // --- Report Detail ---
 function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders }: {
   report: Report; onBack: () => void;
-  monthlySales: { month: string; sales: number; expenses: number }[];
+  monthlySales: MonthlyReportRow[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
   expenseBreakdown: { name: string; value: number; color: string }[];
   inventory: InventoryItem[];
@@ -890,14 +898,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     return "All Time";
   }, [fromDate, toDate]);
 
-  const monthIndex: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
   const filteredData = useMemo(() => {
-    return monthlySales.filter(m => {
-      const mi = monthIndex[m.month];
-      if (fromDate && mi < fromDate.getMonth()) return false;
-      if (toDate && mi > toDate.getMonth()) return false;
-      return true;
-    });
+    return monthlySales.filter(m => inRange(m.monthStart, fromDate, toDate));
   }, [fromDate, toDate, monthlySales]);
 
   // Inventory-specific data tables
@@ -905,7 +907,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     let data: InventoryItem[] | null = null;
     if (report.code === "078") data = inventory; // Products List
     else if (report.code === "080") data = inventory; // Stock Quantity
-    else if (report.code === "082") data = inventory.filter(i => i.qty === 0); // Out of Stock
+    else if (report.code === "082") data = inventory.filter(i => i.qty <= 0); // Out of Stock includes oversold items
     else if (report.code === "083") data = inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
     else if (report.code === "148") data = inventory;
 
@@ -979,11 +981,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   }, [purchaseOrders, inventory]);
 
   const getAvgCost = useCallback((item: InventoryItem): number => {
-    const byId = poAvgCostMap.get(`id:${item.id}`);
-    if (byId && byId.qty > 0) return byId.value / byId.qty;
     const key = (item.uniqueCode || item.sku || item.name).trim().toLowerCase();
     const byKey = poAvgCostMap.get(`k:${key}`);
     if (byKey && byKey.qty > 0) return byKey.value / byKey.qty;
+    const byId = poAvgCostMap.get(`id:${item.id}`);
+    if (byId && byId.qty > 0) return byId.value / byId.qty;
     return item.costPrice || 0;
   }, [poAvgCostMap]);
 
@@ -1307,14 +1309,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {["028", "037"].includes(report.code) && (() => {
             const saleInvoices = uniqueInvoicesById(invoices.filter(countsAsSale));
             const invList = report.code === "037"
-              ? saleInvoices.filter(i => i.status !== "paid")
+              ? saleInvoices.filter(i => getInvoicePaymentSummary(i, receipts).remaining > 0)
               : saleInvoices;
             const invTokens = tokenize(invoiceSearch);
             const filtered = invList.filter(inv => {
               if (inv.date) {
                 const d = new Date(inv.date);
-                if (fromDate && d < fromDate) return false;
-                if (toDate && d > toDate) return false;
+                if (!inRange(inv.date, fromDate, toDate)) return false;
               }
               if (!matchesTokens(invTokens, inv.number, inv.customer, (inv as any).documentNumber, inv.status)) return false;
               return true;
@@ -1396,18 +1397,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, recs).overpaid, 0);
 
             // Apply the selected date range to invoices & receipts
-            const inRange = (dateStr?: string) => {
-              if (!dateStr) return true;
-              const d = new Date(dateStr);
-              if (Number.isNaN(d.getTime())) return true;
-              if (fromDate && d < fromDate) return false;
-              if (toDate && d > toDate) return false;
-              return true;
-            };
             const invoicesInRange = uniqueInvoicesById(
-              invoices.filter(i => inRange(i.date) && (report.code === "034" || countsAsSale(i)))
+              invoices.filter(i => inRange(i.date, fromDate, toDate) && (report.code === "034" || countsAsSale(i)))
             );
-            const receiptsInRange = receipts.filter(r => inRange((r as any).date));
+            const receiptsInRange = receipts.filter(r => inRange(r.date, fromDate, toDate));
 
             // Customer names are the document link in the current data model. Group duplicate
             // customer profiles first so one invoice can never be rendered once per duplicate profile.
@@ -2276,9 +2269,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {/* Payment Receipts Summary (063) */}
           {report.code === "063" && (() => {
             const rTokens = tokenize(receiptSearch);
-            const filteredReceipts = rTokens.length
-              ? receipts.filter(r => matchesTokens(rTokens, r.number, r.customer, (r as any).invoiceNumber, (r as any).paymentMethod))
-              : receipts;
+          const filteredReceipts = receipts.filter(r =>
+            inRange(r.date, fromDate, toDate) &&
+            matchesTokens(rTokens, r.number, r.customer, r.invoiceNumber, r.paymentMethod)
+          );
             return (
             <div className="bg-card rounded-lg border p-6">
               <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
@@ -2696,21 +2690,31 @@ export default function Reports() {
   const { data: expenses } = useExpensesCloud();
   const { data: bills } = useBillsCloud();
   const { data: rawInventory } = useInventoryCloud();
-  // Only main inventory in reports; dedupe legacy duplicates by uniqueCode/sku/name.
+  // Only main inventory in reports; merge legacy duplicates without losing stock.
   const inventory = useMemo(() => {
     const mainOnly = (rawInventory as any[]).filter((i: any) => (i.location || "main") === "main");
-    const byKey = new Map<string, any>();
+    const byKey = new Map<string, any[]>();
     for (const it of mainOnly) {
       const key = ((it as any).uniqueCode || it.sku || it.name || it.id).toString().trim().toLowerCase();
-      const existing = byKey.get(key);
-      if (!existing) { byKey.set(key, it); continue; }
-      if ((it.qty ?? 0) > (existing.qty ?? 0)) byKey.set(key, it);
+      byKey.set(key, [...(byKey.get(key) || []), it]);
     }
-    return Array.from(byKey.values()) as typeof rawInventory;
+    return Array.from(byKey.values()).map(group => {
+      if (group.length === 1) return group[0];
+      const base = group[0];
+      const qty = group.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+      const positiveQty = group.reduce((sum, item) => sum + Math.max(0, Number(item.qty) || 0), 0);
+      const costValue = group.reduce((sum, item) => sum + Math.max(0, Number(item.qty) || 0) * (Number(item.costPrice) || 0), 0);
+      return {
+        ...base,
+        qty,
+        costPrice: positiveQty > 0 ? costValue / positiveQty : Number(base.costPrice) || 0,
+        reorderLevel: Math.max(...group.map(item => Number(item.reorderLevel) || 0)),
+      };
+    }) as typeof rawInventory;
   }, [rawInventory]);
   const { data: accounts } = useAccountsCloud();
   const { data: ledger } = useLedgerEntriesCloud();
-  const [assets] = useState<CompanyAsset[]>([]);
+  const [assets] = useLocalStorage<CompanyAsset[]>("cb-company-assets", []);
 
   // Read additional data
   const { data: customers } = useCustomersCloud();

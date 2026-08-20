@@ -3,7 +3,7 @@
 // and are reported separately as "Pending Balance".
 export function countsAsSale(inv: { status?: string }): boolean {
   const s = (inv?.status || "").toLowerCase();
-  return s !== "pending" && s !== "draft" && s !== "cancelled" && s !== "rejected";
+  return s !== "pending" && s !== "draft" && s !== "cancelled" && s !== "rejected" && s !== "returned";
 }
 
 export function isPendingSale(inv: { status?: string }): boolean {
