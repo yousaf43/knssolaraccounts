@@ -94,7 +94,7 @@ const allReports: Report[] = [
   { code: "129", title: "Balance Sheet", category: "Management", section: "general" },
   { code: "135", title: "Nominal Activities", category: "Management", section: "general" },
   { code: "244", title: "Product Transaction Detail", category: "Management", section: "general" },
-  { code: "258", title: "Expenses Nominal Summary", category: "Management", section: "general" },
+  { code: "258", title: "Expenses by Nominal Account", category: "Management", section: "general" },
   { code: "307", title: "Budget Income Statement", category: "Management", section: "general" },
   { code: "381", title: "Depreciation Details", category: "Management", section: "general" },
   { code: "383", title: "Fixed Assets Details", category: "Management", section: "general" },
@@ -903,6 +903,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [discountSearch, setDiscountSearch] = useState("");
   const [discountOnly, setDiscountOnly] = useState("with");
   const [discountCustomer, setDiscountCustomer] = useState("all");
+  const [nominalSearch, setNominalSearch] = useState("");
+  const [nominalAccountFilter, setNominalAccountFilter] = useState("all");
+  const [nominalPayMethod, setNominalPayMethod] = useState("all");
+  const [nominalView, setNominalView] = useState<"summary" | "detail">("summary");
   const [receiptSearch, setReceiptSearch] = useState("");
   const [txnSearch, setTxnSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -976,7 +980,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       }
     }
     return data;
-  }, [report.code, inventory, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly]);
+  }, [report.code, inventory, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly, nominalSearch, nominalAccountFilter, nominalPayMethod, nominalView]);
 
   // Weighted average purchase cost per inventory item, computed from PO history.
   // Keyed by both inventory item id and by SKU/uniqueCode/name so merged rows still match.
@@ -1025,7 +1029,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const isPnL = ["121", "123", "125", "127"].includes(report.code);
 
   const reportRootRef = useRef<HTMLDivElement>(null);
-  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly]);
+  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly, nominalSearch, nominalAccountFilter, nominalPayMethod, nominalView]);
 
   return (
     <div className="space-y-6" ref={reportRootRef}>
@@ -2803,8 +2807,171 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         </div>;
       })()}
 
+      {/* Expenses by Nominal Account — 258 */}
+      {report.code === "258" && (() => {
+        const periodExpenses = expenses.filter(e => inRange(e.date, fromDate, toDate));
+        const accountOf = (e: Expense) => (e.nominalAccount || "").trim() || "Unallocated (No Nominal Account)";
+        const accList = Array.from(new Set(periodExpenses.map(accountOf))).sort((a, b) => a.localeCompare(b));
+        const methodList = Array.from(new Set(periodExpenses.map(e => (e.paymentMethod || "").trim()).filter(Boolean))).sort();
+        const tokens = tokenize(nominalSearch);
+
+        const visible = periodExpenses
+          .filter(e => nominalAccountFilter === "all" || accountOf(e) === nominalAccountFilter)
+          .filter(e => nominalPayMethod === "all" || (e.paymentMethod || "") === nominalPayMethod)
+          .filter(e => matchesTokens(tokens, accountOf(e), e.description || "", e.category || "", e.paymentMethod || "", e.date || ""))
+          .sort((a, b) => accountOf(a).localeCompare(accountOf(b)) || (a.date || "").localeCompare(b.date || ""));
+
+        const grandTotal = visible.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+
+        const groupMap = new Map<string, { total: number; count: number; lines: Expense[]; cats: Map<string, number> }>();
+        for (const e of visible) {
+          const key = accountOf(e);
+          if (!groupMap.has(key)) groupMap.set(key, { total: 0, count: 0, lines: [], cats: new Map() });
+          const g = groupMap.get(key)!;
+          g.total += Number(e.amount) || 0;
+          g.count += 1;
+          g.lines.push(e);
+          const c = (e.category || "Other").trim();
+          g.cats.set(c, (g.cats.get(c) || 0) + (Number(e.amount) || 0));
+        }
+        const groups = Array.from(groupMap.entries())
+          .map(([account, g]) => ({ account, ...g, pct: grandTotal > 0 ? (g.total / grandTotal) * 100 : 0 }))
+          .sort((a, b) => b.total - a.total);
+
+        const unallocated = groups.find(g => g.account.startsWith("Unallocated"));
+
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Total Expenses", value: formatCurrency(grandTotal), cls: "text-destructive" },
+                { label: "Nominal Accounts Used", value: String(groups.filter(g => !g.account.startsWith("Unallocated")).length), cls: "" },
+                { label: "Entries", value: String(visible.length), cls: "" },
+                { label: "Unallocated", value: formatCurrency(unallocated?.total || 0), cls: unallocated ? "text-warning" : "text-success" },
+              ].map(k => (
+                <div key={k.label} className="bg-card rounded-lg border p-4">
+                  <p className="text-xs text-muted-foreground">{k.label}</p>
+                  <p className={`text-xl font-bold mt-1 ${k.cls}`}>{k.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-card rounded-lg border p-6">
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <h2 className="text-lg font-semibold">Expenses by Nominal Account — {dateRange}</h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Input value={nominalSearch} onChange={(e) => setNominalSearch(e.target.value)} placeholder="Search account, description, category…" className="h-9 w-full sm:w-64" />
+                  <Select value={nominalAccountFilter} onValueChange={setNominalAccountFilter}>
+                    <SelectTrigger className="h-9 text-xs w-56"><SelectValue placeholder="Nominal account" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Nominal Accounts</SelectItem>
+                      {accList.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={nominalPayMethod} onValueChange={setNominalPayMethod}>
+                    <SelectTrigger className="h-9 text-xs w-40"><SelectValue placeholder="Payment" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Payments</SelectItem>
+                      {methodList.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={nominalView} onValueChange={(v) => setNominalView(v as "summary" | "detail")}>
+                    <SelectTrigger className="h-9 text-xs w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="summary">Summary</SelectItem>
+                      <SelectItem value="detail">Detailed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(nominalSearch || nominalAccountFilter !== "all" || nominalPayMethod !== "all") && (
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setNominalSearch(""); setNominalAccountFilter("all"); setNominalPayMethod("all"); }}>Reset</Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                {nominalView === "summary" ? (
+                  <table id="report-print-table" className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Nominal Account</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Categories</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Entries</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">% of Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groups.length === 0 ? (
+                        <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No expenses in this range.</td></tr>
+                      ) : groups.map((g, i) => (
+                        <tr key={g.account} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                          <td className="px-3 py-2 font-medium"><HighlightText text={g.account} query={nominalSearch} /></td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">{Array.from(g.cats.keys()).slice(0, 4).join(", ")}{g.cats.size > 4 ? ` +${g.cats.size - 4}` : ""}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{g.count}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(g.total)}</td>
+                          <td className="px-3 py-2 text-right text-muted-foreground">{g.pct.toFixed(2)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    {groups.length > 0 && (
+                      <tfoot>
+                        <tr className="border-t-2 font-bold bg-muted/30">
+                          <td className="px-3 py-2" colSpan={3}>Total ({groups.length} accounts)</td>
+                          <td className="px-3 py-2 text-right">{visible.length}</td>
+                          <td className="px-3 py-2 text-right text-destructive">{formatCurrency(grandTotal)}</td>
+                          <td className="px-3 py-2 text-right">100.00%</td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                ) : (
+                  <table id="report-print-table" className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/50">
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Nominal Account</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Description</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Payment</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visible.length === 0 ? (
+                        <tr><td colSpan={7} className="text-center py-6 text-muted-foreground">No expenses in this range.</td></tr>
+                      ) : visible.map((e, i) => (
+                        <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                          <td className="px-3 py-2"><HighlightText text={accountOf(e)} query={nominalSearch} /></td>
+                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{e.date || "—"}</td>
+                          <td className="px-3 py-2"><HighlightText text={e.description || "—"} query={nominalSearch} /></td>
+                          <td className="px-3 py-2 text-muted-foreground">{e.category || "—"}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{e.paymentMethod || "—"}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{formatCurrency(Number(e.amount) || 0)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    {visible.length > 0 && (
+                      <tfoot>
+                        <tr className="border-t-2 font-bold bg-muted/30">
+                          <td className="px-3 py-2" colSpan={6}>Total ({visible.length} entries)</td>
+                          <td className="px-3 py-2 text-right text-destructive">{formatCurrency(grandTotal)}</td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Reports without dedicated source tables use the shared trend view, never fabricated rows. */}
-      {["050", "051", "052", "062", "135", "244", "258", "381", "383", "241", "242"].includes(report.code) && (
+      {["050", "051", "052", "062", "135", "244", "381", "383", "241", "242"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Summary</h2>
           {filteredData.length === 0 ? (
