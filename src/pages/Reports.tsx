@@ -2322,7 +2322,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   </div>
                 )}
 
-                {report.code === "085" && (() => {
+                {(report.code === "085" || report.code === "084") && (() => {
                   const all = Object.values(productMap);
                   const sumOf = (fn: (l: Line) => boolean) =>
                     all.filter(fn).reduce((s, l) => s + l.revenue, 0);
