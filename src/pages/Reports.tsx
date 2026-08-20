@@ -2845,13 +2845,18 @@ export default function Reports() {
     const totalSales = invoices.filter(countsAsSale).reduce((s, i) => s + saleAmount(i, inventory), 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0) + bills.reduce((s, b) => s + b.amount, 0);
     const outstandingReceivables = invoices.filter(countsAsSale).reduce((s, invoice) => s + getInvoicePaymentSummary(invoice, receipts).remaining, 0);
-    const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((s, b) => s + b.amount, 0);
+    const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((sum, bill) => {
+      const paid = purchasePayments
+        .filter(payment => normName(payment.billNumber) === normName(bill.number) && normName(payment.supplier) === normName(bill.supplier))
+        .reduce((paymentSum, payment) => paymentSum + (payment.amount || 0), 0);
+      return sum + Math.max(0, (bill.amount || 0) - paid);
+    }, 0);
 
     // Bank balance from accounts + ledger
     const bankBalance = accounts.reduce((s, a) => s + a.balance, 0);
 
     return { totalSales, totalExpenses, netProfit: totalSales - totalExpenses, outstandingReceivables, outstandingPayables, bankBalance };
-  }, [invoices, expenses, bills, accounts, ledger, inventory, receipts]);
+  }, [invoices, expenses, bills, accounts, inventory, receipts, purchasePayments]);
 
   const toggleFav = useCallback((code: string) => {
     setFavorites(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
