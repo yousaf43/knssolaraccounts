@@ -2775,6 +2775,8 @@ export default function Reports() {
   const { data: receipts } = useReceiptsCloud();
   const { data: salesOrders } = useSalesOrdersCloud();
   const { data: purchaseOrders } = usePurchaseOrdersCloud();
+  const { data: purchasePayments } = usePurchasePaymentsCloud();
+  const { data: stockAdjustments } = useStockAdjustmentsCloud();
 
   // Build monthly data from real data
   const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills, inventory), [invoices, expenses, bills, inventory]);
@@ -2825,7 +2827,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} />;
   }
 
   return (
