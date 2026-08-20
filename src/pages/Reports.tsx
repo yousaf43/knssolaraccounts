@@ -2330,7 +2330,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   const nonStockRev = sumOf(l => l.productType === "non-stock");
                   const bundleRev = sumOf(l => l.productType === "bundle");
                   const unknownRev = sumOf(l => l.productType !== "stock" && l.productType !== "non-stock" && l.productType !== "bundle");
-                  const netSales = statement.netSales;
+                  const periodInvoices = uniqueInvoicesById(invoices.filter(i => inRange(i.date, fromDate, toDate)));
+                  const netSales =
+                    periodInvoices
+                      .filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i))
+                      .reduce((s, i) => s + saleAmount(i, inventory), 0) -
+                    periodInvoices
+                      .filter(i => i.isReturn || i.status === "returned")
+                      .reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
                   const diff = netSales - (stockRev + nonStockRev + bundleRev + unknownRev);
                   const Row = ({ label, value, bold }: { label: string; value: number; bold?: boolean }) => (
                     <div className={`flex items-center justify-between py-1.5 ${bold ? "font-semibold border-t mt-1 pt-2" : ""}`}>
