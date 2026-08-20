@@ -30,6 +30,9 @@ import { amountToWords, formatCompactAmount } from "@/lib/amountWords";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
+const uniqueInvoicesById = (items: Invoice[]) =>
+  Array.from(new Map(items.map(item => [item.id, item])).values());
+
 type Account = { id: string; name: string; accountTitle: string; code: string; reconcileDate: string; currency: string; fxBalance: number; balance: number };
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -1302,7 +1305,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
           {/* Invoice Data Table (028, 037) */}
           {["028", "037"].includes(report.code) && (() => {
-            const invList = report.code === "037" ? invoices.filter(i => i.status !== "paid") : invoices;
+            const saleInvoices = uniqueInvoicesById(invoices.filter(countsAsSale));
+            const invList = report.code === "037"
+              ? saleInvoices.filter(i => i.status !== "paid")
+              : saleInvoices;
             const invTokens = tokenize(invoiceSearch);
             const filtered = invList.filter(inv => {
               if (inv.date) {
@@ -1398,10 +1404,30 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               if (toDate && d > toDate) return false;
               return true;
             };
-            const invoicesInRange = invoices.filter(i => inRange(i.date));
+            const invoicesInRange = uniqueInvoicesById(
+              invoices.filter(i => inRange(i.date) && (report.code === "034" || countsAsSale(i)))
+            );
             const receiptsInRange = receipts.filter(r => inRange((r as any).date));
 
-            const custData = customers.map(cust => {
+            // Customer names are the document link in the current data model. Group duplicate
+            // customer profiles first so one invoice can never be rendered once per duplicate profile.
+            const customerGroups = new Map<string, Customer[]>();
+            customers.forEach(customer => {
+              const key = normName(customer.name);
+              const group = customerGroups.get(key) || [];
+              group.push(customer);
+              customerGroups.set(key, group);
+            });
+
+            const custData = Array.from(customerGroups.values()).map(group => {
+              const first = group[0];
+              const cust = {
+                ...first,
+                company: group.find(c => c.company)?.company || first.company,
+                email: group.find(c => c.email)?.email || first.email,
+                phone: group.find(c => c.phone)?.phone || first.phone,
+                address: group.find(c => c.address)?.address || first.address,
+              };
               const custInv = invoicesInRange.filter(i => normName(i.customer) === normName(cust.name));
               const custRec = receiptsInRange.filter(r => normName(r.customer) === normName(cust.name));
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
@@ -1413,14 +1439,15 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             }).filter(c => c.totalBilled > 0 || c.invoiceCount > 0);
 
             // Catch orphan invoices (customer name doesn't match any customer record, or is blank)
-            const knownNames = new Set(customers.map(c => normName(c.name)));
+            const knownNames = new Set(customerGroups.keys());
             const orphanInv = invoicesInRange.filter(i => !knownNames.has(normName(i.customer)));
             if (orphanInv.length > 0) {
               const groups = new Map<string, typeof orphanInv>();
               orphanInv.forEach(i => {
                 const key = (i.customer || "").trim() || "(No Customer)";
-                if (!groups.has(key)) groups.set(key, []);
-                groups.get(key)!.push(i);
+                const group = groups.get(key) || [];
+                group.push(i);
+                groups.set(key, group);
               });
               groups.forEach((invs, name) => {
                 const recs = receiptsInRange.filter(r => normName(r.customer) === normName(name));
