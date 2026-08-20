@@ -2360,9 +2360,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <Row label="Net sales (Income Statement)" value={netSales} bold />
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        {report.code === "084"
-                          ? "This report totals raw invoice line amounts (before invoice-level discount and tax adjustments); the Income Statement uses full invoice values excluding old balance and returns, so the adjustment line explains the difference."
-                          : "This report counts only tracked stock products; the Income Statement counts full invoice values (excluding old balance and returns), so the lines above explain the difference."}
+                        {report.code === "085"
+                          ? "This report counts only tracked stock products; the Income Statement counts full invoice values (excluding old balance and returns), so the lines above explain the difference."
+                          : "This report totals raw invoice line amounts (before invoice-level discount and tax adjustments); the Income Statement uses full invoice values excluding old balance and returns, so the adjustment line explains the difference."}
                       </p>
                     </div>
                   );
