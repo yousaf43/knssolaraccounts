@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import { useSortableTables } from "@/hooks/useSortableTables";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
-import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder, type PurchaseOrder } from "@/data/mockData";
+import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder, type PurchaseOrder, type PurchasePayment, type StockAdjustment } from "@/data/mockData";
 import { type CompanyAsset } from "@/pages/Assets";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -18,8 +18,10 @@ import { useSettings } from "@/contexts/SettingsContext";
 import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
   useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud, usePurchaseOrdersCloud,
-  useAccountsCloud, useLedgerEntriesCloud,
+  useAccountsCloud, useLedgerEntriesCloud, usePurchasePaymentsCloud,
+  useStockAdjustmentsCloud,
 } from "@/hooks/useAppData";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -122,35 +124,40 @@ const analyticalCategories = ["Favourites", "Sales", "Purchases", "Cash & Bank",
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Build monthly data from real invoices/expenses/bills
+type MonthlyReportRow = { month: string; monthStart: string; sales: number; expenses: number };
+
+// Build monthly data from real invoices/expenses/bills. The year is part of the
+// key so January 2025 and January 2026 can never be combined accidentally.
 function buildMonthlyData(invoices: Invoice[], expenses: Expense[], bills: Bill[], inventory: InventoryItem[] = []) {
-  const salesByMonth: Record<string, number> = {};
-  const expensesByMonth: Record<string, number> = {};
-  MONTHS.forEach(m => { salesByMonth[m] = 0; expensesByMonth[m] = 0; });
+  const rows = new Map<string, MonthlyReportRow>();
+  const rowFor = (dateValue: string) => {
+    const date = parseDateSafe(dateValue);
+    if (!date) return null;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const existing = rows.get(key) || {
+      month: `${MONTHS[date.getMonth()]} ${date.getFullYear()}`,
+      monthStart: `${key}-01`, sales: 0, expenses: 0,
+    };
+    rows.set(key, existing);
+    return existing;
+  };
 
   invoices.filter(countsAsSale).forEach(inv => {
-    const d = new Date(inv.date);
-    const m = MONTHS[d.getMonth()];
-    if (m) salesByMonth[m] += saleAmount(inv, inventory);
+    const row = rowFor(inv.date);
+    if (row) row.sales += saleAmount(inv, inventory);
   });
 
   expenses.forEach(exp => {
-    const d = new Date(exp.date);
-    const m = MONTHS[d.getMonth()];
-    if (m) expensesByMonth[m] += exp.amount;
+    const row = rowFor(exp.date);
+    if (row) row.expenses += exp.amount;
   });
 
   bills.forEach(bill => {
-    const d = new Date(bill.date);
-    const m = MONTHS[d.getMonth()];
-    if (m) expensesByMonth[m] += bill.amount;
+    const row = rowFor(bill.date);
+    if (row) row.expenses += bill.amount;
   });
 
-  return MONTHS.map(month => ({
-    month,
-    sales: salesByMonth[month],
-    expenses: expensesByMonth[month],
-  })).filter(m => m.sales > 0 || m.expenses > 0);
+  return Array.from(rows.values()).sort((a, b) => a.monthStart.localeCompare(b.monthStart));
 }
 
 // --- Date Picker ---
@@ -290,7 +297,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
 }
 
 
-function exportCSV(report: Report, data: { month: string; sales: number; expenses: number }[], dateRange: string) {
+function exportCSV(report: Report, data: MonthlyReportRow[], dateRange: string) {
   const header = "Month,Sales,Expenses,Net\n";
   const rows = data.map(d => `${d.month},${d.sales},${d.expenses},${d.sales - d.expenses}`).join("\n");
   const csv = `Report: ${report.code} - ${report.title}\nPeriod: ${dateRange}\n\n${header}${rows}`;
@@ -303,7 +310,26 @@ function exportCSV(report: Report, data: { month: string; sales: number; expense
   URL.revokeObjectURL(url);
 }
 
-function exportPDF(report: Report, data: { month: string; sales: number; expenses: number }[], dateRange: string) {
+function exportVisibleTableCSV(report: Report, dateRange: string) {
+  const table = document.getElementById("report-print-table");
+  if (!(table instanceof HTMLTableElement)) return false;
+  const rows = Array.from(table.querySelectorAll("tr")).map(row =>
+    Array.from(row.querySelectorAll("th,td")).map(cell => {
+      const value = (cell.textContent || "").replace(/\s+/g, " ").trim();
+      return `"${value.replace(/"/g, '""')}"`;
+    }).join(",")
+  );
+  const blob = new Blob([`Report,${report.code} - ${report.title}\nPeriod,${dateRange}\n\n${rows.join("\n")}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${report.code}_${report.title.replace(/\s+/g, "_")}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+function exportPDF(report: Report, data: MonthlyReportRow[], dateRange: string) {
   const content = `
     <html><head><title>${report.code} - ${report.title}</title>
     <style>
@@ -465,7 +491,7 @@ function IncomeStatement({
       return (line.qty || 0) * costOfInventoryId(line.inventoryItemId, line.description);
     };
 
-    const periodInvoices = invoices.filter(i => inRange(i.date, fromDate, toDate));
+    const periodInvoices = uniqueInvoicesById(invoices.filter(i => inRange(i.date, fromDate, toDate)));
     const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i));
     const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
 
@@ -477,17 +503,18 @@ function IncomeStatement({
     const salesReturns = stRate > 0 ? salesReturnsRaw / (1 + stRate) : salesReturnsRaw;
     const salesTaxExcluded = (grossSalesRaw - salesReturnsRaw) - (grossSales - salesReturns);
     const netSales = grossSales - salesReturns;
-    const carriedOldBalance = periodInvoices.reduce((s, i) => s + oldBalanceAmount(i, inventory), 0);
+    const carriedOldBalance = [...sales, ...returns].reduce((s, i) => s + oldBalanceAmount(i, inventory), 0);
 
     const cogsSales = sales.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + lineCost(l), 0), 0);
     const cogsReturns = returns.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + Math.abs(lineCost(l)), 0), 0);
     let costOfSales = cogsSales - cogsReturns;
 
-    // Fallback: if no product costs are recorded, use purchases (bills) for the period.
+    // Purchases are not interchangeable with COGS: bills may include assets,
+    // services, or stock that remains unsold. Keep zero cost visible rather
+    // than fabricating cost of sales from all purchases.
     const periodBills = bills.filter(b => inRange(b.date, fromDate, toDate));
     const purchasesTotal = periodBills.reduce((s, b) => s + (b.amount || 0), 0);
-    const usedPurchasesFallback = costOfSales <= 0 && purchasesTotal > 0;
-    if (usedPurchasesFallback) costOfSales = purchasesTotal;
+    const usedPurchasesFallback = false;
 
     const grossIncome = netSales - costOfSales;
 
@@ -539,7 +566,7 @@ function IncomeStatement({
       label: "Gross sales",
       note: `${statement.salesCount} approved invoice${statement.salesCount === 1 ? "" : "s"}`,
       indent: 1,
-      detail: statement.salesTaxExcluded > 0 ? statement.grossSalesRaw : statement.grossSales,
+      detail: statement.grossSales,
     });
     if (statement.salesReturns > 0) {
       out.push({
@@ -846,9 +873,9 @@ function IncomeStatement({
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger }: {
   report: Report; onBack: () => void;
-  monthlySales: { month: string; sales: number; expenses: number }[];
+  monthlySales: MonthlyReportRow[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
   expenseBreakdown: { name: string; value: number; color: string }[];
   inventory: InventoryItem[];
@@ -860,6 +887,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   receipts: Receipt[];
   salesOrders: SalesOrder[];
   purchaseOrders: PurchaseOrder[];
+  purchasePayments: PurchasePayment[];
+  stockAdjustments: StockAdjustment[];
+  accounts: Account[];
+  ledger: LedgerEntry[];
 }) {
   const { formatCurrency, settings } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
@@ -890,14 +921,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     return "All Time";
   }, [fromDate, toDate]);
 
-  const monthIndex: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
   const filteredData = useMemo(() => {
-    return monthlySales.filter(m => {
-      const mi = monthIndex[m.month];
-      if (fromDate && mi < fromDate.getMonth()) return false;
-      if (toDate && mi > toDate.getMonth()) return false;
-      return true;
-    });
+    return monthlySales.filter(m => inRange(m.monthStart, fromDate, toDate));
   }, [fromDate, toDate, monthlySales]);
 
   // Inventory-specific data tables
@@ -905,7 +930,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     let data: InventoryItem[] | null = null;
     if (report.code === "078") data = inventory; // Products List
     else if (report.code === "080") data = inventory; // Stock Quantity
-    else if (report.code === "082") data = inventory.filter(i => i.qty === 0); // Out of Stock
+    else if (report.code === "082") data = inventory.filter(i => i.qty <= 0); // Out of Stock includes oversold items
     else if (report.code === "083") data = inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
     else if (report.code === "148") data = inventory;
 
@@ -979,11 +1004,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   }, [purchaseOrders, inventory]);
 
   const getAvgCost = useCallback((item: InventoryItem): number => {
-    const byId = poAvgCostMap.get(`id:${item.id}`);
-    if (byId && byId.qty > 0) return byId.value / byId.qty;
     const key = (item.uniqueCode || item.sku || item.name).trim().toLowerCase();
     const byKey = poAvgCostMap.get(`k:${key}`);
     if (byKey && byKey.qty > 0) return byKey.value / byKey.qty;
+    const byId = poAvgCostMap.get(`id:${item.id}`);
+    if (byId && byId.qty > 0) return byId.value / byId.qty;
     return item.costPrice || 0;
   }, [poAvgCostMap]);
 
@@ -993,10 +1018,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
-  const isPnL = ["121", "123", "125"].includes(report.code);
+  const isPnL = ["121", "123", "125", "127"].includes(report.code);
 
   const reportRootRef = useRef<HTMLDivElement>(null);
-  useSortableTables(reportRootRef, [report.code]);
+  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter]);
 
   return (
     <div className="space-y-6" ref={reportRootRef}>
@@ -1079,10 +1104,16 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           </>
         )}
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportCSV(report, filteredData, dateRange)}>
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
+            if (!exportVisibleTableCSV(report, dateRange)) exportCSV(report, filteredData, dateRange);
+          }}>
             <Download className="w-3.5 h-3.5" /> CSV
           </Button>
-          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => exportPDF(report, filteredData, dateRange)}>
+          <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
+            const tableEl = document.getElementById("report-print-table");
+            if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName);
+            else exportPDF(report, filteredData, dateRange);
+          }}>
             <FileText className="w-3.5 h-3.5" /> PDF
           </Button>
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
@@ -1161,7 +1192,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* P&L Reports */}
-      {["121", "123", "125"].includes(report.code) && (
+      {["121", "123", "125", "127"].includes(report.code) && (
         <>
           <IncomeStatement
             report={report}
@@ -1212,7 +1243,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Cash Flow */}
-      {["220", "060", "061"].includes(report.code) && (
+      {report.code === "220" && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Cash Flow Trend</h2>
           {filteredData.length === 0 ? (
@@ -1234,8 +1265,39 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         </div>
       )}
 
+      {["060", "061"].includes(report.code) && (() => {
+        const wantsCash = report.code === "060";
+        const rows = ledger.filter(entry => {
+          const isCash = /cash|petty/i.test(entry.bank || "");
+          return (wantsCash ? isCash : !isCash) && inRange(entry.date, fromDate, toDate);
+        });
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4">{report.title} ({rows.length} entries)</h2>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Account</th><th className="text-left px-3 py-2">Description</th><th className="text-left px-3 py-2">Reference</th><th className="text-right px-3 py-2">Incoming</th><th className="text-right px-3 py-2">Outgoing</th></tr></thead><tbody>{rows.map((entry, index) => <tr key={entry.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{entry.date}</td><td className="px-3 py-2 font-medium">{entry.bank}</td><td className="px-3 py-2">{entry.description}</td><td className="px-3 py-2">{entry.reference || "—"}</td><td className="px-3 py-2 text-right text-success">{entry.type === "incoming" ? formatCurrency(entry.amount) : "—"}</td><td className="px-3 py-2 text-right text-destructive">{entry.type === "outgoing" ? formatCurrency(entry.amount) : "—"}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Net movement</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "incoming").reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "outgoing").reduce((sum, row) => sum + row.amount, 0))}</td></tr></tfoot></table>
+        </div>;
+      })()}
+
+      {report.code === "221" && <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+        <h2 className="text-lg font-semibold mb-4">Bank Balances ({accounts.length} accounts)</h2>
+        <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Account</th><th className="text-left px-3 py-2">Title</th><th className="text-left px-3 py-2">Code</th><th className="text-left px-3 py-2">Currency</th><th className="text-right px-3 py-2">Balance</th></tr></thead><tbody>{accounts.map((account, index) => <tr key={account.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2 font-medium">{account.name}</td><td className="px-3 py-2">{account.accountTitle}</td><td className="px-3 py-2">{account.code}</td><td className="px-3 py-2">{account.currency}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(account.balance)}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(accounts.reduce((sum, account) => sum + account.balance, 0))}</td></tr></tfoot></table>
+      </div>}
+
       {/* Income Statement / Balance Sheet / Overview */}
-      {["127", "129", "240", "307"].includes(report.code) && (
+      {report.code === "129" && (() => {
+        const stockValue = inventory.reduce((sum, item) => sum + Math.max(0, item.qty) * (item.costPrice || 0), 0);
+        const fixedAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
+        const totalAssets = kpiData.bankBalance + kpiData.outstandingReceivables + stockValue + fixedAssets;
+        const equity = totalAssets - kpiData.outstandingPayables;
+        const rows = [
+          { label: "Cash & bank", amount: kpiData.bankBalance },
+          { label: "Accounts receivable", amount: kpiData.outstandingReceivables },
+          { label: "Inventory", amount: stockValue },
+          { label: "Fixed assets", amount: fixedAssets },
+        ];
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto"><h2 className="text-lg font-semibold mb-4">Balance Sheet — {dateRange}</h2><table id="report-print-table" data-no-sort className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Description</th><th className="text-right px-3 py-2">Amount</th></tr></thead><tbody><tr className="font-bold bg-muted/30"><td className="px-3 py-2">Assets</td><td /></tr>{rows.map(row => <tr key={row.label} className="border-b"><td className="px-3 py-2 pl-8">{row.label}</td><td className="px-3 py-2 text-right">{formatCurrency(row.amount)}</td></tr>)}<tr className="font-bold border-t-2"><td className="px-3 py-2">Total assets</td><td className="px-3 py-2 text-right">{formatCurrency(totalAssets)}</td></tr><tr className="font-bold bg-muted/30"><td className="px-3 py-2">Liabilities & equity</td><td /></tr><tr className="border-b"><td className="px-3 py-2 pl-8">Accounts payable</td><td className="px-3 py-2 text-right">{formatCurrency(kpiData.outstandingPayables)}</td></tr><tr className="border-b"><td className="px-3 py-2 pl-8">Owner's equity / retained earnings</td><td className="px-3 py-2 text-right">{formatCurrency(equity)}</td></tr><tr className="font-bold border-t-2"><td className="px-3 py-2">Total liabilities & equity</td><td className="px-3 py-2 text-right">{formatCurrency(kpiData.outstandingPayables + equity)}</td></tr></tbody></table></div>;
+      })()}
+
+      {["240", "307"].includes(report.code) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Expense Breakdown</h2>
@@ -1283,7 +1345,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Sales Reports */}
-      {["028", "029", "034", "037", "084", "085", "088", "235", "236", "200", "201", "202", "203"].includes(report.code) && (
+      {["028", "029", "034", "037", "063", "084", "085", "088", "235", "236", "200", "201", "202", "203"].includes(report.code) && (
         <div className="space-y-6">
           {/* Sales Trend Chart */}
           <div className="bg-card rounded-lg border p-6">
@@ -1307,14 +1369,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {["028", "037"].includes(report.code) && (() => {
             const saleInvoices = uniqueInvoicesById(invoices.filter(countsAsSale));
             const invList = report.code === "037"
-              ? saleInvoices.filter(i => i.status !== "paid")
+              ? saleInvoices.filter(i => getInvoicePaymentSummary(i, receipts).remaining > 0)
               : saleInvoices;
             const invTokens = tokenize(invoiceSearch);
             const filtered = invList.filter(inv => {
               if (inv.date) {
                 const d = new Date(inv.date);
-                if (fromDate && d < fromDate) return false;
-                if (toDate && d > toDate) return false;
+                if (!inRange(inv.date, fromDate, toDate)) return false;
               }
               if (!matchesTokens(invTokens, inv.number, inv.customer, (inv as any).documentNumber, inv.status)) return false;
               return true;
@@ -1396,18 +1457,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, recs).overpaid, 0);
 
             // Apply the selected date range to invoices & receipts
-            const inRange = (dateStr?: string) => {
-              if (!dateStr) return true;
-              const d = new Date(dateStr);
-              if (Number.isNaN(d.getTime())) return true;
-              if (fromDate && d < fromDate) return false;
-              if (toDate && d > toDate) return false;
-              return true;
-            };
             const invoicesInRange = uniqueInvoicesById(
-              invoices.filter(i => inRange(i.date) && (report.code === "034" || countsAsSale(i)))
+              invoices.filter(i => inRange(i.date, fromDate, toDate) && (report.code === "034" || countsAsSale(i)))
             );
-            const receiptsInRange = receipts.filter(r => inRange((r as any).date));
+            const receiptsInRange = receipts.filter(r => inRange(r.date, fromDate, toDate));
 
             // Customer names are the document link in the current data model. Group duplicate
             // customer profiles first so one invoice can never be rendered once per duplicate profile.
@@ -1431,8 +1484,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               const custInv = invoicesInRange.filter(i => normName(i.customer) === normName(cust.name));
               const custRec = receiptsInRange.filter(r => normName(r.customer) === normName(cust.name));
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
-              const totalPaid = custRec.reduce((s, r) => s + r.amount, 0)
-                + custInv.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
+              const totalPaid = custInv.reduce((sum, invoice) => sum + getInvoicePaymentSummary(invoice, custRec).totalPaid, 0);
               const outstanding = sumOutstanding(custInv, custRec);
               const advance = sumAdvance(custInv, custRec);
               return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, advance, invoices: custInv, receipts: custRec };
@@ -1452,8 +1504,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               groups.forEach((invs, name) => {
                 const recs = receiptsInRange.filter(r => normName(r.customer) === normName(name));
                 const totalBilled = invs.reduce((s, i) => s + i.amount, 0);
-                const totalPaid = recs.reduce((s, r) => s + r.amount, 0)
-                  + invs.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
+                const totalPaid = invs.reduce((sum, invoice) => sum + getInvoicePaymentSummary(invoice, recs).totalPaid, 0);
                 custData.push({
                   id: `orphan-${name}`, name, company: "", email: "", phone: "", address: "",
                   invoiceCount: invs.length,
@@ -1672,7 +1723,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               });
             };
 
-            invoices.filter(countsAsSale).forEach(inv => {
+            uniqueInvoicesById(invoices.filter(countsAsSale)).forEach(inv => {
               // Date range filter (applies here so per-product report respects it)
               if (fromDate || toDate) {
                 if (!inv.date) return;
@@ -1682,6 +1733,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               }
               inv.items.forEach(item => {
                 const invItem = resolveInv(item);
+                if (invItem?.productType === "old-balance") return;
 
                 // Report 085 follows the actual stock movement: bundles are shown as
                 // their tracked components rather than as one top-level bundle line.
@@ -2110,7 +2162,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={report.code === "085" ? 7 : 6}>Total ({multiSelected.length} products)</td>
+                          <td className="px-3 py-2" colSpan={6}>Total ({multiSelected.length} products)</td>
                           <td className="px-3 py-2 text-right">{multiSelected.reduce((s, p) => s + p.qty, 0)}</td>
                           {report.code === "085" && (
                             <td className="px-3 py-2 text-right">{formatCurrency(multiSelected.flatMap(p => p.details).reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
@@ -2165,7 +2217,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={report.code === "085" ? 6 : 5}>Total ({selected.category})</td>
+                          <td className="px-3 py-2" colSpan={5}>Total ({selected.category})</td>
                           <td className="px-3 py-2 text-right">{selected.qty}</td>
                           {report.code === "085" && (
                             <td className="px-3 py-2 text-right">{formatCurrency(selected.details.reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
@@ -2276,9 +2328,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {/* Payment Receipts Summary (063) */}
           {report.code === "063" && (() => {
             const rTokens = tokenize(receiptSearch);
-            const filteredReceipts = rTokens.length
-              ? receipts.filter(r => matchesTokens(rTokens, r.number, r.customer, (r as any).invoiceNumber, (r as any).paymentMethod))
-              : receipts;
+          const filteredReceipts = receipts.filter(r =>
+            inRange(r.date, fromDate, toDate) &&
+            matchesTokens(rTokens, r.number, r.customer, r.invoiceNumber, r.paymentMethod)
+          );
             return (
             <div className="bg-card rounded-lg border p-6">
               <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
@@ -2332,24 +2385,45 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Purchase Reports */}
-      {["040", "041", "042", "043", "090", "091", "210", "211", "272"].includes(report.code) && (
-        <div className="bg-card rounded-lg border p-6">
-          <h2 className="text-lg font-semibold mb-4">Monthly Purchases Trend</h2>
-          {filteredData.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">No purchase data. Add bills to see trends.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={filteredData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Purchases" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      )}
+      {["040", "041", "042", "043", "090", "091", "210", "211", "272"].includes(report.code) && (() => {
+        const paymentsForBill = (bill: Bill) => purchasePayments
+          .filter(payment => normName(payment.supplier) === normName(bill.supplier) && normName(payment.billNumber) === normName(bill.number))
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        const sourceBills = bills.filter(bill => inRange(bill.date, fromDate, toDate));
+        const visibleBills = report.code === "043"
+          ? sourceBills.filter(bill => Math.max(0, bill.amount - paymentsForBill(bill)) > 0)
+          : sourceBills;
+        const productReport = ["090", "091"].includes(report.code);
+        if (productReport) {
+          const products = new Map<string, { name: string; qty: number; amount: number; transactions: number }>();
+          const purchaseDocs = purchaseOrders.filter(order => inRange(order.date, fromDate, toDate));
+          purchaseDocs.forEach(order => (order.items || []).forEach(item => {
+            const key = normName(item.description) || item.inventoryItemId || "unknown";
+            const row = products.get(key) || { name: item.description || "Unknown", qty: 0, amount: 0, transactions: 0 };
+            row.qty += Number(item.qty) || 0;
+            row.amount += Number(item.amount) || (Number(item.qty) || 0) * (Number(item.rate) || 0);
+            row.transactions += 1;
+            products.set(key, row);
+          }));
+          const rows = Array.from(products.values()).sort((a, b) => b.amount - a.amount);
+          return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+            <h2 className="text-lg font-semibold mb-4">{report.title} ({rows.length} products)</h2>
+            <table id="report-print-table" className="w-full text-sm">
+              <thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Product</th><th className="text-right px-3 py-2">Transactions</th><th className="text-right px-3 py-2">Qty Purchased</th><th className="text-right px-3 py-2">Amount</th></tr></thead>
+              <tbody>{rows.map((row, index) => <tr key={row.name} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2 font-medium">{row.name}</td><td className="px-3 py-2 text-right">{row.transactions}</td><td className="px-3 py-2 text-right">{row.qty}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.amount)}</td></tr>)}</tbody>
+              <tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={2}>Total</td><td className="px-3 py-2 text-right">{rows.reduce((s, row) => s + row.transactions, 0)}</td><td className="px-3 py-2 text-right">{rows.reduce((s, row) => s + row.qty, 0)}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((s, row) => s + row.amount, 0))}</td></tr></tfoot>
+            </table>
+          </div>;
+        }
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4">{report.title} ({visibleBills.length} bills)</h2>
+          <table id="report-print-table" className="w-full text-sm">
+            <thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Bill #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Supplier</th><th className="text-left px-3 py-2">Due Date</th><th className="text-right px-3 py-2">Total</th><th className="text-right px-3 py-2">Paid</th><th className="text-right px-3 py-2">Balance</th></tr></thead>
+            <tbody>{visibleBills.map((bill, index) => { const paid = paymentsForBill(bill); const balance = Math.max(0, bill.amount - paid); return <tr key={bill.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2 font-medium">{bill.number}</td><td className="px-3 py-2">{bill.date}</td><td className="px-3 py-2">{bill.supplier}</td><td className="px-3 py-2">{bill.dueDate}</td><td className="px-3 py-2 text-right">{formatCurrency(bill.amount)}</td><td className="px-3 py-2 text-right text-success">{formatCurrency(paid)}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(balance)}</td></tr>; })}</tbody>
+            <tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(visibleBills.reduce((s, bill) => s + bill.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(visibleBills.reduce((s, bill) => s + paymentsForBill(bill), 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(visibleBills.reduce((s, bill) => s + Math.max(0, bill.amount - paymentsForBill(bill)), 0))}</td></tr></tfoot>
+          </table>
+        </div>;
+      })()}
 
       {/* Inventory chart Reports - Category-wise stock data */}
       {/* Inventory Transactions Summary By Product (366) */}
@@ -2358,8 +2432,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         invoices.filter(countsAsSale).forEach(inv => {
           if (inv.date) {
             const d = new Date(inv.date);
-            if (fromDate && d < fromDate) return;
-            if (toDate && d > toDate) return;
+            if (!inRange(inv.date, fromDate, toDate)) return;
           }
           inv.items.forEach((it: any) => {
             const key = it.description || "Unknown";
@@ -2421,7 +2494,15 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         );
       })()}
 
-      {["173", "180", "230", "231", "232"].includes(report.code) && (() => {
+      {report.code === "180" && (() => {
+        const rows = stockAdjustments.filter(adjustment => inRange(adjustment.date, fromDate, toDate));
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4">Stock Adjustment Detail ({rows.length})</h2>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Product</th><th className="text-left px-3 py-2">Type</th><th className="text-right px-3 py-2">Qty</th><th className="text-left px-3 py-2">Reason</th><th className="text-left px-3 py-2">Note</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{row.date}</td><td className="px-3 py-2 font-medium">{row.itemName}</td><td className="px-3 py-2 capitalize">{row.type}</td><td className="px-3 py-2 text-right">{row.type === "decrease" ? -Math.abs(row.qty) : Math.abs(row.qty)}</td><td className="px-3 py-2">{row.reason}</td><td className="px-3 py-2">{row.note || "—"}</td></tr>)}</tbody></table>
+        </div>;
+      })()}
+
+      {["173", "230", "231", "232"].includes(report.code) && (() => {
         // Build category-wise stock data from actual inventory
         const categoryData: Record<string, { qty: number; value: number; items: number }> = {};
         inventory.forEach(item => {
@@ -2520,8 +2601,26 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         );
       })()}
 
-      {/* Tax & Other */}
-      {["100", "101", "102", "050", "051", "052", "062", "063", "135", "244", "258", "381", "383", "241", "242"].includes(report.code) && (
+      {/* Tax reports */}
+      {["100", "101", "102"].includes(report.code) && (() => {
+        const salesRows = uniqueInvoicesById(invoices.filter(invoice => countsAsSale(invoice) && inRange(invoice.date, fromDate, toDate)));
+        const purchaseRows = bills.filter(bill => inRange(bill.date, fromDate, toDate));
+        const rows = report.code === "100"
+          ? salesRows.map(invoice => ({ id: invoice.id, number: invoice.number, date: invoice.date, party: invoice.customer, amount: invoice.amount, tax: invoice.tax || 0, type: "Sales" }))
+          : report.code === "101"
+            ? purchaseRows.map(bill => ({ id: bill.id, number: bill.number, date: bill.date, party: bill.supplier, amount: bill.amount, tax: bill.tax || 0, type: "Purchase" }))
+            : [
+                ...salesRows.map(invoice => ({ id: invoice.id, number: invoice.number, date: invoice.date, party: invoice.customer, amount: invoice.amount, tax: invoice.tax || 0, type: "Sales" })),
+                ...purchaseRows.map(bill => ({ id: bill.id, number: bill.number, date: bill.date, party: bill.supplier, amount: bill.amount, tax: -(bill.tax || 0), type: "Purchase" })),
+              ];
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4">{report.title} ({rows.length} records)</h2>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Type</th><th className="text-left px-3 py-2">Document #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Customer / Supplier</th><th className="text-right px-3 py-2">Document Total</th><th className="text-right px-3 py-2">Tax</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.type}-${row.id}`} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{row.type}</td><td className="px-3 py-2 font-medium">{row.number}</td><td className="px-3 py-2">{row.date}</td><td className="px-3 py-2">{row.party}</td><td className="px-3 py-2 text-right">{formatCurrency(row.amount)}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.tax)}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.tax, 0))}</td></tr></tfoot></table>
+        </div>;
+      })()}
+
+      {/* Reports without dedicated source tables use the shared trend view, never fabricated rows. */}
+      {["050", "051", "052", "062", "135", "244", "258", "381", "383", "241", "242"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Summary</h2>
           {filteredData.length === 0 ? (
@@ -2696,27 +2795,39 @@ export default function Reports() {
   const { data: expenses } = useExpensesCloud();
   const { data: bills } = useBillsCloud();
   const { data: rawInventory } = useInventoryCloud();
-  // Only main inventory in reports; dedupe legacy duplicates by uniqueCode/sku/name.
+  // Only main inventory in reports; merge legacy duplicates without losing stock.
   const inventory = useMemo(() => {
     const mainOnly = (rawInventory as any[]).filter((i: any) => (i.location || "main") === "main");
-    const byKey = new Map<string, any>();
+    const byKey = new Map<string, any[]>();
     for (const it of mainOnly) {
       const key = ((it as any).uniqueCode || it.sku || it.name || it.id).toString().trim().toLowerCase();
-      const existing = byKey.get(key);
-      if (!existing) { byKey.set(key, it); continue; }
-      if ((it.qty ?? 0) > (existing.qty ?? 0)) byKey.set(key, it);
+      byKey.set(key, [...(byKey.get(key) || []), it]);
     }
-    return Array.from(byKey.values()) as typeof rawInventory;
+    return Array.from(byKey.values()).map(group => {
+      if (group.length === 1) return group[0];
+      const base = group[0];
+      const qty = group.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+      const positiveQty = group.reduce((sum, item) => sum + Math.max(0, Number(item.qty) || 0), 0);
+      const costValue = group.reduce((sum, item) => sum + Math.max(0, Number(item.qty) || 0) * (Number(item.costPrice) || 0), 0);
+      return {
+        ...base,
+        qty,
+        costPrice: positiveQty > 0 ? costValue / positiveQty : Number(base.costPrice) || 0,
+        reorderLevel: Math.max(...group.map(item => Number(item.reorderLevel) || 0)),
+      };
+    }) as typeof rawInventory;
   }, [rawInventory]);
   const { data: accounts } = useAccountsCloud();
   const { data: ledger } = useLedgerEntriesCloud();
-  const [assets] = useState<CompanyAsset[]>([]);
+  const [assets] = useLocalStorage<CompanyAsset[]>("cb-company-assets", []);
 
   // Read additional data
   const { data: customers } = useCustomersCloud();
   const { data: receipts } = useReceiptsCloud();
   const { data: salesOrders } = useSalesOrdersCloud();
   const { data: purchaseOrders } = usePurchaseOrdersCloud();
+  const { data: purchasePayments } = usePurchasePaymentsCloud();
+  const { data: stockAdjustments } = useStockAdjustmentsCloud();
 
   // Build monthly data from real data
   const monthlySales = useMemo(() => buildMonthlyData(invoices, expenses, bills, inventory), [invoices, expenses, bills, inventory]);
@@ -2733,17 +2844,19 @@ export default function Reports() {
   const kpiData = useMemo(() => {
     const totalSales = invoices.filter(countsAsSale).reduce((s, i) => s + saleAmount(i, inventory), 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0) + bills.reduce((s, b) => s + b.amount, 0);
-    const outstandingReceivables = invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
-    const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((s, b) => s + b.amount, 0);
+    const outstandingReceivables = invoices.filter(countsAsSale).reduce((s, invoice) => s + getInvoicePaymentSummary(invoice, receipts).remaining, 0);
+    const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((sum, bill) => {
+      const paid = purchasePayments
+        .filter(payment => normName(payment.billNumber) === normName(bill.number) && normName(payment.supplier) === normName(bill.supplier))
+        .reduce((paymentSum, payment) => paymentSum + (payment.amount || 0), 0);
+      return sum + Math.max(0, (bill.amount || 0) - paid);
+    }, 0);
 
     // Bank balance from accounts + ledger
-    let bankBalance = accounts.reduce((s, a) => s + a.balance, 0);
-    const incoming = ledger.filter(e => e.type === "incoming").reduce((s, e) => s + e.amount, 0);
-    const outgoing = ledger.filter(e => e.type === "outgoing").reduce((s, e) => s + e.amount, 0);
-    bankBalance += incoming - outgoing;
+    const bankBalance = accounts.reduce((s, a) => s + a.balance, 0);
 
     return { totalSales, totalExpenses, netProfit: totalSales - totalExpenses, outstandingReceivables, outstandingPayables, bankBalance };
-  }, [invoices, expenses, bills, accounts, ledger]);
+  }, [invoices, expenses, bills, accounts, inventory, receipts, purchasePayments]);
 
   const toggleFav = useCallback((code: string) => {
     setFavorites(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
@@ -2767,7 +2880,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} />;
   }
 
   return (
