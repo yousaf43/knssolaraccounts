@@ -2321,7 +2321,49 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </table>
                   </div>
                 )}
+
+                {report.code === "085" && (() => {
+                  const all = Object.values(productMap);
+                  const sumOf = (fn: (l: Line) => boolean) =>
+                    all.filter(fn).reduce((s, l) => s + l.revenue, 0);
+                  const stockRev = sumOf(l => l.productType === "stock");
+                  const nonStockRev = sumOf(l => l.productType === "non-stock");
+                  const bundleRev = sumOf(l => l.productType === "bundle");
+                  const unknownRev = sumOf(l => l.productType !== "stock" && l.productType !== "non-stock" && l.productType !== "bundle");
+                  const periodInvoices = uniqueInvoicesById(invoices.filter(i => inRange(i.date, fromDate, toDate)));
+                  const netSales =
+                    periodInvoices
+                      .filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i))
+                      .reduce((s, i) => s + saleAmount(i, inventory), 0) -
+                    periodInvoices
+                      .filter(i => i.isReturn || i.status === "returned")
+                      .reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
+                  const diff = netSales - (stockRev + nonStockRev + bundleRev + unknownRev);
+                  const Row = ({ label, value, bold }: { label: string; value: number; bold?: boolean }) => (
+                    <div className={`flex items-center justify-between py-1.5 ${bold ? "font-semibold border-t mt-1 pt-2" : ""}`}>
+                      <span className={bold ? "" : "text-muted-foreground"}>{label}</span>
+                      <span>{formatCurrency(value)}</span>
+                    </div>
+                  );
+                  return (
+                    <div className="mt-6 border-t pt-4">
+                      <h3 className="text-sm font-semibold mb-2">Reconciliation with Income Statement</h3>
+                      <div className="text-sm max-w-xl">
+                        <Row label="Stock products revenue (this report)" value={stockRev} />
+                        <Row label="Non-stock / service lines" value={nonStockRev} />
+                        <Row label="Bundle lines (not split)" value={bundleRev} />
+                        <Row label="Unmatched / uncatalogued lines" value={unknownRev} />
+                        <Row label="Rounding, discounts & sales tax adjustment" value={diff} />
+                        <Row label="Net sales (Income Statement)" value={netSales} bold />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        This report counts only tracked stock products; the Income Statement counts full invoice values (excluding old balance and returns), so the lines above explain the difference.
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
+
             );
           })()}
 
