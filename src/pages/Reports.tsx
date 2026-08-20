@@ -1348,6 +1348,139 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         </div>
       )}
 
+      {/* Discount Report (By Customer) — 038 */}
+      {report.code === "038" && (() => {
+        const saleInvoices = uniqueInvoicesById(invoices.filter(countsAsSale))
+          .filter(i => inRange(i.date, fromDate, toDate));
+
+        const rows = saleInvoices.map(inv => {
+          const items = inv.items || [];
+          const gross = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.rate) || 0), 0);
+          const lineDiscount = items.reduce(
+            (s, it) => s + (Number(it.qty) || 0) * (Number(it.rate) || 0) * (Number(it.discount) || 0) / 100,
+            0
+          );
+          const invoiceDiscount = Number(inv.discount) || 0;
+          const totalDiscount = lineDiscount + invoiceDiscount;
+          return {
+            id: inv.id,
+            customer: (inv.customer || "").trim() || "(No Customer)",
+            number: inv.number,
+            documentNumber: inv.documentNumber || "",
+            date: inv.date,
+            gross,
+            lineDiscount,
+            invoiceDiscount,
+            totalDiscount,
+            pct: gross > 0 ? (totalDiscount / gross) * 100 : 0,
+            net: Number(inv.amount) || 0,
+          };
+        });
+
+        const custList = Array.from(new Set(rows.map(r => r.customer))).sort((a, b) => a.localeCompare(b));
+        const tokens = tokenize(discountSearch);
+        const visible = rows
+          .filter(r => discountOnly !== "with" || r.totalDiscount > 0)
+          .filter(r => discountCustomer === "all" || normName(r.customer) === normName(discountCustomer))
+          .filter(r => matchesTokens(tokens, r.customer, r.number, r.documentNumber, r.date))
+          .sort((a, b) => a.customer.localeCompare(b.customer) || (a.date || "").localeCompare(b.date || ""));
+
+        const totals = visible.reduce((acc, r) => ({
+          gross: acc.gross + r.gross,
+          lineDiscount: acc.lineDiscount + r.lineDiscount,
+          invoiceDiscount: acc.invoiceDiscount + r.invoiceDiscount,
+          totalDiscount: acc.totalDiscount + r.totalDiscount,
+          net: acc.net + r.net,
+        }), { gross: 0, lineDiscount: 0, invoiceDiscount: 0, totalDiscount: 0, net: 0 });
+
+        return (
+          <div className="bg-card rounded-lg border p-6">
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+              <h2 className="text-lg font-semibold">Discount Report (By Customer) — {visible.length} invoices</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  value={discountSearch}
+                  onChange={(e) => setDiscountSearch(e.target.value)}
+                  placeholder="Search customer, invoice #, doc #…"
+                  className="h-9 w-full sm:w-64"
+                />
+                <Select value={discountCustomer} onValueChange={setDiscountCustomer}>
+                  <SelectTrigger className="h-9 text-xs w-48"><SelectValue placeholder="Customer" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Customers</SelectItem>
+                    {custList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={discountOnly} onValueChange={setDiscountOnly}>
+                  <SelectTrigger className="h-9 text-xs w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="with">Only with discount</SelectItem>
+                    <SelectItem value="all">All invoices</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(discountSearch || discountCustomer !== "all" || discountOnly !== "with") && (
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDiscountSearch(""); setDiscountCustomer("all"); setDiscountOnly("with"); }}>
+                    Reset
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table id="report-print-table" className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc No.</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Gross</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Item Discount</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Invoice Discount</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total Discount</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Disc %</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Net Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.length === 0 ? (
+                    <tr><td colSpan={11} className="text-center py-6 text-muted-foreground">No discounted invoices in this range.</td></tr>
+                  ) : visible.map((r, i) => (
+                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                      <td className="px-3 py-2 font-medium"><HighlightText text={r.customer} query={discountSearch} /></td>
+                      <td className="px-3 py-2 whitespace-nowrap"><HighlightText text={r.number} query={discountSearch} /></td>
+                      <td className="px-3 py-2">{r.documentNumber || "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{r.date || "—"}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(r.gross)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(r.lineDiscount)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(r.invoiceDiscount)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-destructive">{formatCurrency(r.totalDiscount)}</td>
+                      <td className="px-3 py-2 text-right text-muted-foreground">{r.pct.toFixed(2)}%</td>
+                      <td className="px-3 py-2 text-right font-semibold">{formatCurrency(r.net)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                {visible.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 font-bold bg-muted/30">
+                      <td className="px-3 py-2" colSpan={5}>Total ({visible.length} invoices)</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(totals.gross)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(totals.lineDiscount)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(totals.invoiceDiscount)}</td>
+                      <td className="px-3 py-2 text-right text-destructive">{formatCurrency(totals.totalDiscount)}</td>
+                      <td className="px-3 py-2 text-right">{totals.gross > 0 ? ((totals.totalDiscount / totals.gross) * 100).toFixed(2) : "0.00"}%</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(totals.net)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+
       {/* Sales Reports */}
       {["028", "029", "034", "037", "063", "084", "085", "088", "235", "236", "200", "201", "202", "203"].includes(report.code) && (
         <div className="space-y-6">
