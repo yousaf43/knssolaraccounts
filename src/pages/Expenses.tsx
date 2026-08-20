@@ -18,13 +18,9 @@ import { defaultAccounts, type Account } from "@/data/defaultAccounts";
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Fuel and Transportation", "Bills and Bilties", "Material Delivery and Travel", "Maintenance and other Replacement", "Miscellaneous", "Material Purchase", "Other"];
 const paymentMethods = ["Credit Card", "Bank Transfer", "Auto-debit", "Cash", "Check"];
-const nominalAccounts = [
-  "5000 - Cost of Goods Sold", "5100 - Purchase Returns",
-  "6000 - Salaries & Wages", "6100 - Rent Expense", "6200 - Utilities Expense",
-  "6300 - Marketing & Advertising", "6400 - Insurance Expense", "6500 - Depreciation",
-  "6600 - Office Supplies", "6700 - Travel & Entertainment", "6800 - Professional Fees",
-  "6900 - Bank Charges", "7000 - Other Expenses",
-];
+// Nominal accounts mirror the expense categories
+const nominalAccounts = categories;
+
 
 const categoryColors: Record<string, string> = {
   Software: "bg-primary/10 text-primary",
