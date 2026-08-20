@@ -1389,9 +1389,21 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const sumAdvance = (invs: Invoice[], recs: Receipt[]) =>
               invs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, recs).overpaid, 0);
 
+            // Apply the selected date range to invoices & receipts
+            const inRange = (dateStr?: string) => {
+              if (!dateStr) return true;
+              const d = new Date(dateStr);
+              if (Number.isNaN(d.getTime())) return true;
+              if (fromDate && d < fromDate) return false;
+              if (toDate && d > toDate) return false;
+              return true;
+            };
+            const invoicesInRange = invoices.filter(i => inRange(i.date));
+            const receiptsInRange = receipts.filter(r => inRange((r as any).date));
+
             const custData = customers.map(cust => {
-              const custInv = invoices.filter(i => normName(i.customer) === normName(cust.name));
-              const custRec = receipts.filter(r => normName(r.customer) === normName(cust.name));
+              const custInv = invoicesInRange.filter(i => normName(i.customer) === normName(cust.name));
+              const custRec = receiptsInRange.filter(r => normName(r.customer) === normName(cust.name));
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
               const totalPaid = custRec.reduce((s, r) => s + r.amount, 0)
                 + custInv.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
@@ -1402,7 +1414,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             // Catch orphan invoices (customer name doesn't match any customer record, or is blank)
             const knownNames = new Set(customers.map(c => normName(c.name)));
-            const orphanInv = invoices.filter(i => !knownNames.has(normName(i.customer)));
+            const orphanInv = invoicesInRange.filter(i => !knownNames.has(normName(i.customer)));
             if (orphanInv.length > 0) {
               const groups = new Map<string, typeof orphanInv>();
               orphanInv.forEach(i => {
@@ -1411,7 +1423,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 groups.get(key)!.push(i);
               });
               groups.forEach((invs, name) => {
-                const recs = receipts.filter(r => normName(r.customer) === normName(name));
+                const recs = receiptsInRange.filter(r => normName(r.customer) === normName(name));
                 const totalBilled = invs.reduce((s, i) => s + i.amount, 0);
                 const totalPaid = recs.reduce((s, r) => s + r.amount, 0)
                   + invs.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
@@ -2217,7 +2229,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                         <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={report.code === "085" ? 5 : 4}>Total</td>
+                          <td className="px-3 py-2" colSpan={4}>Total</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.count, 0)}</td>
                           <td className="px-3 py-2 text-right">{searchFiltered.reduce((s, p) => s + p.qty, 0)}</td>
                           {report.code === "085" && (
