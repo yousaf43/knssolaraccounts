@@ -1414,7 +1414,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             // Catch orphan invoices (customer name doesn't match any customer record, or is blank)
             const knownNames = new Set(customers.map(c => normName(c.name)));
-            const orphanInv = invoices.filter(i => !knownNames.has(normName(i.customer)));
+            const orphanInv = invoicesInRange.filter(i => !knownNames.has(normName(i.customer)));
             if (orphanInv.length > 0) {
               const groups = new Map<string, typeof orphanInv>();
               orphanInv.forEach(i => {
@@ -1423,7 +1423,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 groups.get(key)!.push(i);
               });
               groups.forEach((invs, name) => {
-                const recs = receipts.filter(r => normName(r.customer) === normName(name));
+                const recs = receiptsInRange.filter(r => normName(r.customer) === normName(name));
                 const totalBilled = invs.reduce((s, i) => s + i.amount, 0);
                 const totalPaid = recs.reduce((s, r) => s + r.amount, 0)
                   + invs.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
