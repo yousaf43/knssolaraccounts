@@ -1240,7 +1240,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Cash Flow */}
-      {["220", "060", "061"].includes(report.code) && (
+      {["220", "060", "061", "221"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Cash Flow Trend</h2>
           {filteredData.length === 0 ? (
@@ -2568,8 +2568,26 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         );
       })()}
 
-      {/* Tax & Other */}
-      {["100", "101", "102", "050", "051", "052", "062", "063", "135", "244", "258", "381", "383", "241", "242"].includes(report.code) && (
+      {/* Tax reports */}
+      {["100", "101", "102"].includes(report.code) && (() => {
+        const salesRows = uniqueInvoicesById(invoices.filter(invoice => countsAsSale(invoice) && inRange(invoice.date, fromDate, toDate)));
+        const purchaseRows = bills.filter(bill => inRange(bill.date, fromDate, toDate));
+        const rows = report.code === "100"
+          ? salesRows.map(invoice => ({ id: invoice.id, number: invoice.number, date: invoice.date, party: invoice.customer, amount: invoice.amount, tax: invoice.tax || 0, type: "Sales" }))
+          : report.code === "101"
+            ? purchaseRows.map(bill => ({ id: bill.id, number: bill.number, date: bill.date, party: bill.supplier, amount: bill.amount, tax: bill.tax || 0, type: "Purchase" }))
+            : [
+                ...salesRows.map(invoice => ({ id: invoice.id, number: invoice.number, date: invoice.date, party: invoice.customer, amount: invoice.amount, tax: invoice.tax || 0, type: "Sales" })),
+                ...purchaseRows.map(bill => ({ id: bill.id, number: bill.number, date: bill.date, party: bill.supplier, amount: bill.amount, tax: -(bill.tax || 0), type: "Purchase" })),
+              ];
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4">{report.title} ({rows.length} records)</h2>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Type</th><th className="text-left px-3 py-2">Document #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Customer / Supplier</th><th className="text-right px-3 py-2">Document Total</th><th className="text-right px-3 py-2">Tax</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.type}-${row.id}`} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{row.type}</td><td className="px-3 py-2 font-medium">{row.number}</td><td className="px-3 py-2">{row.date}</td><td className="px-3 py-2">{row.party}</td><td className="px-3 py-2 text-right">{formatCurrency(row.amount)}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.tax)}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.tax, 0))}</td></tr></tfoot></table>
+        </div>;
+      })()}
+
+      {/* Reports without dedicated source tables use the shared trend view, never fabricated rows. */}
+      {["050", "051", "052", "062", "135", "244", "258", "381", "383", "241", "242"].includes(report.code) && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Summary</h2>
           {filteredData.length === 0 ? (
@@ -2793,7 +2811,7 @@ export default function Reports() {
   const kpiData = useMemo(() => {
     const totalSales = invoices.filter(countsAsSale).reduce((s, i) => s + saleAmount(i, inventory), 0);
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0) + bills.reduce((s, b) => s + b.amount, 0);
-    const outstandingReceivables = invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
+    const outstandingReceivables = invoices.filter(countsAsSale).reduce((s, invoice) => s + getInvoicePaymentSummary(invoice, receipts).remaining, 0);
     const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((s, b) => s + b.amount, 0);
 
     // Bank balance from accounts + ledger
@@ -2803,7 +2821,7 @@ export default function Reports() {
     bankBalance += incoming - outgoing;
 
     return { totalSales, totalExpenses, netProfit: totalSales - totalExpenses, outstandingReceivables, outstandingPayables, bankBalance };
-  }, [invoices, expenses, bills, accounts, ledger]);
+  }, [invoices, expenses, bills, accounts, ledger, inventory, receipts]);
 
   const toggleFav = useCallback((code: string) => {
     setFavorites(prev => prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]);
