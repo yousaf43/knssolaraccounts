@@ -94,7 +94,7 @@ const allReports: Report[] = [
   { code: "129", title: "Balance Sheet", category: "Management", section: "general" },
   { code: "135", title: "Nominal Activities", category: "Management", section: "general" },
   { code: "244", title: "Product Transaction Detail", category: "Management", section: "general" },
-  { code: "258", title: "Expenses Nominal Summary", category: "Management", section: "general" },
+  { code: "258", title: "Expenses by Nominal Account", category: "Management", section: "general" },
   { code: "307", title: "Budget Income Statement", category: "Management", section: "general" },
   { code: "381", title: "Depreciation Details", category: "Management", section: "general" },
   { code: "383", title: "Fixed Assets Details", category: "Management", section: "general" },
