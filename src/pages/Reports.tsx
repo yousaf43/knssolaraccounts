@@ -491,7 +491,7 @@ function IncomeStatement({
       return (line.qty || 0) * costOfInventoryId(line.inventoryItemId, line.description);
     };
 
-    const periodInvoices = invoices.filter(i => inRange(i.date, fromDate, toDate));
+    const periodInvoices = uniqueInvoicesById(invoices.filter(i => inRange(i.date, fromDate, toDate)));
     const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i));
     const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
 
@@ -503,17 +503,18 @@ function IncomeStatement({
     const salesReturns = stRate > 0 ? salesReturnsRaw / (1 + stRate) : salesReturnsRaw;
     const salesTaxExcluded = (grossSalesRaw - salesReturnsRaw) - (grossSales - salesReturns);
     const netSales = grossSales - salesReturns;
-    const carriedOldBalance = periodInvoices.reduce((s, i) => s + oldBalanceAmount(i, inventory), 0);
+    const carriedOldBalance = [...sales, ...returns].reduce((s, i) => s + oldBalanceAmount(i, inventory), 0);
 
     const cogsSales = sales.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + lineCost(l), 0), 0);
     const cogsReturns = returns.reduce((s, i) => s + (i.items || []).reduce((t, l) => t + Math.abs(lineCost(l)), 0), 0);
     let costOfSales = cogsSales - cogsReturns;
 
-    // Fallback: if no product costs are recorded, use purchases (bills) for the period.
+    // Purchases are not interchangeable with COGS: bills may include assets,
+    // services, or stock that remains unsold. Keep zero cost visible rather
+    // than fabricating cost of sales from all purchases.
     const periodBills = bills.filter(b => inRange(b.date, fromDate, toDate));
     const purchasesTotal = periodBills.reduce((s, b) => s + (b.amount || 0), 0);
-    const usedPurchasesFallback = costOfSales <= 0 && purchasesTotal > 0;
-    if (usedPurchasesFallback) costOfSales = purchasesTotal;
+    const usedPurchasesFallback = false;
 
     const grossIncome = netSales - costOfSales;
 
@@ -565,7 +566,7 @@ function IncomeStatement({
       label: "Gross sales",
       note: `${statement.salesCount} approved invoice${statement.salesCount === 1 ? "" : "s"}`,
       indent: 1,
-      detail: statement.salesTaxExcluded > 0 ? statement.grossSalesRaw : statement.grossSales,
+      detail: statement.grossSales,
     });
     if (statement.salesReturns > 0) {
       out.push({
@@ -1015,7 +1016,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
-  const isPnL = ["121", "123", "125"].includes(report.code);
+  const isPnL = ["121", "123", "125", "127"].includes(report.code);
 
   const reportRootRef = useRef<HTMLDivElement>(null);
   useSortableTables(reportRootRef, [report.code]);
@@ -1189,7 +1190,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* P&L Reports */}
-      {["121", "123", "125"].includes(report.code) && (
+      {["121", "123", "125", "127"].includes(report.code) && (
         <>
           <IncomeStatement
             report={report}
@@ -1263,7 +1264,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Income Statement / Balance Sheet / Overview */}
-      {["127", "129", "240", "307"].includes(report.code) && (
+      {["129", "240", "307"].includes(report.code) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Expense Breakdown</h2>
@@ -1311,7 +1312,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Sales Reports */}
-      {["028", "029", "034", "037", "084", "085", "088", "235", "236", "200", "201", "202", "203"].includes(report.code) && (
+      {["028", "029", "034", "037", "063", "084", "085", "088", "235", "236", "200", "201", "202", "203"].includes(report.code) && (
         <div className="space-y-6">
           {/* Sales Trend Chart */}
           <div className="bg-card rounded-lg border p-6">
@@ -1450,8 +1451,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               const custInv = invoicesInRange.filter(i => normName(i.customer) === normName(cust.name));
               const custRec = receiptsInRange.filter(r => normName(r.customer) === normName(cust.name));
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
-              const totalPaid = custRec.reduce((s, r) => s + r.amount, 0)
-                + custInv.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
+              const totalPaid = custInv.reduce((sum, invoice) => sum + getInvoicePaymentSummary(invoice, custRec).totalPaid, 0);
               const outstanding = sumOutstanding(custInv, custRec);
               const advance = sumAdvance(custInv, custRec);
               return { ...cust, invoiceCount: custInv.length, totalBilled, totalPaid, outstanding, advance, invoices: custInv, receipts: custRec };
@@ -1471,8 +1471,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               groups.forEach((invs, name) => {
                 const recs = receiptsInRange.filter(r => normName(r.customer) === normName(name));
                 const totalBilled = invs.reduce((s, i) => s + i.amount, 0);
-                const totalPaid = recs.reduce((s, r) => s + r.amount, 0)
-                  + invs.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
+                const totalPaid = invs.reduce((sum, invoice) => sum + getInvoicePaymentSummary(invoice, recs).totalPaid, 0);
                 custData.push({
                   id: `orphan-${name}`, name, company: "", email: "", phone: "", address: "",
                   invoiceCount: invs.length,
@@ -1691,7 +1690,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               });
             };
 
-            invoices.filter(countsAsSale).forEach(inv => {
+            uniqueInvoicesById(invoices.filter(countsAsSale)).forEach(inv => {
               // Date range filter (applies here so per-product report respects it)
               if (fromDate || toDate) {
                 if (!inv.date) return;
@@ -1701,6 +1700,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               }
               inv.items.forEach(item => {
                 const invItem = resolveInv(item);
+                if (invItem?.productType === "old-balance") return;
 
                 // Report 085 follows the actual stock movement: bundles are shown as
                 // their tracked components rather than as one top-level bundle line.
@@ -2129,7 +2129,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={report.code === "085" ? 7 : 6}>Total ({multiSelected.length} products)</td>
+                          <td className="px-3 py-2" colSpan={6}>Total ({multiSelected.length} products)</td>
                           <td className="px-3 py-2 text-right">{multiSelected.reduce((s, p) => s + p.qty, 0)}</td>
                           {report.code === "085" && (
                             <td className="px-3 py-2 text-right">{formatCurrency(multiSelected.flatMap(p => p.details).reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
@@ -2184,7 +2184,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 font-bold">
-                          <td className="px-3 py-2" colSpan={report.code === "085" ? 6 : 5}>Total ({selected.category})</td>
+                          <td className="px-3 py-2" colSpan={5}>Total ({selected.category})</td>
                           <td className="px-3 py-2 text-right">{selected.qty}</td>
                           {report.code === "085" && (
                             <td className="px-3 py-2 text-right">{formatCurrency(selected.details.reduce((s, d) => s + d.qty * d.costPrice, 0))}</td>
@@ -2815,10 +2815,7 @@ export default function Reports() {
     const outstandingPayables = bills.filter(b => b.status !== "paid").reduce((s, b) => s + b.amount, 0);
 
     // Bank balance from accounts + ledger
-    let bankBalance = accounts.reduce((s, a) => s + a.balance, 0);
-    const incoming = ledger.filter(e => e.type === "incoming").reduce((s, e) => s + e.amount, 0);
-    const outgoing = ledger.filter(e => e.type === "outgoing").reduce((s, e) => s + e.amount, 0);
-    bankBalance += incoming - outgoing;
+    const bankBalance = accounts.reduce((s, a) => s + a.balance, 0);
 
     return { totalSales, totalExpenses, netProfit: totalSales - totalExpenses, outstandingReceivables, outstandingPayables, bankBalance };
   }, [invoices, expenses, bills, accounts, ledger, inventory, receipts]);
