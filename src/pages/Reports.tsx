@@ -903,6 +903,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [discountSearch, setDiscountSearch] = useState("");
   const [discountOnly, setDiscountOnly] = useState("with");
   const [discountCustomer, setDiscountCustomer] = useState("all");
+  const [nominalSearch, setNominalSearch] = useState("");
+  const [nominalAccountFilter, setNominalAccountFilter] = useState("all");
+  const [nominalPayMethod, setNominalPayMethod] = useState("all");
+  const [nominalView, setNominalView] = useState<"summary" | "detail">("summary");
   const [receiptSearch, setReceiptSearch] = useState("");
   const [txnSearch, setTxnSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
