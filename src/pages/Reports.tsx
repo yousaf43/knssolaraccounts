@@ -873,7 +873,7 @@ function IncomeStatement({
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger }: {
   report: Report; onBack: () => void;
   monthlySales: MonthlyReportRow[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -889,6 +889,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   purchaseOrders: PurchaseOrder[];
   purchasePayments: PurchasePayment[];
   stockAdjustments: StockAdjustment[];
+  accounts: Account[];
+  ledger: LedgerEntry[];
 }) {
   const { formatCurrency, settings } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
@@ -1019,7 +1021,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const isPnL = ["121", "123", "125", "127"].includes(report.code);
 
   const reportRootRef = useRef<HTMLDivElement>(null);
-  useSortableTables(reportRootRef, [report.code]);
+  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter]);
 
   return (
     <div className="space-y-6" ref={reportRootRef}>
@@ -1241,7 +1243,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Cash Flow */}
-      {["220", "060", "061", "221"].includes(report.code) && (
+      {report.code === "220" && (
         <div className="bg-card rounded-lg border p-6">
           <h2 className="text-lg font-semibold mb-4">Cash Flow Trend</h2>
           {filteredData.length === 0 ? (
@@ -1263,8 +1265,39 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         </div>
       )}
 
+      {["060", "061"].includes(report.code) && (() => {
+        const wantsCash = report.code === "060";
+        const rows = ledger.filter(entry => {
+          const isCash = /cash|petty/i.test(entry.bank || "");
+          return (wantsCash ? isCash : !isCash) && inRange(entry.date, fromDate, toDate);
+        });
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4">{report.title} ({rows.length} entries)</h2>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Account</th><th className="text-left px-3 py-2">Description</th><th className="text-left px-3 py-2">Reference</th><th className="text-right px-3 py-2">Incoming</th><th className="text-right px-3 py-2">Outgoing</th></tr></thead><tbody>{rows.map((entry, index) => <tr key={entry.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{entry.date}</td><td className="px-3 py-2 font-medium">{entry.bank}</td><td className="px-3 py-2">{entry.description}</td><td className="px-3 py-2">{entry.reference || "—"}</td><td className="px-3 py-2 text-right text-success">{entry.type === "incoming" ? formatCurrency(entry.amount) : "—"}</td><td className="px-3 py-2 text-right text-destructive">{entry.type === "outgoing" ? formatCurrency(entry.amount) : "—"}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Net movement</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "incoming").reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "outgoing").reduce((sum, row) => sum + row.amount, 0))}</td></tr></tfoot></table>
+        </div>;
+      })()}
+
+      {report.code === "221" && <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+        <h2 className="text-lg font-semibold mb-4">Bank Balances ({accounts.length} accounts)</h2>
+        <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Account</th><th className="text-left px-3 py-2">Title</th><th className="text-left px-3 py-2">Code</th><th className="text-left px-3 py-2">Currency</th><th className="text-right px-3 py-2">Balance</th></tr></thead><tbody>{accounts.map((account, index) => <tr key={account.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2 font-medium">{account.name}</td><td className="px-3 py-2">{account.accountTitle}</td><td className="px-3 py-2">{account.code}</td><td className="px-3 py-2">{account.currency}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(account.balance)}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(accounts.reduce((sum, account) => sum + account.balance, 0))}</td></tr></tfoot></table>
+      </div>}
+
       {/* Income Statement / Balance Sheet / Overview */}
-      {["129", "240", "307"].includes(report.code) && (
+      {report.code === "129" && (() => {
+        const stockValue = inventory.reduce((sum, item) => sum + Math.max(0, item.qty) * (item.costPrice || 0), 0);
+        const fixedAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
+        const totalAssets = kpiData.bankBalance + kpiData.outstandingReceivables + stockValue + fixedAssets;
+        const equity = totalAssets - kpiData.outstandingPayables;
+        const rows = [
+          { label: "Cash & bank", amount: kpiData.bankBalance },
+          { label: "Accounts receivable", amount: kpiData.outstandingReceivables },
+          { label: "Inventory", amount: stockValue },
+          { label: "Fixed assets", amount: fixedAssets },
+        ];
+        return <div className="bg-card rounded-lg border p-6 overflow-x-auto"><h2 className="text-lg font-semibold mb-4">Balance Sheet — {dateRange}</h2><table id="report-print-table" data-no-sort className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Description</th><th className="text-right px-3 py-2">Amount</th></tr></thead><tbody><tr className="font-bold bg-muted/30"><td className="px-3 py-2">Assets</td><td /></tr>{rows.map(row => <tr key={row.label} className="border-b"><td className="px-3 py-2 pl-8">{row.label}</td><td className="px-3 py-2 text-right">{formatCurrency(row.amount)}</td></tr>)}<tr className="font-bold border-t-2"><td className="px-3 py-2">Total assets</td><td className="px-3 py-2 text-right">{formatCurrency(totalAssets)}</td></tr><tr className="font-bold bg-muted/30"><td className="px-3 py-2">Liabilities & equity</td><td /></tr><tr className="border-b"><td className="px-3 py-2 pl-8">Accounts payable</td><td className="px-3 py-2 text-right">{formatCurrency(kpiData.outstandingPayables)}</td></tr><tr className="border-b"><td className="px-3 py-2 pl-8">Owner's equity / retained earnings</td><td className="px-3 py-2 text-right">{formatCurrency(equity)}</td></tr><tr className="font-bold border-t-2"><td className="px-3 py-2">Total liabilities & equity</td><td className="px-3 py-2 text-right">{formatCurrency(kpiData.outstandingPayables + equity)}</td></tr></tbody></table></div>;
+      })()}
+
+      {["240", "307"].includes(report.code) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-card rounded-lg border p-6">
             <h2 className="text-lg font-semibold mb-4">Expense Breakdown</h2>
@@ -2842,7 +2875,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} />;
   }
 
   return (
