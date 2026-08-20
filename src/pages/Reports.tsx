@@ -1389,9 +1389,21 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const sumAdvance = (invs: Invoice[], recs: Receipt[]) =>
               invs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, recs).overpaid, 0);
 
+            // Apply the selected date range to invoices & receipts
+            const inRange = (dateStr?: string) => {
+              if (!dateStr) return true;
+              const d = new Date(dateStr);
+              if (Number.isNaN(d.getTime())) return true;
+              if (fromDate && d < fromDate) return false;
+              if (toDate && d > toDate) return false;
+              return true;
+            };
+            const invoicesInRange = invoices.filter(i => inRange(i.date));
+            const receiptsInRange = receipts.filter(r => inRange((r as any).date));
+
             const custData = customers.map(cust => {
-              const custInv = invoices.filter(i => normName(i.customer) === normName(cust.name));
-              const custRec = receipts.filter(r => normName(r.customer) === normName(cust.name));
+              const custInv = invoicesInRange.filter(i => normName(i.customer) === normName(cust.name));
+              const custRec = receiptsInRange.filter(r => normName(r.customer) === normName(cust.name));
               const totalBilled = custInv.reduce((s, i) => s + i.amount, 0);
               const totalPaid = custRec.reduce((s, r) => s + r.amount, 0)
                 + custInv.reduce((s, i) => s + (i.payments || []).reduce((ss: number, p: any) => ss + (p.amount || 0), 0), 0);
