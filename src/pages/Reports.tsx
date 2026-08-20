@@ -2322,7 +2322,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   </div>
                 )}
 
-                {(report.code === "085" || report.code === "084") && (() => {
+                {["084", "085", "088", "235", "236", "203"].includes(report.code) && (() => {
                   const all = Object.values(productMap);
                   const sumOf = (fn: (l: Line) => boolean) =>
                     all.filter(fn).reduce((s, l) => s + l.revenue, 0);
@@ -2349,20 +2349,20 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <div className="mt-6 border-t pt-4">
                       <h3 className="text-sm font-semibold mb-2">Reconciliation with Income Statement</h3>
                       <div className="text-sm max-w-xl">
-                        <Row label={report.code === "084" ? "Stock product lines" : "Stock products revenue (this report)"} value={stockRev} />
+                        <Row label={report.code === "085" ? "Stock products revenue (this report)" : "Stock product lines"} value={stockRev} />
                         <Row label="Non-stock / service lines" value={nonStockRev} />
                         <Row label="Bundle lines (not split)" value={bundleRev} />
                         <Row label="Unmatched / uncatalogued lines" value={unknownRev} />
-                        {report.code === "084" && (
+                        {report.code !== "085" && (
                           <Row label="Total line revenue (this report)" value={stockRev + nonStockRev + bundleRev + unknownRev} bold />
                         )}
                         <Row label="Rounding, discounts & sales tax adjustment" value={diff} />
                         <Row label="Net sales (Income Statement)" value={netSales} bold />
                       </div>
                       <p className="text-xs text-muted-foreground mt-2">
-                        {report.code === "084"
-                          ? "This report totals raw invoice line amounts (before invoice-level discount and tax adjustments); the Income Statement uses full invoice values excluding old balance and returns, so the adjustment line explains the difference."
-                          : "This report counts only tracked stock products; the Income Statement counts full invoice values (excluding old balance and returns), so the lines above explain the difference."}
+                        {report.code === "085"
+                          ? "This report counts only tracked stock products; the Income Statement counts full invoice values (excluding old balance and returns), so the lines above explain the difference."
+                          : "This report totals raw invoice line amounts (before invoice-level discount and tax adjustments); the Income Statement uses full invoice values excluding old balance and returns, so the adjustment line explains the difference."}
                       </p>
                     </div>
                   );
