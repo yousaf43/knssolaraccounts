@@ -2349,11 +2349,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <div className="mt-6 border-t pt-4">
                       <h3 className="text-sm font-semibold mb-2">Reconciliation with Income Statement</h3>
                       <div className="text-sm max-w-xl">
-                        <Row label={report.code === "084" ? "Stock product lines" : "Stock products revenue (this report)"} value={stockRev} />
+                        <Row label={report.code === "085" ? "Stock products revenue (this report)" : "Stock product lines"} value={stockRev} />
                         <Row label="Non-stock / service lines" value={nonStockRev} />
                         <Row label="Bundle lines (not split)" value={bundleRev} />
                         <Row label="Unmatched / uncatalogued lines" value={unknownRev} />
-                        {report.code === "084" && (
+                        {report.code !== "085" && (
                           <Row label="Total line revenue (this report)" value={stockRev + nonStockRev + bundleRev + unknownRev} bold />
                         )}
                         <Row label="Rounding, discounts & sales tax adjustment" value={diff} />
