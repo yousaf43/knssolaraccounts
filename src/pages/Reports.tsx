@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useSortableTables } from "@/hooks/useSortableTables";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
@@ -449,7 +449,7 @@ type StatementRow = {
 
 function IncomeStatement({
   report, invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
-  salesTaxRate = 0, incomeTaxRate = 0,
+  salesTaxRate = 0, incomeTaxRate = 0, onStats,
 }: {
   report: Report;
   invoices: Invoice[];
@@ -465,6 +465,8 @@ function IncomeStatement({
   salesTaxRate?: number;
   /** % income tax applied on profit before tax */
   incomeTaxRate?: number;
+  /** Lifts the computed P&L figures up so charts can use them */
+  onStats?: (s: { netSales: number; costOfSales: number; grossIncome: number; operatingExpenses: number; incomeTax: number; netIncome: number }) => void;
 }) {
   const { formatCurrency, formatDate } = useSettings();
   const detailed = report.code === "125";
@@ -572,6 +574,17 @@ function IncomeStatement({
       hasData: periodInvoices.length > 0 || periodExpenses.length > 0 || periodBills.length > 0,
     };
   }, [invoices, expenses, bills, inventory, getAvgCost, fromDate, toDate, salesTaxRate, incomeTaxRate]);
+
+  useEffect(() => {
+    onStats?.({
+      netSales: statement.netSales,
+      costOfSales: statement.costOfSales,
+      grossIncome: statement.grossIncome,
+      operatingExpenses: statement.operatingExpenses,
+      incomeTax: statement.incomeTax,
+      netIncome: statement.netIncome,
+    });
+  }, [statement, onStats]);
 
   const pctOf = (v: number) => (statement.netSales !== 0 ? (v / statement.netSales) * 100 : undefined);
 
