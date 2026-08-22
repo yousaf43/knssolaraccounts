@@ -35,7 +35,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
 });
 
 export default function Inventory() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: inventoryAll, loading, upsert, remove, replaceAll } = useInventoryCloud();
