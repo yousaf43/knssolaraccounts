@@ -613,7 +613,7 @@ export default function Settings() {
                   {cloudBackup.backups.map((b) => (
                     <div key={b.id} className="flex items-center justify-between border rounded-md px-3 py-2">
                       <div>
-                        <span className="text-sm font-medium">{new Date(b.created_at).toLocaleString()}</span>
+                        <span className="text-sm font-medium">{formatDate(b.created_at)} {new Date(b.created_at).toLocaleTimeString()}</span>
                         <Badge variant="outline" className="ml-2 text-[10px]">{b.label}</Badge>
                       </div>
                       <div className="flex gap-1.5">
