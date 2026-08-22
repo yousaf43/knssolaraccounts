@@ -25,7 +25,7 @@ interface StockAdjustmentSectionProps {
 }
 
 export default function StockAdjustmentSection({ inventory, onUpdateInventory }: StockAdjustmentSectionProps) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { data: adjustments, upsert, remove } = useStockAdjustmentsCloud();
   const { moveToTrash } = useTrash();
   const { log } = useActivityLog();
