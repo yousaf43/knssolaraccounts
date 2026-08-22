@@ -5,6 +5,7 @@ import { Search, Loader2, FileText, Edit, Trash2, Printer, RotateCcw, Plus, Chev
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const ACTION_ICONS: Record<string, typeof FileText> = {
   create: Plus,
