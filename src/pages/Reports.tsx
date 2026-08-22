@@ -186,7 +186,7 @@ function DateRangePicker({ from, to, onFromChange, onToChange }: {
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className={cn("w-[150px] justify-start text-left font-normal text-xs", !to && "text-muted-foreground")}>
             <CalendarIcon className="w-3.5 h-3.5 mr-1" />
-            {to ? format(to, "dd MMM yyyy") : "To date"}
+            {to ? formatDate(to) : "To date"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
