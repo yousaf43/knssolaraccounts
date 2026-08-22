@@ -81,7 +81,7 @@ export default function Drafts() {
                   </TableCell>
                   <TableCell className="font-medium">{d.label || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{d.summary || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground whitespace-nowrap">{formatWhen(d.updatedAt)}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{formatWhen(d.updatedAt, formatDate)}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" onClick={() => resume(d)}>
