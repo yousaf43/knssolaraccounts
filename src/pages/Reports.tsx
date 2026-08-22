@@ -1297,7 +1297,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
                   />
                   <Bar dataKey="value" name="Amount" radius={[4, 4, 0, 0]}>
-                    {[0, 1, 2, 3, 4, 5].slice(0, plStats.incomeTax > 0 ? 6 : 5).map((i) => null)}
                     {([
                       { name: "Net Sales", color: "hsl(var(--primary))" },
                       { name: "Cost of Sales", color: "hsl(25, 90%, 52%)" },
