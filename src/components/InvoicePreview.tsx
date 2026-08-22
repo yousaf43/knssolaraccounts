@@ -55,7 +55,7 @@ function numberToWords(num: number): string {
 export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0, customerPhone, customerAddress, docType = "invoice" }: Props) {
   const isQuotation = docType === "quotation";
   const docLabel = isQuotation ? "Quotation" : "Invoice";
-  const { formatCurrency, settings } = useSettings();
+  const { formatCurrency, settings, formatDate } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
