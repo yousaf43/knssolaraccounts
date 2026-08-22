@@ -167,6 +167,7 @@ function DateRangePicker({ from, to, onFromChange, onToChange }: {
   from: Date | undefined; to: Date | undefined;
   onFromChange: (d: Date | undefined) => void; onToChange: (d: Date | undefined) => void;
 }) {
+  const { formatDate } = useSettings();
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Popover>
