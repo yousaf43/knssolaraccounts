@@ -949,11 +949,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     setMultiSelectedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
   const dateRange = useMemo(() => {
-    if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
-    if (fromDate) return `From ${format(fromDate, "dd MMM yyyy")}`;
-    if (toDate) return `To ${format(toDate, "dd MMM yyyy")}`;
+    if (fromDate && toDate) return `${formatDate(fromDate)} - ${formatDate(toDate)}`;
+    if (fromDate) return `From ${formatDate(fromDate)}`;
+    if (toDate) return `To ${formatDate(toDate)}`;
     return "All Time";
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, formatDate]);
 
   const filteredData = useMemo(() => {
     return monthlySales.filter(m => inRange(m.monthStart, fromDate, toDate));
