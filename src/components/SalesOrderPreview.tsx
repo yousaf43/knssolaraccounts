@@ -127,8 +127,8 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
             {order.projectName && <p className="text-xs text-gray-500">Project: {order.projectName}</p>}
           </div>
           <div className="text-right text-sm space-y-0.5">
-            <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{order.date}</span></div>
-            <div className="flex justify-end gap-4"><span className="text-gray-500">Delivery Date</span><span className="font-medium">{order.deliveryDate}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{formatDate(order.date)}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">Delivery Date</span><span className="font-medium">{formatDate(order.deliveryDate)}</span></div>
             <div className="flex justify-end gap-4"><span className="text-gray-500">Order #</span><span className="font-medium">{order.number}</span></div>
           </div>
         </div>
