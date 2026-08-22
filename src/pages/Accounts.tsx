@@ -57,7 +57,7 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
 }
 
 export default function Accounts() {
-  const { formatCurrency, settings } = useSettings();
+  const { formatCurrency, settings, formatDate } = useSettings();
   const { data: accounts, setData: setAccounts, upsert: upsertAccount, remove: removeAccount, loading: accountsLoading } = useAccountsCloud();
   const [activeTab, setActiveTab] = useState("balances");
   const [showAccForm, setShowAccForm] = useState(false);

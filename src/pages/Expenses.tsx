@@ -38,7 +38,7 @@ const categoryColors: Record<string, string> = {
 const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Bank Transfer", nominalAccount: "" });
 
 export default function Expenses() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
