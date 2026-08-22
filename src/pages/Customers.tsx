@@ -16,7 +16,7 @@ import { HighlightText } from "@/components/HighlightText";
 const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", address: "", totalBilled: 0, outstanding: 0 });
 
 export default function Customers() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: customers, upsert: upsertCustomer, remove: removeCustomer } = useCustomersCloud();
