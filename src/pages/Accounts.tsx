@@ -521,7 +521,7 @@ export default function Accounts() {
                   )}
                   {filteredLedger.map(e => (
                     <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3">{e.date}</td>
+                      <td className="p-3">{formatDate(e.date)}</td>
                       <td className="p-3 font-medium">{e.bank}</td>
                       <td className="p-3">
                         <Badge variant={e.type === "incoming" ? "default" : "secondary"}>

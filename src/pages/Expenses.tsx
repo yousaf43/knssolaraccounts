@@ -245,7 +245,7 @@ export default function Expenses() {
           <tbody>
             {pgExpenses.paginatedItems.map((e) => (
               <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 text-muted-foreground">{e.date}</td>
+                <td className="px-4 py-3 text-muted-foreground">{formatDate(e.date)}</td>
                 <td className="px-4 py-3"><Badge className={`${categoryColors[e.category] || "bg-muted text-muted-foreground"} border-0`}>{e.category}</Badge></td>
                 <td className="px-4 py-3">{e.description}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{e.nominalAccount || "—"}</td>
