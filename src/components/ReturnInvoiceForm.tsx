@@ -30,7 +30,7 @@ type Props = {
 };
 
 export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel, nextReturnNumber, accounts: propAccounts }: Props) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
   const [returnType, setReturnType] = useState<"return" | "exchange">("return");
