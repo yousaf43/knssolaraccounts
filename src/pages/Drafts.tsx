@@ -6,20 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { toast } from "sonner";
-import {
-  listDrafts,
-  deleteDraft,
-  clearDrafts,
-  subscribeDrafts,
-  draftKindLabels,
-  type Draft,
-} from "@/lib/drafts";
+import { useSettings } from "@/contexts/SettingsContext";
 
-const formatWhen = (iso: string) => {
+const formatWhen = (iso: string, formatDate: (d: string | Date) => string) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString();
+  return `${formatDate(d)} ${d.toLocaleTimeString()}`;
 };
 
 export default function Drafts() {
