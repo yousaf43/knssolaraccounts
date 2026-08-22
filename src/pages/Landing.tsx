@@ -205,6 +205,7 @@ function DashboardPreview() {
 }
 
 export default function Landing() {
+  const { formatDate } = useSettings();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
