@@ -189,7 +189,7 @@ function DashboardPreview() {
               <tbody>
                 {txRows.map((t) => (
                   <tr key={t.desc} className="border-t">
-                    <td className="py-1.5 text-muted-foreground">{t.date}</td>
+                    <td className="py-1.5 text-muted-foreground">{formatDate(t.date)}</td>
                     <td className="py-1.5">{t.desc}</td>
                     <td className="py-1.5 text-right">{t.amount}</td>
                     <td className={`py-1.5 text-right ${t.tone}`}>{t.status}</td>
