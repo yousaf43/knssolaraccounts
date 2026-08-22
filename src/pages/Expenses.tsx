@@ -32,6 +32,7 @@ const categoryColors: Record<string, string> = {
   Travel: "bg-success/10 text-success",
   Payroll: "bg-destructive/10 text-destructive",
   Insurance: "bg-secondary text-secondary-foreground",
+  "Sales Discount": "bg-warning/10 text-warning",
 };
 
 const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Bank Transfer", nominalAccount: "" });
