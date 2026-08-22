@@ -129,8 +129,9 @@ export default function Expenses() {
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, number> = {};
     expenses.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
+    if (showDiscounts && totalDiscounts > 0) map["Sales Discount"] = (map["Sales Discount"] || 0) + totalDiscounts;
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [expenses]);
+  }, [expenses, showDiscounts, totalDiscounts]);
 
   return (
     <div className="space-y-6">
