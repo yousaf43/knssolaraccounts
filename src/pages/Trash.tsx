@@ -187,7 +187,7 @@ export default function TrashPage() {
                   </td>
                   <td className="px-3 py-3 font-medium">{getLabel(item.itemType, item.itemData)}</td>
                   <td className="px-3 py-3 text-muted-foreground text-xs">
-                    {new Date(item.deletedAt).toLocaleDateString()} {new Date(item.deletedAt).toLocaleTimeString()}
+                    {formatDate(item.deletedAt)} {new Date(item.deletedAt).toLocaleTimeString()}
                   </td>
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">
