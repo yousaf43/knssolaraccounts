@@ -585,7 +585,17 @@ function IncomeStatement({
       indent: 1,
       detail: statement.grossSales,
     });
+    if (statement.salesDiscountAddBack > 0) {
+      out.push({
+        key: "disc-addback",
+        label: "Customer discounts (booked as expense, not netted here)",
+        note: "Included in gross sales; charged under Sales Discount expense",
+        indent: 1,
+        detail: 0,
+      });
+    }
     if (statement.salesReturns > 0) {
+
       out.push({
         key: "returns",
         label: "Less: Sales returns",
