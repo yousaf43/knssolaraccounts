@@ -557,6 +557,8 @@ function IncomeStatement({
 
     return {
       grossSalesRaw, salesReturnsRaw, salesTaxExcluded, salesTaxRate, incomeTaxRate,
+      salesDiscountAddBack,
+
       profitBeforeTax, incomeTax,
       grossSales, salesReturns, netSales, costOfSales, grossIncome,
       groups, administrativeTotal, operatingExpenses,
