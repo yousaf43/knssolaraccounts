@@ -466,7 +466,7 @@ function IncomeStatement({
   /** % income tax applied on profit before tax */
   incomeTaxRate?: number;
 }) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const detailed = report.code === "125";
   const summaryOnly = report.code === "123";
 
