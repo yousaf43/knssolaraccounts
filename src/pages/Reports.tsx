@@ -497,8 +497,21 @@ function IncomeStatement({
     const sales = periodInvoices.filter(i => !i.isReturn && i.status !== "returned" && countsAsSale(i));
     const returns = periodInvoices.filter(i => i.isReturn || i.status === "returned");
 
-    const grossSalesRaw = sales.reduce((s, i) => s + saleAmount(i, inventory), 0);
-    const salesReturnsRaw = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
+    // Discounts are booked as an expense ("Sales Discount"), so revenue must be
+    // gross of discount — otherwise the same discount is deducted twice.
+    const invoiceDiscountTotal = (inv: any) => {
+      const itemDisc = (inv.items || []).reduce(
+        (s: number, it: any) => s + (it.qty || 0) * (it.rate || 0) * ((it.discount || 0) / 100),
+        0
+      );
+      return itemDisc + (Number(inv.discount) || 0);
+    };
+    const salesDiscountAddBack = sales.reduce((s, i) => s + invoiceDiscountTotal(i), 0);
+    const returnsDiscountAddBack = returns.reduce((s, i) => s + Math.abs(invoiceDiscountTotal(i)), 0);
+
+    const grossSalesRaw = sales.reduce((s, i) => s + saleAmount(i, inventory), 0) + salesDiscountAddBack;
+    const salesReturnsRaw = returns.reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0) + returnsDiscountAddBack;
+
     // Sales tax is treated as included in invoice amounts; exclude it to get net (tax-exclusive) revenue.
     const stRate = Math.max(0, salesTaxRate) / 100;
     const grossSales = stRate > 0 ? grossSalesRaw / (1 + stRate) : grossSalesRaw;
