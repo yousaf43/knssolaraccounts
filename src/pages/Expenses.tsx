@@ -42,13 +42,49 @@ export default function Expenses() {
   const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
+  const { data: invoices } = useInvoicesCloud();
   const accounts = cloudAccounts.length > 0 ? cloudAccounts : defaultAccounts;
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
+  const [showDiscounts, setShowDiscounts] = useState(true);
 
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const pgExpenses = usePagination(expenses);
+  // Customer discounts (sales discounts) shown as read-only expense rows
+  const discountRows = useMemo(() => {
+    return invoices
+      .filter((inv) => countsAsSale(inv) && !inv.isReturn)
+      .map((inv) => {
+        const itemDiscount = (inv.items || []).reduce((s, it) => {
+          const gross = (it.qty || 0) * (it.rate || 0);
+          return s + (gross * ((it.discount || 0) / 100));
+        }, 0);
+        const total = itemDiscount + (inv.discount || 0);
+        return {
+          id: `disc-${inv.id}`,
+          date: inv.date,
+          category: "Sales Discount",
+          description: `Discount — ${inv.customer}${inv.number ? ` (${inv.number})` : ""}`,
+          amount: Math.round(total * 100) / 100,
+          paymentMethod: "—",
+          nominalAccount: "Sales Discount",
+          isDiscount: true,
+        } as Expense & { isDiscount: true };
+      })
+      .filter((r) => r.amount > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+  }, [invoices]);
+
+  const totalDiscounts = discountRows.reduce((s, r) => s + r.amount, 0);
+  const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const total = expenseTotal + (showDiscounts ? totalDiscounts : 0);
+  const rows = useMemo(() => {
+    const list: (Expense & { isDiscount?: boolean })[] = showDiscounts
+      ? [...expenses, ...discountRows]
+      : [...expenses];
+    return list.sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
+  }, [expenses, discountRows, showDiscounts]);
+  const pgExpenses = usePagination(rows);
+
 
   // Petty Cash account balance
   const pettyCashAccount = accounts.find(a => a.name === "Petty Cash");
