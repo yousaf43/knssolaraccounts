@@ -34,6 +34,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
 
 export default function StoreInventory() {
   const { log } = useActivityLog();
+  const { formatCurrency, formatDate } = useSettings();
   const { data: inventoryAll, loading, upsert, remove } = useInventoryCloud();
   const { data: salesOrdersAll, upsert: upsertSO, remove: removeSO } = useSalesOrdersCloud();
   const { data: customers } = useCustomersCloud();
