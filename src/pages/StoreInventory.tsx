@@ -600,7 +600,7 @@ export default function StoreInventory() {
                     <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="px-3 py-2 font-medium">{so.number}</td>
                       <td className="px-3 py-2">{so.customer}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{so.date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{formatDate(so.date)}</td>
                       <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
                       <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
                       <td className="px-3 py-2 text-center"><Badge className="bg-green-500/10 text-green-600 border-0 text-xs">Completed</Badge></td>
