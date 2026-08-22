@@ -191,7 +191,7 @@ export default function Customers() {
                             <div key={inv.id} className="flex items-center justify-between text-xs py-1 border-b border-dashed last:border-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">{inv.number}</span>
-                                <span className="text-muted-foreground">{inv.date}</span>
+                                <span className="text-muted-foreground">{formatDate(inv.date)}</span>
                                 <Badge variant="outline" className="text-[10px] h-4">{inv.status}</Badge>
                               </div>
                               <div className="flex items-center gap-3">
