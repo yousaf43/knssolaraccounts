@@ -625,7 +625,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
               <div className="space-y-1">
                 {invoiceReceipts.map(r => (
                   <div key={r.id} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{r.number} — {r.date} ({r.paymentMethod})</span>
+                    <span className="text-muted-foreground">{r.number} — {formatDate(r.date)} ({r.paymentMethod})</span>
                     <span className="font-medium text-success">{formatCurrency(r.amount)}</span>
                   </div>
                 ))}

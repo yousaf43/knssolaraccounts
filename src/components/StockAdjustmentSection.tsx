@@ -223,7 +223,7 @@ export default function StockAdjustmentSection({ inventory, onUpdateInventory }:
                 }
                 return (
                   <tr key={adj.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="px-3 py-3 text-muted-foreground">{adj.date}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{formatDate(adj.date)}</td>
                     <td className="px-3 py-3 font-medium">{adj.itemName}</td>
                     <td className="px-3 py-3 text-center">
                       {isPriceUpdate ? (
