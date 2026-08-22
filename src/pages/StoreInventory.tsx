@@ -19,6 +19,7 @@ import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { SalesOrderPreview } from "@/components/SalesOrderPreview";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { toast } from "sonner";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const DEFAULT_UNITS = ["pcs", "kg", "ltr", "box", "dozen", "meter", "feet"];
 const DEFAULT_CATEGORIES = ["Electronics", "Office Supplies", "Raw Materials", "Packaging", "Tools"];
@@ -33,6 +34,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
 
 export default function StoreInventory() {
   const { log } = useActivityLog();
+  const { formatCurrency, formatDate } = useSettings();
   const { data: inventoryAll, loading, upsert, remove } = useInventoryCloud();
   const { data: salesOrdersAll, upsert: upsertSO, remove: removeSO } = useSalesOrdersCloud();
   const { data: customers } = useCustomersCloud();
@@ -538,7 +540,7 @@ export default function StoreInventory() {
                     <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="px-3 py-2 font-medium">{so.number}</td>
                       <td className="px-3 py-2">{so.customer}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{so.date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{formatDate(so.date)}</td>
                       <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
                       <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
                       <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{so.status}</Badge></td>
@@ -598,7 +600,7 @@ export default function StoreInventory() {
                     <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="px-3 py-2 font-medium">{so.number}</td>
                       <td className="px-3 py-2">{so.customer}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{so.date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{formatDate(so.date)}</td>
                       <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
                       <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
                       <td className="px-3 py-2 text-center"><Badge className="bg-green-500/10 text-green-600 border-0 text-xs">Completed</Badge></td>

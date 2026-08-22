@@ -47,7 +47,7 @@ type UserWithRole = {
 };
 
 export default function Settings() {
-  const { settings, setSettings } = useSettings();
+  const { settings, setSettings, formatDate } = useSettings();
   const { profile, role, user, refreshProfile, twoFAEnabled, setTwoFAEnabled } = useAuth();
   const [form, setForm] = useState<AppSettings>({ ...settings });
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -502,6 +502,7 @@ export default function Settings() {
                 <Select value={form.dateFormat} onValueChange={(v) => update("dateFormat", v)}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="dd-MM-yyyy">DD-MM-YYYY</SelectItem>
                     <SelectItem value="dd/MM/yyyy">DD/MM/YYYY</SelectItem>
                     <SelectItem value="MM/dd/yyyy">MM/DD/YYYY</SelectItem>
                     <SelectItem value="yyyy-MM-dd">YYYY-MM-DD</SelectItem>
@@ -612,7 +613,7 @@ export default function Settings() {
                   {cloudBackup.backups.map((b) => (
                     <div key={b.id} className="flex items-center justify-between border rounded-md px-3 py-2">
                       <div>
-                        <span className="text-sm font-medium">{new Date(b.created_at).toLocaleString()}</span>
+                        <span className="text-sm font-medium">{formatDate(b.created_at)} {new Date(b.created_at).toLocaleTimeString()}</span>
                         <Badge variant="outline" className="ml-2 text-[10px]">{b.label}</Badge>
                       </div>
                       <div className="flex gap-1.5">

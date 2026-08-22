@@ -15,15 +15,17 @@ import {
   draftKindLabels,
   type Draft,
 } from "@/lib/drafts";
+import { useSettings } from "@/contexts/SettingsContext";
 
-const formatWhen = (iso: string) => {
+const formatWhen = (iso: string, formatDate: (d: string | Date) => string) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString();
+  return `${formatDate(d)} ${d.toLocaleTimeString()}`;
 };
 
 export default function Drafts() {
   const navigate = useNavigate();
+  const { formatDate } = useSettings();
   const [drafts, setDrafts] = useState<Draft[]>(() => listDrafts());
 
   useEffect(() => subscribeDrafts(() => setDrafts(listDrafts())), []);
@@ -88,7 +90,7 @@ export default function Drafts() {
                   </TableCell>
                   <TableCell className="font-medium">{d.label || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{d.summary || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground whitespace-nowrap">{formatWhen(d.updatedAt)}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{formatWhen(d.updatedAt, formatDate)}</TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" onClick={() => resume(d)}>

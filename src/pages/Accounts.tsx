@@ -27,7 +27,7 @@ const initialReconcile: ReconcileEntry[] = [
   { id: "2", date: "2025-01-31", account: "Savings Account", statementBalance: 50200, bookBalance: 50200, difference: 0, status: "reconciled" },
 ];
 
-function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, companyName: string) {
+function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, formatDate: (d: string | Date) => string, companyName: string) {
   const content = `
     <html><head><title>Receipt ${r.reference}</title>
     <style>
@@ -41,7 +41,7 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
       .sig { border-top: 1px solid #999; padding-top: 4px; width: 180px; text-align: center; }
     </style></head><body>
     <div class="header"><h1>${companyName}</h1><p style="margin:4px 0;font-size:13px;color:#555">RECEIPT</p></div>
-    <div class="meta"><span><b>Receipt No:</b> ${r.reference}</span><span><b>Date:</b> ${r.date}</span></div>
+    <div class="meta"><span><b>Receipt No:</b> ${r.reference}</span><span><b>Date:</b> ${formatDate(r.date)}</span></div>
     <div class="row"><span>Received From</span><span><b>${r.receivedFrom}</b></span></div>
     <div class="row"><span>Account / Bank</span><span>${r.account}</span></div>
     <div class="row"><span>Description</span><span>${r.description || "—"}</span></div>
@@ -57,7 +57,7 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
 }
 
 export default function Accounts() {
-  const { formatCurrency, settings } = useSettings();
+  const { formatCurrency, settings, formatDate } = useSettings();
   const { data: accounts, setData: setAccounts, upsert: upsertAccount, remove: removeAccount, loading: accountsLoading } = useAccountsCloud();
   const [activeTab, setActiveTab] = useState("balances");
   const [showAccForm, setShowAccForm] = useState(false);
@@ -521,7 +521,7 @@ export default function Accounts() {
                   )}
                   {filteredLedger.map(e => (
                     <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3">{e.date}</td>
+                      <td className="p-3">{formatDate(e.date)}</td>
                       <td className="p-3 font-medium">{e.bank}</td>
                       <td className="p-3">
                         <Badge variant={e.type === "incoming" ? "default" : "secondary"}>
@@ -638,7 +638,7 @@ export default function Accounts() {
                   {payments.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No payments yet</td></tr>}
                   {payments.map(p => (
                     <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3">{p.date}</td><td className="p-3">{p.account}</td><td className="p-3">{p.payee}</td>
+                      <td className="p-3">{formatDate(p.date)}</td><td className="p-3">{p.account}</td><td className="p-3">{p.payee}</td>
                       <td className="p-3 text-muted-foreground">{p.reference}</td><td className="p-3">{p.description}</td>
                       <td className="p-3 text-right font-semibold text-destructive">{formatCurrency(p.amount)}</td>
                       <td className="p-3 text-center">
@@ -690,13 +690,13 @@ export default function Accounts() {
                   {receipts.length === 0 && <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">No receipts yet</td></tr>}
                   {receipts.map(r => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3">{r.date}</td><td className="p-3">{r.account}</td><td className="p-3">{r.receivedFrom}</td>
+                      <td className="p-3">{formatDate(r.date)}</td><td className="p-3">{r.account}</td><td className="p-3">{r.receivedFrom}</td>
                       <td className="p-3 text-muted-foreground">{r.reference}</td><td className="p-3">{r.description}</td>
                       <td className="p-3 text-right font-semibold text-success">{formatCurrency(r.amount)}</td>
                       <td className="p-3 text-center">
                         <div className="flex justify-center gap-1">
                           <Button variant="ghost" size="sm" onClick={() => openEditReceipt(r)}><Pencil className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => printReceipt(r, formatCurrency, settings.companyName)}><Printer className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => printReceipt(r, formatCurrency, formatDate, settings.companyName)}><Printer className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteReceipt(r.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
                       </td>
@@ -742,7 +742,7 @@ export default function Accounts() {
                   {transfers.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">No transfers yet</td></tr>}
                   {transfers.map(t => (
                     <tr key={t.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3">{t.date}</td><td className="p-3">{t.fromAccount}</td><td className="p-3">{t.toAccount}</td>
+                      <td className="p-3">{formatDate(t.date)}</td><td className="p-3">{t.fromAccount}</td><td className="p-3">{t.toAccount}</td>
                       <td className="p-3 text-muted-foreground">{t.reference}</td>
                       <td className="p-3 text-right font-semibold">{formatCurrency(t.amount)}</td>
                       <td className="p-3 text-center">
@@ -772,7 +772,7 @@ export default function Accounts() {
                 <tbody>
                   {reconcile.map(r => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="p-3">{r.date}</td><td className="p-3">{r.account}</td>
+                      <td className="p-3">{formatDate(r.date)}</td><td className="p-3">{r.account}</td>
                       <td className="p-3 text-right">{formatCurrency(r.statementBalance)}</td>
                       <td className="p-3 text-right">{formatCurrency(r.bookBalance)}</td>
                       <td className={`p-3 text-right font-semibold ${r.difference !== 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(r.difference)}</td>

@@ -16,7 +16,7 @@ import { HighlightText } from "@/components/HighlightText";
 const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", address: "", totalBilled: 0, outstanding: 0 });
 
 export default function Customers() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: customers, upsert: upsertCustomer, remove: removeCustomer } = useCustomersCloud();
@@ -191,7 +191,7 @@ export default function Customers() {
                             <div key={inv.id} className="flex items-center justify-between text-xs py-1 border-b border-dashed last:border-0">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">{inv.number}</span>
-                                <span className="text-muted-foreground">{inv.date}</span>
+                                <span className="text-muted-foreground">{formatDate(inv.date)}</span>
                                 <Badge variant="outline" className="text-[10px] h-4">{inv.status}</Badge>
                               </div>
                               <div className="flex items-center gap-3">
@@ -214,7 +214,7 @@ export default function Customers() {
                           <div key={r.id} className="flex items-center justify-between text-xs py-1 border-b border-dashed last:border-0">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{r.number}</span>
-                              <span className="text-muted-foreground">{r.date}</span>
+                              <span className="text-muted-foreground">{formatDate(r.date)}</span>
                               <Badge variant="outline" className="text-[10px] h-4">{r.paymentMethod}</Badge>
                             </div>
                             <div className="flex items-center gap-2">

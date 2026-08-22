@@ -5,6 +5,7 @@ import { Search, Loader2, FileText, Edit, Trash2, Printer, RotateCcw, Plus, Chev
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const ACTION_ICONS: Record<string, typeof FileText> = {
   create: Plus,
@@ -26,6 +27,7 @@ const LOGS_PER_PAGE = 20;
 
 export default function ActivityLogs() {
   const { user } = useAuth();
+  const { formatDate } = useSettings();
   const [logs, setLogs] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -97,7 +99,7 @@ export default function ActivityLogs() {
               return (
                 <tr key={log.id as string} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-3 text-muted-foreground text-xs whitespace-nowrap">
-                    {time.toLocaleDateString()} {time.toLocaleTimeString()}
+                    {formatDate(time)} {time.toLocaleTimeString()}
                   </td>
                   <td className="px-3 py-3 text-center">
                     <Badge className={`${colorClass} border-0 gap-1`}>

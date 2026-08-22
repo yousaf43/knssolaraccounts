@@ -51,7 +51,7 @@ const emptyItem = (): InvoiceItem => ({ description: "", qty: 1, rate: 0, amount
 const today = () => new Date().toISOString().split("T")[0];
 
 export default function Purchases() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const [tab, setTab] = useState("purchase-orders");
@@ -689,7 +689,7 @@ export default function Purchases() {
                         <tbody>
                           {history.map((h, i) => (
                             <tr key={`${h.poId}-${i}`} className="border-t hover:bg-muted/30">
-                              <td className="px-3 py-1.5">{h.date}</td>
+                              <td className="px-3 py-1.5">{formatDate(h.date)}</td>
                               <td className="px-3 py-1.5 font-medium">{h.number}</td>
                               <td className="px-3 py-1.5">{h.supplier}</td>
                               <td className="px-3 py-1.5">{h.item.description}</td>
@@ -724,7 +724,7 @@ export default function Purchases() {
                 {pgPO.paginatedItems.map(p => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{p.number}</td>
-                    <td className="px-4 py-3">{p.date}</td>
+                    <td className="px-4 py-3">{formatDate(p.date)}</td>
                     <td className="px-4 py-3">{p.supplier}</td>
                     <td className="px-4 py-3">{p.deliveryDate}</td>
                     <td className="px-4 py-3 text-right">{(p.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0)}</td>
@@ -812,7 +812,7 @@ export default function Purchases() {
                 {pgBills.paginatedItems.map(b => (
                   <tr key={b.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{b.number}</td>
-                    <td className="px-4 py-3">{b.date}</td>
+                    <td className="px-4 py-3">{formatDate(b.date)}</td>
                     <td className="px-4 py-3">{b.supplier}</td>
                     <td className="px-4 py-3">{b.dueDate}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(b.amount)}</td>
@@ -898,7 +898,7 @@ export default function Purchases() {
                 {pgPayments.paginatedItems.map(p => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{p.number}</td>
-                    <td className="px-4 py-3">{p.date}</td>
+                    <td className="px-4 py-3">{formatDate(p.date)}</td>
                     <td className="px-4 py-3">{p.supplier}</td>
                     <td className="px-4 py-3">{p.billNumber}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
@@ -931,7 +931,7 @@ export default function Purchases() {
                 {pgAllPurchases.paginatedItems.map((p, i) => (
                   <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3"><span className="px-2 py-0.5 rounded text-xs font-medium bg-muted">{p.type}</span></td>
-                    <td className="px-4 py-3">{p.date}</td>
+                    <td className="px-4 py-3">{formatDate(p.date)}</td>
                     <td className="px-4 py-3 font-medium">{"number" in p ? p.number : ""}</td>
                     <td className="px-4 py-3">{p.supplier}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>

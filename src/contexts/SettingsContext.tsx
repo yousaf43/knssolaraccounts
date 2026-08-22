@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { format, parseISO } from "date-fns";
 
 export type AppSettings = {
   companyName: string;
@@ -25,7 +26,7 @@ const defaultSettings: AppSettings = {
   taxRate: 17,
   taxLabel: "GST",
   fiscalYearStart: "07",
-  dateFormat: "dd/MM/yyyy",
+  dateFormat: "dd-MM-yyyy",
   logoUrl: "",
 };
 
@@ -33,6 +34,7 @@ type SettingsContextType = {
   settings: AppSettings;
   setSettings: (val: AppSettings | ((prev: AppSettings) => AppSettings)) => void;
   formatCurrency: (amount: number) => string;
+  formatDate: (dateStr?: string | Date | null, fallback?: string) => string;
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -49,8 +51,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }).format(amount);
   };
 
+  const formatDate = (dateStr?: string | Date | null, fallback = "—") => {
+    if (!dateStr) return fallback;
+    try {
+      const d = typeof dateStr === "string" ? parseISO(dateStr) : dateStr;
+      if (Number.isNaN(d.getTime())) return fallback;
+      return format(d, settings.dateFormat);
+    } catch {
+      return fallback;
+    }
+  };
+
   return (
-    <SettingsContext.Provider value={{ settings, setSettings, formatCurrency }}>
+    <SettingsContext.Provider value={{ settings, setSettings, formatCurrency, formatDate }}>
       {children}
     </SettingsContext.Provider>
   );
@@ -61,3 +74,4 @@ export function useSettings() {
   if (!ctx) throw new Error("useSettings must be used within SettingsProvider");
   return ctx;
 }
+

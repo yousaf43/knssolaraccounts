@@ -167,13 +167,14 @@ function DateRangePicker({ from, to, onFromChange, onToChange }: {
   from: Date | undefined; to: Date | undefined;
   onFromChange: (d: Date | undefined) => void; onToChange: (d: Date | undefined) => void;
 }) {
+  const { formatDate } = useSettings();
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className={cn("w-[150px] justify-start text-left font-normal text-xs", !from && "text-muted-foreground")}>
             <CalendarIcon className="w-3.5 h-3.5 mr-1" />
-            {from ? format(from, "dd MMM yyyy") : "From date"}
+            {from ? formatDate(from) : "From date"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -185,7 +186,7 @@ function DateRangePicker({ from, to, onFromChange, onToChange }: {
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className={cn("w-[150px] justify-start text-left font-normal text-xs", !to && "text-muted-foreground")}>
             <CalendarIcon className="w-3.5 h-3.5 mr-1" />
-            {to ? format(to, "dd MMM yyyy") : "To date"}
+            {to ? formatDate(to) : "To date"}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -465,7 +466,7 @@ function IncomeStatement({
   /** % income tax applied on profit before tax */
   incomeTaxRate?: number;
 }) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const detailed = report.code === "125";
   const summaryOnly = report.code === "123";
 
@@ -680,7 +681,7 @@ function IncomeStatement({
             .forEach((line, idx) => {
               out.push({
                 key: `${keyPrefix}-${category}-${line.id || idx}`,
-                label: `${line.date ? `${line.date} — ` : ""}${line.description || "Expense"}`,
+                label: `${line.date ? `${formatDate(line.date)} — ` : ""}${line.description || "Expense"}`,
                 note: line.paymentMethod || undefined,
                 indent: 3,
                 detail: line.amount,
@@ -919,7 +920,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   accounts: Account[];
   ledger: LedgerEntry[];
 }) {
-  const { formatCurrency, settings } = useSettings();
+  const { formatCurrency, settings, formatDate } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
@@ -949,11 +950,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     setMultiSelectedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
   const dateRange = useMemo(() => {
-    if (fromDate && toDate) return `${format(fromDate, "dd MMM yyyy")} - ${format(toDate, "dd MMM yyyy")}`;
-    if (fromDate) return `From ${format(fromDate, "dd MMM yyyy")}`;
-    if (toDate) return `To ${format(toDate, "dd MMM yyyy")}`;
+    if (fromDate && toDate) return `${formatDate(fromDate)} - ${formatDate(toDate)}`;
+    if (fromDate) return `From ${formatDate(fromDate)}`;
+    if (toDate) return `To ${formatDate(toDate)}`;
     return "All Time";
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, formatDate]);
 
   const filteredData = useMemo(() => {
     return monthlySales.filter(m => inRange(m.monthStart, fromDate, toDate));
@@ -1307,7 +1308,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         });
         return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
           <h2 className="text-lg font-semibold mb-4">{report.title} ({rows.length} entries)</h2>
-          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Account</th><th className="text-left px-3 py-2">Description</th><th className="text-left px-3 py-2">Reference</th><th className="text-right px-3 py-2">Incoming</th><th className="text-right px-3 py-2">Outgoing</th></tr></thead><tbody>{rows.map((entry, index) => <tr key={entry.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{entry.date}</td><td className="px-3 py-2 font-medium">{entry.bank}</td><td className="px-3 py-2">{entry.description}</td><td className="px-3 py-2">{entry.reference || "—"}</td><td className="px-3 py-2 text-right text-success">{entry.type === "incoming" ? formatCurrency(entry.amount) : "—"}</td><td className="px-3 py-2 text-right text-destructive">{entry.type === "outgoing" ? formatCurrency(entry.amount) : "—"}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Net movement</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "incoming").reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "outgoing").reduce((sum, row) => sum + row.amount, 0))}</td></tr></tfoot></table>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Account</th><th className="text-left px-3 py-2">Description</th><th className="text-left px-3 py-2">Reference</th><th className="text-right px-3 py-2">Incoming</th><th className="text-right px-3 py-2">Outgoing</th></tr></thead><tbody>{rows.map((entry, index) => <tr key={entry.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{formatDate(entry.date)}</td><td className="px-3 py-2 font-medium">{entry.bank}</td><td className="px-3 py-2">{entry.description}</td><td className="px-3 py-2">{entry.reference || "—"}</td><td className="px-3 py-2 text-right text-success">{entry.type === "incoming" ? formatCurrency(entry.amount) : "—"}</td><td className="px-3 py-2 text-right text-destructive">{entry.type === "outgoing" ? formatCurrency(entry.amount) : "—"}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Net movement</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "incoming").reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.filter(row => row.type === "outgoing").reduce((sum, row) => sum + row.amount, 0))}</td></tr></tfoot></table>
         </div>;
       })()}
 
@@ -1481,7 +1482,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <td className="px-3 py-2 font-medium"><HighlightText text={r.customer} query={discountSearch} /></td>
                       <td className="px-3 py-2 whitespace-nowrap"><HighlightText text={r.number} query={discountSearch} /></td>
                       <td className="px-3 py-2">{r.documentNumber || "—"}</td>
-                      <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{r.date || "—"}</td>
+                      <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{formatDate(r.date)}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(r.gross)}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(r.lineDiscount)}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(r.invoiceDiscount)}</td>
@@ -1587,7 +1588,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/30">
                             <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                             <td className="px-3 py-2 font-medium whitespace-nowrap"><HighlightText text={inv.number} query={invoiceSearch} /></td>
-                            <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
+                            <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{formatDate(inv.date)}</td>
                             <td className="px-3 py-2 font-medium"><HighlightText text={inv.customer} query={invoiceSearch} /></td>
                             <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
                             <td className="px-3 py-2 text-center">{ageDays}</td>
@@ -1733,7 +1734,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                                 <td className="px-3 py-2 text-muted-foreground">{__sr}</td>
                                 <td className="px-3 py-2 font-medium">{cust.name}</td>
                                 <td className="px-3 py-2 whitespace-nowrap">{inv.number}</td>
-                                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{inv.date}</td>
+                                <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{formatDate(inv.date)}</td>
                                 <td className="px-3 py-2">{inv.documentNumber || "—"}</td>
                                 <td className="px-3 py-2 text-muted-foreground">{cust.company || "—"}</td>
                                 <td className="px-3 py-2 text-muted-foreground text-xs">{cust.phone || "—"}</td>
@@ -1805,7 +1806,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                           return (
                             <tr key={inv.id} className="border-b last:border-0">
                               <td className="px-2 py-1.5 text-muted-foreground">{idx + 1}</td>
-                              <td className="px-2 py-1.5">{inv.date}</td>
+                              <td className="px-2 py-1.5">{formatDate(inv.date)}</td>
                               <td className="px-2 py-1.5">{inv.number}</td>
                               <td className="px-2 py-1.5">{inv.projectName || "—"}</td>
                               <td className="px-2 py-1.5 text-right">{formatCurrency(inv.amount)}</td>
@@ -2116,7 +2117,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                                       )}
                                       <td className="px-3 py-2 font-medium">{d.invoiceNumber}</td>
                                       <td className="px-3 py-2 text-muted-foreground">{d.documentNumber || "-"}</td>
-                                      <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
+                                      <td className="px-3 py-2 text-muted-foreground">{formatDate(d.date)}</td>
                                       <td className="px-3 py-2">{d.customer}</td>
                                       <td className="px-3 py-2 text-right">{d.qty}</td>
                                       <td className="px-3 py-2 text-right">{formatCurrency(d.rate)}</td>
@@ -2313,7 +2314,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-3 py-2 font-medium">{d.productName}</td>
                               <td className="px-3 py-2">{d.invoiceNumber}</td>
                               <td className="px-3 py-2 text-muted-foreground">{d.documentNumber || "-"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{formatDate(d.date)}</td>
                               <td className="px-3 py-2">{d.customer}</td>
                               <td className="px-3 py-2 text-right">{d.qty}</td>
                               {report.code === "085" && (
@@ -2368,7 +2369,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                               <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
                               <td className="px-3 py-2 font-medium">{d.invoiceNumber}</td>
                               <td className="px-3 py-2 text-muted-foreground">{d.documentNumber || "-"}</td>
-                              <td className="px-3 py-2 text-muted-foreground">{d.date}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{formatDate(d.date)}</td>
                               <td className="px-3 py-2">{d.customer}</td>
                               <td className="px-3 py-2 text-right">{d.qty}</td>
                               {report.code === "085" && (
@@ -2576,7 +2577,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                         <td className="px-3 py-2 font-medium"><HighlightText text={r.number} query={receiptSearch} /></td>
                         <td className="px-3 py-2"><HighlightText text={r.customer} query={receiptSearch} /></td>
-                        <td className="px-3 py-2 text-muted-foreground">{r.date}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{formatDate(r.date)}</td>
                         <td className="px-3 py-2 text-muted-foreground">{r.invoiceNumber}</td>
                         <td className="px-3 py-2">{r.paymentMethod}</td>
                         <td className="px-3 py-2 text-right font-semibold text-success">{formatCurrency(r.amount)}</td>
@@ -2633,7 +2634,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <h2 className="text-lg font-semibold mb-4">{report.title} ({visibleBills.length} bills)</h2>
           <table id="report-print-table" className="w-full text-sm">
             <thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Bill #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Supplier</th><th className="text-left px-3 py-2">Due Date</th><th className="text-right px-3 py-2">Total</th><th className="text-right px-3 py-2">Paid</th><th className="text-right px-3 py-2">Balance</th></tr></thead>
-            <tbody>{visibleBills.map((bill, index) => { const paid = paymentsForBill(bill); const balance = Math.max(0, bill.amount - paid); return <tr key={bill.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2 font-medium">{bill.number}</td><td className="px-3 py-2">{bill.date}</td><td className="px-3 py-2">{bill.supplier}</td><td className="px-3 py-2">{bill.dueDate}</td><td className="px-3 py-2 text-right">{formatCurrency(bill.amount)}</td><td className="px-3 py-2 text-right text-success">{formatCurrency(paid)}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(balance)}</td></tr>; })}</tbody>
+            <tbody>{visibleBills.map((bill, index) => { const paid = paymentsForBill(bill); const balance = Math.max(0, bill.amount - paid); return <tr key={bill.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2 font-medium">{bill.number}</td><td className="px-3 py-2">{formatDate(bill.date)}</td><td className="px-3 py-2">{bill.supplier}</td><td className="px-3 py-2">{formatDate(bill.dueDate)}</td><td className="px-3 py-2 text-right">{formatCurrency(bill.amount)}</td><td className="px-3 py-2 text-right text-success">{formatCurrency(paid)}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(balance)}</td></tr>; })}</tbody>
             <tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(visibleBills.reduce((s, bill) => s + bill.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(visibleBills.reduce((s, bill) => s + paymentsForBill(bill), 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(visibleBills.reduce((s, bill) => s + Math.max(0, bill.amount - paymentsForBill(bill)), 0))}</td></tr></tfoot>
           </table>
         </div>;
@@ -2712,7 +2713,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         const rows = stockAdjustments.filter(adjustment => inRange(adjustment.date, fromDate, toDate));
         return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
           <h2 className="text-lg font-semibold mb-4">Stock Adjustment Detail ({rows.length})</h2>
-          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Product</th><th className="text-left px-3 py-2">Type</th><th className="text-right px-3 py-2">Qty</th><th className="text-left px-3 py-2">Reason</th><th className="text-left px-3 py-2">Note</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{row.date}</td><td className="px-3 py-2 font-medium">{row.itemName}</td><td className="px-3 py-2 capitalize">{row.type}</td><td className="px-3 py-2 text-right">{row.type === "decrease" ? -Math.abs(row.qty) : Math.abs(row.qty)}</td><td className="px-3 py-2">{row.reason}</td><td className="px-3 py-2">{row.note || "—"}</td></tr>)}</tbody></table>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Product</th><th className="text-left px-3 py-2">Type</th><th className="text-right px-3 py-2">Qty</th><th className="text-left px-3 py-2">Reason</th><th className="text-left px-3 py-2">Note</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.id} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{formatDate(row.date)}</td><td className="px-3 py-2 font-medium">{row.itemName}</td><td className="px-3 py-2 capitalize">{row.type}</td><td className="px-3 py-2 text-right">{row.type === "decrease" ? -Math.abs(row.qty) : Math.abs(row.qty)}</td><td className="px-3 py-2">{row.reason}</td><td className="px-3 py-2">{row.note || "—"}</td></tr>)}</tbody></table>
         </div>;
       })()}
 
@@ -2829,7 +2830,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               ];
         return <div className="bg-card rounded-lg border p-6 overflow-x-auto">
           <h2 className="text-lg font-semibold mb-4">{report.title} ({rows.length} records)</h2>
-          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Type</th><th className="text-left px-3 py-2">Document #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Customer / Supplier</th><th className="text-right px-3 py-2">Document Total</th><th className="text-right px-3 py-2">Tax</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.type}-${row.id}`} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{row.type}</td><td className="px-3 py-2 font-medium">{row.number}</td><td className="px-3 py-2">{row.date}</td><td className="px-3 py-2">{row.party}</td><td className="px-3 py-2 text-right">{formatCurrency(row.amount)}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.tax)}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.tax, 0))}</td></tr></tfoot></table>
+          <table id="report-print-table" className="w-full text-sm"><thead><tr className="border-b bg-muted/50"><th className="text-left px-3 py-2">Sr #</th><th className="text-left px-3 py-2">Type</th><th className="text-left px-3 py-2">Document #</th><th className="text-left px-3 py-2">Date</th><th className="text-left px-3 py-2">Customer / Supplier</th><th className="text-right px-3 py-2">Document Total</th><th className="text-right px-3 py-2">Tax</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.type}-${row.id}`} className="border-b"><td className="px-3 py-2">{index + 1}</td><td className="px-3 py-2">{row.type}</td><td className="px-3 py-2 font-medium">{row.number}</td><td className="px-3 py-2">{formatDate(row.date)}</td><td className="px-3 py-2">{row.party}</td><td className="px-3 py-2 text-right">{formatCurrency(row.amount)}</td><td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.tax)}</td></tr>)}</tbody><tfoot><tr className="border-t-2 font-bold"><td className="px-3 py-2" colSpan={5}>Total</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.amount, 0))}</td><td className="px-3 py-2 text-right">{formatCurrency(rows.reduce((sum, row) => sum + row.tax, 0))}</td></tr></tfoot></table>
         </div>;
       })()}
 
@@ -2972,7 +2973,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30">
                           <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
                           <td className="px-3 py-2"><HighlightText text={accountOf(e)} query={nominalSearch} /></td>
-                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{e.date || "—"}</td>
+                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{formatDate(e.date)}</td>
                           <td className="px-3 py-2"><HighlightText text={e.description || "—"} query={nominalSearch} /></td>
                           <td className="px-3 py-2 text-muted-foreground">{e.category || "—"}</td>
                           <td className="px-3 py-2 text-muted-foreground">{e.paymentMethod || "—"}</td>

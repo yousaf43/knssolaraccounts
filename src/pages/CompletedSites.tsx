@@ -23,7 +23,7 @@ import { isStockTrackedItem } from "@/lib/oldBalance";
 
 export default function CompletedSites() {
   const { log } = useActivityLog();
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { data: inventoryAll, upsert: upsertInv, loading: invLoading } = useInventoryCloud();
   const { data: salesOrdersAll, upsert: upsertSO, remove: removeSO, loading: soLoading } = useSalesOrdersCloud();
   const { data: customers } = useCustomersCloud();
@@ -274,7 +274,7 @@ export default function CompletedSites() {
                 <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30">
                   <td className="px-3 py-2 font-medium">{so.number}</td>
                   <td className="px-3 py-2">{so.customer}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{so.date}</td>
+                  <td className="px-3 py-2 text-muted-foreground">{formatDate(so.date)}</td>
                   <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
                   <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
                   <td className="px-3 py-2 text-right font-semibold">{formatCurrency(so.amount || 0)}</td>

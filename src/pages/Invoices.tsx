@@ -68,7 +68,7 @@ function parseCSV(text: string): Record<string, string>[] {
 }
 
 export default function Invoices() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: invoices, upsert: upsertInvoice, remove: removeInvoice, setData: setInvoices } = useInvoicesCloud();
@@ -737,7 +737,7 @@ export default function Invoices() {
   const filteredReceipts = React.useMemo(() => {
     const groups = new Map<string, { rows: Receipt[]; total: number }>();
     for (const r of filteredReceiptsRaw) {
-      const key = `${r.number}||${r.customer}||${r.date}`;
+      const key = `${r.number}||${r.customer}||${formatDate(r.date)}`;
       const g = groups.get(key) || { rows: [], total: 0 };
       g.rows.push(r);
       g.total += Number(r.amount) || 0;
@@ -1079,8 +1079,8 @@ export default function Invoices() {
                     <tr key={q.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{q.number}</td>
                       <td className="px-4 py-3">{q.customer}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{q.date}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{q.dueDate}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(q.date)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(q.dueDate)}</td>
                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(q.amount)}</td>
                       <td className="px-4 py-3 text-center"><Badge className={quotationStatusStyles[q.status] || ""}>{q.status}</Badge></td>
                       <td className="px-4 py-3 text-center">
@@ -1129,8 +1129,8 @@ export default function Invoices() {
                     <tr key={so.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">{so.number}</td>
                       <td className="px-4 py-3">{so.customer}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{so.date}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{so.deliveryDate}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(so.date)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(so.deliveryDate)}</td>
                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(so.amount)}</td>
                       <td className="px-4 py-3 text-center">
                         {(so.location || "main") === "store"
@@ -1245,8 +1245,8 @@ export default function Invoices() {
                               </PopoverContent>
                             </Popover>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">{inv.date}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{formatDate(inv.date)}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{formatDate(inv.dueDate)}</td>
                           <td className="px-4 py-3 text-right font-semibold">{formatCurrency(inv.amount)}</td>
                           <td className="px-4 py-3 text-right text-success font-medium">{formatCurrency(totalPaid)}</td>
                           <td className={`px-4 py-3 text-right font-medium ${remaining > 0 ? "text-warning" : "text-success"}`}>
@@ -1285,7 +1285,7 @@ export default function Invoices() {
                                   <div key={r.id} className="flex items-center justify-between py-1 border-b border-dashed last:border-0">
                                     <div className="flex items-center gap-2">
                                       <span className="font-medium">{r.number}</span>
-                                      <span className="text-muted-foreground">{r.date}</span>
+                                      <span className="text-muted-foreground">{formatDate(r.date)}</span>
                                       <Badge variant="outline" className="text-[10px] h-4">{r.paymentMethod}</Badge>
                                     </div>
                                     <span className="font-medium text-success">{formatCurrency(r.amount)}</span>
@@ -1339,7 +1339,7 @@ export default function Invoices() {
                               <td className="px-4 py-3 font-medium">{ret.number}</td>
                               <td className="px-4 py-3 text-muted-foreground">{ret.returnedFrom || "—"}</td>
                               <td className="px-4 py-3">{ret.customer}</td>
-                              <td className="px-4 py-3 text-muted-foreground">{ret.date}</td>
+                              <td className="px-4 py-3 text-muted-foreground">{formatDate(ret.date)}</td>
                               <td className="px-4 py-3 text-right font-semibold text-destructive">{formatCurrency(ret.amount)}</td>
                               <td className="px-4 py-3 text-center">
                                 <Badge variant="outline" className={isExchange ? "border-primary text-primary" : "border-destructive text-destructive"}>
@@ -1396,7 +1396,7 @@ export default function Invoices() {
                         {r._isBulk && <Badge className="ml-2 bg-primary/10 text-primary border-0 text-[10px]">Bulk × {r._allocations.length}</Badge>}
                       </td>
                       <td className="px-4 py-3">{r.customer}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{r.date}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(r.date)}</td>
                       <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs">
                         {r._isBulk ? (
                           <div className="space-y-0.5">
@@ -1458,7 +1458,7 @@ export default function Invoices() {
                       </td>
                       <td className="px-4 py-3 font-medium">{item.number}</td>
                       <td className="px-4 py-3">{item.customer}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{item.date}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(item.date)}</td>
                       <td className="px-4 py-3 text-right font-semibold">{formatCurrency(item.amount)}</td>
                       <td className="px-4 py-3 text-center"><Badge className={item.statusStyle}>{item.status}</Badge></td>
                     </tr>

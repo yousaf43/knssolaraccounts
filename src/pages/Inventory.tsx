@@ -35,7 +35,7 @@ const emptyItem = (): Partial<InventoryItem> => ({
 });
 
 export default function Inventory() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: inventoryAll, loading, upsert, remove, replaceAll } = useInventoryCloud();
@@ -705,7 +705,7 @@ export default function Inventory() {
                   <td className="px-3 py-3 text-muted-foreground">{item.model ? <HighlightText text={item.model} query={searchQuery} /> : "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground">{item.uniqueCode ? <HighlightText text={item.uniqueCode} query={searchQuery} /> : "—"}</td>
                   <td className="px-3 py-3 text-muted-foreground"><HighlightText text={item.category} query={searchQuery} /></td>
-                  <td className="px-3 py-3 text-muted-foreground">{item.date || "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{formatDate(item.date) || "—"}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.costPrice || 0)}</td>
                   <td className="px-3 py-3 text-right">{formatCurrency(item.salePrice || 0)}</td>
                   <td className="px-3 py-3 text-center">{item.unit || "pcs"}</td>

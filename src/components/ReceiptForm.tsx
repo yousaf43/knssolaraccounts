@@ -39,7 +39,7 @@ export function ReceiptForm({
   accounts: propAccounts,
   prefillInvoice,
 }: Props) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customer, setCustomer] = useState(editReceipt?.customer || prefillInvoice?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
@@ -420,7 +420,7 @@ export function ReceiptForm({
                         />
                       </td>
                       <td className="px-3 py-2 font-medium">{invoice.number}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{invoice.date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{formatDate(invoice.date)}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(remaining)}</td>
                       <td className="px-3 py-2 text-right">
                         {isManualMode ? (

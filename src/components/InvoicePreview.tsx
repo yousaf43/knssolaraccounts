@@ -55,7 +55,7 @@ function numberToWords(num: number): string {
 export function InvoicePreview({ invoice, onClose, receipts = [], customerOutstanding = 0, customerPhone, customerAddress, docType = "invoice" }: Props) {
   const isQuotation = docType === "quotation";
   const docLabel = isQuotation ? "Quotation" : "Invoice";
-  const { formatCurrency, settings } = useSettings();
+  const { formatCurrency, settings, formatDate } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
@@ -171,8 +171,8 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
             {invoice.projectName && <p className="text-xs text-gray-500">Project: {invoice.projectName}</p>}
           </div>
           <div className="right text-right text-sm space-y-0.5">
-            <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{invoice.date}</span></div>
-            <div className="flex justify-end gap-4"><span className="text-gray-500">{isQuotation ? "Valid Until" : "Due Date"}</span><span className="font-medium">{invoice.dueDate}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">Date</span><span className="font-medium">{formatDate(invoice.date)}</span></div>
+            <div className="flex justify-end gap-4"><span className="text-gray-500">{isQuotation ? "Valid Until" : "Due Date"}</span><span className="font-medium">{formatDate(invoice.dueDate)}</span></div>
             {invoice.documentNumber && <div className="flex justify-end gap-4"><span className="text-gray-500">Doc No.</span><span className="font-medium">{invoice.documentNumber}</span></div>}
             <div className="flex justify-end gap-4"><span className="text-gray-500">{docLabel} #</span><span className="font-medium">{invoice.number}</span></div>
           </div>

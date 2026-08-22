@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const TYPE_LABELS: Record<string, string> = {
   invoice: "Invoice",
@@ -58,6 +59,7 @@ const normalizePayload = (data: Record<string, unknown>): Record<string, unknown
 
 
 export default function TrashPage() {
+  const { formatDate } = useSettings();
   const { items, loading, restoreFromTrash, permanentDelete, emptyTrash } = useTrash();
   const { log } = useActivityLog();
   const [search, setSearch] = useState("");
@@ -185,7 +187,7 @@ export default function TrashPage() {
                   </td>
                   <td className="px-3 py-3 font-medium">{getLabel(item.itemType, item.itemData)}</td>
                   <td className="px-3 py-3 text-muted-foreground text-xs">
-                    {new Date(item.deletedAt).toLocaleDateString()} {new Date(item.deletedAt).toLocaleTimeString()}
+                    {formatDate(item.deletedAt)} {new Date(item.deletedAt).toLocaleTimeString()}
                   </td>
                   <td className="px-3 py-3 text-center">
                     <div className="flex items-center justify-center gap-1">

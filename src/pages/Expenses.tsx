@@ -38,7 +38,7 @@ const categoryColors: Record<string, string> = {
 const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Bank Transfer", nominalAccount: "" });
 
 export default function Expenses() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
@@ -245,7 +245,7 @@ export default function Expenses() {
           <tbody>
             {pgExpenses.paginatedItems.map((e) => (
               <tr key={e.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 text-muted-foreground">{e.date}</td>
+                <td className="px-4 py-3 text-muted-foreground">{formatDate(e.date)}</td>
                 <td className="px-4 py-3"><Badge className={`${categoryColors[e.category] || "bg-muted text-muted-foreground"} border-0`}>{e.category}</Badge></td>
                 <td className="px-4 py-3">{e.description}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{e.nominalAccount || "—"}</td>
