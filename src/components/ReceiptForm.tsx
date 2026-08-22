@@ -39,7 +39,7 @@ export function ReceiptForm({
   accounts: propAccounts,
   prefillInvoice,
 }: Props) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const [customer, setCustomer] = useState(editReceipt?.customer || prefillInvoice?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
