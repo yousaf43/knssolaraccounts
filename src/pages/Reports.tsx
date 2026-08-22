@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
+import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { countsAsSale } from "@/lib/salesStatus";
 import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
 import { amountToWords, formatCompactAmount } from "@/lib/amountWords";
@@ -3143,8 +3144,13 @@ export default function Reports() {
 
   // Read real data from cloud
   const { data: invoices } = useInvoicesCloud();
-  const { data: expenses } = useExpensesCloud();
+  const { data: rawExpenses } = useExpensesCloud();
   const { data: bills } = useBillsCloud();
+  // Customer discounts count as expenses (Sales Discount) across all reports.
+  const expenses = useMemo(
+    () => [...rawExpenses, ...buildDiscountExpenses(invoices)] as typeof rawExpenses,
+    [rawExpenses, invoices]
+  );
   const { data: rawInventory } = useInventoryCloud();
   // Only main inventory in reports; merge legacy duplicates without losing stock.
   const inventory = useMemo(() => {
