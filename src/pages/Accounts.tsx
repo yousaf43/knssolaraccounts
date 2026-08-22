@@ -696,7 +696,7 @@ export default function Accounts() {
                       <td className="p-3 text-center">
                         <div className="flex justify-center gap-1">
                           <Button variant="ghost" size="sm" onClick={() => openEditReceipt(r)}><Pencil className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => printReceipt(r, formatCurrency, settings.companyName)}><Printer className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => printReceipt(r, formatCurrency, formatDate, settings.companyName)}><Printer className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteReceipt(r.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                         </div>
                       </td>
