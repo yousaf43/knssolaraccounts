@@ -689,7 +689,7 @@ export default function Purchases() {
                         <tbody>
                           {history.map((h, i) => (
                             <tr key={`${h.poId}-${i}`} className="border-t hover:bg-muted/30">
-                              <td className="px-3 py-1.5">{h.date}</td>
+                              <td className="px-3 py-1.5">{formatDate(h.date)}</td>
                               <td className="px-3 py-1.5 font-medium">{h.number}</td>
                               <td className="px-3 py-1.5">{h.supplier}</td>
                               <td className="px-3 py-1.5">{h.item.description}</td>
