@@ -189,7 +189,7 @@ export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel,
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Invoice Date</Label>
-              <p className="font-medium">{selectedInvoice.date}</p>
+              <p className="font-medium">{formatDate(selectedInvoice.date)}</p>
             </div>
           </>
         )}
