@@ -185,6 +185,23 @@ export default function Expenses() {
         </div>
       </div>
 
+      {/* Customer discounts */}
+      <div className="bg-card rounded-lg border p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-full bg-warning/10">
+            <Percent className="w-5 h-5 text-warning" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Customer Discounts (Sales Discount)</p>
+            <p className="text-xl font-bold">{formatCurrency(totalDiscounts)}</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowDiscounts(v => !v)}>
+          {showDiscounts ? "Hide from list" : "Show in list"}
+        </Button>
+      </div>
+
+
       {/* Category Breakdown */}
       {categoryBreakdown.length > 0 && (
         <div className="bg-card rounded-lg border p-4">
