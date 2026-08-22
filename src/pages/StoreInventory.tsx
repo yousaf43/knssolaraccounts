@@ -19,6 +19,7 @@ import { SalesOrderForm } from "@/components/SalesOrderForm";
 import { SalesOrderPreview } from "@/components/SalesOrderPreview";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { toast } from "sonner";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const DEFAULT_UNITS = ["pcs", "kg", "ltr", "box", "dozen", "meter", "feet"];
 const DEFAULT_CATEGORIES = ["Electronics", "Office Supplies", "Raw Materials", "Packaging", "Tools"];
