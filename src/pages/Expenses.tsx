@@ -3,7 +3,7 @@ import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { type Expense } from "@/data/mockData";
 import { useExpensesCloud, useAccountsCloud, useInvoicesCloud } from "@/hooks/useAppData";
-import { countsAsSale } from "@/lib/salesStatus";
+import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,42 +48,16 @@ export default function Expenses() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
-  const [showDiscounts, setShowDiscounts] = useState(true);
-
-  // Customer discounts (sales discounts) shown as read-only expense rows
-  const discountRows = useMemo(() => {
-    return invoices
-      .filter((inv) => countsAsSale(inv) && !inv.isReturn)
-      .map((inv) => {
-        const itemDiscount = (inv.items || []).reduce((s, it) => {
-          const gross = (it.qty || 0) * (it.rate || 0);
-          return s + (gross * ((it.discount || 0) / 100));
-        }, 0);
-        const total = itemDiscount + (inv.discount || 0);
-        return {
-          id: `disc-${inv.id}`,
-          date: inv.date,
-          category: "Sales Discount",
-          description: `Discount — ${inv.customer}${inv.number ? ` (${inv.number})` : ""}`,
-          amount: Math.round(total * 100) / 100,
-          paymentMethod: "—",
-          nominalAccount: "Sales Discount",
-          isDiscount: true,
-        } as Expense & { isDiscount: true };
-      })
-      .filter((r) => r.amount > 0)
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [invoices]);
+  // Customer discounts always count as expenses (Sales Discount)
+  const discountRows = useMemo(() => buildDiscountExpenses(invoices), [invoices]);
 
   const totalDiscounts = discountRows.reduce((s, r) => s + r.amount, 0);
   const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const total = expenseTotal + (showDiscounts ? totalDiscounts : 0);
+  const total = expenseTotal + totalDiscounts;
   const rows = useMemo(() => {
-    const list: (Expense & { isDiscount?: boolean })[] = showDiscounts
-      ? [...expenses, ...discountRows]
-      : [...expenses];
+    const list: (Expense & { isDiscount?: boolean })[] = [...expenses, ...discountRows];
     return list.sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
-  }, [expenses, discountRows, showDiscounts]);
+  }, [expenses, discountRows]);
   const pgExpenses = usePagination(rows);
 
 
@@ -130,9 +104,9 @@ export default function Expenses() {
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, number> = {};
     expenses.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
-    if (showDiscounts && totalDiscounts > 0) map["Sales Discount"] = (map["Sales Discount"] || 0) + totalDiscounts;
+    if (totalDiscounts > 0) map["Sales Discount"] = (map["Sales Discount"] || 0) + totalDiscounts;
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [expenses, showDiscounts, totalDiscounts]);
+  }, [expenses, totalDiscounts]);
 
   return (
     <div className="space-y-6">
@@ -197,9 +171,7 @@ export default function Expenses() {
             <p className="text-xl font-bold">{formatCurrency(totalDiscounts)}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowDiscounts(v => !v)}>
-          {showDiscounts ? "Hide from list" : "Show in list"}
-        </Button>
+        <span className="text-xs text-muted-foreground">Counted automatically in expenses</span>
       </div>
 
 
