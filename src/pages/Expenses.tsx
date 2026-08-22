@@ -2,12 +2,13 @@ import { useState, useMemo } from "react";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { type Expense } from "@/data/mockData";
-import { useExpensesCloud, useAccountsCloud } from "@/hooks/useAppData";
+import { useExpensesCloud, useAccountsCloud, useInvoicesCloud } from "@/hooks/useAppData";
+import { countsAsSale } from "@/lib/salesStatus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, X, Wallet, TrendingDown, PiggyBank } from "lucide-react";
+import { Plus, Edit, X, Wallet, TrendingDown, PiggyBank, Percent } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Fuel and Transportation", "Bills and Bilties", "Material Delivery and Travel", "Maintenance and other Replacement", "Miscellaneous", "Material Purchase", "Other"];
 const paymentMethods = ["Credit Card", "Bank Transfer", "Auto-debit", "Cash", "Check"];
