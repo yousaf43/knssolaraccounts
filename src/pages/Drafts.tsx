@@ -16,6 +16,7 @@ const formatWhen = (iso: string, formatDate: (d: string | Date) => string) => {
 
 export default function Drafts() {
   const navigate = useNavigate();
+  const { formatDate } = useSettings();
   const [drafts, setDrafts] = useState<Draft[]>(() => listDrafts());
 
   useEffect(() => subscribeDrafts(() => setDrafts(listDrafts())), []);
