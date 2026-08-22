@@ -681,7 +681,7 @@ function IncomeStatement({
             .forEach((line, idx) => {
               out.push({
                 key: `${keyPrefix}-${category}-${line.id || idx}`,
-                label: `${line.date ? `${line.date} — ` : ""}${line.description || "Expense"}`,
+                label: `${line.date ? `${formatDate(line.date)} — ` : ""}${line.description || "Expense"}`,
                 note: line.paymentMethod || undefined,
                 indent: 3,
                 detail: line.amount,
