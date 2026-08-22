@@ -55,7 +55,7 @@ type InvoiceDraftData = {
 };
 
 export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [], draftKind = "invoice", initialDraft = null }: Props) {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const draft = (initialDraft || undefined) as Partial<InvoiceDraftData> | undefined;
   const [customNumber, setCustomNumber] = useState(draft?.customNumber ?? editInvoice?.number ?? "");
