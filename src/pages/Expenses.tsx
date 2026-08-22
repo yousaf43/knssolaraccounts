@@ -2,12 +2,13 @@ import { useState, useMemo } from "react";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { type Expense } from "@/data/mockData";
-import { useExpensesCloud, useAccountsCloud } from "@/hooks/useAppData";
+import { useExpensesCloud, useAccountsCloud, useInvoicesCloud } from "@/hooks/useAppData";
+import { countsAsSale } from "@/lib/salesStatus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, X, Wallet, TrendingDown, PiggyBank } from "lucide-react";
+import { Plus, Edit, X, Wallet, TrendingDown, PiggyBank, Percent } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
 import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Fuel and Transportation", "Bills and Bilties", "Material Delivery and Travel", "Maintenance and other Replacement", "Miscellaneous", "Material Purchase", "Other"];
 const paymentMethods = ["Credit Card", "Bank Transfer", "Auto-debit", "Cash", "Check"];
@@ -30,6 +32,7 @@ const categoryColors: Record<string, string> = {
   Travel: "bg-success/10 text-success",
   Payroll: "bg-destructive/10 text-destructive",
   Insurance: "bg-secondary text-secondary-foreground",
+  "Sales Discount": "bg-warning/10 text-warning",
 };
 
 const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Bank Transfer", nominalAccount: "" });
@@ -40,13 +43,49 @@ export default function Expenses() {
   const { moveToTrash } = useTrash();
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
+  const { data: invoices } = useInvoicesCloud();
   const accounts = cloudAccounts.length > 0 ? cloudAccounts : defaultAccounts;
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
+  const [showDiscounts, setShowDiscounts] = useState(true);
 
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const pgExpenses = usePagination(expenses);
+  // Customer discounts (sales discounts) shown as read-only expense rows
+  const discountRows = useMemo(() => {
+    return invoices
+      .filter((inv) => countsAsSale(inv) && !inv.isReturn)
+      .map((inv) => {
+        const itemDiscount = (inv.items || []).reduce((s, it) => {
+          const gross = (it.qty || 0) * (it.rate || 0);
+          return s + (gross * ((it.discount || 0) / 100));
+        }, 0);
+        const total = itemDiscount + (inv.discount || 0);
+        return {
+          id: `disc-${inv.id}`,
+          date: inv.date,
+          category: "Sales Discount",
+          description: `Discount — ${inv.customer}${inv.number ? ` (${inv.number})` : ""}`,
+          amount: Math.round(total * 100) / 100,
+          paymentMethod: "—",
+          nominalAccount: "Sales Discount",
+          isDiscount: true,
+        } as Expense & { isDiscount: true };
+      })
+      .filter((r) => r.amount > 0)
+      .sort((a, b) => (a.date < b.date ? 1 : -1));
+  }, [invoices]);
+
+  const totalDiscounts = discountRows.reduce((s, r) => s + r.amount, 0);
+  const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const total = expenseTotal + (showDiscounts ? totalDiscounts : 0);
+  const rows = useMemo(() => {
+    const list: (Expense & { isDiscount?: boolean })[] = showDiscounts
+      ? [...expenses, ...discountRows]
+      : [...expenses];
+    return list.sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
+  }, [expenses, discountRows, showDiscounts]);
+  const pgExpenses = usePagination(rows);
+
 
   // Petty Cash account balance
   const pettyCashAccount = accounts.find(a => a.name === "Petty Cash");
@@ -91,8 +130,9 @@ export default function Expenses() {
   const categoryBreakdown = useMemo(() => {
     const map: Record<string, number> = {};
     expenses.forEach(e => { map[e.category] = (map[e.category] || 0) + e.amount; });
+    if (showDiscounts && totalDiscounts > 0) map["Sales Discount"] = (map["Sales Discount"] || 0) + totalDiscounts;
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [expenses]);
+  }, [expenses, showDiscounts, totalDiscounts]);
 
   return (
     <div className="space-y-6">
@@ -145,6 +185,23 @@ export default function Expenses() {
           </div>
         </div>
       </div>
+
+      {/* Customer discounts */}
+      <div className="bg-card rounded-lg border p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-full bg-warning/10">
+            <Percent className="w-5 h-5 text-warning" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Customer Discounts (Sales Discount)</p>
+            <p className="text-xl font-bold">{formatCurrency(totalDiscounts)}</p>
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowDiscounts(v => !v)}>
+          {showDiscounts ? "Hide from list" : "Show in list"}
+        </Button>
+      </div>
+
 
       {/* Category Breakdown */}
       {categoryBreakdown.length > 0 && (
@@ -223,10 +280,14 @@ export default function Expenses() {
                 <td className="px-4 py-3 text-muted-foreground">{e.paymentMethod}</td>
                 <td className="px-4 py-3 text-right font-semibold">{formatCurrency(e.amount)}</td>
                 <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(e)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                    <ConfirmDeleteDialog onConfirm={() => handleDelete(e.id)} title="Delete Expense?" description={`Are you sure you want to delete this expense of ${formatCurrency(e.amount)}?`} />
-                  </div>
+                  {e.isDiscount ? (
+                    <span className="text-xs text-muted-foreground">Auto (Invoice)</span>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1">
+                      <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(e)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                      <ConfirmDeleteDialog onConfirm={() => handleDelete(e.id)} title="Delete Expense?" description={`Are you sure you want to delete this expense of ${formatCurrency(e.amount)}?`} />
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
