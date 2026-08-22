@@ -502,6 +502,7 @@ export default function Settings() {
                 <Select value={form.dateFormat} onValueChange={(v) => update("dateFormat", v)}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="dd-MM-yyyy">DD-MM-YYYY</SelectItem>
                     <SelectItem value="dd/MM/yyyy">DD/MM/YYYY</SelectItem>
                     <SelectItem value="MM/dd/yyyy">MM/DD/YYYY</SelectItem>
                     <SelectItem value="yyyy-MM-dd">YYYY-MM-DD</SelectItem>
