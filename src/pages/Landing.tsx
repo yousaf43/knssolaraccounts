@@ -66,6 +66,7 @@ const txRows = [
 ];
 
 function DashboardPreview() {
+  const { formatDate } = useSettings();
   return (
     <div className="pointer-events-none select-none overflow-hidden rounded-xl border bg-card text-[11px]">
       {/* Top bar */}
