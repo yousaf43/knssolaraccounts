@@ -919,7 +919,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   accounts: Account[];
   ledger: LedgerEntry[];
 }) {
-  const { formatCurrency, settings } = useSettings();
+  const { formatCurrency, settings, formatDate } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
