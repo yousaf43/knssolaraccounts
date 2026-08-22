@@ -962,6 +962,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const toggleMultiSelected = (key: string) =>
     setMultiSelectedKeys(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
+  const [plStats, setPlStats] = useState<{ netSales: number; costOfSales: number; grossIncome: number; operatingExpenses: number; incomeTax: number; netIncome: number } | null>(null);
+
   const dateRange = useMemo(() => {
     if (fromDate && toDate) return `${formatDate(fromDate)} - ${formatDate(toDate)}`;
     if (fromDate) return `From ${formatDate(fromDate)}`;
@@ -1255,6 +1257,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             companyName={companyName}
             salesTaxRate={Number(salesTaxRate) || 0}
             incomeTaxRate={Number(incomeTaxRate) || 0}
+            onStats={setPlStats}
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
@@ -1270,19 +1273,42 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             ))}
           </div>
           <div className="bg-card rounded-lg border p-6">
-            <h2 className="text-lg font-semibold mb-4">Monthly Revenue vs Expenses</h2>
-            {filteredData.length === 0 ? (
+            <h2 className="text-lg font-semibold mb-4">Profit &amp; Loss Breakdown</h2>
+            {!plStats ? (
               <p className="text-muted-foreground text-sm text-center py-8">No data available. Add invoices and expenses to see reports.</p>
             ) : (
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={filteredData}>
+                <BarChart
+                  data={[
+                    { name: "Net Sales", value: plStats.netSales, color: "hsl(var(--primary))" },
+                    { name: "Cost of Sales", value: plStats.costOfSales, color: "hsl(25, 90%, 52%)" },
+                    { name: "Gross Income", value: plStats.grossIncome, color: "hsl(142, 71%, 40%)" },
+                    { name: "Operating Expenses", value: plStats.operatingExpenses, color: "hsl(var(--destructive))" },
+                    ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, color: "hsl(270, 60%, 55%)" }] : []),
+                    { name: "Profit", value: plStats.netIncome, color: plStats.netIncome >= 0 ? "hsl(142, 71%, 30%)" : "hsl(var(--destructive))" },
+                  ]}
+                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }} />
-                  <Legend />
-                  <Bar dataKey="sales" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Revenue" />
-                  <Bar dataKey="expenses" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Expenses" opacity={0.7} />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} interval={0} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} tickFormatter={(v: number) => formatCompactAmount(v)} />
+                  <Tooltip
+                    formatter={(v: number) => formatCurrency(v)}
+                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                  />
+                  <Bar dataKey="value" name="Amount" radius={[4, 4, 0, 0]}>
+                    {[0, 1, 2, 3, 4, 5].slice(0, plStats.incomeTax > 0 ? 6 : 5).map((i) => null)}
+                    {([
+                      { name: "Net Sales", color: "hsl(var(--primary))" },
+                      { name: "Cost of Sales", color: "hsl(25, 90%, 52%)" },
+                      { name: "Gross Income", color: "hsl(142, 71%, 40%)" },
+                      { name: "Operating Expenses", color: "hsl(var(--destructive))" },
+                      ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", color: "hsl(270, 60%, 55%)" }] : []),
+                      { name: "Profit", color: plStats.netIncome >= 0 ? "hsl(142, 71%, 30%)" : "hsl(var(--destructive))" },
+                    ]).map((d) => (
+                      <Cell key={d.name} fill={d.color} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
