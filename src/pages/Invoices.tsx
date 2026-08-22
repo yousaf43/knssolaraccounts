@@ -68,7 +68,7 @@ function parseCSV(text: string): Record<string, string>[] {
 }
 
 export default function Invoices() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const { data: invoices, upsert: upsertInvoice, remove: removeInvoice, setData: setInvoices } = useInvoicesCloud();
