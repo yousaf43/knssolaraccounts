@@ -23,7 +23,7 @@ import { isStockTrackedItem } from "@/lib/oldBalance";
 
 export default function CompletedSites() {
   const { log } = useActivityLog();
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { data: inventoryAll, upsert: upsertInv, loading: invLoading } = useInventoryCloud();
   const { data: salesOrdersAll, upsert: upsertSO, remove: removeSO, loading: soLoading } = useSalesOrdersCloud();
   const { data: customers } = useCustomersCloud();
