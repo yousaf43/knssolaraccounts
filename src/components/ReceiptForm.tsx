@@ -420,7 +420,7 @@ export function ReceiptForm({
                         />
                       </td>
                       <td className="px-3 py-2 font-medium">{invoice.number}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{invoice.date}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{formatDate(invoice.date)}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(remaining)}</td>
                       <td className="px-3 py-2 text-right">
                         {isManualMode ? (
