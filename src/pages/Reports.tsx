@@ -2576,7 +2576,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                         <td className="px-3 py-2 font-medium"><HighlightText text={r.number} query={receiptSearch} /></td>
                         <td className="px-3 py-2"><HighlightText text={r.customer} query={receiptSearch} /></td>
-                        <td className="px-3 py-2 text-muted-foreground">{r.date}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{formatDate(r.date)}</td>
                         <td className="px-3 py-2 text-muted-foreground">{r.invoiceNumber}</td>
                         <td className="px-3 py-2">{r.paymentMethod}</td>
                         <td className="px-3 py-2 text-right font-semibold text-success">{formatCurrency(r.amount)}</td>
