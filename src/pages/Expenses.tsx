@@ -279,10 +279,14 @@ export default function Expenses() {
                 <td className="px-4 py-3 text-muted-foreground">{e.paymentMethod}</td>
                 <td className="px-4 py-3 text-right font-semibold">{formatCurrency(e.amount)}</td>
                 <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(e)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
-                    <ConfirmDeleteDialog onConfirm={() => handleDelete(e.id)} title="Delete Expense?" description={`Are you sure you want to delete this expense of ${formatCurrency(e.amount)}?`} />
-                  </div>
+                  {e.isDiscount ? (
+                    <span className="text-xs text-muted-foreground">Auto (Invoice)</span>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1">
+                      <button className="p-1.5 rounded hover:bg-muted" onClick={() => openEdit(e)}><Edit className="w-4 h-4 text-muted-foreground" /></button>
+                      <ConfirmDeleteDialog onConfirm={() => handleDelete(e.id)} title="Delete Expense?" description={`Are you sure you want to delete this expense of ${formatCurrency(e.amount)}?`} />
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
