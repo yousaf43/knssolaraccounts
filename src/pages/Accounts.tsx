@@ -27,7 +27,7 @@ const initialReconcile: ReconcileEntry[] = [
   { id: "2", date: "2025-01-31", account: "Savings Account", statementBalance: 50200, bookBalance: 50200, difference: 0, status: "reconciled" },
 ];
 
-function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, companyName: string) {
+function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, formatDate: (d: string | Date) => string, companyName: string) {
   const content = `
     <html><head><title>Receipt ${r.reference}</title>
     <style>
