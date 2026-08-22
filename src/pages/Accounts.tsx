@@ -41,7 +41,7 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, co
       .sig { border-top: 1px solid #999; padding-top: 4px; width: 180px; text-align: center; }
     </style></head><body>
     <div class="header"><h1>${companyName}</h1><p style="margin:4px 0;font-size:13px;color:#555">RECEIPT</p></div>
-    <div class="meta"><span><b>Receipt No:</b> ${r.reference}</span><span><b>Date:</b> ${r.date}</span></div>
+    <div class="meta"><span><b>Receipt No:</b> ${r.reference}</span><span><b>Date:</b> ${formatDate(r.date)}</span></div>
     <div class="row"><span>Received From</span><span><b>${r.receivedFrom}</b></span></div>
     <div class="row"><span>Account / Bank</span><span>${r.account}</span></div>
     <div class="row"><span>Description</span><span>${r.description || "—"}</span></div>
