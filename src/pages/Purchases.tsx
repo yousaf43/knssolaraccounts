@@ -51,7 +51,7 @@ const emptyItem = (): InvoiceItem => ({ description: "", qty: 1, rate: 0, amount
 const today = () => new Date().toISOString().split("T")[0];
 
 export default function Purchases() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
   const [tab, setTab] = useState("purchase-orders");

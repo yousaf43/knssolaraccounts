@@ -14,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 const emptyRecord: SolarWashing = { id: "", date: new Date().toISOString().slice(0, 10), customer: "", amount: 0, notes: "" };
 
 export default function SolarWashingPage() {
-  const { formatCurrency } = useSettings();
+  const { formatCurrency, formatDate } = useSettings();
   const { data: records, upsert, remove } = useSolarWashingCloud();
   const { log } = useActivityLog();
 
