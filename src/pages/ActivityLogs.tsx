@@ -27,6 +27,7 @@ const LOGS_PER_PAGE = 20;
 
 export default function ActivityLogs() {
   const { user } = useAuth();
+  const { formatDate } = useSettings();
   const [logs, setLogs] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
