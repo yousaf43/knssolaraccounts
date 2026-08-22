@@ -15,7 +15,7 @@ type Props = {
 };
 
 export function SalesOrderPreview({ order, onClose, showPrices = false, customers = [], inventory = [] }: Props) {
-  const { formatCurrency, settings } = useSettings();
+  const { formatCurrency, settings, formatDate } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const norm = (v?: string | null) => (v ?? "").trim().toLowerCase();
