@@ -59,6 +59,7 @@ const normalizePayload = (data: Record<string, unknown>): Record<string, unknown
 
 
 export default function TrashPage() {
+  const { formatDate } = useSettings();
   const { items, loading, restoreFromTrash, permanentDelete, emptyTrash } = useTrash();
   const { log } = useActivityLog();
   const [search, setSearch] = useState("");
