@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Plus, Trash2, X, UserPlus, ChevronsUpDown, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/ProductPickerWithBundle";
 import { HighlightText } from "@/components/HighlightText";
