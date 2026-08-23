@@ -1012,6 +1012,7 @@ export default function Invoices() {
                 <TabsTrigger value="invoices" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Invoices"><FileText className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="returns" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Returns"><RotateCcw className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="receipts" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Receipts"><ReceiptIcon className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="ledger" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Ledger"><BookOpen className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="all" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="All"><List className="w-3.5 h-3.5" /></TabsTrigger>
               </TabsList>
               <div className="ml-auto flex items-center gap-2 flex-shrink-0">
