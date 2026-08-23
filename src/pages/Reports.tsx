@@ -915,7 +915,7 @@ function IncomeStatement({
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger, initialCustomerFilter }: {
   report: Report; onBack: () => void;
   monthlySales: MonthlyReportRow[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -933,6 +933,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   stockAdjustments: StockAdjustment[];
   accounts: Account[];
   ledger: LedgerEntry[];
+  initialCustomerFilter?: string;
 }) {
   const { formatCurrency, settings, formatDate } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
