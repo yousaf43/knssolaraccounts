@@ -942,6 +942,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [productSearch, setProductSearch] = useState("");
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
+  const [customerLedgerCustomer, setCustomerLedgerCustomer] = useState<string>(initialCustomerFilter || "all");
   const [discountSearch, setDiscountSearch] = useState("");
   const [discountOnly, setDiscountOnly] = useState("with");
   const [discountCustomer, setDiscountCustomer] = useState("all");
