@@ -98,6 +98,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [advanceMethod, setAdvanceMethod] = useState(draft?.advanceMethod ?? "Cash on Hand");
   const [advanceRef, setAdvanceRef] = useState(draft?.advanceRef ?? "");
   const [paymentMode, setPaymentMode] = useState("");
+  // --- Ledger option ---
+  const [addToLedger, setAddToLedger] = useState<boolean>(!!initialLedger);
+  const [ledgerAccount, setLedgerAccount] = useState<string>(initialLedger?.account || "");
+  const [ledgerAmount, setLedgerAmount] = useState<string>(initialLedger ? String(initialLedger.amount) : "");
 
   // Build payment options from accounts (unique key using id)
   const paymentOptions = useMemo(() => {
