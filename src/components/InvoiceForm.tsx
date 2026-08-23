@@ -65,7 +65,7 @@ type InvoiceDraftData = {
   advanceRef: string;
 };
 
-export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [], draftKind = "invoice", initialDraft = null }: Props) {
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [], initialLedger = null, draftKind = "invoice", initialDraft = null }: Props) {
   const { formatCurrency, formatDate } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const draft = (initialDraft || undefined) as Partial<InvoiceDraftData> | undefined;
