@@ -97,7 +97,7 @@ export default function Invoices() {
     return Array.from(byKey.values());
   }, [inventory]);
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
-  const { data: ledger, setData: setLedger, upsert: upsertLedger } = useLedgerEntriesCloud();
+  const { data: ledger, setData: setLedger, upsert: upsertLedger, remove: removeLedger } = useLedgerEntriesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
