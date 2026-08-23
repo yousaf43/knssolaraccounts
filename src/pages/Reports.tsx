@@ -1160,6 +1160,25 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             )}
           </>
         )}
+        {report.code === "035" && (
+          <>
+            <Select value={customerLedgerCustomer} onValueChange={setCustomerLedgerCustomer}>
+              <SelectTrigger className="h-8 text-xs w-64"><SelectValue placeholder="Select customer" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Select a customer</SelectItem>
+                {customers
+                  .slice()
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(c => <SelectItem key={c.id} value={c.name}>{c.name}{c.company ? ` — ${c.company}` : ""}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {customerLedgerCustomer !== "all" && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => setCustomerLedgerCustomer("all")}>
+                Clear
+              </Button>
+            )}
+          </>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
             if (!exportVisibleTableCSV(report, dateRange)) exportCSV(report, filteredData, dateRange);
