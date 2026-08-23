@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Printer, FileDown } from "lucide-react";
+import { ArrowLeft, Printer, FileDown, X } from "lucide-react";
 import { HighlightText } from "@/components/HighlightText";
 import { TablePagination } from "@/components/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
@@ -40,6 +40,8 @@ const inRange = (date: string, from: string, to: string) => {
   return true;
 };
 
+const LEDGER_CUSTOMERS_KEY = "ledgerCustomers";
+
 export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }: Props) {
   const { formatCurrency, formatDate } = useSettings();
   const [search, setSearch] = useState("");
@@ -47,6 +49,20 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
   const [to, setTo] = useState("");
   const [account, setAccount] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
+  const [ledgerCustomers, setLedgerCustomers] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(LEDGER_CUSTOMERS_KEY) || "[]"); } catch { return []; }
+  });
+
+  const saveLedgerCustomers = (list: string[]) => {
+    setLedgerCustomers(list);
+    localStorage.setItem(LEDGER_CUSTOMERS_KEY, JSON.stringify(list));
+  };
+
+  const allCustomers = useMemo(() => {
+    const s = new Set<string>();
+    invoices.forEach((i) => i.customer && s.add(i.customer.trim()));
+    return Array.from(s).sort();
+  }, [invoices]);
 
   const accountOptions = useMemo(() => {
     const names = new Set<string>();
@@ -75,14 +91,17 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       map.set(key, list);
     };
 
-    const ledgerCustomers = new Set<string>();
+    const included = new Set<string>();
+    const optedIn = new Set(ledgerCustomers.map((c) => c.trim()));
 
     for (const inv of invoices) {
       const status = (inv.status || "").toLowerCase();
       if (status === "cancelled") continue;
       const linked = invoiceLedgerByNumber.get(inv.number);
-      if (!linked) continue; // only invoices explicitly added to ledger
-      ledgerCustomers.add((inv.customer || "Unknown").trim() || "Unknown");
+      const custKey = (inv.customer || "Unknown").trim() || "Unknown";
+      // include invoices added to ledger individually, or all invoices of opted-in customers
+      if (!linked && !optedIn.has(custKey)) continue;
+      included.add(custKey);
       if (!inRange(inv.date, from, to)) continue;
 
       const items = Array.isArray(inv.items) ? inv.items : [];
@@ -98,7 +117,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
             qty: Number(it.qty) || null,
             ref: inv.documentNumber || inv.number,
             rate: Number(it.rate) || null,
-            account: linked.bank || "—",
+            account: linked?.bank || "—",
             debit: amount + adj,
             credit: 0,
           });
@@ -110,14 +129,14 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
           qty: null,
           ref: inv.documentNumber || inv.number,
           rate: null,
-          account: linked.bank || "—",
+          account: linked?.bank || "—",
           debit: Number(inv.amount) || 0,
           credit: 0,
         });
       }
 
       // Payment recorded through the invoice "Add to Ledger" option
-      if (Number(linked.amount) > 0) {
+      if (linked && Number(linked.amount) > 0) {
         push(inv.customer, {
           date: linked.date || inv.date,
           narration: linked.bank ? `${linked.bank} — payment received` : "Payment received",
@@ -134,7 +153,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
     for (const r of receipts) {
       if (!inRange(r.date, from, to)) continue;
       const key = (r.customer || "Unknown").trim() || "Unknown";
-      if (!ledgerCustomers.has(key)) continue; // only ledger customers
+      if (!included.has(key)) continue; // only ledger customers
       push(r.customer, {
         date: r.date,
         narration: `Payment received${r.invoiceNumber ? ` against ${r.invoiceNumber}` : ""}`,
@@ -152,7 +171,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       map.set(k, list);
     }
     return map;
-  }, [invoices, receipts, invoiceLedgerByNumber, from, to]);
+  }, [invoices, receipts, invoiceLedgerByNumber, from, to, ledgerCustomers]);
 
   const summary = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -264,11 +283,40 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
             {accountOptions.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select
+          value=""
+          onValueChange={(v) => { if (v && !ledgerCustomers.includes(v)) saveLedgerCustomers([...ledgerCustomers, v]); }}
+        >
+          <SelectTrigger className="h-9 w-56"><SelectValue placeholder="+ Add customer to ledger" /></SelectTrigger>
+          <SelectContent className="max-h-72">
+            {allCustomers.filter((c) => !ledgerCustomers.includes(c)).map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv}><FileDown className="w-4 h-4 mr-1" /> CSV</Button>
           <Button variant="outline" size="sm" onClick={printLedger}><Printer className="w-4 h-4 mr-1" /> Print</Button>
         </div>
       </div>
+
+      {ledgerCustomers.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Ledger customers:</span>
+          {ledgerCustomers.map((c) => (
+            <Badge key={c} variant="secondary" className="gap-1">
+              {c}
+              <button
+                type="button"
+                className="ml-1 text-muted-foreground hover:text-destructive"
+                onClick={() => saveLedgerCustomers(ledgerCustomers.filter((x) => x !== c))}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {!selected && (
         <div className="bg-card rounded-lg border">
