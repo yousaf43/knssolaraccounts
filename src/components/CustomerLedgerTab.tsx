@@ -40,6 +40,8 @@ const inRange = (date: string, from: string, to: string) => {
   return true;
 };
 
+const LEDGER_CUSTOMERS_KEY = "ledgerCustomers";
+
 export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }: Props) {
   const { formatCurrency, formatDate } = useSettings();
   const [search, setSearch] = useState("");
@@ -47,6 +49,20 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
   const [to, setTo] = useState("");
   const [account, setAccount] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
+  const [ledgerCustomers, setLedgerCustomers] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(LEDGER_CUSTOMERS_KEY) || "[]"); } catch { return []; }
+  });
+
+  const saveLedgerCustomers = (list: string[]) => {
+    setLedgerCustomers(list);
+    localStorage.setItem(LEDGER_CUSTOMERS_KEY, JSON.stringify(list));
+  };
+
+  const allCustomers = useMemo(() => {
+    const s = new Set<string>();
+    invoices.forEach((i) => i.customer && s.add(i.customer.trim()));
+    return Array.from(s).sort();
+  }, [invoices]);
 
   const accountOptions = useMemo(() => {
     const names = new Set<string>();
