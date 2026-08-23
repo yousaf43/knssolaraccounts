@@ -117,7 +117,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
             qty: Number(it.qty) || null,
             ref: inv.documentNumber || inv.number,
             rate: Number(it.rate) || null,
-            account: linked.bank || "—",
+            account: linked?.bank || "—",
             debit: amount + adj,
             credit: 0,
           });
@@ -129,14 +129,14 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
           qty: null,
           ref: inv.documentNumber || inv.number,
           rate: null,
-          account: linked.bank || "—",
+          account: linked?.bank || "—",
           debit: Number(inv.amount) || 0,
           credit: 0,
         });
       }
 
       // Payment recorded through the invoice "Add to Ledger" option
-      if (Number(linked.amount) > 0) {
+      if (linked && Number(linked.amount) > 0) {
         push(inv.customer, {
           date: linked.date || inv.date,
           narration: linked.bank ? `${linked.bank} — payment received` : "Payment received",
@@ -153,7 +153,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
     for (const r of receipts) {
       if (!inRange(r.date, from, to)) continue;
       const key = (r.customer || "Unknown").trim() || "Unknown";
-      if (!ledgerCustomers.has(key)) continue; // only ledger customers
+      if (!included.has(key)) continue; // only ledger customers
       push(r.customer, {
         date: r.date,
         narration: `Payment received${r.invoiceNumber ? ` against ${r.invoiceNumber}` : ""}`,
@@ -171,7 +171,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       map.set(k, list);
     }
     return map;
-  }, [invoices, receipts, invoiceLedgerByNumber, from, to]);
+  }, [invoices, receipts, invoiceLedgerByNumber, from, to, ledgerCustomers]);
 
   const summary = useMemo(() => {
     const q = search.trim().toLowerCase();
