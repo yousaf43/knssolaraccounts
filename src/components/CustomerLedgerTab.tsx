@@ -73,33 +73,37 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       map.set(key, list);
     };
 
+    const ledgerCustomers = new Set<string>();
+
     for (const inv of invoices) {
       const status = (inv.status || "").toLowerCase();
       if (status === "cancelled") continue;
-      if (!inRange(inv.date, from, to)) continue;
       const linked = invoiceLedgerByNumber.get(inv.number);
+      if (!linked) continue; // only invoices explicitly added to ledger
+      ledgerCustomers.add((inv.customer || "Unknown").trim() || "Unknown");
+      if (!inRange(inv.date, from, to)) continue;
       push(inv.customer, {
         date: inv.date,
         ref: inv.number,
         description: inv.projectName ? `Invoice — ${inv.projectName}` : "Invoice",
-        account: linked?.bank || "—",
+        account: linked.bank || "—",
         debit: Number(inv.amount) || 0,
         credit: 0,
       });
-      if (linked) {
-        push(inv.customer, {
-          date: linked.date || inv.date,
-          ref: inv.number,
-          description: "Ledger entry (invoice)",
-          account: linked.bank,
-          debit: 0,
-          credit: Number(linked.amount) || 0,
-        });
-      }
+      push(inv.customer, {
+        date: linked.date || inv.date,
+        ref: inv.number,
+        description: "Ledger entry (invoice)",
+        account: linked.bank,
+        debit: 0,
+        credit: Number(linked.amount) || 0,
+      });
     }
 
     for (const r of receipts) {
       if (!inRange(r.date, from, to)) continue;
+      const key = (r.customer || "Unknown").trim() || "Unknown";
+      if (!ledgerCustomers.has(key)) continue; // only ledger customers
       push(r.customer, {
         date: r.date,
         ref: r.number,
@@ -109,6 +113,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
         credit: Number(r.amount) || 0,
       });
     }
+
 
     for (const [k, list] of map) {
       list.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
