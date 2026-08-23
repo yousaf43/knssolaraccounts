@@ -283,6 +283,17 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
             {accountOptions.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select
+          value=""
+          onValueChange={(v) => { if (v && !ledgerCustomers.includes(v)) saveLedgerCustomers([...ledgerCustomers, v]); }}
+        >
+          <SelectTrigger className="h-9 w-56"><SelectValue placeholder="+ Add customer to ledger" /></SelectTrigger>
+          <SelectContent className="max-h-72">
+            {allCustomers.filter((c) => !ledgerCustomers.includes(c)).map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv}><FileDown className="w-4 h-4 mr-1" /> CSV</Button>
           <Button variant="outline" size="sm" onClick={printLedger}><Printer className="w-4 h-4 mr-1" /> Print</Button>
