@@ -3256,7 +3256,7 @@ export default function Reports() {
   const [analyticalTab, setAnalyticalTab] = useState("Favourites");
   const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState<string[]>([
-    "028", "029", "034", "037", "084", "085", "088", "235", "236",
+    "028", "029", "034", "035", "037", "084", "085", "088", "235", "236",
     "078", "080", "082", "083", "148", "180",
     "121", "123", "125", "127", "129", "135", "258", "307", "381", "383",
     "272",
