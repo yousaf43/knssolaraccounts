@@ -3508,7 +3508,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} initialCustomerFilter={initialCustomerFilter} />;
   }
 
   return (
