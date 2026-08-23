@@ -635,6 +635,43 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
         </div>
       )}
 
+      {/* Ledger option */}
+      <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <Checkbox checked={addToLedger} onCheckedChange={(v) => setAddToLedger(v === true)} />
+          <span className="font-medium text-sm">Add to Ledger</span>
+          <span className="text-xs text-muted-foreground">— is invoice ki entry account ledger me jayegi</span>
+        </label>
+        {addToLedger && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Ledger Account *</Label>
+              <Select value={ledgerAccount} onValueChange={setLedgerAccount}>
+                <SelectTrigger className="mt-1 h-8">
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentOptions.map((opt) => (
+                    <SelectItem key={`ledger-${opt.value}`} value={opt.displayName}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Ledger Amount</Label>
+              <Input
+                type="number" min={0} step={0.01}
+                value={ledgerAmount}
+                onChange={(e) => setLedgerAmount(e.target.value)}
+                placeholder={String(total.toFixed(2))}
+                className="mt-1 h-8"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Khali chhodne par invoice total ({formatCurrency(total)}) use hoga.</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Payment Summary when editing */}
       {editInvoice && (() => {
         const { invoiceReceipts, totalPaid, remaining, embeddedPaid } = getInvoicePaymentSummary(editInvoice, receipts);
