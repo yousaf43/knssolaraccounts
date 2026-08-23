@@ -844,7 +844,7 @@ export default function Invoices() {
     if (activeTab === "receipts" || editReceipt) {
       return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
-    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} draftKind="invoice" initialDraft={draftDataFor("invoice")} />;
+    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} initialLedger={(() => { if (!editInvoice) return null; const e = findInvoiceLedgerEntry(editInvoice.number); return e ? { account: e.bank, amount: e.amount } : null; })()} draftKind="invoice" initialDraft={draftDataFor("invoice")} />;
   }
 
   // --- Export CSV ---
