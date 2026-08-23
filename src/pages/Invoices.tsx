@@ -1463,6 +1463,11 @@ export default function Invoices() {
           <div className="p-2"><CompletedSites /></div>
         </TabsContent>
 
+        {/* Customer-wise Ledger Tab */}
+        <TabsContent value="ledger">
+          <CustomerLedgerTab invoices={invoices} receipts={receipts} ledger={ledger} accounts={cloudAccounts as any} />
+        </TabsContent>
+
         {/* Sales All Tab */}
         <TabsContent value="all">
           <div className="flex items-center justify-end px-4 py-2">
