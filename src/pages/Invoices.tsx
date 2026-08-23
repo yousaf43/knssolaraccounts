@@ -1074,6 +1074,7 @@ export default function Invoices() {
                 <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
                 <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className="w-4 h-4" />Returns</TabsTrigger>
                 <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
+                <TabsTrigger value="ledger" className="flex items-center gap-2"><BookOpen className="w-4 h-4" />Ledger</TabsTrigger>
                 <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
               </TabsList>
 
