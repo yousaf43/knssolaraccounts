@@ -20,21 +20,32 @@ import { getAdhocBundleValue } from "@/lib/adhocBundle";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import type { DraftKind } from "@/lib/drafts";
 
+export type InvoiceLedgerOption = { account: string; amount: number };
+
 type Props = {
   customers: Customer[];
   inventory?: InventoryItem[];
-  onSave: (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => void;
+  onSave: (
+    invoice: Invoice,
+    advanceAmount?: number,
+    advanceMethod?: string,
+    advanceRef?: string,
+    ledger?: InvoiceLedgerOption | null,
+  ) => void;
   onCancel: () => void;
   editInvoice?: Invoice | null;
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
   accounts?: Account[];
   receipts?: Receipt[];
+  /** Existing ledger link for this invoice (edit mode). */
+  initialLedger?: InvoiceLedgerOption | null;
   /** Which draft bucket this form writes to ("invoice" by default). */
   draftKind?: DraftKind;
   /** Previously auto-saved form state to resume from. */
   initialDraft?: Record<string, unknown> | null;
 };
+
 
 type InvoiceDraftData = {
   customNumber: string;
