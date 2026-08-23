@@ -91,14 +91,17 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       map.set(key, list);
     };
 
-    const ledgerCustomers = new Set<string>();
+    const included = new Set<string>();
+    const optedIn = new Set(ledgerCustomers.map((c) => c.trim()));
 
     for (const inv of invoices) {
       const status = (inv.status || "").toLowerCase();
       if (status === "cancelled") continue;
       const linked = invoiceLedgerByNumber.get(inv.number);
-      if (!linked) continue; // only invoices explicitly added to ledger
-      ledgerCustomers.add((inv.customer || "Unknown").trim() || "Unknown");
+      const custKey = (inv.customer || "Unknown").trim() || "Unknown";
+      // include invoices added to ledger individually, or all invoices of opted-in customers
+      if (!linked && !optedIn.has(custKey)) continue;
+      included.add(custKey);
       if (!inRange(inv.date, from, to)) continue;
 
       const items = Array.isArray(inv.items) ? inv.items : [];
