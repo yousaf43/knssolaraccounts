@@ -1962,7 +1962,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           {report.code === "035" && (() => {
             const selectedName = customerLedgerCustomer === "all" ? "" : customerLedgerCustomer;
             const norm = normName(selectedName);
-            const allCustInvoices = invoices.filter(i => normName(i.customer) === norm && !["draft", "cancelled", "rejected"].includes(i.status || ""));
+            const allCustInvoices = invoices.filter(i => normName(i.customer) === norm && !["draft", "cancelled", "rejected", "returned"].includes(i.status || "") && !i.isReturn);
             const allCustReceipts = receipts.filter(r => normName(r.customer) === norm);
             const allCustReturns = invoices.filter(i => normName(i.customer) === norm && (i.isReturn || i.status === "returned"));
 
