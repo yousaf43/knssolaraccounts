@@ -300,6 +300,24 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
         </div>
       </div>
 
+      {ledgerCustomers.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Ledger customers:</span>
+          {ledgerCustomers.map((c) => (
+            <Badge key={c} variant="secondary" className="gap-1">
+              {c}
+              <button
+                type="button"
+                className="ml-1 text-muted-foreground hover:text-destructive"
+                onClick={() => saveLedgerCustomers(ledgerCustomers.filter((x) => x !== c))}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {!selected && (
         <div className="bg-card rounded-lg border">
           <table className="w-full text-sm">
