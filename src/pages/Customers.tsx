@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
 import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud, useSalesOrdersCloud, useQuotationsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Mail, Phone, Edit, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Mail, Phone, Edit, Trash2, X, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
