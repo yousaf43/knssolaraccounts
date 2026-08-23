@@ -1957,6 +1957,119 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             );
           })()}
 
+          {/* Customer Ledger (035) */}
+          {report.code === "035" && (() => {
+            const selectedName = customerLedgerCustomer === "all" ? "" : customerLedgerCustomer;
+            const norm = normName(selectedName);
+            const allCustInvoices = invoices.filter(i => normName(i.customer) === norm && !["draft", "cancelled", "rejected"].includes(i.status || ""));
+            const allCustReceipts = receipts.filter(r => normName(r.customer) === norm);
+            const allCustReturns = invoices.filter(i => normName(i.customer) === norm && (i.isReturn || i.status === "returned"));
+
+            const openingInvoices = allCustInvoices.filter(i => !inRange(i.date, fromDate, toDate));
+            const openingReceipts = allCustReceipts.filter(r => !inRange(r.date, fromDate, toDate));
+            const openingReturns = allCustReturns.filter(i => !inRange(i.date, fromDate, toDate));
+            const openingBilled = openingInvoices.reduce((s, i) => s + (i.amount || 0), 0) - openingReturns.reduce((s, i) => s + (i.amount || 0), 0);
+            const openingPaid = openingReceipts.reduce((s, r) => s + (r.amount || 0), 0);
+            const openingBalance = openingBilled - openingPaid;
+
+            const periodInvoices = allCustInvoices.filter(i => inRange(i.date, fromDate, toDate));
+            const periodReceipts = allCustReceipts.filter(r => inRange(r.date, fromDate, toDate));
+            const periodReturns = allCustReturns.filter(i => inRange(i.date, fromDate, toDate));
+
+            type LedgerRow = { id: string; date: string; doc: string; type: string; debit: number; credit: number; note?: string };
+            const rows: LedgerRow[] = [
+              ...periodInvoices.map(inv => ({ id: `inv-${inv.id}`, date: inv.date, doc: inv.number || inv.documentNumber || "—", type: "Invoice", debit: inv.amount || 0, credit: 0, note: inv.projectName || "" })),
+              ...periodReturns.map(inv => ({ id: `ret-${inv.id}`, date: inv.date, doc: inv.number || inv.documentNumber || "—", type: "Credit Note", debit: 0, credit: inv.amount || 0, note: inv.projectName || "" })),
+              ...periodReceipts.map(r => ({ id: `rec-${r.id}`, date: r.date, doc: r.number || "—", type: "Receipt", debit: 0, credit: r.amount || 0, note: r.paymentMethod ? `${r.paymentMethod}${r.reference ? ` / ${r.reference}` : ""}` : "" })),
+            ].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+
+            let running = openingBalance;
+            const ledgerRows = rows.map((r, idx) => {
+              running += r.debit - r.credit;
+              return { ...r, sr: idx + 1, balance: running };
+            });
+
+            const totalDebit = rows.reduce((s, r) => s + r.debit, 0);
+            const totalCredit = rows.reduce((s, r) => s + r.credit, 0);
+            const closingBalance = openingBalance + totalDebit - totalCredit;
+
+            return (
+              <div className="bg-card rounded-lg border p-6">
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">
+                    {selectedName ? `Customer Ledger — ${selectedName}` : "Customer Ledger"}
+                  </h2>
+                  {selectedName && (
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>Opening: <span className="font-medium text-foreground">{formatCurrency(openingBalance)}</span></span>
+                      <span>Closing: <span className={`font-medium ${closingBalance > 0 ? "text-warning" : closingBalance < 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(closingBalance)}</span></span>
+                    </div>
+                  )}
+                </div>
+                {!selectedName ? (
+                  <p className="text-muted-foreground text-sm text-center py-10">Please select a customer from the filter above to view the ledger.</p>
+                ) : ledgerRows.length === 0 ? (
+                  <p className="text-muted-foreground text-sm text-center py-10">No transactions for this customer in the selected period.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table id="report-print-table" className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Type</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Note</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Debit</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Credit</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(openingBalance !== 0 || openingBilled !== 0 || openingPaid !== 0) && (
+                          <tr className="border-b bg-muted/20">
+                            <td className="px-3 py-2 text-muted-foreground">—</td>
+                            <td className="px-3 py-2 text-muted-foreground">{fromDate ? formatDate(fromDate) : "Opening"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">—</td>
+                            <td className="px-3 py-2 font-medium text-muted-foreground">Opening Balance</td>
+                            <td className="px-3 py-2 text-muted-foreground">Before period</td>
+                            <td className="px-3 py-2 text-right">{openingBalance > 0 ? formatCurrency(openingBalance) : "—"}</td>
+                            <td className="px-3 py-2 text-right">{openingBalance < 0 ? formatCurrency(-openingBalance) : "—"}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{formatCurrency(openingBalance)}</td>
+                          </tr>
+                        )}
+                        {ledgerRows.map((row) => (
+                          <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 text-muted-foreground">{row.sr}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">{row.doc}</td>
+                            <td className="px-3 py-2">
+                              <Badge variant="outline" className={`text-[10px] h-5 ${row.type === "Invoice" ? "text-primary" : row.type === "Credit Note" ? "text-destructive" : "text-success"}`}>
+                                {row.type}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground text-xs">{row.note || "—"}</td>
+                            <td className="px-3 py-2 text-right">{row.debit > 0 ? formatCurrency(row.debit) : "—"}</td>
+                            <td className="px-3 py-2 text-right">{row.credit > 0 ? formatCurrency(row.credit) : "—"}</td>
+                            <td className={`px-3 py-2 text-right font-semibold ${row.balance > 0 ? "text-warning" : row.balance < 0 ? "text-destructive" : ""}`}>{formatCurrency(row.balance)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-bold bg-muted/30">
+                          <td className="px-3 py-2" colSpan={5}>Total</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(totalDebit)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(totalCredit)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(closingBalance)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Product Sale Detail (084, 085, 088, 235, 236, 203) */}
           {["084", "085", "088", "235", "236", "203"].includes(report.code) && (() => {
             // Build inventory lookup for category resolution
