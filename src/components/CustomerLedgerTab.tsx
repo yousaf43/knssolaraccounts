@@ -49,6 +49,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
   const [to, setTo] = useState("");
   const [account, setAccount] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
+  const [printOrientation, setPrintOrientation] = useState<"portrait" | "landscape">("landscape");
   const [ledgerCustomers, setLedgerCustomers] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(LEDGER_CUSTOMERS_KEY) || "[]"); } catch { return []; }
   });
@@ -232,6 +233,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
 
   const printLedger = () => {
     const title = selected ? selected : "Customer Ledger";
+    const isPortrait = printOrientation === "portrait";
     const head = selected
       ? "<tr><th>Sr.</th><th>Date</th><th>Narration</th><th class='c'>QTY.</th><th class='c'>REF; NO.</th><th class='r'>RATE</th><th class='r'>DR.</th><th class='r'>CR.</th><th class='r'>Balance</th></tr>"
       : "<tr><th>Sr #</th><th>Customer</th><th class='r'>Invoiced</th><th class='r'>Received</th><th class='r'>Balance</th></tr>";
@@ -244,15 +246,16 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
     const w = window.open("", "_blank", "width=1000,height=700");
     if (!w) return;
     w.document.write(`<!doctype html><html><head><title>${title}</title><style>
-      @page { size: A4 landscape; margin: 8mm; }
-      body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color:#111; }
-      h1 { text-align:center; font-size:16px; margin:0 0 2px; }
-      h2 { text-align:center; font-size:14px; font-weight:700; margin:0 0 8px; background:#1f3864; color:#fff; padding:6px; }
+      @page { size: A4 ${printOrientation}; margin: ${isPortrait ? "10mm 8mm" : "8mm"}; }
+      body { font-family: Arial, Helvetica, sans-serif; font-size: ${isPortrait ? "9px" : "11px"}; color:#111; }
+      h1 { text-align:center; font-size:${isPortrait ? "14px" : "16px"}; margin:0 0 2px; }
+      h2 { text-align:center; font-size:${isPortrait ? "12px" : "14px"}; font-weight:700; margin:0 0 8px; background:#1f3864; color:#fff; padding:6px; }
       table { width:100%; border-collapse:collapse; }
-      th, td { border:1px solid #999; padding:3px 6px; }
+      th, td { border:1px solid #999; padding:${isPortrait ? "2px 4px" : "3px 6px"}; }
       th { background:#ffc000; text-align:left; font-weight:700; }
       .r { text-align:right; } .c { text-align:center; }
-      tr.tot td { background:#ffc000; font-weight:700; font-size:12px; }
+      tr.tot td { background:#ffc000; font-weight:700; font-size:${isPortrait ? "10px" : "12px"}; }
+      ${isPortrait ? "td:nth-child(3) { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }" : ""}
     </style></head><body><h1>K&amp;S Solar Energy</h1><h2>${title}</h2>
       <table><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></body></html>`);
     w.document.close();
@@ -294,7 +297,16 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
             ))}
           </SelectContent>
         </Select>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex items-center gap-2">
+          <Select value={printOrientation} onValueChange={(v) => setPrintOrientation(v as "portrait" | "landscape")}>
+            <SelectTrigger className="h-9 w-32">
+              <SelectValue placeholder="Orientation" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="portrait">Portrait</SelectItem>
+              <SelectItem value="landscape">Landscape</SelectItem>
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={exportCsv}><FileDown className="w-4 h-4 mr-1" /> CSV</Button>
           <Button variant="outline" size="sm" onClick={printLedger}><Printer className="w-4 h-4 mr-1" /> Print</Button>
         </div>
