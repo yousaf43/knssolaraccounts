@@ -943,6 +943,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerLedgerCustomer, setCustomerLedgerCustomer] = useState<string>(initialCustomerFilter || "all");
+
+  useEffect(() => {
+    if (initialCustomerFilter) setCustomerLedgerCustomer(initialCustomerFilter);
+  }, [initialCustomerFilter]);
   const [discountSearch, setDiscountSearch] = useState("");
   const [discountOnly, setDiscountOnly] = useState("with");
   const [discountCustomer, setDiscountCustomer] = useState("all");
