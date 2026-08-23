@@ -230,7 +230,32 @@ export default function Invoices() {
   const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
   // --- Invoice handlers ---
-  const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => {
+  // --- Invoice ↔ Ledger link helpers ---
+  // A ledger entry created from an invoice is identified by its reference (invoice number)
+  // plus the "Invoice <number>" description prefix.
+  const invoiceLedgerDescription = (inv: Invoice) => `Invoice ${inv.number} — ${inv.customer}`;
+  const findInvoiceLedgerEntry = (invoiceNumber: string) =>
+    ledger.find((e) => e.reference === invoiceNumber && (e.description || "").startsWith(`Invoice ${invoiceNumber} `));
+
+  const syncInvoiceLedger = async (invoice: Invoice, opt?: { account: string; amount: number } | null) => {
+    const existing = findInvoiceLedgerEntry(invoice.number);
+    if (!opt || !(opt.amount > 0)) {
+      if (existing) await removeLedger(existing.id);
+      return;
+    }
+    const entry: LedgerEntry = {
+      id: existing?.id || crypto.randomUUID(),
+      date: invoice.date,
+      bank: opt.account || "Cash on Hand",
+      type: "incoming",
+      amount: opt.amount,
+      description: invoiceLedgerDescription(invoice),
+      reference: invoice.number,
+    };
+    await upsertLedger(entry);
+  };
+
+  const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string, ledgerOpt?: { account: string; amount: number } | null) => {
     const normalizeDocument = (value?: string) => (value || "").trim().toLowerCase();
     const invoiceNumber = normalizeDocument(invoice.number);
     const documentNumber = normalizeDocument(invoice.documentNumber);
