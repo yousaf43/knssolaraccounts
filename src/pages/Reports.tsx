@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSortableTables } from "@/hooks/useSortableTables";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
 import { format } from "date-fns";
@@ -51,6 +52,7 @@ const allReports: Report[] = [
   { code: "028", title: "Sale Invoices/Credits (By Date)", category: "Sales", section: "general" },
   { code: "029", title: "Sale Invoices/Credits (By Customer)", category: "Sales", section: "general" },
   { code: "034", title: "Customer Statement", category: "Sales", section: "general" },
+  { code: "035", title: "Customer Ledger", category: "Sales", section: "general" },
   { code: "037", title: "Unpaid Sale Invoices/Credits (By Customer)", category: "Sales", section: "general" },
   { code: "038", title: "Discount Report (By Customer)", category: "Sales", section: "general" },
   { code: "084", title: "Product Sale Detail (By Date)", category: "Sales", section: "general" },
@@ -914,7 +916,7 @@ function IncomeStatement({
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger, initialCustomerFilter }: {
   report: Report; onBack: () => void;
   monthlySales: MonthlyReportRow[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -932,6 +934,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   stockAdjustments: StockAdjustment[];
   accounts: Account[];
   ledger: LedgerEntry[];
+  initialCustomerFilter?: string;
 }) {
   const { formatCurrency, settings, formatDate } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
@@ -940,6 +943,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [productSearch, setProductSearch] = useState("");
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
+  const [customerLedgerCustomer, setCustomerLedgerCustomer] = useState<string>(initialCustomerFilter || "all");
+
+  useEffect(() => {
+    if (initialCustomerFilter) setCustomerLedgerCustomer(initialCustomerFilter);
+  }, [initialCustomerFilter]);
   const [discountSearch, setDiscountSearch] = useState("");
   const [discountOnly, setDiscountOnly] = useState("with");
   const [discountCustomer, setDiscountCustomer] = useState("all");
@@ -1149,6 +1157,25 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             {(stockSearch || stockCategoryFilter !== "all") && (
               <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setStockSearch(""); setStockCategoryFilter("all"); }}>
                 Reset
+              </Button>
+            )}
+          </>
+        )}
+        {report.code === "035" && (
+          <>
+            <Select value={customerLedgerCustomer} onValueChange={setCustomerLedgerCustomer}>
+              <SelectTrigger className="h-8 text-xs w-64"><SelectValue placeholder="Select customer" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Select a customer</SelectItem>
+                {customers
+                  .slice()
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(c => <SelectItem key={c.id} value={c.name}>{c.name}{c.company ? ` — ${c.company}` : ""}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {customerLedgerCustomer !== "all" && (
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => setCustomerLedgerCustomer("all")}>
+                Clear
               </Button>
             )}
           </>
@@ -1927,6 +1954,119 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </table>
                   </div>
                 ))}
+              </div>
+            );
+          })()}
+
+          {/* Customer Ledger (035) */}
+          {report.code === "035" && (() => {
+            const selectedName = customerLedgerCustomer === "all" ? "" : customerLedgerCustomer;
+            const norm = normName(selectedName);
+            const allCustInvoices = invoices.filter(i => normName(i.customer) === norm && !["draft", "cancelled", "rejected", "returned"].includes(i.status || "") && !i.isReturn);
+            const allCustReceipts = receipts.filter(r => normName(r.customer) === norm);
+            const allCustReturns = invoices.filter(i => normName(i.customer) === norm && (i.isReturn || i.status === "returned"));
+
+            const openingInvoices = allCustInvoices.filter(i => !inRange(i.date, fromDate, toDate));
+            const openingReceipts = allCustReceipts.filter(r => !inRange(r.date, fromDate, toDate));
+            const openingReturns = allCustReturns.filter(i => !inRange(i.date, fromDate, toDate));
+            const openingBilled = openingInvoices.reduce((s, i) => s + (i.amount || 0), 0) - openingReturns.reduce((s, i) => s + (i.amount || 0), 0);
+            const openingPaid = openingReceipts.reduce((s, r) => s + (r.amount || 0), 0);
+            const openingBalance = openingBilled - openingPaid;
+
+            const periodInvoices = allCustInvoices.filter(i => inRange(i.date, fromDate, toDate));
+            const periodReceipts = allCustReceipts.filter(r => inRange(r.date, fromDate, toDate));
+            const periodReturns = allCustReturns.filter(i => inRange(i.date, fromDate, toDate));
+
+            type LedgerRow = { id: string; date: string; doc: string; type: string; debit: number; credit: number; note?: string };
+            const rows: LedgerRow[] = [
+              ...periodInvoices.map(inv => ({ id: `inv-${inv.id}`, date: inv.date, doc: inv.number || inv.documentNumber || "—", type: "Invoice", debit: inv.amount || 0, credit: 0, note: inv.projectName || "" })),
+              ...periodReturns.map(inv => ({ id: `ret-${inv.id}`, date: inv.date, doc: inv.number || inv.documentNumber || "—", type: "Credit Note", debit: 0, credit: inv.amount || 0, note: inv.projectName || "" })),
+              ...periodReceipts.map(r => ({ id: `rec-${r.id}`, date: r.date, doc: r.number || "—", type: "Receipt", debit: 0, credit: r.amount || 0, note: r.paymentMethod ? `${r.paymentMethod}${r.reference ? ` / ${r.reference}` : ""}` : "" })),
+            ].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+
+            let running = openingBalance;
+            const ledgerRows = rows.map((r, idx) => {
+              running += r.debit - r.credit;
+              return { ...r, sr: idx + 1, balance: running };
+            });
+
+            const totalDebit = rows.reduce((s, r) => s + r.debit, 0);
+            const totalCredit = rows.reduce((s, r) => s + r.credit, 0);
+            const closingBalance = openingBalance + totalDebit - totalCredit;
+
+            return (
+              <div className="bg-card rounded-lg border p-6">
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <h2 className="text-lg font-semibold">
+                    {selectedName ? `Customer Ledger — ${selectedName}` : "Customer Ledger"}
+                  </h2>
+                  {selectedName && (
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>Opening: <span className="font-medium text-foreground">{formatCurrency(openingBalance)}</span></span>
+                      <span>Closing: <span className={`font-medium ${closingBalance > 0 ? "text-warning" : closingBalance < 0 ? "text-destructive" : "text-success"}`}>{formatCurrency(closingBalance)}</span></span>
+                    </div>
+                  )}
+                </div>
+                {!selectedName ? (
+                  <p className="text-muted-foreground text-sm text-center py-10">Please select a customer from the filter above to view the ledger.</p>
+                ) : ledgerRows.length === 0 ? (
+                  <p className="text-muted-foreground text-sm text-center py-10">No transactions for this customer in the selected period.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table id="report-print-table" className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50">
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Doc #</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Type</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Note</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Debit</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Credit</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(openingBalance !== 0 || openingBilled !== 0 || openingPaid !== 0) && (
+                          <tr className="border-b bg-muted/20">
+                            <td className="px-3 py-2 text-muted-foreground">—</td>
+                            <td className="px-3 py-2 text-muted-foreground">{fromDate ? formatDate(fromDate) : "Opening"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">—</td>
+                            <td className="px-3 py-2 font-medium text-muted-foreground">Opening Balance</td>
+                            <td className="px-3 py-2 text-muted-foreground">Before period</td>
+                            <td className="px-3 py-2 text-right">{openingBalance > 0 ? formatCurrency(openingBalance) : "—"}</td>
+                            <td className="px-3 py-2 text-right">{openingBalance < 0 ? formatCurrency(-openingBalance) : "—"}</td>
+                            <td className="px-3 py-2 text-right font-semibold">{formatCurrency(openingBalance)}</td>
+                          </tr>
+                        )}
+                        {ledgerRows.map((row) => (
+                          <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
+                            <td className="px-3 py-2 text-muted-foreground">{row.sr}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">{row.doc}</td>
+                            <td className="px-3 py-2">
+                              <Badge variant="outline" className={`text-[10px] h-5 ${row.type === "Invoice" ? "text-primary" : row.type === "Credit Note" ? "text-destructive" : "text-success"}`}>
+                                {row.type}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground text-xs">{row.note || "—"}</td>
+                            <td className="px-3 py-2 text-right">{row.debit > 0 ? formatCurrency(row.debit) : "—"}</td>
+                            <td className="px-3 py-2 text-right">{row.credit > 0 ? formatCurrency(row.credit) : "—"}</td>
+                            <td className={`px-3 py-2 text-right font-semibold ${row.balance > 0 ? "text-warning" : row.balance < 0 ? "text-destructive" : ""}`}>{formatCurrency(row.balance)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 font-bold bg-muted/30">
+                          <td className="px-3 py-2" colSpan={5}>Total</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(totalDebit)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(totalCredit)}</td>
+                          <td className="px-3 py-2 text-right">{formatCurrency(closingBalance)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -3250,16 +3390,28 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
 // --- Main Reports Page ---
 export default function Reports() {
-  const [activeReport, setActiveReport] = useState<Report | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeReport, setActiveReport] = useState<Report | null>(() => {
+    const code = searchParams.get("report");
+    return code ? allReports.find(r => r.code === code) || null : null;
+  });
+  const initialCustomerFilter = searchParams.get("customer") || undefined;
   const [generalTab, setGeneralTab] = useState("Favourites");
   const [analyticalTab, setAnalyticalTab] = useState("Favourites");
   const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState<string[]>([
-    "028", "029", "034", "037", "084", "085", "088", "235", "236",
+    "028", "029", "034", "035", "037", "084", "085", "088", "235", "236",
     "078", "080", "082", "083", "148", "180",
     "121", "123", "125", "127", "129", "135", "258", "307", "381", "383",
     "272",
   ]);
+
+  // Clear query params once consumed so the back button works normally.
+  useEffect(() => {
+    if (searchParams.has("report") || searchParams.has("customer")) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Read real data from cloud
   const { data: invoices } = useInvoicesCloud();
@@ -3356,7 +3508,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} initialCustomerFilter={initialCustomerFilter} />;
   }
 
   return (
