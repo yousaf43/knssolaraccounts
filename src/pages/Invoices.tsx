@@ -337,6 +337,8 @@ export default function Invoices() {
         createLedgerEntry(advReceipt);
       }
     }
+    // Ledger option (create / update / remove link)
+    await syncInvoiceLedger(invoice, ledgerOpt);
     goList();
     await log(editInvoice ? "edit" : "create", "invoice", invoice.id, invoice.number, `Customer: ${invoice.customer}, Amount: ${invoice.amount}`);
     toast.success(editInvoice ? "Invoice updated" : "Invoice created");
@@ -346,6 +348,8 @@ export default function Invoices() {
     if (inv) {
       await moveToTrash("invoice", id, inv);
       await log("delete", "invoice", id, inv.number, `Customer: ${inv.customer}`);
+      const linked = findInvoiceLedgerEntry(inv.number);
+      if (linked) await removeLedger(linked.id);
     }
     removeInvoice(id);
     toast.success("Invoice deleted");
