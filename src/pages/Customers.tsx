@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
 import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud, useSalesOrdersCloud, useQuotationsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Mail, Phone, Edit, Trash2, X, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { Plus, Mail, Phone, Edit, Trash2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -17,7 +16,6 @@ import { HighlightText } from "@/components/HighlightText";
 const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", address: "", totalBilled: 0, outstanding: 0 });
 
 export default function Customers() {
-  const navigate = useNavigate();
   const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
   const { moveToTrash } = useTrash();
@@ -150,13 +148,6 @@ export default function Customers() {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button
-                      className="p-1 rounded hover:bg-muted"
-                      title="View Ledger"
-                      onClick={() => navigate(`/reports?report=035&customer=${encodeURIComponent(c.name)}`)}
-                    >
-                      <FileText className="w-3.5 h-3.5 text-primary" />
-                    </button>
                     <button className="p-1 rounded hover:bg-muted" onClick={() => openEdit(c)}><Edit className="w-3.5 h-3.5 text-muted-foreground" /></button>
                     <ConfirmDeleteDialog onConfirm={() => handleDelete(c.id)} title="Delete Customer?" description={`Are you sure you want to delete "${c.name}"? It will be moved to trash.`}>
                       <button className="p-1 rounded hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5 text-destructive" /></button>
