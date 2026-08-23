@@ -6,7 +6,7 @@ import { type Invoice, type Expense, type InventoryItem, type Bill, type Custome
 import { type CompanyAsset } from "@/pages/Assets";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  LineChart, Line, PieChart, Pie, Cell,
+  LineChart, Line, PieChart, Pie, Cell, LabelList,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
