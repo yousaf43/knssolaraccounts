@@ -3390,7 +3390,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
 // --- Main Reports Page ---
 export default function Reports() {
-  const [activeReport, setActiveReport] = useState<Report | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeReport, setActiveReport] = useState<Report | null>(() => {
+    const code = searchParams.get("report");
+    return code ? allReports.find(r => r.code === code) || null : null;
+  });
+  const initialCustomerFilter = searchParams.get("customer") || undefined;
   const [generalTab, setGeneralTab] = useState("Favourites");
   const [analyticalTab, setAnalyticalTab] = useState("Favourites");
   const [searchQuery, setSearchQuery] = useState("");
@@ -3400,6 +3405,13 @@ export default function Reports() {
     "121", "123", "125", "127", "129", "135", "258", "307", "381", "383",
     "272",
   ]);
+
+  // Clear query params once consumed so the back button works normally.
+  useEffect(() => {
+    if (searchParams.has("report") || searchParams.has("customer")) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Read real data from cloud
   const { data: invoices } = useInvoicesCloud();
