@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Plus, Trash2, X, UserPlus, ChevronsUpDown, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/ProductPickerWithBundle";
 import { HighlightText } from "@/components/HighlightText";
@@ -20,21 +21,32 @@ import { getAdhocBundleValue } from "@/lib/adhocBundle";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import type { DraftKind } from "@/lib/drafts";
 
+export type InvoiceLedgerOption = { account: string; amount: number };
+
 type Props = {
   customers: Customer[];
   inventory?: InventoryItem[];
-  onSave: (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => void;
+  onSave: (
+    invoice: Invoice,
+    advanceAmount?: number,
+    advanceMethod?: string,
+    advanceRef?: string,
+    ledger?: InvoiceLedgerOption | null,
+  ) => void;
   onCancel: () => void;
   editInvoice?: Invoice | null;
   nextNumber: string;
   onAddCustomer?: (customer: Customer) => void;
   accounts?: Account[];
   receipts?: Receipt[];
+  /** Existing ledger link for this invoice (edit mode). */
+  initialLedger?: InvoiceLedgerOption | null;
   /** Which draft bucket this form writes to ("invoice" by default). */
   draftKind?: DraftKind;
   /** Previously auto-saved form state to resume from. */
   initialDraft?: Record<string, unknown> | null;
 };
+
 
 type InvoiceDraftData = {
   customNumber: string;
@@ -54,7 +66,7 @@ type InvoiceDraftData = {
   advanceRef: string;
 };
 
-export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [], draftKind = "invoice", initialDraft = null }: Props) {
+export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [], initialLedger = null, draftKind = "invoice", initialDraft = null }: Props) {
   const { formatCurrency, formatDate } = useSettings();
   const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
   const draft = (initialDraft || undefined) as Partial<InvoiceDraftData> | undefined;
@@ -87,6 +99,10 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
   const [advanceMethod, setAdvanceMethod] = useState(draft?.advanceMethod ?? "Cash on Hand");
   const [advanceRef, setAdvanceRef] = useState(draft?.advanceRef ?? "");
   const [paymentMode, setPaymentMode] = useState("");
+  // --- Ledger option ---
+  const [addToLedger, setAddToLedger] = useState<boolean>(!!initialLedger);
+  const [ledgerAccount, setLedgerAccount] = useState<string>(initialLedger?.account || "");
+  const [ledgerAmount, setLedgerAmount] = useState<string>(initialLedger ? String(initialLedger.amount) : "");
 
   // Build payment options from accounts (unique key using id)
   const paymentOptions = useMemo(() => {
@@ -346,7 +362,13 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       notes: notes.trim(),
       tax,
       discount,
-    }, advanceAmount > 0 ? advanceAmount : undefined, getPaymentDisplayName(advanceMethod), advanceRef.trim() || undefined);
+    }, advanceAmount > 0 ? advanceAmount : undefined, getPaymentDisplayName(advanceMethod), advanceRef.trim() || undefined,
+      addToLedger
+        ? {
+            account: ledgerAccount || paymentOptions[0]?.displayName || "Cash on Hand",
+            amount: ledgerAmount.trim() !== "" ? Number(ledgerAmount) : total,
+          }
+        : null);
   };
 
   const hasInventory = inventory.length > 0;
@@ -613,6 +635,43 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
           </div>
         </div>
       )}
+
+      {/* Ledger option */}
+      <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <Checkbox checked={addToLedger} onCheckedChange={(v) => setAddToLedger(v === true)} />
+          <span className="font-medium text-sm">Add to Ledger</span>
+          <span className="text-xs text-muted-foreground">— is invoice ki entry account ledger me jayegi</span>
+        </label>
+        {addToLedger && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Ledger Account *</Label>
+              <Select value={ledgerAccount} onValueChange={setLedgerAccount}>
+                <SelectTrigger className="mt-1 h-8">
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentOptions.map((opt) => (
+                    <SelectItem key={`ledger-${opt.value}`} value={opt.displayName}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Ledger Amount</Label>
+              <Input
+                type="number" min={0} step={0.01}
+                value={ledgerAmount}
+                onChange={(e) => setLedgerAmount(e.target.value)}
+                placeholder={String(total.toFixed(2))}
+                className="mt-1 h-8"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Khali chhodne par invoice total ({formatCurrency(total)}) use hoga.</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Payment Summary when editing */}
       {editInvoice && (() => {

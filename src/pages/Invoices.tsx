@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw, ArrowLeftRight, CheckCircle2, Filter } from "lucide-react";
+import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw, ArrowLeftRight, CheckCircle2, Filter, BookOpen } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -29,6 +29,7 @@ import { useSearchParams } from "react-router-dom";
 import { getDraft, type DraftKind } from "@/lib/drafts";
 import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
 import { expandStockQty } from "@/lib/stockLines";
+import { CustomerLedgerTab } from "@/components/CustomerLedgerTab";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -97,7 +98,7 @@ export default function Invoices() {
     return Array.from(byKey.values());
   }, [inventory]);
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
-  const { data: ledger, setData: setLedger, upsert: upsertLedger } = useLedgerEntriesCloud();
+  const { data: ledger, setData: setLedger, upsert: upsertLedger, remove: removeLedger } = useLedgerEntriesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
   const [activeTab, setActiveTab] = useState("invoices");
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
@@ -230,7 +231,32 @@ export default function Invoices() {
   const handleAddCustomer = (c: Customer) => { upsertCustomer(c); };
 
   // --- Invoice handlers ---
-  const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string) => {
+  // --- Invoice ↔ Ledger link helpers ---
+  // A ledger entry created from an invoice is identified by its reference (invoice number)
+  // plus the "Invoice <number>" description prefix.
+  const invoiceLedgerDescription = (inv: Invoice) => `Invoice ${inv.number} — ${inv.customer}`;
+  const findInvoiceLedgerEntry = (invoiceNumber: string) =>
+    ledger.find((e) => e.reference === invoiceNumber && (e.description || "").startsWith(`Invoice ${invoiceNumber} `));
+
+  const syncInvoiceLedger = async (invoice: Invoice, opt?: { account: string; amount: number } | null) => {
+    const existing = findInvoiceLedgerEntry(invoice.number);
+    if (!opt || !(opt.amount > 0)) {
+      if (existing) await removeLedger(existing.id);
+      return;
+    }
+    const entry: LedgerEntry = {
+      id: existing?.id || crypto.randomUUID(),
+      date: invoice.date,
+      bank: opt.account || "Cash on Hand",
+      type: "incoming",
+      amount: opt.amount,
+      description: invoiceLedgerDescription(invoice),
+      reference: invoice.number,
+    };
+    await upsertLedger(entry);
+  };
+
+  const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string, ledgerOpt?: { account: string; amount: number } | null) => {
     const normalizeDocument = (value?: string) => (value || "").trim().toLowerCase();
     const invoiceNumber = normalizeDocument(invoice.number);
     const documentNumber = normalizeDocument(invoice.documentNumber);
@@ -312,6 +338,8 @@ export default function Invoices() {
         createLedgerEntry(advReceipt);
       }
     }
+    // Ledger option (create / update / remove link)
+    await syncInvoiceLedger(invoice, ledgerOpt);
     goList();
     await log(editInvoice ? "edit" : "create", "invoice", invoice.id, invoice.number, `Customer: ${invoice.customer}, Amount: ${invoice.amount}`);
     toast.success(editInvoice ? "Invoice updated" : "Invoice created");
@@ -321,6 +349,8 @@ export default function Invoices() {
     if (inv) {
       await moveToTrash("invoice", id, inv);
       await log("delete", "invoice", id, inv.number, `Customer: ${inv.customer}`);
+      const linked = findInvoiceLedgerEntry(inv.number);
+      if (linked) await removeLedger(linked.id);
     }
     removeInvoice(id);
     toast.success("Invoice deleted");
@@ -815,7 +845,7 @@ export default function Invoices() {
     if (activeTab === "receipts" || editReceipt) {
       return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
     }
-    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} draftKind="invoice" initialDraft={draftDataFor("invoice")} />;
+    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} initialLedger={(() => { if (!editInvoice) return null; const e = findInvoiceLedgerEntry(editInvoice.number); return e ? { account: e.bank, amount: e.amount } : null; })()} draftKind="invoice" initialDraft={draftDataFor("invoice")} />;
   }
 
   // --- Export CSV ---
@@ -983,6 +1013,7 @@ export default function Invoices() {
                 <TabsTrigger value="invoices" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Invoices"><FileText className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="returns" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Returns"><RotateCcw className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="receipts" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Receipts"><ReceiptIcon className="w-3.5 h-3.5" /></TabsTrigger>
+                <TabsTrigger value="ledger" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="Ledger"><BookOpen className="w-3.5 h-3.5" /></TabsTrigger>
                 <TabsTrigger value="all" className="h-6 px-2.5 rounded-full text-xs data-[state=active]:shadow-sm" title="All"><List className="w-3.5 h-3.5" /></TabsTrigger>
               </TabsList>
               <div className="ml-auto flex items-center gap-2 flex-shrink-0">
@@ -1044,6 +1075,7 @@ export default function Invoices() {
                 <TabsTrigger value="invoices" className="flex items-center gap-2"><FileText className="w-4 h-4" />Invoices</TabsTrigger>
                 <TabsTrigger value="returns" className="flex items-center gap-2"><RotateCcw className="w-4 h-4" />Returns</TabsTrigger>
                 <TabsTrigger value="receipts" className="flex items-center gap-2"><ReceiptIcon className="w-4 h-4" />Receipts</TabsTrigger>
+                <TabsTrigger value="ledger" className="flex items-center gap-2"><BookOpen className="w-4 h-4" />Ledger</TabsTrigger>
                 <TabsTrigger value="all" className="flex items-center gap-2"><List className="w-4 h-4" />All</TabsTrigger>
               </TabsList>
 
@@ -1430,6 +1462,11 @@ export default function Invoices() {
         {/* Project Completed Tab (Completed Projects) */}
         <TabsContent value="project-completed">
           <div className="p-2"><CompletedSites /></div>
+        </TabsContent>
+
+        {/* Customer-wise Ledger Tab */}
+        <TabsContent value="ledger">
+          <CustomerLedgerTab invoices={invoices} receipts={receipts} ledger={ledger} accounts={cloudAccounts as any} />
         </TabsContent>
 
         {/* Sales All Tab */}
