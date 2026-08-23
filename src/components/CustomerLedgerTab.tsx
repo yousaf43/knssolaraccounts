@@ -25,8 +25,10 @@ type Props = {
 
 type Row = {
   date: string;
+  narration: string;
+  qty: number | null;
   ref: string;
-  description: string;
+  rate: number | null;
   account: string;
   debit: number;
   credit: number;
@@ -63,7 +65,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
     return map;
   }, [ledger]);
 
-  // Build customer-wise rows
+  // Build customer-wise rows (Excel-style: one narration line per invoice item)
   const byCustomer = useMemo(() => {
     const map = new Map<string, Row[]>();
     const push = (customer: string, row: Row) => {
@@ -82,22 +84,51 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       if (!linked) continue; // only invoices explicitly added to ledger
       ledgerCustomers.add((inv.customer || "Unknown").trim() || "Unknown");
       if (!inRange(inv.date, from, to)) continue;
-      push(inv.customer, {
-        date: inv.date,
-        ref: inv.number,
-        description: inv.projectName ? `Invoice — ${inv.projectName}` : "Invoice",
-        account: linked.bank || "—",
-        debit: Number(inv.amount) || 0,
-        credit: 0,
-      });
-      push(inv.customer, {
-        date: linked.date || inv.date,
-        ref: inv.number,
-        description: "Ledger entry (invoice)",
-        account: linked.bank,
-        debit: 0,
-        credit: Number(linked.amount) || 0,
-      });
+
+      const items = Array.isArray(inv.items) ? inv.items : [];
+      const lineTotal = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+      if (items.length > 0) {
+        items.forEach((it, idx) => {
+          const amount = Number(it.amount) || 0;
+          // put invoice-level adjustment on the last line so total matches invoice amount
+          const adj = idx === items.length - 1 ? (Number(inv.amount) || 0) - lineTotal : 0;
+          push(inv.customer, {
+            date: inv.date,
+            narration: it.bundleTitle || it.description || "Item",
+            qty: Number(it.qty) || null,
+            ref: inv.documentNumber || inv.number,
+            rate: Number(it.rate) || null,
+            account: linked.bank || "—",
+            debit: amount + adj,
+            credit: 0,
+          });
+        });
+      } else {
+        push(inv.customer, {
+          date: inv.date,
+          narration: inv.projectName ? `Invoice — ${inv.projectName}` : "Invoice",
+          qty: null,
+          ref: inv.documentNumber || inv.number,
+          rate: null,
+          account: linked.bank || "—",
+          debit: Number(inv.amount) || 0,
+          credit: 0,
+        });
+      }
+
+      // Payment recorded through the invoice "Add to Ledger" option
+      if (Number(linked.amount) > 0) {
+        push(inv.customer, {
+          date: linked.date || inv.date,
+          narration: linked.bank ? `${linked.bank} — payment received` : "Payment received",
+          qty: null,
+          ref: inv.documentNumber || inv.number,
+          rate: null,
+          account: linked.bank,
+          debit: 0,
+          credit: Number(linked.amount) || 0,
+        });
+      }
     }
 
     for (const r of receipts) {
@@ -106,14 +137,15 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       if (!ledgerCustomers.has(key)) continue; // only ledger customers
       push(r.customer, {
         date: r.date,
+        narration: `Payment received${r.invoiceNumber ? ` against ${r.invoiceNumber}` : ""}`,
+        qty: null,
         ref: r.number,
-        description: `Payment received${r.invoiceNumber ? ` against ${r.invoiceNumber}` : ""}`,
+        rate: null,
         account: r.paymentMethod || "—",
         debit: 0,
         credit: Number(r.amount) || 0,
       });
     }
-
 
     for (const [k, list] of map) {
       list.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
@@ -155,12 +187,20 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
     });
   }, [selected, byCustomer, account]);
 
+  const detailTotals = useMemo(() => ({
+    debit: detailRows.reduce((s, r) => s + r.debit, 0),
+    credit: detailRows.reduce((s, r) => s + r.credit, 0),
+    balance: detailRows.reduce((s, r) => s + r.debit - r.credit, 0),
+  }), [detailRows]);
+
+  const num = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
   const exportCsv = () => {
     const header = selected
-      ? "Date,Reference,Description,Account,Debit,Credit,Balance"
+      ? "Sr,Date,Narration,Qty,Ref No.,Rate,DR,CR,Balance"
       : "Customer,Invoiced,Received,Balance";
     const body = selected
-      ? detailRows.map((r) => `${r.date},${r.ref},"${r.description}",${r.account},${r.debit},${r.credit},${r.running}`).join("\n")
+      ? detailRows.map((r, i) => `${i + 1},${r.date},"${r.narration}",${r.qty ?? ""},${r.ref},${r.rate ?? ""},${r.debit || ""},${r.credit || ""},${r.running}`).join("\n")
       : summary.map((r) => `"${r.customer}",${r.invoiced},${r.received},${r.balance}`).join("\n");
     const blob = new Blob([`${header}\n${body}`], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -172,26 +212,30 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
   };
 
   const printLedger = () => {
-    const title = selected ? `Customer Ledger — ${selected}` : "Customer Ledger";
+    const title = selected ? selected : "Customer Ledger";
     const head = selected
-      ? "<tr><th>Sr #</th><th>Date</th><th>Reference</th><th>Description</th><th>Account</th><th class='r'>Debit</th><th class='r'>Credit</th><th class='r'>Balance</th></tr>"
+      ? "<tr><th>Sr.</th><th>Date</th><th>Narration</th><th class='c'>QTY.</th><th class='c'>REF; NO.</th><th class='r'>RATE</th><th class='r'>DR.</th><th class='r'>CR.</th><th class='r'>Balance</th></tr>"
       : "<tr><th>Sr #</th><th>Customer</th><th class='r'>Invoiced</th><th class='r'>Received</th><th class='r'>Balance</th></tr>";
     const body = selected
-      ? detailRows.map((r, i) => `<tr><td>${i + 1}</td><td>${formatDate(r.date)}</td><td>${r.ref}</td><td>${r.description}</td><td>${r.account}</td><td class='r'>${r.debit ? formatCurrency(r.debit) : "-"}</td><td class='r'>${r.credit ? formatCurrency(r.credit) : "-"}</td><td class='r'>${formatCurrency(r.running)}</td></tr>`).join("")
+      ? detailRows.map((r, i) => `<tr><td>${i + 1}</td><td>${formatDate(r.date)}</td><td>${r.narration}</td><td class='c'>${r.qty ?? ""}</td><td class='c'>${r.ref}</td><td class='r'>${r.rate ? num(r.rate) : ""}</td><td class='r'>${r.debit ? num(r.debit) : "0"}</td><td class='r'>${r.credit ? num(r.credit) : ""}</td><td class='r'>${num(r.running)}</td></tr>`).join("")
       : summary.map((r, i) => `<tr><td>${i + 1}</td><td>${r.customer}</td><td class='r'>${formatCurrency(r.invoiced)}</td><td class='r'>${formatCurrency(r.received)}</td><td class='r'>${formatCurrency(r.balance)}</td></tr>`).join("");
-    const w = window.open("", "_blank", "width=900,height=700");
+    const foot = selected
+      ? `<tr class='tot'><td colspan='6'>Total Pending Payment.</td><td class='r'>${num(detailTotals.debit)}</td><td class='r'>${num(detailTotals.credit)}</td><td class='r'>${num(detailTotals.balance)}</td></tr>`
+      : `<tr class='tot'><td colspan='2'>Total</td><td class='r'>${formatCurrency(totals.invoiced)}</td><td class='r'>${formatCurrency(totals.received)}</td><td class='r'>${formatCurrency(totals.balance)}</td></tr>`;
+    const w = window.open("", "_blank", "width=1000,height=700");
     if (!w) return;
     w.document.write(`<!doctype html><html><head><title>${title}</title><style>
-      @page { size: A4 portrait; margin: 10mm; }
+      @page { size: A4 landscape; margin: 8mm; }
       body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color:#111; }
-      h1 { text-align:center; font-size:18px; margin:0 0 2px; }
-      h2 { text-align:center; font-size:13px; font-weight:500; margin:0 0 12px; color:#444; }
+      h1 { text-align:center; font-size:16px; margin:0 0 2px; }
+      h2 { text-align:center; font-size:14px; font-weight:700; margin:0 0 8px; background:#1f3864; color:#fff; padding:6px; }
       table { width:100%; border-collapse:collapse; }
-      th, td { border:1px solid #ccc; padding:4px 6px; }
-      th { background:#f2f6fb; text-align:left; }
-      .r { text-align:right; }
+      th, td { border:1px solid #999; padding:3px 6px; }
+      th { background:#ffc000; text-align:left; font-weight:700; }
+      .r { text-align:right; } .c { text-align:center; }
+      tr.tot td { background:#ffc000; font-weight:700; font-size:12px; }
     </style></head><body><h1>K&amp;S Solar Energy</h1><h2>${title}</h2>
-      <table><thead>${head}</thead><tbody>${body}</tbody></table></body></html>`);
+      <table><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></body></html>`);
     w.document.close();
     w.focus();
     w.print();
@@ -274,41 +318,53 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       )}
 
       {selected && (
-        <div className="bg-card rounded-lg border">
-          <div className="flex items-center justify-between px-3 py-2 border-b">
-            <div className="font-semibold">{selected}</div>
+        <div className="bg-card rounded-lg border overflow-x-auto">
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-primary/10">
+            <div className="font-bold text-base uppercase tracking-wide">{selected}</div>
             <Badge variant="outline">{detailRows.length} entries</Badge>
           </div>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[900px]">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground w-14">Sr #</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Reference</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Description</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Account</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">Debit</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">Credit</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">Balance</th>
+              <tr className="border-b bg-warning/20">
+                <th className="text-left px-3 py-2 font-semibold w-14">Sr.</th>
+                <th className="text-left px-3 py-2 font-semibold w-28">Date</th>
+                <th className="text-left px-3 py-2 font-semibold">Narration</th>
+                <th className="text-center px-3 py-2 font-semibold w-16">QTY.</th>
+                <th className="text-center px-3 py-2 font-semibold w-24">REF; NO.</th>
+                <th className="text-right px-3 py-2 font-semibold w-28">RATE</th>
+                <th className="text-right px-3 py-2 font-semibold w-28">DR.</th>
+                <th className="text-right px-3 py-2 font-semibold w-28">CR.</th>
+                <th className="text-right px-3 py-2 font-semibold w-32">Balance</th>
               </tr>
             </thead>
             <tbody>
               {detailRows.map((r, i) => (
                 <tr key={`${r.ref}-${i}`} className="border-b last:border-0 hover:bg-muted/30">
-                  <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{formatDate(r.date)}</td>
-                  <td className="px-3 py-2 font-medium">{r.ref}</td>
-                  <td className="px-3 py-2">{r.description}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.account}</td>
-                  <td className="px-3 py-2 text-right">{r.debit ? formatCurrency(r.debit) : "-"}</td>
-                  <td className="px-3 py-2 text-right text-success">{r.credit ? formatCurrency(r.credit) : "-"}</td>
-                  <td className={`px-3 py-2 text-right font-semibold ${r.running > 0 ? "text-destructive" : ""}`}>{formatCurrency(r.running)}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
+                  <td className="px-3 py-1.5 whitespace-nowrap">{formatDate(r.date)}</td>
+                  <td className="px-3 py-1.5">{r.narration}</td>
+                  <td className="px-3 py-1.5 text-center">{r.qty ?? ""}</td>
+                  <td className="px-3 py-1.5 text-center text-muted-foreground">{r.ref}</td>
+                  <td className="px-3 py-1.5 text-right">{r.rate ? num(r.rate) : ""}</td>
+                  <td className="px-3 py-1.5 text-right">{r.debit ? num(r.debit) : "0"}</td>
+                  <td className="px-3 py-1.5 text-right text-success">{r.credit ? num(r.credit) : ""}</td>
+                  <td className="px-3 py-1.5 text-right font-semibold">{num(r.running)}</td>
                 </tr>
               ))}
               {detailRows.length === 0 && (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground">No entries.</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">No entries.</td></tr>
               )}
             </tbody>
+            {detailRows.length > 0 && (
+              <tfoot>
+                <tr className="border-t bg-warning/30 font-bold">
+                  <td className="px-3 py-2 text-right" colSpan={6}>Total Pending Payment.</td>
+                  <td className="px-3 py-2 text-right">{num(detailTotals.debit)}</td>
+                  <td className="px-3 py-2 text-right">{num(detailTotals.credit)}</td>
+                  <td className="px-3 py-2 text-right text-base">{num(detailTotals.balance)}</td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       )}
