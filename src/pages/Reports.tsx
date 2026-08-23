@@ -1272,41 +1272,96 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             ))}
           </div>
-          <div className="bg-card rounded-lg border p-6">
-            <h2 className="text-lg font-semibold mb-4">Profit &amp; Loss Breakdown</h2>
+          <div className="bg-card rounded-2xl border p-6 shadow-soft">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-xl font-semibold">Profit &amp; Loss Breakdown</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Key financial metrics for the selected period</p>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(var(--primary))]" />
+                <span>Sales</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(25,90%,52%)]" />
+                <span>COGS</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(142,71%,40%)]" />
+                <span>Gross</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(var(--destructive))]" />
+                <span>Expenses</span>
+              </div>
+            </div>
             {!plStats ? (
-              <p className="text-muted-foreground text-sm text-center py-8">No data available. Add invoices and expenses to see reports.</p>
+              <p className="text-muted-foreground text-sm text-center py-12">No data available. Add invoices and expenses to see reports.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={520}>
                 <BarChart
                   data={[
-                    { name: "Net Sales", value: plStats.netSales, color: "hsl(var(--primary))" },
-                    { name: "Cost of Sales", value: plStats.costOfSales, color: "hsl(25, 90%, 52%)" },
-                    { name: "Gross Income", value: plStats.grossIncome, color: "hsl(142, 71%, 40%)" },
-                    { name: "Operating Expenses", value: plStats.operatingExpenses, color: "hsl(var(--destructive))" },
-                    ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, color: "hsl(270, 60%, 55%)" }] : []),
-                    { name: "Profit", value: plStats.netIncome, color: plStats.netIncome >= 0 ? "hsl(142, 71%, 30%)" : "hsl(var(--destructive))" },
+                    { name: "Net Sales", value: plStats.netSales, color: "hsl(var(--primary))", grad: ["#3b82f6", "#6366f1"] },
+                    { name: "Cost of Sales", value: plStats.costOfSales, color: "hsl(25, 90%, 52%)", grad: ["#f97316", "#fb923c"] },
+                    { name: "Gross Income", value: plStats.grossIncome, color: "hsl(142, 71%, 40%)", grad: ["#22c55e", "#34d399"] },
+                    { name: "Operating Expenses", value: plStats.operatingExpenses, color: "hsl(var(--destructive))", grad: ["#ef4444", "#f87171"] },
+                    ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, color: "hsl(270, 60%, 55%)", grad: ["#8b5cf6", "#a78bfa"] }] : []),
+                    { name: "Profit", value: plStats.netIncome, color: plStats.netIncome >= 0 ? "hsl(142, 71%, 30%)" : "hsl(var(--destructive))", grad: plStats.netIncome >= 0 ? ["#15803d", "#16a34a"] : ["#dc2626", "#ef4444"] },
                   ]}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                  margin={{ top: 24, right: 24, left: 8, bottom: 32 }}
+                  barCategoryGap="28%"
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} interval={0} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} tickFormatter={(v: number) => formatCompactAmount(v)} />
-                  <Tooltip
-                    formatter={(v: number) => formatCurrency(v)}
-                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "12px" }}
+                  <defs>
+                    {[
+                      { name: "Net Sales", stops: ["#3b82f6", "#6366f1"] },
+                      { name: "Cost of Sales", stops: ["#f97316", "#fb923c"] },
+                      { name: "Gross Income", stops: ["#22c55e", "#34d399"] },
+                      { name: "Operating Expenses", stops: ["#ef4444", "#f87171"] },
+                      { name: "Income Tax", stops: ["#8b5cf6", "#a78bfa"] },
+                      { name: "Profit", stops: plStats.netIncome >= 0 ? ["#15803d", "#16a34a"] : ["#dc2626", "#ef4444"] },
+                    ].map((g) => (
+                      <linearGradient key={g.name} id={`grad-${g.name.replace(/\s+/g, "-")}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={g.stops[0]} stopOpacity={1} />
+                        <stop offset="100%" stopColor={g.stops[1]} stopOpacity={0.82} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }}
+                    interval={0}
+                    axisLine={{ stroke: "hsl(var(--border))" }}
+                    tickLine={false}
                   />
-                  <Bar dataKey="value" name="Amount" radius={[4, 4, 0, 0]}>
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v: number) => formatCompactAmount(v)}
+                    axisLine={false}
+                    tickLine={false}
+                    width={70}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
+                    formatter={(v: number, _n: string, p: any) => {
+                      const pct = plStats.netSales ? ((v / plStats.netSales) * 100).toFixed(1) : "0.0";
+                      return [formatCurrency(v), `${p.payload.name} (${pct}% of Net Sales)`];
+                    }}
+                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "10px", fontSize: "12px" }}
+                  />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                     {([
-                      { name: "Net Sales", color: "hsl(var(--primary))" },
-                      { name: "Cost of Sales", color: "hsl(25, 90%, 52%)" },
-                      { name: "Gross Income", color: "hsl(142, 71%, 40%)" },
-                      { name: "Operating Expenses", color: "hsl(var(--destructive))" },
-                      ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", color: "hsl(270, 60%, 55%)" }] : []),
-                      { name: "Profit", color: plStats.netIncome >= 0 ? "hsl(142, 71%, 30%)" : "hsl(var(--destructive))" },
+                      { name: "Net Sales", color: "url(#grad-Net-Sales)" },
+                      { name: "Cost of Sales", color: "url(#grad-Cost-of-Sales)" },
+                      { name: "Gross Income", color: "url(#grad-Gross-Income)" },
+                      { name: "Operating Expenses", color: "url(#grad-Operating-Expenses)" },
+                      ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", color: "url(#grad-Income-Tax)" }] : []),
+                      { name: "Profit", color: plStats.netIncome >= 0 ? "url(#grad-Profit)" : "url(#grad-Profit)" },
                     ]).map((d) => (
                       <Cell key={d.name} fill={d.color} />
                     ))}
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      formatter={(v: number) => formatCompactAmount(v)}
+                      className="fill-foreground text-[11px] font-medium"
+                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
