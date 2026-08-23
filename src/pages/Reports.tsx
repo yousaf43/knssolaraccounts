@@ -51,6 +51,7 @@ const allReports: Report[] = [
   { code: "028", title: "Sale Invoices/Credits (By Date)", category: "Sales", section: "general" },
   { code: "029", title: "Sale Invoices/Credits (By Customer)", category: "Sales", section: "general" },
   { code: "034", title: "Customer Statement", category: "Sales", section: "general" },
+  { code: "035", title: "Customer Ledger", category: "Sales", section: "general" },
   { code: "037", title: "Unpaid Sale Invoices/Credits (By Customer)", category: "Sales", section: "general" },
   { code: "038", title: "Discount Report (By Customer)", category: "Sales", section: "general" },
   { code: "084", title: "Product Sale Detail (By Date)", category: "Sales", section: "general" },
