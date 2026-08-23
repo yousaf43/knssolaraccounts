@@ -49,6 +49,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
   const [to, setTo] = useState("");
   const [account, setAccount] = useState("all");
   const [selected, setSelected] = useState<string | null>(null);
+  const [printOrientation, setPrintOrientation] = useState<"portrait" | "landscape">("landscape");
   const [ledgerCustomers, setLedgerCustomers] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(LEDGER_CUSTOMERS_KEY) || "[]"); } catch { return []; }
   });
