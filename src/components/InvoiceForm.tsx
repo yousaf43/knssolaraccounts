@@ -364,7 +364,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
     }, advanceAmount > 0 ? advanceAmount : undefined, getPaymentDisplayName(advanceMethod), advanceRef.trim() || undefined,
       addToLedger
         ? {
-            account: getPaymentDisplayName(ledgerAccount || paymentOptions[0]?.value || "Cash on Hand"),
+            account: ledgerAccount || paymentOptions[0]?.displayName || "Cash on Hand",
             amount: ledgerAmount.trim() !== "" ? Number(ledgerAmount) : total,
           }
         : null);
