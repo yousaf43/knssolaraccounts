@@ -29,6 +29,7 @@ import { useSearchParams } from "react-router-dom";
 import { getDraft, type DraftKind } from "@/lib/drafts";
 import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
 import { expandStockQty } from "@/lib/stockLines";
+import { CustomerLedgerTab } from "@/components/CustomerLedgerTab";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
