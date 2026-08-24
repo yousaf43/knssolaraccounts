@@ -90,37 +90,41 @@ function merge(prev: Saved | undefined, next: Saved): Saved {
 }
 
 function restore(saved: Saved) {
-  const root = document.getElementById("main-scroll") || document.body;
+  try {
+    const root = document.getElementById("main-scroll") || document.body;
 
-  // Restore the open tab/section first, then the fields inside it.
-  root.querySelectorAll('[role="tablist"]').forEach((list, i) => {
-    const want = saved.tabs?.[`tablist#${i}`];
-    if (!want) return;
-    const current = list.querySelector('[role="tab"][data-state="active"]') as HTMLElement | null;
-    const currentVal = current?.getAttribute("data-value") || current?.textContent?.trim();
-    if (currentVal === want) return;
-    const target = Array.from(list.querySelectorAll('[role="tab"]')).find(
-      (t) => (t.getAttribute("data-value") || t.textContent?.trim()) === want
-    ) as HTMLElement | undefined;
-    target?.click();
-  });
+    // Restore the open tab/section first, then the fields inside it.
+    root.querySelectorAll('[role="tablist"]').forEach((list, i) => {
+      const want = saved.tabs?.[`tablist#${i}`];
+      if (!want) return;
+      const current = list.querySelector('[role="tab"][data-state="active"]') as HTMLElement | null;
+      const currentVal = current?.getAttribute("data-value") || current?.textContent?.trim();
+      if (currentVal === want) return;
+      const target = Array.from(list.querySelectorAll('[role="tab"]')).find(
+        (t) => (t.getAttribute("data-value") || t.textContent?.trim()) === want
+      ) as HTMLElement | undefined;
+      target?.click();
+    });
 
-  root.querySelectorAll("input, textarea").forEach((el, i) => {
-    if (isSensitive(el)) return;
-    const input = el as HTMLInputElement;
-    const key = keyFor(el, i);
-    const value = saved.fields?.[key];
-    if (input.type === "checkbox" || input.type === "radio") {
-      const want = value === "1";
-      if (input.checked !== want && want) input.click();
-      return;
-    }
-    if (value === undefined) return;
-    if (input.value !== value && document.activeElement !== input) {
-      setNativeValue(input as HTMLInputElement, value);
-    }
-  });
+    root.querySelectorAll("input, textarea").forEach((el, i) => {
+      if (isSensitive(el)) return;
+      const input = el as HTMLInputElement;
+      // Never click checkboxes/radios programmatically: that can fire app
+      // actions (select-all, toggles) and remount whole subtrees.
+      if (input.type === "checkbox" || input.type === "radio") return;
+      const key = keyFor(el, i);
+      const value = saved.fields?.[key];
+      if (value === undefined) return;
+      // Only fill fields the user hasn't touched yet.
+      if (input.value === "" && document.activeElement !== input) {
+        setNativeValue(input as HTMLInputElement, value);
+      }
+    });
+  } catch {
+    /* restoration is best-effort — never break the page */
+  }
 }
+
 
 /**
  * Remembers what the user was doing on every route: typed text, filters,
@@ -154,18 +158,20 @@ export function useTabStateMemory() {
     document.addEventListener("change", save, true);
     document.addEventListener("click", save, true);
 
-    // Keep re-applying while the route's async data renders more controls.
+    // Re-apply a few times while the route's async data renders more controls.
     if (restoring && saved) {
-      const deadline = Date.now() + 6000;
+      let attempts = 0;
       const tick = () => {
         restore(saved);
-        if (Date.now() < deadline) {
-          restoreTimer = window.setTimeout(tick, 250);
+        attempts += 1;
+        if (attempts < 5) {
+          restoreTimer = window.setTimeout(tick, 500);
         } else {
           restoring = false;
         }
       };
-      restoreTimer = window.setTimeout(tick, 100);
+      restoreTimer = window.setTimeout(tick, 300);
+
       // A real user interaction ends the restore phase early.
       const stop = () => {
         restoring = false;
