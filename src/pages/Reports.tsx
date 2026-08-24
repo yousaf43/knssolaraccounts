@@ -2599,28 +2599,84 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     periodInvoices
                       .filter(i => i.isReturn || i.status === "returned")
                       .reduce((s, i) => s + Math.abs(saleAmount(i, inventory)), 0);
-                  const diff = netSales - (stockRev + nonStockRev + bundleRev + unknownRev);
-                  const Row = ({ label, value, bold }: { label: string; value: number; bold?: boolean }) => (
-                    <div className={`flex items-center justify-between py-1.5 ${bold ? "font-semibold border-t mt-1 pt-2" : ""}`}>
-                      <span className={bold ? "" : "text-muted-foreground"}>{label}</span>
-                      <span>{formatCurrency(value)}</span>
-                    </div>
-                  );
+                  const reportTotal = stockRev + nonStockRev + bundleRev + unknownRev;
+                  const diff = netSales - reportTotal;
+                  const isReconciled = Math.abs(diff) < 1;
+                  const components = [
+                    { label: "Stock products", value: stockRev, color: "bg-primary" },
+                    { label: "Non-stock / services", value: nonStockRev, color: "bg-sky-500" },
+                    { label: "Bundles (not split)", value: bundleRev, color: "bg-violet-500" },
+                    { label: "Unmatched / uncatalogued", value: unknownRev, color: "bg-amber-500" },
+                  ].filter(c => Math.abs(c.value) > 0.005);
+                  const maxComp = Math.max(1, ...components.map(c => Math.abs(c.value)));
                   return (
-                    <div className="mt-6 border-t pt-4">
-                      <h3 className="text-sm font-semibold mb-2">Reconciliation with Income Statement</h3>
-                      <div className="text-sm max-w-xl">
-                        <Row label={report.code === "085" ? "Stock products revenue (this report)" : "Stock product lines"} value={stockRev} />
-                        <Row label="Non-stock / service lines" value={nonStockRev} />
-                        <Row label="Bundle lines (not split)" value={bundleRev} />
-                        <Row label="Unmatched / uncatalogued lines" value={unknownRev} />
-                        {report.code !== "085" && (
-                          <Row label="Total line revenue (this report)" value={stockRev + nonStockRev + bundleRev + unknownRev} bold />
-                        )}
-                        <Row label="Rounding, discounts & sales tax adjustment" value={diff} />
-                        <Row label="Net sales (Income Statement)" value={netSales} bold />
+                    <div className="mt-6 rounded-xl border bg-muted/20 overflow-hidden">
+                      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b bg-card">
+                        <div>
+                          <h3 className="text-sm font-semibold">Reconciliation with Income Statement</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(fromDate)} — {formatDate(toDate)}
+                          </p>
+                        </div>
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                            isReconciled
+                              ? "bg-success/10 text-success border-success/30"
+                              : "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                          }`}
+                        >
+                          {isReconciled ? "Reconciled" : `Variance ${formatCurrency(diff)}`}
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
+
+                      <div className="grid gap-3 p-4 sm:grid-cols-3">
+                        {[
+                          { label: "This report total", value: reportTotal },
+                          { label: "Adjustments (discount / tax / rounding)", value: diff },
+                          { label: "Net sales (Income Statement)", value: netSales },
+                        ].map((c, i) => (
+                          <div key={c.label} className="rounded-lg border bg-card px-3 py-2.5">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{c.label}</p>
+                            <p className={`text-base font-bold ${i === 1 && !isReconciled ? "text-amber-600" : ""}`}>
+                              {formatCurrency(c.value)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="px-4 pb-4 space-y-2">
+                        {components.map((c) => (
+                          <div key={c.label} className="text-sm">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-muted-foreground">{c.label}</span>
+                              <span className="font-medium tabular-nums">{formatCurrency(c.value)}</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${c.color}`}
+                                style={{ width: `${Math.min(100, (Math.abs(c.value) / maxComp) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                        {components.length === 0 && (
+                          <p className="text-sm text-muted-foreground">No revenue lines in the selected range.</p>
+                        )}
+                        <div className="flex items-center justify-between pt-2 mt-1 border-t text-sm font-semibold">
+                          <span>Total line revenue (this report)</span>
+                          <span className="tabular-nums">{formatCurrency(reportTotal)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Rounding, discounts & sales tax adjustment</span>
+                          <span className={`tabular-nums ${isReconciled ? "" : "text-amber-600 font-medium"}`}>{formatCurrency(diff)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm font-bold border-t pt-2">
+                          <span>Net sales (Income Statement)</span>
+                          <span className="tabular-nums">{formatCurrency(netSales)}</span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground px-4 pb-4">
                         {report.code === "085"
                           ? "This report counts only tracked stock products; the Income Statement counts full invoice values (excluding old balance and returns), so the lines above explain the difference."
                           : "This report totals raw invoice line amounts (before invoice-level discount and tax adjustments); the Income Statement uses full invoice values excluding old balance and returns, so the adjustment line explains the difference."}
@@ -2628,6 +2684,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </div>
                   );
                 })()}
+
               </div>
 
             );
