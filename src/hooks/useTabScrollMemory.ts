@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation, useNavigationType } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const KEY = "tab-scroll-v1";
 
@@ -31,46 +31,90 @@ export function setTabScroll(path: string, y: number) {
   write(map);
 }
 
+function scroller(): HTMLElement | null {
+  const el = document.getElementById("main-scroll");
+  if (el && el.scrollHeight > el.clientHeight + 4) return el;
+  return null;
+}
+
+function currentY() {
+  const el = scroller();
+  return el ? el.scrollTop : window.scrollY;
+}
+
+function scrollToY(y: number) {
+  const el = scroller();
+  if (el) el.scrollTop = y;
+  window.scrollTo(0, y);
+}
+
 /**
  * Remembers the scroll position of every visited route so re-opening a tab
- * resumes exactly where the user left off.
+ * resumes exactly where the user left off. Restoration keeps retrying while
+ * async data is still growing the page, and saving is paused meanwhile so an
+ * empty page can't overwrite the remembered position.
  */
 export function useTabScrollMemory() {
   const location = useLocation();
-  const navType = useNavigationType();
   const path = location.pathname;
 
-  // Save continuously while on the page (and on unmount / route change).
   useEffect(() => {
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
+
+    const target = getTabScroll(path);
+    let restoring = target > 0;
     let raf = 0;
+
     const onScroll = () => {
+      if (restoring) return;
       if (raf) return;
       raf = window.requestAnimationFrame(() => {
         raf = 0;
-        setTabScroll(path, window.scrollY);
+        setTabScroll(path, currentY());
       });
     };
+
     window.addEventListener("scroll", onScroll, { passive: true });
+    const main = document.getElementById("main-scroll");
+    main?.addEventListener("scroll", onScroll, { passive: true });
+
+    // Any deliberate user gesture ends the restore phase immediately.
+    const stopRestoring = () => {
+      restoring = false;
+    };
+    window.addEventListener("wheel", stopRestoring, { passive: true });
+    window.addEventListener("touchstart", stopRestoring, { passive: true });
+    window.addEventListener("keydown", stopRestoring);
+
+    let timer = 0;
+    const deadline = Date.now() + 6000;
+    const tick = () => {
+      if (!restoring) return;
+      scrollToY(target);
+      if (Math.abs(currentY() - target) < 2 || Date.now() > deadline) {
+        // Reached (or gave up) — keep nudging briefly, then resume saving.
+        window.setTimeout(() => {
+          restoring = false;
+        }, 400);
+        if (Date.now() > deadline) restoring = false;
+        return;
+      }
+      timer = window.setTimeout(tick, 120);
+    };
+    if (restoring) tick();
+
     return () => {
       window.removeEventListener("scroll", onScroll);
+      main?.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", stopRestoring);
+      window.removeEventListener("touchstart", stopRestoring);
+      window.removeEventListener("keydown", stopRestoring);
+      window.clearTimeout(timer);
       if (raf) window.cancelAnimationFrame(raf);
-      setTabScroll(path, window.scrollY);
+      const y = currentY();
+      if (!restoring || y > 0) setTabScroll(path, y);
     };
-  }, [path]);
-
-  // Restore on entering the route.
-  useEffect(() => {
-    const y = getTabScroll(path);
-    if (navType === "PUSH" && y === 0) return;
-    let tries = 0;
-    const tick = () => {
-      window.scrollTo(0, y);
-      if (++tries < 8) window.setTimeout(tick, 60);
-    };
-    tick();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 }
