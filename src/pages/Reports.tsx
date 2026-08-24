@@ -1240,15 +1240,17 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           </Button>
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
             const tableEl = document.getElementById("report-print-table");
-            if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName);
+            const reconEl = document.getElementById("report-reconciliation-panel");
+            if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, reconEl?.outerHTML);
             else exportPDF(report, filteredData, dateRange);
           }}>
             <FileText className="w-3.5 h-3.5" /> PDF
           </Button>
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
             const tableEl = document.getElementById("report-print-table");
+            const reconEl = document.getElementById("report-reconciliation-panel");
             if (tableEl) {
-              exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName);
+              exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, reconEl?.outerHTML);
             } else {
               exportPDF(report, filteredData, dateRange);
             }
