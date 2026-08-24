@@ -2689,7 +2689,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   ].filter(c => Math.abs(c.value) > 0.005);
                   const maxComp = Math.max(1, ...components.map(c => Math.abs(c.value)));
                   return (
-                    <div className="mt-6 rounded-xl border bg-muted/20 overflow-hidden">
+                    <div id="report-reconciliation-panel" className="mt-6 rounded-xl border bg-muted/20 overflow-hidden">
                       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b bg-card">
                         <div>
                           <h3 className="text-sm font-semibold">Reconciliation with Income Statement</h3>
