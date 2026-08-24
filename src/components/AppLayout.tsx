@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTabScrollMemory } from "@/hooks/useTabScrollMemory";
+import { useTabStateMemory } from "@/hooks/useTabStateMemory";
 
 export function AppLayout() {
   const { profile, role, signOut } = useAuth();
@@ -18,6 +19,7 @@ export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   useTabScrollMemory();
+  useTabStateMemory();
 
 
   return (
