@@ -10,12 +10,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
+import { useTabScrollMemory } from "@/hooks/useTabScrollMemory";
 
 export function AppLayout() {
   const { profile, role, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  useTabScrollMemory();
+
 
   return (
     <>
