@@ -4,7 +4,8 @@ import { useLocation } from "react-router-dom";
 const KEY = "tab-state-v1";
 
 type FieldMap = Record<string, string>;
-type StateMap = Record<string, { fields: FieldMap; tabs: FieldMap }>;
+type Saved = { fields: FieldMap; tabs: FieldMap };
+type StateMap = Record<string, Saved>;
 
 function read(): StateMap {
   try {
@@ -51,7 +52,7 @@ function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: strin
   el.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-function collect(): { fields: FieldMap; tabs: FieldMap } {
+function collect(): Saved {
   const root = document.getElementById("main-scroll") || document.body;
   const fields: FieldMap = {};
   root.querySelectorAll("input, textarea").forEach((el, i) => {
@@ -59,7 +60,7 @@ function collect(): { fields: FieldMap; tabs: FieldMap } {
     const input = el as HTMLInputElement;
     const key = keyFor(el, i);
     if (input.type === "checkbox" || input.type === "radio") {
-      fields[key] = input.checked ? "1" : "0";
+      if (input.checked) fields[key] = "1";
     } else if (input.value) {
       fields[key] = input.value;
     }
@@ -75,7 +76,20 @@ function collect(): { fields: FieldMap; tabs: FieldMap } {
   return { fields, tabs };
 }
 
-function restore(saved: { fields: FieldMap; tabs: FieldMap }) {
+function isEmpty(s: Saved) {
+  return Object.keys(s.fields).length === 0 && Object.keys(s.tabs).length === 0;
+}
+
+/** Merge so a not-yet-rendered field never loses its remembered value. */
+function merge(prev: Saved | undefined, next: Saved): Saved {
+  if (!prev) return next;
+  return {
+    fields: { ...prev.fields, ...next.fields },
+    tabs: { ...prev.tabs, ...next.tabs },
+  };
+}
+
+function restore(saved: Saved) {
   const root = document.getElementById("main-scroll") || document.body;
 
   // Restore the open tab/section first, then the fields inside it.
@@ -96,11 +110,13 @@ function restore(saved: { fields: FieldMap; tabs: FieldMap }) {
     const input = el as HTMLInputElement;
     const key = keyFor(el, i);
     const value = saved.fields?.[key];
-    if (value === undefined) return;
     if (input.type === "checkbox" || input.type === "radio") {
       const want = value === "1";
-      if (input.checked !== want) input.click();
-    } else if (input.value !== value && document.activeElement !== input) {
+      if (input.checked !== want && want) input.click();
+      return;
+    }
+    if (value === undefined) return;
+    if (input.value !== value && document.activeElement !== input) {
       setNativeValue(input as HTMLInputElement, value);
     }
   });
@@ -114,41 +130,58 @@ export function useTabStateMemory() {
   const location = useLocation();
   const path = location.pathname;
 
-  // Save continuously while working on the page.
   useEffect(() => {
-    let timer = 0;
-    const save = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        const map = read();
-        map[path] = collect();
-        write(map);
-      }, 300);
+    const saved = read()[path];
+    let restoring = !!saved && !isEmpty(saved);
+    let saveTimer = 0;
+    let restoreTimer = 0;
+
+    const flush = () => {
+      const map = read();
+      const next = collect();
+      // Never let an empty/half-rendered page erase what was remembered.
+      map[path] = isEmpty(next) ? map[path] || next : merge(map[path], next);
+      write(map);
     };
+
+    const save = () => {
+      if (restoring) return;
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(flush, 300);
+    };
+
     document.addEventListener("input", save, true);
     document.addEventListener("change", save, true);
     document.addEventListener("click", save, true);
+
+    // Keep re-applying while the route's async data renders more controls.
+    if (restoring && saved) {
+      const deadline = Date.now() + 6000;
+      const tick = () => {
+        restore(saved);
+        if (Date.now() < deadline) {
+          restoreTimer = window.setTimeout(tick, 250);
+        } else {
+          restoring = false;
+        }
+      };
+      restoreTimer = window.setTimeout(tick, 100);
+      // A real user interaction ends the restore phase early.
+      const stop = () => {
+        restoring = false;
+        window.clearTimeout(restoreTimer);
+      };
+      document.addEventListener("pointerdown", stop, { once: true, capture: true });
+      document.addEventListener("keydown", stop, { once: true, capture: true });
+    }
+
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(saveTimer);
+      window.clearTimeout(restoreTimer);
       document.removeEventListener("input", save, true);
       document.removeEventListener("change", save, true);
       document.removeEventListener("click", save, true);
-      const map = read();
-      map[path] = collect();
-      write(map);
+      flush();
     };
-  }, [path]);
-
-  // Restore after the route (and its async data) renders.
-  useEffect(() => {
-    const saved = read()[path];
-    if (!saved) return;
-    let tries = 0;
-    const tick = () => {
-      restore(saved);
-      if (++tries < 6) window.setTimeout(tick, 250);
-    };
-    const id = window.setTimeout(tick, 120);
-    return () => window.clearTimeout(id);
   }, [path]);
 }
