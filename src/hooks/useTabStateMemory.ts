@@ -158,18 +158,20 @@ export function useTabStateMemory() {
     document.addEventListener("change", save, true);
     document.addEventListener("click", save, true);
 
-    // Keep re-applying while the route's async data renders more controls.
+    // Re-apply a few times while the route's async data renders more controls.
     if (restoring && saved) {
-      const deadline = Date.now() + 6000;
+      let attempts = 0;
       const tick = () => {
         restore(saved);
-        if (Date.now() < deadline) {
-          restoreTimer = window.setTimeout(tick, 250);
+        attempts += 1;
+        if (attempts < 5) {
+          restoreTimer = window.setTimeout(tick, 500);
         } else {
           restoring = false;
         }
       };
-      restoreTimer = window.setTimeout(tick, 100);
+      restoreTimer = window.setTimeout(tick, 300);
+
       // A real user interaction ends the restore phase early.
       const stop = () => {
         restoring = false;
