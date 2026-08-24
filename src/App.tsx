@@ -29,6 +29,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Landing from "@/pages/Landing";
 import { Loader2 } from "lucide-react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -95,7 +96,8 @@ function AuthRoute() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <TooltipProvider>
         <AuthProvider>
@@ -114,6 +116,7 @@ const App = () => (
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
