@@ -214,11 +214,20 @@ export default function Landing() {
     if (!footerRef.current) return;
     const existing = footerRef.current.querySelector('script[src="https://cdn.zanderio.ai/widget/loader.js"]');
     if (existing) return;
+
+    const initialBodyChildren = new Set(Array.from(document.body.children));
     const script = document.createElement("script");
     script.src = "https://cdn.zanderio.ai/widget/loader.js";
     script.dataset.id = "wdg_Rj1iZE2d4RypTmkI31wlsy7X";
     script.defer = true;
     footerRef.current.appendChild(script);
+
+    return () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+      Array.from(document.body.children).forEach((child) => {
+        if (!initialBodyChildren.has(child)) child.remove();
+      });
+    };
   }, []);
 
   return (
