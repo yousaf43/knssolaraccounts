@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/contexts/SettingsContext";
 import ksLogo from "@/assets/ks-logo.png";
+import { useEffect, useRef } from "react";
 import {
   FileText,
   Package,
