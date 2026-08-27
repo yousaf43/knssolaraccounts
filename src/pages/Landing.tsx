@@ -208,6 +208,18 @@ function DashboardPreview() {
 
 export default function Landing() {
   const { formatDate } = useSettings();
+  const footerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!footerRef.current) return;
+    const existing = footerRef.current.querySelector('script[src="https://cdn.zanderio.ai/widget/loader.js"]');
+    if (existing) return;
+    const script = document.createElement("script");
+    script.src = "https://cdn.zanderio.ai/widget/loader.js";
+    script.dataset.id = "wdg_Rj1iZE2d4RypTmkI31wlsy7X";
+    script.defer = true;
+    footerRef.current.appendChild(script);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -374,7 +386,7 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="border-t py-8">
+      <footer ref={footerRef} className="border-t py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-2 px-4 text-center">
           <img src={ksLogo} alt="K&S Solar Energy" className="h-8 w-auto object-contain" />
           <p className="text-xs text-muted-foreground">
