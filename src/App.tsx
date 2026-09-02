@@ -35,7 +35,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { user, loading, role, twoFAVerified, isSuperAdmin, company, signOut } = useAuth();
+  const { user, loading, role, twoFAVerified, isSuperAdmin, company, companyResolved, signOut } = useAuth();
 
   if (loading) {
     return (
@@ -54,6 +54,9 @@ function ProtectedRoutes() {
     );
   }
   if (!twoFAVerified) return <TwoFactorVerify />;
+  if (!isSuperAdmin && !companyResolved) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
 
   const expired = Boolean(company?.expires_at && new Date(`${company.expires_at}T23:59:59`) < new Date());
   const unavailable = !isSuperAdmin && Boolean(company && (company.status !== "active" || expired));

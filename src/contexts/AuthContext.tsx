@@ -35,6 +35,7 @@ type AuthContextType = {
   loading: boolean;
   isSuperAdmin: boolean;
   company: Company | null;
+  companyResolved: boolean;
   twoFAVerified: boolean;
   setTwoFAVerified: (v: boolean) => void;
   twoFAEnabled: boolean;
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [companyResolved, setCompanyResolved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [twoFAVerified, setTwoFAVerifiedState] = useState(false);
   const [twoFAEnabled, setTwoFAEnabledState] = useState(true);
@@ -94,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setCompany(null);
     }
+    setCompanyResolved(true);
     if (roleData) setRole(roleData.role as AppRole);
   };
 
@@ -108,13 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hydrate = (nextSession: Session | null) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
+      setCompanyResolved(!nextSession?.user);
       if (nextSession?.user) {
         const enabled = resolveTwoFAEnabled(nextSession.user);
         setTwoFAEnabledState(enabled);
         setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(nextSession.user.id)) === "1");
         setTimeout(() => { void fetchProfile(nextSession.user.id); }, 0);
       } else {
-        setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false);
+        setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setCompanyResolved(true);
         setTwoFAVerifiedState(false); setTwoFAEnabledState(true);
       }
       setLoading(false);
@@ -135,10 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (user) sessionStorage.removeItem(twoFAKey(user.id));
     await supabase.auth.signOut();
-    setUser(null); setSession(null); setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setTwoFAVerifiedState(false);
+    setUser(null); setSession(null); setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setCompanyResolved(true); setTwoFAVerifiedState(false);
   };
 
-  return <AuthContext.Provider value={{ user, session, profile, role, loading, isSuperAdmin, company, twoFAVerified, setTwoFAVerified, twoFAEnabled, setTwoFAEnabled, signUp, signIn, signOut, refreshProfile }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, session, profile, role, loading, isSuperAdmin, company, companyResolved, twoFAVerified, setTwoFAVerified, twoFAEnabled, setTwoFAEnabled, signUp, signIn, signOut, refreshProfile }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
