@@ -19,6 +19,7 @@ import Accounts from "@/pages/Accounts";
 import Assets from "@/pages/Assets";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import PlatformAdmin from "@/pages/PlatformAdmin";
 import ActivityLogs from "@/pages/ActivityLogs";
 import TrashPage from "@/pages/Trash";
 import DraftsPage from "@/pages/Drafts";

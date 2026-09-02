@@ -45,7 +45,6 @@ type AuthContextType = {
   refreshProfile: () => Promise<void>;
 };
 
-const PLATFORM_ADMIN_ID = "9984ed57-6c1c-45cf-9f76-15759fcf87d8";
 const twoFAKey = (uid: string) => `2fa_verified_${uid}`;
 const twoFAEnabledKey = (uid: string) => `2fa_enabled_${uid}`;
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,10 +55,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [twoFAVerified, setTwoFAVerifiedState] = useState(false);
   const [twoFAEnabled, setTwoFAEnabledState] = useState(true);
-  const isSuperAdmin = user?.id === PLATFORM_ADMIN_ID;
 
   const setTwoFAVerified = (v: boolean) => {
     setTwoFAVerifiedState(v);
@@ -76,16 +75,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchProfile = async (userId: string) => {
-    const { data: profileData } = await supabase.from("profiles").select("*").eq("user_id", userId).single();
+    const [{ data: profileData }, { data: roleData }, { data: superAdminData }] = await Promise.all([
+      supabase.from("profiles").select("*").eq("user_id", userId).single(),
+      supabase.from("user_roles").select("role").eq("user_id", userId).single(),
+      supabase.from("super_admins").select("user_id").eq("user_id", userId).maybeSingle(),
+    ]);
+
+    setIsSuperAdmin(Boolean(superAdminData));
     if (profileData) {
       const nextProfile = profileData as Profile;
       setProfile(nextProfile);
       if (nextProfile.company_id) {
         const { data: companyData } = await supabase.from("companies").select("*").eq("id", nextProfile.company_id).single();
         setCompany((companyData as Company | null) || null);
+      } else {
+        setCompany(null);
       }
+    } else {
+      setCompany(null);
     }
-    const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", userId).single();
     if (roleData) setRole(roleData.role as AppRole);
   };
 
@@ -98,13 +106,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const hydrate = (nextSession: Session | null) => {
-      setSession(nextSession); setUser(nextSession?.user ?? null);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
       if (nextSession?.user) {
         const enabled = resolveTwoFAEnabled(nextSession.user);
         setTwoFAEnabledState(enabled);
         setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(nextSession.user.id)) === "1");
-        setTimeout(() => fetchProfile(nextSession.user.id), 0);
-      } else { setProfile(null); setRole(null); setCompany(null); setTwoFAVerifiedState(false); setTwoFAEnabledState(true); }
+        setTimeout(() => { void fetchProfile(nextSession.user.id); }, 0);
+      } else {
+        setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false);
+        setTwoFAVerifiedState(false); setTwoFAEnabledState(true);
+      }
       setLoading(false);
     };
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => hydrate(nextSession));
@@ -122,7 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   const signOut = async () => {
     if (user) sessionStorage.removeItem(twoFAKey(user.id));
-    await supabase.auth.signOut(); setUser(null); setSession(null); setProfile(null); setRole(null); setCompany(null); setTwoFAVerifiedState(false);
+    await supabase.auth.signOut();
+    setUser(null); setSession(null); setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setTwoFAVerifiedState(false);
   };
 
   return <AuthContext.Provider value={{ user, session, profile, role, loading, isSuperAdmin, company, twoFAVerified, setTwoFAVerified, twoFAEnabled, setTwoFAEnabled, signUp, signIn, signOut, refreshProfile }}>{children}</AuthContext.Provider>;
