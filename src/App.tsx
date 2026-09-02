@@ -35,7 +35,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { user, loading, role, twoFAVerified, isSuperAdmin } = useAuth();
+  const { user, loading, role, twoFAVerified, isSuperAdmin, company, signOut } = useAuth();
 
   if (loading) {
     return (
@@ -54,6 +54,23 @@ function ProtectedRoutes() {
     );
   }
   if (!twoFAVerified) return <TwoFactorVerify />;
+
+  const expired = Boolean(company?.expires_at && new Date(`${company.expires_at}T23:59:59`) < new Date());
+  const unavailable = !isSuperAdmin && Boolean(company && (company.status !== "active" || expired));
+  if (unavailable) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="max-w-md rounded-2xl border bg-card p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-semibold">Workspace unavailable</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {expired ? "This company workspace has expired." : "This company workspace is currently paused or disabled."}
+            {" Please contact the platform administrator."}
+          </p>
+          <button onClick={() => void signOut()} className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">Sign out</button>
+        </div>
+      </div>
+    );
+  }
 
   const isSales = role === "sales";
 

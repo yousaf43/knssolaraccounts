@@ -235,7 +235,7 @@ export default function Settings() {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ email: newUserEmail.trim(), password: newUserPassword, fullName: newUserName.trim(), role: newUserRole }),
+        body: JSON.stringify({ action: "create-user", email: newUserEmail.trim(), password: newUserPassword, fullName: newUserName.trim(), role: newUserRole }),
       });
       const result = await res.json();
       if (!res.ok) { toast.error(result.error || "Failed to create user"); }
