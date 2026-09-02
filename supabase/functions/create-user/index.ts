@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const callerIsSuperAdmin = Boolean(superAdmin);
     const callerIsAdmin = callerRole?.role === "admin";
     const body = await req.json();
-    const action = z.string().safeParse(body?.action);
+    const action = z.string().safeParse(body?.action || "create-user");
     if (!action.success) return jsonResponse({ error: "Invalid action" }, 400);
 
     if (action.data === "create-company") {

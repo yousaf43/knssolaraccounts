@@ -35,7 +35,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
-  const { user, loading, role, twoFAVerified } = useAuth();
+  const { user, loading, role, twoFAVerified, isSuperAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -76,6 +76,7 @@ function ProtectedRoutes() {
         <Route path="/drafts" element={<DraftsPage />} />
         <Route path="/trash" element={<TrashPage />} />
         <Route path="/settings" element={<Settings />} />
+        {isSuperAdmin && <Route path="/platform-admin" element={<PlatformAdmin />} />}
       </Route>
       <Route path="*" element={isSales ? <Navigate to="/" replace /> : <NotFound />} />
     </Routes>
