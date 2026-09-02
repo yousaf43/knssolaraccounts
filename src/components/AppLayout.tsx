@@ -14,7 +14,7 @@ import { useTabScrollMemory } from "@/hooks/useTabScrollMemory";
 import { useTabStateMemory } from "@/hooks/useTabStateMemory";
 
 export function AppLayout() {
-  const { profile, role, signOut } = useAuth();
+  const { profile, role, company, isSuperAdmin, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -81,6 +81,11 @@ export function AppLayout() {
                         {role}
                       </Badge>
                     )}
+                    {isSuperAdmin ? (
+                      <Badge variant="outline" className="hidden h-4 px-1.5 text-[10px] sm:inline-flex">Platform admin</Badge>
+                    ) : company?.name ? (
+                      <Badge variant="outline" className="hidden h-4 max-w-36 truncate px-1.5 text-[10px] sm:inline-flex">{company.name}</Badge>
+                    ) : null}
                   </div>
                 </div>
               </div>

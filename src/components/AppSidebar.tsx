@@ -17,8 +17,7 @@ import {
   FileEdit,
   Droplets,
   Search,
-
-  
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
@@ -51,11 +50,14 @@ interface AppSidebarProps {
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
-  const { role, profile } = useAuth();
+  const { role, profile, isSuperAdmin } = useAuth();
 
   const isCollapsed = isMobile ? false : collapsed;
 
   const navItems = allNavItems.filter((item) => !role || item.roles.includes(role));
+  const displayedNavItems = isSuperAdmin
+    ? [{ title: "Platform Admin", url: "/platform-admin", icon: ShieldCheck, roles: ["super-admin"] }, ...navItems]
+    : navItems;
 
   return (
     <aside
@@ -90,7 +92,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
           <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">Menu</p>
         )}
 
-        {navItems.map((item) => (
+        {displayedNavItems.map((item) => (
           <NavLink
             key={item.title}
             to={item.url}
