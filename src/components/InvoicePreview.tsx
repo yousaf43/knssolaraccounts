@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import type { Invoice, Receipt } from "@/data/mockData";
@@ -57,6 +57,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   const docLabel = isQuotation ? "Quotation" : "Invoice";
   const { formatCurrency, settings, formatDate } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
+  const [printWidth, setPrintWidth] = useState<"a4" | "80mm" | "58mm">("a4");
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
   const discountRate = invoice.discount ?? 0;
@@ -78,11 +79,15 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   const handlePrint = () => {
     const content = printRef.current;
     if (!content) return;
+    const thermal = printWidth !== "a4";
+    const width = printWidth === "58mm" ? "58mm" : "80mm";
+    const printCss = thermal ? `@page { size: ${width} auto; margin: 0; } body { width: ${width}; padding: 3mm; font-size: 10px; } .header { display: block; text-align: center; margin-bottom: 10px; padding-bottom: 8px; } .header > div:first-child { margin-bottom: 6px; } .company-right h2 { font-size: 14px; } .company-right p { font-size: 9px; } .logo { max-height: 42px; max-width: 100%; } .invoice-title { font-size: 16px; margin: 10px 0; } .customer-info { display: block; margin-bottom: 10px; } .customer-info .right { text-align: left; margin-top: 6px; } .customer-info .right div { justify-content: space-between; gap: 4px; } table { margin: 8px 0; } th, td { padding: 4px 3px; font-size: 9px; } .totals-section { display: block; } .notes-box { padding-right: 0; margin-bottom: 8px; } .totals-box { width: 100%; } .terms-section { margin-top: 12px; padding-top: 8px; } .terms-section ol { font-size: 8px; } .footer-bar { height: 5px; margin-top: 10px; }` : "@page { size: A4 portrait; margin: 12mm; }";
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`
       <html><head><title>${docLabel} ${invoice.number}</title>
       <style>
+        ${printCss}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #111; font-size: 13px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1e3a8a; }
@@ -134,9 +139,14 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">{docLabel} Preview</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          <select aria-label="Print size" value={printWidth} onChange={(event) => setPrintWidth(event.target.value as "a4" | "80mm" | "58mm")} className="h-9 rounded-md border border-input bg-background px-2 text-xs">
+            <option value="a4">A4</option>
+            <option value="80mm">Thermal 80mm</option>
+            <option value="58mm">Thermal 58mm</option>
+          </select>
           <Button variant="outline" size="sm" onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-1" /> Print / Save PDF
+            <Printer className="w-4 h-4 mr-1" /> Print
           </Button>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -149,7 +159,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         {/* Header */}
         <div className="header flex justify-between items-start mb-6 pb-4 border-b-2 border-blue-900">
           <div>
-            <img src={ksLogo} alt="Logo" className="logo h-14 max-w-[120px] object-contain" />
+            <img src={settings.logoUrl || ksLogo} alt={`${settings.companyName || "Company"} logo`} className="logo h-14 max-w-[120px] object-contain" />
           </div>
           <div className="company-right flex-1 text-center">
             <h2 className="text-xl font-bold text-blue-900">{settings.companyName || "K & S Solar Energy Pvt. Ltd"}</h2>
