@@ -92,7 +92,7 @@ const allReports: Report[] = [
   { code: "123", title: "Profit & Loss Account Summary", category: "Management", section: "general" },
   { code: "125", title: "Profit & Loss Account Detailed", category: "Management", section: "general" },
   { code: "127", title: "Income Statement", category: "Management", section: "general" },
-  { code: "130", title: "Profit & Loss (By Invoice)", category: "Management", section: "general" },
+  { code: "130", title: "Profit & Loss (By Project)", category: "Management", section: "general" },
   { code: "129", title: "Balance Sheet", category: "Management", section: "general" },
   { code: "135", title: "Nominal Activities", category: "Management", section: "general" },
   { code: "244", title: "Product Transaction Detail", category: "Management", section: "general" },
@@ -1180,6 +1180,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [salesTaxRate, setSalesTaxRate] = useState("");
   const [incomeTaxRate, setIncomeTaxRate] = useState("");
   const [plView, setPlView] = useState<"summary" | "invoice">("summary");
+  const [pl130View, setPl130View] = useState<"project" | "invoice">("project");
   const [plInvoiceSearch, setPlInvoiceSearch] = useState("");
   const [plCustomerFilter, setPlCustomerFilter] = useState("");
   const [plProfitFilter, setPlProfitFilter] = useState("all");
