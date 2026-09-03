@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import { scopedKey } from "@/lib/storageScope";
 
 const KEY_BASE = "tab-scroll-v1";
+const KEY = () => scopedKey(KEY_BASE);
 
 type ScrollMap = Record<string, number>;
 
