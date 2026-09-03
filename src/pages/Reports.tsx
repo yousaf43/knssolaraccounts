@@ -1821,22 +1821,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             </div>
           )}
-          {report.code === "130" && pl130View === "project" ? (
-            <ProfitLossByProject
-              invoices={invoices}
-              expenses={expenses}
-              inventory={inventory}
-              getAvgCost={getAvgCost}
-              fromDate={fromDate}
-              toDate={toDate}
-              dateRange={dateRange}
-              companyName={companyName}
-              salesTaxRate={Number(salesTaxRate) || 0}
-              search={plInvoiceSearch}
-              customer={plCustomerFilter}
-              profitFilter={plProfitFilter}
-            />
-          ) : showInvoicePnL ? (
+          {showInvoicePnL ? (
             <ProfitLossByInvoice
               invoices={invoices}
               inventory={inventory}
