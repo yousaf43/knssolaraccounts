@@ -1087,6 +1087,7 @@ function ProfitLossByInvoice({
 }) {
   const { formatCurrency, formatDate } = useSettings();
   const [expenseDrafts, setExpenseDrafts] = useState<Record<string, string>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const saveOperatingExpense = async (row: InvoicePnlRow, value: string) => {
     const invoice = invoices.find(item => item.id === row.id);
@@ -1100,6 +1101,8 @@ function ProfitLossByInvoice({
       toast.error("Could not save operating expense");
     }
   };
+
+  const inventoryById = useMemo(() => new Map(inventory.map(item => [item.id, item])), [inventory]);
 
   const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
     .filter(row => {
