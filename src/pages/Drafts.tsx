@@ -43,13 +43,13 @@ export default function Drafts() {
             Drafts
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Adhoori invoices, quotations aur sales orders yahan auto-save hoti hain — Resume kar ke wahin se continue karein.
+            Incomplete invoices, quotations and sales orders are auto-saved here — click Resume to continue where you left off.
           </p>
         </div>
         {drafts.length > 0 && (
           <ConfirmDeleteDialog
             title={`Clear all ${drafts.length} drafts?`}
-            description="Saare saved drafts permanently delete ho jayenge."
+            description="All saved drafts will be permanently deleted."
             onConfirm={() => {
               clearDrafts();
               toast.success("All drafts cleared");
@@ -66,8 +66,8 @@ export default function Drafts() {
         {drafts.length === 0 ? (
           <div className="p-12 text-center text-muted-foreground">
             <FileEdit className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="font-medium">Koi draft nahi hai</p>
-            <p className="text-sm mt-1">Jab bhi aap koi document banate hain, wo yahan khud save hota rehta hai.</p>
+            <p className="font-medium">No drafts yet</p>
+            <p className="text-sm mt-1">Whenever you start creating a document, it is saved here automatically.</p>
           </div>
         ) : (
           <Table>
@@ -98,7 +98,7 @@ export default function Drafts() {
                       </Button>
                       <ConfirmDeleteDialog
                         title={`Delete draft "${d.label || "Untitled"}"?`}
-                        description="Yeh draft permanently delete ho jayega — Trash me nahi jayega."
+                        description="This draft will be permanently deleted — it will not go to Trash."
                         onConfirm={() => {
                           deleteDraft(d.id);
                           toast.success("Draft deleted");

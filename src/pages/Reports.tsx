@@ -92,6 +92,7 @@ const allReports: Report[] = [
   { code: "123", title: "Profit & Loss Account Summary", category: "Management", section: "general" },
   { code: "125", title: "Profit & Loss Account Detailed", category: "Management", section: "general" },
   { code: "127", title: "Income Statement", category: "Management", section: "general" },
+  { code: "130", title: "Profit & Loss (By Invoice)", category: "Management", section: "general" },
   { code: "129", title: "Balance Sheet", category: "Management", section: "general" },
   { code: "135", title: "Nominal Activities", category: "Management", section: "general" },
   { code: "244", title: "Product Transaction Detail", category: "Management", section: "general" },
@@ -992,6 +993,148 @@ function IncomeStatement({
   );
 }
 
+// --- Profit & Loss by Invoice ---
+function ProfitLossByInvoice({
+  invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  salesTaxRate, search, customer, profitFilter,
+}: {
+  invoices: Invoice[];
+  inventory: InventoryItem[];
+  getAvgCost: (item: InventoryItem) => number;
+  fromDate?: Date;
+  toDate?: Date;
+  dateRange: string;
+  companyName: string;
+  salesTaxRate: number;
+  search: string;
+  customer: string;
+  profitFilter: string;
+}) {
+  const { formatCurrency, formatDate } = useSettings();
+
+  const rows = useMemo(() => {
+    const byId = new Map(inventory.map(item => [item.id, item]));
+    const byName = new Map(inventory.map(item => [normName(item.name), item]));
+    const costOf = (id?: string, description?: string) => {
+      const item = (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
+      if (!item) return 0;
+      const costPrice = Number(item.costPrice) || 0;
+      return costPrice > 0 ? costPrice : getAvgCost(item);
+    };
+    const lineCost = (line: Invoice["items"][number]) => {
+      if (line.adhocLines?.length) {
+        const bundleCost = line.adhocLines.reduce((sum, part) => sum + (part.qty || 0) * costOf(part.itemId), 0);
+        return bundleCost * (line.qty || 1);
+      }
+      return (line.qty || 0) * costOf(line.inventoryItemId, line.description);
+    };
+    const discountOf = (invoice: Invoice) => (invoice.items || []).reduce(
+      (sum, item) => sum + (item.qty || 0) * (item.rate || 0) * ((item.discount || 0) / 100), 0
+    ) + (Number(invoice.discount) || 0);
+    const taxMultiplier = 1 + Math.max(0, salesTaxRate) / 100;
+    const period = uniqueInvoicesById(invoices).filter(invoice => inRange(invoice.date, fromDate, toDate));
+    return period
+      .filter(invoice => countsAsSale(invoice) || invoice.isReturn || invoice.status === "returned")
+      .map(invoice => {
+        const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
+        const sign = isReturn ? -1 : 1;
+        const discount = discountOf(invoice);
+        const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
+        const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
+        const profit = sales - cost;
+        return {
+          id: invoice.id,
+          date: invoice.date,
+          number: invoice.number || "—",
+          documentNumber: invoice.documentNumber || "—",
+          customer: invoice.customer || "—",
+          sales,
+          discount: sign * (discount / taxMultiplier),
+          cost,
+          profit,
+          margin: sales !== 0 ? (profit / Math.abs(sales)) * 100 : 0,
+          isReturn,
+        };
+      })
+      .filter(row => {
+        const tokens = tokenize(search);
+        if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer)) return false;
+        if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
+        if (profitFilter === "profit" && row.profit < 0) return false;
+        if (profitFilter === "loss" && row.profit >= 0) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
+
+  const totals = rows.reduce((sum, row) => ({
+    sales: sum.sales + row.sales,
+    discount: sum.discount + row.discount,
+    cost: sum.cost + row.cost,
+    profit: sum.profit + row.profit,
+  }), { sales: 0, discount: 0, cost: 0, profit: 0 });
+
+  return (
+    <div className="bg-card rounded-lg border overflow-hidden">
+      <div id="report-print-table">
+        <div className="border-b px-4 py-4 text-center">
+          <h2 className="text-lg font-bold">{companyName}</h2>
+          <p className="text-sm font-semibold">Profit &amp; Loss (By Invoice)</p>
+          <p className="text-xs text-muted-foreground">{dateRange}{salesTaxRate ? ` · Sales tax ${salesTaxRate}% excluded` : ""}</p>
+        </div>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground text-sm text-center py-10">No invoices found for the selected filters.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table data-no-sort className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Sr #</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Document #</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sales</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Discount</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost of Sales</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Profit / Loss</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="px-3 py-2 text-muted-foreground">{index + 1}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
+                    <td className="px-3 py-2 font-medium"><HighlightText text={row.number} query={search} /></td>
+                    <td className="px-3 py-2"><HighlightText text={row.documentNumber} query={search} /></td>
+                    <td className="px-3 py-2"><HighlightText text={row.customer} query={search || customer} /></td>
+                    <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
+                    <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
+                    <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
+                    <td className={`px-3 py-2 text-right font-semibold ${row.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(row.profit)}</td>
+                    <td className={`px-3 py-2 text-right ${row.margin >= 0 ? "text-success" : "text-destructive"}`}>{row.margin.toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 bg-muted/40 font-bold">
+                  <td className="px-3 py-2" colSpan={5}>Total ({rows.length} invoices)</td>
+                  <td className="px-3 py-2 text-right">{formatCurrency(totals.sales)}</td>
+                  <td className="px-3 py-2 text-right text-warning">{formatCurrency(totals.discount)}</td>
+                  <td className="px-3 py-2 text-right">{formatCurrency(totals.cost)}</td>
+                  <td className={`px-3 py-2 text-right ${totals.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(totals.profit)}</td>
+                  <td className="px-3 py-2 text-right">{totals.sales !== 0 ? `${((totals.profit / Math.abs(totals.sales)) * 100).toFixed(1)}%` : "0.0%"}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Report Detail ---
 function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger }: {
   report: Report; onBack: () => void;
@@ -1036,6 +1179,10 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [stockSearch, setStockSearch] = useState("");
   const [salesTaxRate, setSalesTaxRate] = useState("");
   const [incomeTaxRate, setIncomeTaxRate] = useState("");
+  const [plView, setPlView] = useState<"summary" | "invoice">("summary");
+  const [plInvoiceSearch, setPlInvoiceSearch] = useState("");
+  const [plCustomerFilter, setPlCustomerFilter] = useState("");
+  const [plProfitFilter, setPlProfitFilter] = useState("all");
   const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
   
   const toggleMultiSelected = (key: string) =>
@@ -1101,7 +1248,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       }
     }
     return data;
-  }, [report.code, inventory, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly, nominalSearch, nominalAccountFilter, nominalPayMethod, nominalView]);
+  }, [report.code, inventory, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly, nominalSearch, nominalAccountFilter, nominalPayMethod, nominalView, plView, plInvoiceSearch, plCustomerFilter, plProfitFilter]);
 
   // Weighted average purchase cost per inventory item, computed from PO history.
   // Keyed by both inventory item id and by SKU/uniqueCode/name so merged rows still match.
@@ -1147,10 +1294,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
-  const isPnL = ["121", "123", "125", "127"].includes(report.code);
+  const isPnL = ["121", "123", "125", "127", "130"].includes(report.code);
+  const showInvoicePnL = report.code === "130" || (isPnL && plView === "invoice");
 
   const reportRootRef = useRef<HTMLDivElement>(null);
-  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly, nominalSearch, nominalAccountFilter, nominalPayMethod, nominalView]);
+  useSortableTables(reportRootRef, [report.code, fromDate, toDate, productSearch, invoiceSearch, customerSearch, receiptSearch, txnSearch, categoryFilter, selectedProductKey, productTypeFilter, viewMultiSelected, stockSearch, stockCategoryFilter, discountSearch, discountCustomer, discountOnly, nominalSearch, nominalAccountFilter, nominalPayMethod, nominalView, plView, plInvoiceSearch, plCustomerFilter, plProfitFilter]);
 
   return (
     <div className="space-y-6" ref={reportRootRef}>
@@ -1207,6 +1355,20 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </Button>
             )}
           </div>
+        )}
+        {showInvoicePnL && (
+          <>
+            <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder="Search invoice, document or customer" className="h-8 text-xs w-full sm:w-64" />
+            <Input value={plCustomerFilter} onChange={(e) => setPlCustomerFilter(e.target.value)} placeholder="Filter customer" className="h-8 text-xs w-full sm:w-44" />
+            <Select value={plProfitFilter} onValueChange={setPlProfitFilter}>
+              <SelectTrigger className="h-8 text-xs w-36"><SelectValue placeholder="Profit filter" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All results</SelectItem>
+                <SelectItem value="profit">Profitable only</SelectItem>
+                <SelectItem value="loss">Loss-making only</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
         )}
         {showInventoryTable && (
           <>
@@ -1323,9 +1485,34 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* P&L Reports */}
-      {["121", "123", "125", "127"].includes(report.code) && (
+      {isPnL && (
         <>
-          <IncomeStatement
+          {report.code !== "130" && (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="text-lg font-semibold">Income Statement view</h2>
+              <div className="flex rounded-md border bg-card p-1">
+                <Button variant={plView === "summary" ? "default" : "ghost"} size="sm" onClick={() => setPlView("summary")}>Summary</Button>
+                <Button variant={plView === "invoice" ? "default" : "ghost"} size="sm" onClick={() => setPlView("invoice")}>By Invoice</Button>
+              </div>
+            </div>
+          )}
+          {showInvoicePnL ? (
+            <ProfitLossByInvoice
+              invoices={invoices}
+              inventory={inventory}
+              getAvgCost={getAvgCost}
+              fromDate={fromDate}
+              toDate={toDate}
+              dateRange={dateRange}
+              companyName={companyName}
+              salesTaxRate={Number(salesTaxRate) || 0}
+              search={plInvoiceSearch}
+              customer={plCustomerFilter}
+              profitFilter={plProfitFilter}
+            />
+          ) : (
+            <>
+              <IncomeStatement
             report={report}
             invoices={invoices}
             expenses={expenses}
@@ -1339,7 +1526,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             salesTaxRate={Number(salesTaxRate) || 0}
             incomeTaxRate={Number(incomeTaxRate) || 0}
             onStats={setPlStats}
-          />
+              />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: "Total Revenue", value: filteredData.reduce((s, d) => s + d.sales, 0), cls: "text-primary" },
@@ -1448,6 +1635,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </ResponsiveContainer>
             )}
           </div>
+            </>
+          )}
         </>
       )}
 
@@ -3395,7 +3584,7 @@ export default function Reports() {
   const [favorites, setFavorites] = useState<string[]>([
     "028", "029", "034", "037", "084", "085", "088", "235", "236",
     "078", "080", "082", "083", "148", "180",
-    "121", "123", "125", "127", "129", "135", "258", "307", "381", "383",
+    "121", "123", "125", "127", "130", "129", "135", "258", "307", "381", "383",
     "272",
   ]);
 
