@@ -140,10 +140,12 @@ const expenseFromDb = (r: Record<string, unknown>): Expense => ({
   id: r.id as string, date: (r.date as string) || "", category: (r.category as string) || "",
   description: (r.description as string) || "", amount: Number(r.amount) || 0,
   paymentMethod: (r.payment_method as string) || "",
+  projectName: (r.project_name as string) || undefined,
 });
 const expenseToDb = (e: Expense, userId: string) => ({
   id: e.id, user_id: userId, date: e.date, category: e.category,
   description: e.description, amount: e.amount, payment_method: e.paymentMethod,
+  project_name: e.projectName || null,
 });
 
 // PurchaseOrder

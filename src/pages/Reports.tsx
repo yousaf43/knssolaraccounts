@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect, Fragment } from "react";
 import { useSortableTables } from "@/hooks/useSortableTables";
-import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
+import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder, type PurchaseOrder, type PurchasePayment, type StockAdjustment } from "@/data/mockData";
 import { type CompanyAsset } from "@/pages/Assets";
@@ -92,7 +92,7 @@ const allReports: Report[] = [
   { code: "123", title: "Profit & Loss Account Summary", category: "Management", section: "general" },
   { code: "125", title: "Profit & Loss Account Detailed", category: "Management", section: "general" },
   { code: "127", title: "Income Statement", category: "Management", section: "general" },
-  { code: "130", title: "Profit & Loss (By Invoice)", category: "Management", section: "general" },
+  { code: "130", title: "Profit & Loss (By Project)", category: "Management", section: "general" },
   { code: "129", title: "Balance Sheet", category: "Management", section: "general" },
   { code: "135", title: "Nominal Activities", category: "Management", section: "general" },
   { code: "244", title: "Product Transaction Detail", category: "Management", section: "general" },
@@ -994,6 +994,76 @@ function IncomeStatement({
 }
 
 // --- Profit & Loss by Invoice ---
+type InvoicePnlRow = {
+  id: string;
+  date: string;
+  number: string;
+  documentNumber: string;
+  customer: string;
+  projectName: string;
+  sales: number;
+  discount: number;
+  cost: number;
+  profit: number;
+  margin: number;
+  isReturn: boolean;
+};
+
+function computeInvoicePnlRows(
+  invoices: Invoice[],
+  inventory: InventoryItem[],
+  getAvgCost: (item: InventoryItem) => number,
+  fromDate: Date | undefined,
+  toDate: Date | undefined,
+  salesTaxRate: number,
+): InvoicePnlRow[] {
+  const byId = new Map(inventory.map(item => [item.id, item]));
+  const byName = new Map(inventory.map(item => [normName(item.name), item]));
+  const costOf = (id?: string, description?: string) => {
+    const item = (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
+    if (!item) return 0;
+    const costPrice = Number(item.costPrice) || 0;
+    return costPrice > 0 ? costPrice : getAvgCost(item);
+  };
+  const lineCost = (line: Invoice["items"][number]) => {
+    if (line.adhocLines?.length) {
+      const bundleCost = line.adhocLines.reduce((sum, part) => sum + (part.qty || 0) * costOf(part.itemId), 0);
+      return bundleCost * (line.qty || 1);
+    }
+    return (line.qty || 0) * costOf(line.inventoryItemId, line.description);
+  };
+  const discountOf = (invoice: Invoice) => (invoice.items || []).reduce(
+    (sum, item) => sum + (item.qty || 0) * (item.rate || 0) * ((item.discount || 0) / 100), 0
+  ) + (Number(invoice.discount) || 0);
+  const taxMultiplier = 1 + Math.max(0, salesTaxRate) / 100;
+  const period = uniqueInvoicesById(invoices).filter(invoice => inRange(invoice.date, fromDate, toDate));
+  return period
+    .filter(invoice => countsAsSale(invoice) || invoice.isReturn || invoice.status === "returned")
+    .map(invoice => {
+      const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
+      const sign = isReturn ? -1 : 1;
+      const discount = discountOf(invoice);
+      const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
+      const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
+      const profit = sales - cost;
+      return {
+        id: invoice.id,
+        date: invoice.date,
+        number: invoice.number || "—",
+        documentNumber: invoice.documentNumber || "—",
+        customer: invoice.customer || "—",
+        projectName: invoice.projectName || "",
+        sales,
+        discount: sign * (discount / taxMultiplier),
+        cost,
+        profit,
+        margin: sales !== 0 ? (profit / Math.abs(sales)) * 100 : 0,
+        isReturn,
+      };
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
 function ProfitLossByInvoice({
   invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter,
@@ -1013,58 +1083,15 @@ function ProfitLossByInvoice({
   const { formatCurrency, formatDate } = useSettings();
 
   const rows = useMemo(() => {
-    const byId = new Map(inventory.map(item => [item.id, item]));
-    const byName = new Map(inventory.map(item => [normName(item.name), item]));
-    const costOf = (id?: string, description?: string) => {
-      const item = (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
-      if (!item) return 0;
-      const costPrice = Number(item.costPrice) || 0;
-      return costPrice > 0 ? costPrice : getAvgCost(item);
-    };
-    const lineCost = (line: Invoice["items"][number]) => {
-      if (line.adhocLines?.length) {
-        const bundleCost = line.adhocLines.reduce((sum, part) => sum + (part.qty || 0) * costOf(part.itemId), 0);
-        return bundleCost * (line.qty || 1);
-      }
-      return (line.qty || 0) * costOf(line.inventoryItemId, line.description);
-    };
-    const discountOf = (invoice: Invoice) => (invoice.items || []).reduce(
-      (sum, item) => sum + (item.qty || 0) * (item.rate || 0) * ((item.discount || 0) / 100), 0
-    ) + (Number(invoice.discount) || 0);
-    const taxMultiplier = 1 + Math.max(0, salesTaxRate) / 100;
-    const period = uniqueInvoicesById(invoices).filter(invoice => inRange(invoice.date, fromDate, toDate));
-    return period
-      .filter(invoice => countsAsSale(invoice) || invoice.isReturn || invoice.status === "returned")
-      .map(invoice => {
-        const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
-        const sign = isReturn ? -1 : 1;
-        const discount = discountOf(invoice);
-        const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
-        const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
-        const profit = sales - cost;
-        return {
-          id: invoice.id,
-          date: invoice.date,
-          number: invoice.number || "—",
-          documentNumber: invoice.documentNumber || "—",
-          customer: invoice.customer || "—",
-          sales,
-          discount: sign * (discount / taxMultiplier),
-          cost,
-          profit,
-          margin: sales !== 0 ? (profit / Math.abs(sales)) * 100 : 0,
-          isReturn,
-        };
-      })
+    return computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
       .filter(row => {
         const tokens = tokenize(search);
-        if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer)) return false;
+        if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
         if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
         if (profitFilter === "profit" && row.profit < 0) return false;
         if (profitFilter === "loss" && row.profit >= 0) return false;
         return true;
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      });
   }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
 
   const totals = rows.reduce((sum, row) => ({
@@ -1094,6 +1121,7 @@ function ProfitLossByInvoice({
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Document #</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Project / Site</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sales</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Discount</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost of Sales</th>
@@ -1109,6 +1137,7 @@ function ProfitLossByInvoice({
                     <td className="px-3 py-2 font-medium"><HighlightText text={row.number} query={search} /></td>
                     <td className="px-3 py-2"><HighlightText text={row.documentNumber} query={search} /></td>
                     <td className="px-3 py-2"><HighlightText text={row.customer} query={search || customer} /></td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.projectName || "—"}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
                     <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
@@ -1119,7 +1148,7 @@ function ProfitLossByInvoice({
               </tbody>
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-bold">
-                  <td className="px-3 py-2" colSpan={5}>Total ({rows.length} invoices)</td>
+                  <td className="px-3 py-2" colSpan={6}>Total ({rows.length} invoices)</td>
                   <td className="px-3 py-2 text-right">{formatCurrency(totals.sales)}</td>
                   <td className="px-3 py-2 text-right text-warning">{formatCurrency(totals.discount)}</td>
                   <td className="px-3 py-2 text-right">{formatCurrency(totals.cost)}</td>
@@ -1128,6 +1157,295 @@ function ProfitLossByInvoice({
                 </tr>
               </tfoot>
             </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProfitLossByProject({
+  invoices, expenses, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  salesTaxRate, search, customer, profitFilter,
+}: {
+  invoices: Invoice[];
+  expenses: Expense[];
+  inventory: InventoryItem[];
+  getAvgCost: (item: InventoryItem) => number;
+  fromDate?: Date;
+  toDate?: Date;
+  dateRange: string;
+  companyName: string;
+  salesTaxRate: number;
+  search: string;
+  customer: string;
+  profitFilter: string;
+}) {
+  const { formatCurrency, formatDate } = useSettings();
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [sort, setSort] = useState<"profit-desc" | "profit-asc" | "name">("profit-desc");
+
+  type ProjectRow = {
+    key: string;
+    project: string;
+    customers: string[];
+    count: number;
+    sales: number;
+    discount: number;
+    cost: number;
+    expenseTotal: number;
+    profit: number;
+    margin: number;
+    invRows: InvoicePnlRow[];
+    exps: Expense[];
+  };
+
+  const { rows, overhead, overheadTotal } = useMemo(() => {
+    const invRows = computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate);
+    const inPeriod = expenses.filter(e => inRange(e.date, fromDate, toDate));
+    const projectExps = inPeriod.filter(e => e.projectName);
+    const overheadList = inPeriod.filter(e => !e.projectName);
+
+    const map = new Map<string, ProjectRow>();
+    const get = (name: string): ProjectRow => {
+      const key = normName(name) || "__none__";
+      if (!map.has(key)) {
+        map.set(key, {
+          key, project: name || "— No Project —", customers: [], count: 0,
+          sales: 0, discount: 0, cost: 0, expenseTotal: 0, profit: 0, margin: 0,
+          invRows: [], exps: [],
+        });
+      }
+      return map.get(key)!;
+    };
+    invRows.forEach(r => {
+      const p = get(r.projectName);
+      p.count += 1;
+      p.sales += r.sales;
+      p.discount += r.discount;
+      p.cost += r.cost;
+      if (r.customer && r.customer !== "—" && !p.customers.includes(r.customer)) p.customers.push(r.customer);
+      p.invRows.push(r);
+    });
+    projectExps.forEach(e => {
+      const p = get(e.projectName || "");
+      p.expenseTotal += e.amount;
+      p.exps.push(e);
+    });
+
+    let list = Array.from(map.values()).map(p => {
+      const profit = p.sales - p.cost - p.expenseTotal;
+      return { ...p, profit, margin: p.sales !== 0 ? (profit / Math.abs(p.sales)) * 100 : 0 };
+    });
+
+    const tokens = tokenize(search);
+    list = list.filter(p => {
+      if (tokens.length && !matchesTokens(tokens, p.project, ...p.customers)) return false;
+      if (customer && !p.customers.some(c => matchesTokens(tokenize(customer), c))) return false;
+      if (profitFilter === "profit" && p.profit < 0) return false;
+      if (profitFilter === "loss" && p.profit >= 0) return false;
+      return true;
+    });
+
+    if (sort === "profit-desc") list.sort((a, b) => b.profit - a.profit);
+    else if (sort === "profit-asc") list.sort((a, b) => a.profit - b.profit);
+    else list.sort((a, b) => a.project.localeCompare(b.project));
+
+    return { rows: list, overhead: overheadList, overheadTotal: overheadList.reduce((s, e) => s + e.amount, 0) };
+  }, [invoices, expenses, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
+
+  const totals = rows.reduce((sum, r) => ({
+    count: sum.count + r.count,
+    sales: sum.sales + r.sales,
+    discount: sum.discount + r.discount,
+    cost: sum.cost + r.cost,
+    expenseTotal: sum.expenseTotal + r.expenseTotal,
+    profit: sum.profit + r.profit,
+  }), { count: 0, sales: 0, discount: 0, cost: 0, expenseTotal: 0, profit: 0 });
+
+  return (
+    <div className="bg-card rounded-lg border overflow-hidden">
+      <div id="report-print-table">
+        <div className="border-b px-4 py-4 text-center relative">
+          <h2 className="text-lg font-bold">{companyName}</h2>
+          <p className="text-sm font-semibold">Profit &amp; Loss (By Project / Site)</p>
+          <p className="text-xs text-muted-foreground">{dateRange}{salesTaxRate ? ` · Sales tax ${salesTaxRate}% excluded` : ""} · Net Profit = Sales − Material Cost − Project Expenses</p>
+          <div className="absolute right-4 top-4 print:hidden">
+            <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+              <SelectTrigger className="h-8 text-xs w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="profit-desc">Profit: high to low</SelectItem>
+                <SelectItem value="profit-asc">Loss first</SelectItem>
+                <SelectItem value="name">Project name</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground text-sm text-center py-10">No projects found for the selected filters.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table data-no-sort className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Sr #</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Project / Site</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                  <th className="text-center px-3 py-2 font-medium text-muted-foreground">Invoices</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sales</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Discount</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Material Cost</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Project Expenses</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Net Profit / Loss</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <Fragment key={row.key}>
+                    <tr
+                      className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                      onClick={() => setExpanded(expanded === row.key ? null : row.key)}
+                    >
+                      <td className="px-3 py-2 text-muted-foreground">{index + 1}</td>
+                      <td className="px-3 py-2 font-medium">
+                        <span className="inline-flex items-center gap-1.5">
+                          {expanded === row.key ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                          <HighlightText text={row.project} query={search} />
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{row.customers.join(", ") || "—"}</td>
+                      <td className="px-3 py-2 text-center">{row.count}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
+                      <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
+                      <td className="px-3 py-2 text-right text-accent">{formatCurrency(row.expenseTotal)}</td>
+                      <td className={`px-3 py-2 text-right font-semibold ${row.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(row.profit)}</td>
+                      <td className={`px-3 py-2 text-right ${row.margin >= 0 ? "text-success" : "text-destructive"}`}>{row.margin.toFixed(1)}%</td>
+                    </tr>
+                    {expanded === row.key && (
+                      <tr className="border-b bg-muted/20">
+                        <td colSpan={10} className="px-6 py-4">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                              <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Invoices ({row.invRows.length})</p>
+                              {row.invRows.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No invoices.</p>
+                              ) : (
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b">
+                                      <th className="text-left py-1 pr-2">Date</th>
+                                      <th className="text-left py-1 pr-2">Invoice #</th>
+                                      <th className="text-left py-1 pr-2">Customer</th>
+                                      <th className="text-right py-1 pr-2">Sales</th>
+                                      <th className="text-right py-1 pr-2">Cost</th>
+                                      <th className="text-right py-1">Profit</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {row.invRows.map(inv => (
+                                      <tr key={inv.id} className="border-b last:border-0">
+                                        <td className="py-1 pr-2 whitespace-nowrap">{formatDate(inv.date)}</td>
+                                        <td className="py-1 pr-2 font-medium">{inv.number}</td>
+                                        <td className="py-1 pr-2">{inv.customer}</td>
+                                        <td className="py-1 pr-2 text-right">{formatCurrency(inv.sales)}</td>
+                                        <td className="py-1 pr-2 text-right">{formatCurrency(inv.cost)}</td>
+                                        <td className={`py-1 text-right font-medium ${inv.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(inv.profit)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Project Expenses ({row.exps.length})</p>
+                              {row.exps.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No expenses linked to this project. Add them from the Expenses page using the Project / Site field.</p>
+                              ) : (
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b">
+                                      <th className="text-left py-1 pr-2">Date</th>
+                                      <th className="text-left py-1 pr-2">Description</th>
+                                      <th className="text-left py-1 pr-2">Category</th>
+                                      <th className="text-right py-1">Amount</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {row.exps.map(e => (
+                                      <tr key={e.id} className="border-b last:border-0">
+                                        <td className="py-1 pr-2 whitespace-nowrap">{formatDate(e.date)}</td>
+                                        <td className="py-1 pr-2">{e.description}</td>
+                                        <td className="py-1 pr-2 text-muted-foreground">{e.category}</td>
+                                        <td className="py-1 text-right font-medium">{formatCurrency(e.amount)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr className="font-semibold border-t">
+                                      <td className="py-1" colSpan={3}>Total Expenses</td>
+                                      <td className="py-1 text-right">{formatCurrency(row.expenseTotal)}</td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 bg-muted/40 font-bold">
+                  <td className="px-3 py-2" colSpan={3}>Total ({rows.length} projects)</td>
+                  <td className="px-3 py-2 text-center">{totals.count}</td>
+                  <td className="px-3 py-2 text-right">{formatCurrency(totals.sales)}</td>
+                  <td className="px-3 py-2 text-right text-warning">{formatCurrency(totals.discount)}</td>
+                  <td className="px-3 py-2 text-right">{formatCurrency(totals.cost)}</td>
+                  <td className="px-3 py-2 text-right text-accent">{formatCurrency(totals.expenseTotal)}</td>
+                  <td className={`px-3 py-2 text-right ${totals.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(totals.profit)}</td>
+                  <td className="px-3 py-2 text-right">{totals.sales !== 0 ? `${((totals.profit / Math.abs(totals.sales)) * 100).toFixed(1)}%` : "0.0%"}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+        {overhead.length > 0 && (
+          <div className="border-t px-4 py-4">
+            <p className="text-sm font-semibold mb-2">Unallocated / Overhead Expenses <span className="text-muted-foreground font-normal text-xs">(not linked to any project)</span></p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-2 py-1.5">Sr #</th>
+                    <th className="text-left px-2 py-1.5">Date</th>
+                    <th className="text-left px-2 py-1.5">Description</th>
+                    <th className="text-left px-2 py-1.5">Category</th>
+                    <th className="text-right px-2 py-1.5">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overhead.map((e, i) => (
+                    <tr key={e.id} className="border-b last:border-0">
+                      <td className="px-2 py-1.5 text-muted-foreground">{i + 1}</td>
+                      <td className="px-2 py-1.5 whitespace-nowrap">{formatDate(e.date)}</td>
+                      <td className="px-2 py-1.5">{e.description}</td>
+                      <td className="px-2 py-1.5 text-muted-foreground">{e.category}</td>
+                      <td className="px-2 py-1.5 text-right font-medium">{formatCurrency(e.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t font-semibold bg-muted/30">
+                    <td className="px-2 py-1.5" colSpan={4}>Total Overhead</td>
+                    <td className="px-2 py-1.5 text-right">{formatCurrency(overheadTotal)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -1180,6 +1498,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [salesTaxRate, setSalesTaxRate] = useState("");
   const [incomeTaxRate, setIncomeTaxRate] = useState("");
   const [plView, setPlView] = useState<"summary" | "invoice">("summary");
+  const [pl130View, setPl130View] = useState<"project" | "invoice">("project");
   const [plInvoiceSearch, setPlInvoiceSearch] = useState("");
   const [plCustomerFilter, setPlCustomerFilter] = useState("");
   const [plProfitFilter, setPlProfitFilter] = useState("all");
@@ -1358,7 +1677,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         )}
         {showInvoicePnL && (
           <>
-            <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder="Search invoice, document or customer" className="h-8 text-xs w-full sm:w-64" />
+            {report.code === "130" && (
+              <div className="flex items-center gap-1 rounded-lg border p-0.5">
+                <Button variant={pl130View === "project" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("project")}>By Project</Button>
+                <Button variant={pl130View === "invoice" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("invoice")}>By Invoice</Button>
+              </div>
+            )}
+            <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder={report.code === "130" && pl130View === "project" ? "Search project, site or customer" : "Search invoice, document or customer"} className="h-8 text-xs w-full sm:w-64" />
             <Input value={plCustomerFilter} onChange={(e) => setPlCustomerFilter(e.target.value)} placeholder="Filter customer" className="h-8 text-xs w-full sm:w-44" />
             <Select value={plProfitFilter} onValueChange={setPlProfitFilter}>
               <SelectTrigger className="h-8 text-xs w-36"><SelectValue placeholder="Profit filter" /></SelectTrigger>
@@ -1496,7 +1821,22 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             </div>
           )}
-          {showInvoicePnL ? (
+          {report.code === "130" && pl130View === "project" ? (
+            <ProfitLossByProject
+              invoices={invoices}
+              expenses={expenses}
+              inventory={inventory}
+              getAvgCost={getAvgCost}
+              fromDate={fromDate}
+              toDate={toDate}
+              dateRange={dateRange}
+              companyName={companyName}
+              salesTaxRate={Number(salesTaxRate) || 0}
+              search={plInvoiceSearch}
+              customer={plCustomerFilter}
+              profitFilter={plProfitFilter}
+            />
+          ) : showInvoicePnL ? (
             <ProfitLossByInvoice
               invoices={invoices}
               inventory={inventory}
