@@ -1561,6 +1561,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         )}
         {showInvoicePnL && (
           <>
+            {report.code === "130" && (
+              <div className="flex items-center gap-1 rounded-lg border p-0.5">
+                <Button variant={pl130View === "project" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("project")}>By Project</Button>
+                <Button variant={pl130View === "invoice" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("invoice")}>By Invoice</Button>
+              </div>
+            )}
             <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder="Search invoice, document, project or customer" className="h-8 text-xs w-full sm:w-64" />
             <Input value={plCustomerFilter} onChange={(e) => setPlCustomerFilter(e.target.value)} placeholder="Filter customer" className="h-8 text-xs w-full sm:w-44" />
             <Select value={plProfitFilter} onValueChange={setPlProfitFilter}>
