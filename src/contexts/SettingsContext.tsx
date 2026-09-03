@@ -55,9 +55,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettingsState({ ...defaultSettings, companyName: company?.name || "" });
     if (!user) return () => { active = false; };
     const loadCloudSettings = async () => {
-      const { data } = await supabase.from("user_settings").select("settings_data").eq("company_id", company?.id || "");
+      const { data } = await supabase.from("user_settings").select("settings_data").eq("company_id", company?.id || "").order("updated_at", { ascending: false }).limit(1);
       if (!active) return;
-      const cloud = (data || []).map((row) => row.settings_data).find((value) => value && typeof value === "object" && !Array.isArray(value));
+      const cloud = data?.[0]?.settings_data;
       if (cloud && typeof cloud === "object" && !Array.isArray(cloud)) {
         setSettings({ ...defaultSettings, companyName: company?.name || "", ...(cloud as Partial<AppSettings>) });
       }

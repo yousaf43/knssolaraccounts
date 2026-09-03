@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSettings, type AppSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +59,11 @@ export default function Settings() {
   const importFileRef = useRef<HTMLInputElement>(null);
   const cloudBackup = useCloudBackup();
   const { customCategories, setCustomCategories } = useUserSettingsCloud();
+
+  useEffect(() => {
+    setForm({ ...settings });
+    setLogoPreview(settings.logoUrl || "");
+  }, [settings]);
 
   // New user creation state
   const [newUserName, setNewUserName] = useState("");

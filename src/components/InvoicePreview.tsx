@@ -87,7 +87,6 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
     win.document.write(`
       <html><head><title>${docLabel} ${invoice.number}</title>
       <style>
-        ${printCss}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #111; font-size: 13px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1e3a8a; }
@@ -127,6 +126,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
         th { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         .footer-bar { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        ${printCss}
       </style></head><body>
       ${content.innerHTML}
       </body></html>

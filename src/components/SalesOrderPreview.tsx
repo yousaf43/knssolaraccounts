@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import type { SalesOrder, Customer, InventoryItem } from "@/data/mockData";
@@ -40,7 +40,6 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
     win.document.write(`
       <html><head><title>Sales Order ${order.number}</title>
       <style>
-        ${printCss}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: Arial, sans-serif; padding: 30px; color: #111; font-size: 13px; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #1e3a8a; }
@@ -71,9 +70,10 @@ export function SalesOrderPreview({ order, onClose, showPrices = false, customer
         .bundle-row td { padding: 3px 10px; font-size: 11px; color: #666; border-bottom: 1px solid #f0f0f0; }
         .logo { max-height: 60px; max-width: 120px; object-fit: contain; }
         img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-        th { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        .footer-bar { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      </style></head><body>
+         th { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+         .footer-bar { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+         ${printCss}
+       </style></head><body>
       ${content.innerHTML}
       </body></html>
     `);
