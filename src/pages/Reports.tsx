@@ -1511,7 +1511,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               profitFilter={plProfitFilter}
             />
           ) : (
-          <IncomeStatement
+            <>
+              <IncomeStatement
             report={report}
             invoices={invoices}
             expenses={expenses}
