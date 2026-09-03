@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [companyResolved, setCompanyResolved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [twoFAVerified, setTwoFAVerifiedState] = useState(false);
-  const [twoFAEnabled, setTwoFAEnabledState] = useState(true);
+  const [twoFAEnabled, setTwoFAEnabledState] = useState(false);
 
   const setTwoFAVerified = (v: boolean) => {
     setTwoFAVerifiedState(v);
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resolveTwoFAEnabled = (u: User) => {
     const meta = (u.user_metadata as { two_fa_enabled?: boolean } | null)?.two_fa_enabled;
     if (typeof meta === "boolean") { localStorage.setItem(twoFAEnabledKey(u.id), meta ? "1" : "0"); return meta; }
-    return localStorage.getItem(twoFAEnabledKey(u.id)) !== "0";
+    return localStorage.getItem(twoFAEnabledKey(u.id)) === "1";
   };
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTimeout(() => { void fetchProfile(nextSession.user.id); }, 0);
       } else {
         setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setCompanyResolved(true);
-        setTwoFAVerifiedState(false); setTwoFAEnabledState(true);
+        setTwoFAVerifiedState(false); setTwoFAEnabledState(false);
       }
       setLoading(false);
     };
