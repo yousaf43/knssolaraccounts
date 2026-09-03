@@ -1,6 +1,8 @@
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   const key = Deno.env.get("RESEND_API_KEY")!;
-  const res = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${key}` } });
-  const body = await res.text();
-  return new Response(body, { status: res.status, headers: { "Content-Type": "application/json" } });
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  const target = id ? `https://api.resend.com/emails/${id}` : "https://api.resend.com/domains";
+  const res = await fetch(target, { headers: { Authorization: `Bearer ${key}` } });
+  return new Response(await res.text(), { status: res.status, headers: { "Content-Type": "application/json" } });
 });
