@@ -1121,6 +1121,7 @@ function ProfitLossByInvoice({
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice #</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Document #</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Project / Site</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sales</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Discount</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost of Sales</th>
@@ -1136,6 +1137,7 @@ function ProfitLossByInvoice({
                     <td className="px-3 py-2 font-medium"><HighlightText text={row.number} query={search} /></td>
                     <td className="px-3 py-2"><HighlightText text={row.documentNumber} query={search} /></td>
                     <td className="px-3 py-2"><HighlightText text={row.customer} query={search || customer} /></td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.projectName || "—"}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
                     <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
@@ -1146,7 +1148,7 @@ function ProfitLossByInvoice({
               </tbody>
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-bold">
-                  <td className="px-3 py-2" colSpan={5}>Total ({rows.length} invoices)</td>
+                  <td className="px-3 py-2" colSpan={6}>Total ({rows.length} invoices)</td>
                   <td className="px-3 py-2 text-right">{formatCurrency(totals.sales)}</td>
                   <td className="px-3 py-2 text-right text-warning">{formatCurrency(totals.discount)}</td>
                   <td className="px-3 py-2 text-right">{formatCurrency(totals.cost)}</td>
