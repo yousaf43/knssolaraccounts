@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect, Fragment } from "react";
 import { useSortableTables } from "@/hooks/useSortableTables";
-import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter } from "lucide-react";
+import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { type Invoice, type Expense, type InventoryItem, type Bill, type Customer, type Receipt, type SalesOrder, type PurchaseOrder, type PurchasePayment, type StockAdjustment } from "@/data/mockData";
 import { type CompanyAsset } from "@/pages/Assets";
