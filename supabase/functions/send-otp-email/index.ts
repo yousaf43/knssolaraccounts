@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to: [user.email], subject: `Your login code: ${code}`, html }),
+        body: JSON.stringify({ from, to: [user.email], subject: "Your K&S Solar Energy login verification code", html }),
       });
       const body = await res.text();
       return { ok: res.ok, status: res.status, body };
