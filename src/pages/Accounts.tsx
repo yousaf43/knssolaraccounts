@@ -11,7 +11,7 @@ import { useAccountsCloud, useLedgerEntriesCloud, useOtherPaymentsCloud, useOthe
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
 
-import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+import type { Account } from "@/data/defaultAccounts";
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
 type OtherReceipt = { id: string; date: string; account: string; receivedFrom: string; amount: number; reference: string; description: string };
 type Transfer = { id: string; date: string; fromAccount: string; toAccount: string; amount: number; reference: string };
@@ -78,14 +78,7 @@ export default function Accounts() {
   const { data: transfers, setData: setTransfers, upsert: upsertTransfer, remove: removeTransfer } = useTransfersCloud();
   const { data: reconcile, setData: setReconcile, upsert: upsertReconcile } = useReconcileEntriesCloud();
 
-  // Seed default accounts if none exist
-  const [seeded, setSeeded] = useState(false);
-  useEffect(() => {
-    if (!accountsLoading && accounts.length === 0 && !seeded) {
-      setSeeded(true);
-      defaultAccounts.forEach(a => upsertAccount({ ...a, id: crypto.randomUUID() }));
-    }
-  }, [accountsLoading, accounts.length]);
+  // Accounts belong to the current company. New workspaces start empty so they can add their own banks.
 
    // Ledger
   const { data: ledger, setData: setLedger, upsert: upsertLedger, remove: removeLedger } = useLedgerEntriesCloud();

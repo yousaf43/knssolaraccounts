@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { X, UserPlus, AlertTriangle, Layers } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
-import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+import type { Account } from "@/data/defaultAccounts";
 import type { Receipt, Customer, Invoice } from "@/data/mockData";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { CustomerCombobox } from "@/components/CustomerCombobox";
@@ -40,7 +40,7 @@ export function ReceiptForm({
   prefillInvoice,
 }: Props) {
   const { formatCurrency, formatDate } = useSettings();
-  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
+  const accounts = propAccounts || [];
   const [customer, setCustomer] = useState(editReceipt?.customer || prefillInvoice?.customer || "");
   const [date, setDate] = useState(editReceipt?.date || new Date().toISOString().split("T")[0]);
   const [invoiceNumber, setInvoiceNumber] = useState(editReceipt?.invoiceNumber || prefillInvoice?.number || "");

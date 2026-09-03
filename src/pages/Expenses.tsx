@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
-import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+import type { Account } from "@/data/defaultAccounts";
 
 
 const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Fuel and Transportation", "Bills and Bilties", "Material Delivery and Travel", "Maintenance and other Replacement", "Miscellaneous", "Material Purchase", "Other"];
@@ -44,7 +44,7 @@ export default function Expenses() {
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
   const { data: invoices } = useInvoicesCloud();
-  const accounts = cloudAccounts.length > 0 ? cloudAccounts : defaultAccounts;
+  const accounts = cloudAccounts;
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
