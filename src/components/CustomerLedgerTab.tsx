@@ -1,3 +1,4 @@
+import { scopedKey } from "@/lib/storageScope";
 import React, { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ const inRange = (date: string, from: string, to: string) => {
   return true;
 };
 
-const LEDGER_CUSTOMERS_KEY = "ledgerCustomers";
+const LEDGER_CUSTOMERS_KEY = () => scopedKey("ledgerCustomers");
 
 export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }: Props) {
   const { formatCurrency, formatDate } = useSettings();
@@ -51,12 +52,12 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
   const [selected, setSelected] = useState<string | null>(null);
   const [printOrientation, setPrintOrientation] = useState<"portrait" | "landscape">("landscape");
   const [ledgerCustomers, setLedgerCustomers] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(LEDGER_CUSTOMERS_KEY) || "[]"); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(LEDGER_CUSTOMERS_KEY()) || "[]"); } catch { return []; }
   });
 
   const saveLedgerCustomers = (list: string[]) => {
     setLedgerCustomers(list);
-    localStorage.setItem(LEDGER_CUSTOMERS_KEY, JSON.stringify(list));
+    localStorage.setItem(LEDGER_CUSTOMERS_KEY(), JSON.stringify(list));
   };
 
   const allCustomers = useMemo(() => {

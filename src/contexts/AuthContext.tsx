@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { setStorageScope } from "@/lib/storageScope";
 
 type AppRole = "admin" | "accountant" | "sales";
 
@@ -125,6 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => hydrate(currentSession));
     return () => subscription.unsubscribe();
   }, []);
+
+  // Keep browser-local data (drafts, recent tabs) isolated per account.
+  useEffect(() => {
+    setStorageScope(company?.id || user?.id || null);
+  }, [company?.id, user?.id]);
+
+
 
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin } });

@@ -1,13 +1,16 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const KEY = "tab-scroll-v1";
+import { scopedKey } from "@/lib/storageScope";
+
+const KEY_BASE = "tab-scroll-v1";
+const KEY = () => scopedKey(KEY_BASE);
 
 type ScrollMap = Record<string, number>;
 
 function read(): ScrollMap {
   try {
-    return JSON.parse(sessionStorage.getItem(KEY) || "{}") as ScrollMap;
+    return JSON.parse(sessionStorage.getItem(KEY()) || "{}") as ScrollMap;
   } catch {
     return {};
   }
@@ -15,7 +18,7 @@ function read(): ScrollMap {
 
 function write(map: ScrollMap) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(map));
+    sessionStorage.setItem(KEY(), JSON.stringify(map));
   } catch {
     /* ignore */
   }

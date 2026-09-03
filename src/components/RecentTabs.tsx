@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { X, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { scopedKey, subscribeStorageScope } from "@/lib/storageScope";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -20,14 +21,15 @@ const ROUTE_TITLES: Record<string, string> = {
   "/settings": "Settings",
 };
 
-const STORAGE_KEY = "recent-tabs-v1";
+const STORAGE_BASE = "recent-tabs-v1";
+const storageKey = () => scopedKey(STORAGE_BASE);
 const MAX_TABS = 10;
 
 type Tab = { path: string; title: string };
 
 function loadTabs(): Tab[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey());
     if (!raw) return [{ path: "/", title: "Dashboard" }];
     const parsed = JSON.parse(raw) as Tab[];
     if (!Array.isArray(parsed) || parsed.length === 0)
@@ -43,6 +45,9 @@ export function RecentTabs() {
   const navigate = useNavigate();
   const [tabs, setTabs] = useState<Tab[]>(() => loadTabs());
 
+  // Reload tabs when the signed-in account (scope) changes.
+  useEffect(() => subscribeStorageScope(() => setTabs(loadTabs())), []);
+
   const currentPath = location.pathname;
   const knownTitle = ROUTE_TITLES[currentPath];
 
@@ -57,7 +62,7 @@ export function RecentTabs() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+      localStorage.setItem(storageKey(), JSON.stringify(tabs));
     } catch {
       /* ignore */
     }
