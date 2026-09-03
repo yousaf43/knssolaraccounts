@@ -641,7 +641,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
         <label className="flex items-center gap-2 cursor-pointer">
           <Checkbox checked={addToLedger} onCheckedChange={(v) => setAddToLedger(v === true)} />
           <span className="font-medium text-sm">Add to Ledger</span>
-          <span className="text-xs text-muted-foreground">— is invoice ki entry account ledger me jayegi</span>
+          <span className="text-xs text-muted-foreground">— this invoice will be posted to the account ledger</span>
         </label>
         {addToLedger && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -667,7 +667,7 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
                 placeholder={String(total.toFixed(2))}
                 className="mt-1 h-8"
               />
-              <p className="text-[11px] text-muted-foreground mt-1">Khali chhodne par invoice total ({formatCurrency(total)}) use hoga.</p>
+              <p className="text-[11px] text-muted-foreground mt-1">Leave empty to use the invoice total ({formatCurrency(total)}).</p>
             </div>
           </div>
         )}

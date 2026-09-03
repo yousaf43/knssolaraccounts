@@ -240,7 +240,7 @@ export function ReceiptForm({
             <Layers className="w-4 h-4 text-primary" />
             <div>
               <Label className="cursor-pointer">Bulk Payment (Multiple Invoices)</Label>
-              <p className="text-xs text-muted-foreground">Auto FIFO allocate karein ya neeche table se khud invoices select karein</p>
+              <p className="text-xs text-muted-foreground">Allocate automatically (FIFO) or select invoices manually from the table below</p>
             </div>
           </div>
           <Switch checked={bulkMode} onCheckedChange={setBulkMode} />
@@ -382,7 +382,7 @@ export function ReceiptForm({
             )}
           </div>
           {pendingInvoices.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground text-center">Is customer ki koi pending invoice nahi hai</div>
+            <div className="p-4 text-sm text-muted-foreground text-center">This customer has no pending invoices</div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-xs">

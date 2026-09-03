@@ -669,7 +669,7 @@ export default function Settings() {
               <h2 className="font-semibold text-lg">Export Data</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Download your complete data for external use — import into cPanel, SQL database, Excel, or keep as offline backup. Data loss ka koi khatra nahi hai, ye sirf copy download karta hai.
+              Download your complete data for external use — import into cPanel, SQL database, Excel, or keep as offline backup. There is no risk of data loss — this only downloads a copy.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -737,7 +737,7 @@ export default function Settings() {
                   <h3 className="font-medium">SQL Dump (.sql)</h3>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Complete PostgreSQL script (schema + all rows). Kisi bhi Postgres server par restore karein:
+                  Complete PostgreSQL script (schema + all rows). Restore it on any Postgres server:
                   <code className="block mt-1 bg-muted px-1.5 py-1 rounded break-all">psql "postgres://user:pass@host:5432/db" -f dump.sql</code>
                 </p>
                 <Button size="sm" variant="outline" className="gap-2 w-full" disabled={dumping} onClick={handleSqlDump}>
@@ -753,7 +753,7 @@ export default function Settings() {
                   <h3 className="font-medium">Migrate In (JSON)</h3>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Kisi doosre system/backup ka JSON file yahan upload karein — sab records is database mein merge ho jayen ge (same ID wale records update honge, duplicate nahi banenge).
+                  Upload a JSON file from another system or backup — all records will be merged into this database (records with the same ID are updated, no duplicates are created).
                 </p>
                 <Button
                   size="sm"
