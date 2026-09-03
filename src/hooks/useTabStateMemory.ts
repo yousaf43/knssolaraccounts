@@ -12,7 +12,7 @@ type StateMap = Record<string, Saved>;
 
 function read(): StateMap {
   try {
-    return JSON.parse(sessionStorage.getItem(KEY) || "{}") as StateMap;
+    return JSON.parse(sessionStorage.getItem(KEY()) || "{}") as StateMap;
   } catch {
     return {};
   }
@@ -20,7 +20,7 @@ function read(): StateMap {
 
 function write(map: StateMap) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(map));
+    sessionStorage.setItem(KEY(), JSON.stringify(map));
   } catch {
     /* ignore */
   }
