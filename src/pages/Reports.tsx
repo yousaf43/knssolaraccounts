@@ -1086,8 +1086,20 @@ function ProfitLossByInvoice({
   updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, formatDate } = useSettings();
+  const [expenseDrafts, setExpenseDrafts] = useState<Record<string, string>>({});
 
-  const rows = useMemo(() => {
+  const saveOperatingExpense = async (row: InvoicePnlRow, value: string) => {
+    const invoice = invoices.find(item => item.id === row.id);
+    if (!invoice) return;
+    const amount = Math.max(0, Number(value) || 0);
+    setExpenseDrafts(prev => ({ ...prev, [row.id]: String(amount) }));
+    try {
+      await updateInvoice({ ...invoice, operatingExpense: amount });
+      toast.success("Operating expense saved");
+    } catch {
+      toast.error("Could not save operating expense");
+    }
+  };
     return computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
       .filter(row => {
         const tokens = tokenize(search);
@@ -1103,8 +1115,9 @@ function ProfitLossByInvoice({
     sales: sum.sales + row.sales,
     discount: sum.discount + row.discount,
     cost: sum.cost + row.cost,
+    operatingExpense: sum.operatingExpense + row.operatingExpense,
     profit: sum.profit + row.profit,
-  }), { sales: 0, discount: 0, cost: 0, profit: 0 });
+  }), { sales: 0, discount: 0, cost: 0, operatingExpense: 0, profit: 0 });
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
@@ -1130,6 +1143,7 @@ function ProfitLossByInvoice({
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sales</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Discount</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost of Sales</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground">Operating Expense</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Profit / Loss</th>
                   <th className="text-right px-3 py-2 font-medium text-muted-foreground">Margin</th>
                 </tr>
@@ -1146,6 +1160,19 @@ function ProfitLossByInvoice({
                     <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
                     <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
+                    <td className="px-3 py-2 text-right" onClick={(event) => event.stopPropagation()}>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={expenseDrafts[row.id] ?? String(Math.abs(row.operatingExpense) || "")}
+                        onChange={(event) => setExpenseDrafts(prev => ({ ...prev, [row.id]: event.target.value }))}
+                        onBlur={(event) => void saveOperatingExpense(row, event.target.value)}
+                        onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+                        className="h-7 w-28 ml-auto text-right text-xs"
+                        aria-label={`Operating expense for invoice ${row.number}`}
+                      />
+                    </td>
                     <td className={`px-3 py-2 text-right font-semibold ${row.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(row.profit)}</td>
                     <td className={`px-3 py-2 text-right ${row.margin >= 0 ? "text-success" : "text-destructive"}`}>{row.margin.toFixed(1)}%</td>
                   </tr>
@@ -1157,6 +1184,7 @@ function ProfitLossByInvoice({
                   <td className="px-3 py-2 text-right">{formatCurrency(totals.sales)}</td>
                   <td className="px-3 py-2 text-right text-warning">{formatCurrency(totals.discount)}</td>
                   <td className="px-3 py-2 text-right">{formatCurrency(totals.cost)}</td>
+                  <td className="px-3 py-2 text-right">{formatCurrency(totals.operatingExpense)}</td>
                   <td className={`px-3 py-2 text-right ${totals.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(totals.profit)}</td>
                   <td className="px-3 py-2 text-right">{totals.sales !== 0 ? `${((totals.profit / Math.abs(totals.sales)) * 100).toFixed(1)}%` : "0.0%"}</td>
                 </tr>
