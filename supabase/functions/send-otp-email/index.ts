@@ -82,25 +82,29 @@ Deno.serve(async (req) => {
         </div>
       </div>`;
 
-    const emailRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "K&S Solar Energy <noreply@knssolar.com.pk>",
-        to: [user.email],
-        subject: `Your login code: ${code}`,
-        html,
-      }),
-    });
+    const sendVia = async (from: string) => {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to: [user.email], subject: `Your login code: ${code}`, html }),
+      });
+      const body = await res.text();
+      return { ok: res.ok, status: res.status, body };
+    };
 
-    if (!emailRes.ok) {
-      const body = await emailRes.text();
-      console.error("Resend error:", emailRes.status, body);
-      return new Response(JSON.stringify({ error: "Failed to send email", details: body }), {
-        status: emailRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let result = await sendVia("K&S Solar Energy <noreply@knssolar.com.pk>");
+    console.log("Resend attempt 1:", result.status, result.body);
+
+    if (!result.ok) {
+      // Fallback to Resend's shared sending domain when the custom domain isn't verified
+      result = await sendVia("K&S Solar Energy <onboarding@resend.dev>");
+      console.log("Resend fallback:", result.status, result.body);
+    }
+
+    if (!result.ok) {
+      console.error("Resend failed:", result.status, result.body);
+      return new Response(JSON.stringify({ error: "Failed to send email", details: result.body }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
