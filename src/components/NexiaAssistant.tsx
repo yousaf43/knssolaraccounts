@@ -22,11 +22,11 @@ const ACCEPTED = ".pdf,image/*";
 const fileToBase64 = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error("File parhi nahin ja saki"));
+    reader.onerror = () => reject(new Error("Could not read the file"));
     reader.onload = () => {
       const result = String(reader.result || "");
       const comma = result.indexOf(",");
-      if (comma < 0) reject(new Error("File parhi nahin ja saki"));
+      if (comma < 0) reject(new Error("Could not read the file"));
       else resolve(result.slice(comma + 1));
     };
     reader.readAsDataURL(file);
@@ -35,14 +35,14 @@ const fileToBase64 = (file: File) =>
 
 const GREETING: Msg = {
   role: "assistant",
-  content: "Assalam-o-Alaikum! Main **Nexia** hun — aap ka business assistant. Sales, stock, accounts ya reports — kuch bhi poochein 😊",
+  content: "Hello! I'm **Nexia** — your business assistant. Ask me anything about sales, stock, accounts or reports 😊",
 };
 
 const SUGGESTIONS = [
-  "Aaj tak ki total sales?",
-  "Cash aur bank balance batao",
-  "Low stock items kaunse hain?",
-  "Sab se zyada udhaar kis customer ka hai?",
+  "What are the total sales to date?",
+  "Show cash and bank balances",
+  "Which items are low on stock?",
+  "Which customer owes the most?",
 ];
 
 export function NexiaAssistant() {
@@ -132,7 +132,7 @@ export function NexiaAssistant() {
       });
       if (error) throw error;
       const reply = data?.reply?.trim();
-      if (!reply) throw new Error("Khali jawab mila");
+      if (!reply) throw new Error("Received an empty response");
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
       speak(reply);
     } catch (e) {
@@ -201,7 +201,7 @@ export function NexiaAssistant() {
       ...prev,
       {
         role: "user",
-        content: "Is quotation file se draft quotation bana do (accessories bundle me).",
+        content: "Create a draft quotation from this quotation file (accessories as a bundle).",
         files: files.map((f) => f.name),
       },
     ]);
@@ -215,7 +215,7 @@ export function NexiaAssistant() {
       if (error) throw error;
       const q = data?.quotation;
       if (!q || !Array.isArray(q.items) || q.items.length === 0) {
-        throw new Error("File se koi line item nahin mila");
+        throw new Error("No line items found in the file");
       }
 
       const draftId = `quotation:ai-${Date.now()}`;
@@ -247,13 +247,13 @@ export function NexiaAssistant() {
       const unmatched: string[] = data?.meta?.unmatchedProducts ?? [];
       const bundles: number = data?.meta?.bundleCount ?? 0;
       const summary = [
-        `✅ Draft quotation ban gaya — **${q.items.length}** lines${bundles ? `, jin me **${bundles}** bundle` : ""}.`,
-        q.customer ? `Customer: **${q.customer}**${q.customerMatched ? "" : " (system me match nahin mila — form me select kar lein)"}` : "",
+        `✅ Draft quotation created — **${q.items.length}** lines${bundles ? `, including **${bundles}** bundle(s)` : ""}.`,
+        q.customer ? `Customer: **${q.customer}**${q.customerMatched ? "" : " (no match found in the system — please select it in the form)"}` : "",
         `Total: **PKR ${Math.round(q.total || 0).toLocaleString()}**`,
         unmatched.length
-          ? `⚠️ Ye products inventory se match nahin hue, form me manually chunein: ${unmatched.join(", ")}`
+          ? `⚠️ These products did not match inventory, please select them manually in the form: ${unmatched.join(", ")}`
           : "",
-        "Neeche **Draft kholein** button se Quotation form me continue karein.",
+        "Use the **Open Draft** button below to continue in the Quotation form.",
       ]
         .filter(Boolean)
         .join("\n\n");
@@ -281,7 +281,7 @@ export function NexiaAssistant() {
     const content = text.trim();
     const files = attachments;
     if ((!content && files.length === 0) || loading) return;
-    const prompt = content || "Ye file parh kar batao is me kya hai, aur software ke data se compare karo.";
+    const prompt = content || "Read this file, tell me what it contains, and compare it with the software data.";
     lastUserMsgRef.current = prompt;
     lastAttachmentsRef.current = files;
     const next: Msg[] = [
@@ -336,7 +336,7 @@ export function NexiaAssistant() {
           if (error) throw error;
           const text = data?.text?.trim();
           if (text) sendMessage(text);
-          else toast.error("Awaaz samajh nahin ayi");
+          else toast.error("Could not understand the audio");
         } catch (err) {
           toast.error(await extractError(err));
         } finally {
@@ -347,7 +347,7 @@ export function NexiaAssistant() {
       mr.start();
       setRecording(true);
     } catch {
-      toast.error("Microphone access nahin mila");
+      toast.error("Microphone access denied");
     }
   };
 
@@ -377,7 +377,7 @@ export function NexiaAssistant() {
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground">
             <div>
               <div className="font-semibold text-sm">Nexia AI</div>
-              <div className="text-[11px] opacity-80">Aap ka business assistant</div>
+              <div className="text-[11px] opacity-80">Your business assistant</div>
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -443,7 +443,7 @@ export function NexiaAssistant() {
             {lastIsError && !loading && (
               <div className="flex justify-start">
                 <Button size="sm" variant="outline" onClick={retry} className="gap-1.5">
-                  <RotateCcw className="w-3.5 h-3.5" /> Dobara koshish karein
+                  <RotateCcw className="w-3.5 h-3.5" /> Try again
                 </Button>
               </div>
             )}
@@ -465,7 +465,7 @@ export function NexiaAssistant() {
             {loading && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-2xl rounded-bl-sm px-3 py-2 text-sm flex items-center gap-2">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Soch raha hun...
+                  <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
                 </div>
               </div>
             )}
@@ -527,7 +527,7 @@ export function NexiaAssistant() {
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               disabled={loading || attaching || recording}
-              title="PDF ya image attach karein"
+              title="Attach a PDF or image"
             >
               {attaching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
             </Button>
@@ -546,7 +546,7 @@ export function NexiaAssistant() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-              placeholder={recording ? "Recording..." : attachments.length ? "File ke bara me poochein..." : "Message likhein..."}
+              placeholder={recording ? "Recording..." : attachments.length ? "Ask about the file..." : "Type a message..."}
               disabled={loading || recording || transcribing}
               className="flex-1"
             />
