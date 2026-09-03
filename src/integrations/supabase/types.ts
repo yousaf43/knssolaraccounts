@@ -456,6 +456,7 @@ export type Database = {
           items: Json | null
           notes: string | null
           number: string | null
+          operating_expense: number
           payments: Json | null
           project_name: string | null
           status: string | null
@@ -476,6 +477,7 @@ export type Database = {
           items?: Json | null
           notes?: string | null
           number?: string | null
+          operating_expense?: number
           payments?: Json | null
           project_name?: string | null
           status?: string | null
@@ -496,6 +498,7 @@ export type Database = {
           items?: Json | null
           notes?: string | null
           number?: string | null
+          operating_expense?: number
           payments?: Json | null
           project_name?: string | null
           status?: string | null

@@ -42,6 +42,7 @@ export type Invoice = {
   notes?: string;
   tax?: number;
   discount?: number;
+  operatingExpense?: number;
   payments?: { date: string; amount: number; method: string; reference?: string }[];
 };
 
