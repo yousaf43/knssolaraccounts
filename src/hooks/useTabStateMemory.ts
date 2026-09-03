@@ -1,7 +1,10 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const KEY = "tab-state-v1";
+import { scopedKey } from "@/lib/storageScope";
+
+const KEY_BASE = "tab-state-v1";
+const KEY = () => scopedKey(KEY_BASE);
 
 type FieldMap = Record<string, string>;
 type Saved = { fields: FieldMap; tabs: FieldMap };

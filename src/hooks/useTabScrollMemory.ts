@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const KEY = "tab-scroll-v1";
+import { scopedKey } from "@/lib/storageScope";
+
+const KEY_BASE = "tab-scroll-v1";
 
 type ScrollMap = Record<string, number>;
 
