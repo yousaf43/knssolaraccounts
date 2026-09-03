@@ -1198,11 +1198,10 @@ function ProfitLossByInvoice({
 }
 
 function ProfitLossByProject({
-  invoices, expenses, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
-  salesTaxRate, search, customer, profitFilter,
+  invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
-  expenses: Expense[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
   fromDate?: Date;
@@ -1213,8 +1212,10 @@ function ProfitLossByProject({
   search: string;
   customer: string;
   profitFilter: string;
+  updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, formatDate } = useSettings();
+  const [expenseDrafts, setExpenseDrafts] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sort, setSort] = useState<"profit-desc" | "profit-asc" | "name">("profit-desc");
 
@@ -1230,15 +1231,10 @@ function ProfitLossByProject({
     profit: number;
     margin: number;
     invRows: InvoicePnlRow[];
-    exps: Expense[];
   };
 
-  const { rows, overhead, overheadTotal } = useMemo(() => {
+  const { rows } = useMemo(() => {
     const invRows = computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate);
-    const inPeriod = expenses.filter(e => inRange(e.date, fromDate, toDate));
-    const projectExps = inPeriod.filter(e => e.projectName);
-    const overheadList = inPeriod.filter(e => !e.projectName);
-
     const map = new Map<string, ProjectRow>();
     const get = (name: string): ProjectRow => {
       const key = normName(name) || "__none__";
@@ -1246,10 +1242,10 @@ function ProfitLossByProject({
         map.set(key, {
           key, project: name || "— No Project —", customers: [], count: 0,
           sales: 0, discount: 0, cost: 0, expenseTotal: 0, profit: 0, margin: 0,
-          invRows: [], exps: [],
+          invRows: [],
         });
       }
-      return map.get(key)!;
+      return map.get(key) as ProjectRow;
     };
     invRows.forEach(r => {
       const p = get(r.projectName);
@@ -1257,13 +1253,9 @@ function ProfitLossByProject({
       p.sales += r.sales;
       p.discount += r.discount;
       p.cost += r.cost;
+      p.expenseTotal += r.operatingExpense;
       if (r.customer && r.customer !== "—" && !p.customers.includes(r.customer)) p.customers.push(r.customer);
       p.invRows.push(r);
-    });
-    projectExps.forEach(e => {
-      const p = get(e.projectName || "");
-      p.expenseTotal += e.amount;
-      p.exps.push(e);
     });
 
     let list = Array.from(map.values()).map(p => {
@@ -1284,8 +1276,8 @@ function ProfitLossByProject({
     else if (sort === "profit-asc") list.sort((a, b) => a.profit - b.profit);
     else list.sort((a, b) => a.project.localeCompare(b.project));
 
-    return { rows: list, overhead: overheadList, overheadTotal: overheadList.reduce((s, e) => s + e.amount, 0) };
-  }, [invoices, expenses, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
+    return { rows: list };
+  }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
 
   const totals = rows.reduce((sum, r) => ({
     count: sum.count + r.count,
@@ -1295,6 +1287,19 @@ function ProfitLossByProject({
     expenseTotal: sum.expenseTotal + r.expenseTotal,
     profit: sum.profit + r.profit,
   }), { count: 0, sales: 0, discount: 0, cost: 0, expenseTotal: 0, profit: 0 });
+
+  const saveOperatingExpense = async (invoiceId: string, value: string) => {
+    const invoice = invoices.find(item => item.id === invoiceId);
+    if (!invoice) return;
+    const amount = Math.max(0, Number(value) || 0);
+    setExpenseDrafts(prev => ({ ...prev, [invoiceId]: String(amount) }));
+    try {
+      await updateInvoice({ ...invoice, operatingExpense: amount });
+      toast.success("Operating expense saved");
+    } catch {
+      toast.error("Could not save operating expense");
+    }
+  };
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
