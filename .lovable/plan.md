@@ -1,35 +1,39 @@
 # Profit & Loss by Project / Site / Installation
 
 ## Goal
-The real purpose of "Profit & Loss by Invoice" is to see how much profit or loss each **project / site / installation** made. Upgrade report **130 – Profit & Loss (By Invoice)** into a full **Profit & Loss by Project** report.
+See exactly how much profit or loss each **project / site / installation** made — including material cost AND project expenses like labor pay.
 
-## Changes (all in `src/pages/Reports.tsx`)
+## Part 1 — Link expenses to projects (new)
 
-1. **Rename report 130** to "Profit & Loss (By Project)" and add a view switcher inside it:
-   - **By Project** (new default) — groups all invoices by `projectName`.
-   - **By Invoice** — the existing per-invoice view (kept as-is, plus a Project column).
+1. **Database migration**: add a `project_name` (text, nullable) column to the `expenses` table. No other schema change.
+2. **Expenses page** (`src/pages/Expenses.tsx`):
+   - Add a **Project / Site** field in the Add/Edit Expense form — a combobox with free text, suggesting existing project names already used on invoices (so "Site A" is spelled consistently).
+   - Show the project name as a badge in the expenses table.
+   - Optional filter by project.
+3. Existing expenses without a project stay as general/overhead expenses — they are NOT forced into projects.
 
-2. **By Project view** — one row per project/site:
-   - Columns: Sr #, Project/Site Name, Customer, Invoices (# of invoices), Sales, Discount, Cost of Sales, Profit / Loss, Margin %.
-   - Invoices with no project name grouped under "— No Project —".
-   - Returns/credit notes count negative (same rules as current by-invoice view).
-   - Profit in green, loss in red, bold.
-   - Each project row is **expandable/clickable** to drill down into that project's invoices (per-invoice sales, cost, profit).
-   - Footer totals: total projects, invoices, sales, cost, profit, overall margin.
+## Part 2 — Report 130 becomes "Profit & Loss (By Project)"
 
-3. **Filters** (on top of existing date range, sales-tax %, search, customer, profit/loss filters):
-   - **Project search** — type a project/site name to filter.
-   - **Sort**: by profit (high→low), loss first, or date.
-   - Existing "Profitable only / Loss-making only" filter works per-project in the By Project view.
+All in `src/pages/Reports.tsx`:
 
-4. **Print / PDF** — the project table prints with the centered company heading like other reports; expanded project details are included in print output.
+1. Rename report 130 and add a view switcher: **By Project** (default) | **By Invoice** (existing view, plus a Project column).
 
-## Calculation rules (unchanged, verified in existing code)
-- Approved invoices only (pending/draft/cancelled excluded); returns negative.
-- Old-balance items excluded from sales/cost (P&L-safe).
-- Cost = main-inventory `costPrice`, falling back to weighted average purchase-order cost (`getAvgCost`).
-- Sales shown excluding sales tax when a tax % is set; discounts shown separately.
+2. **By Project view** — one row per project/site (invoices grouped by `projectName`):
+   - Columns: Sr #, Project/Site, Customer, Invoices (#), Sales, Discount, Material Cost, **Project Expenses** (labor etc.), **Net Profit / Loss**, Margin %.
+   - `Net Profit = Sales (ex-tax, after discount) − Material Cost − Project Expenses`
+   - Expandable row: drill down into the project's invoices AND its expense entries (date, description, amount).
+   - Invoices with no project grouped under "— No Project —"; general expenses (no project) shown separately as "Unallocated / Overhead" so nothing is hidden.
+   - Footer totals for every column.
+
+3. **Filters**: date range (shared), project search, customer filter, Profitable only / Loss-making only, sort by profit or loss. Sales-tax % input kept.
+
+4. **Print / PDF**: prints the project table (and expanded details) with the centered company heading, same as other reports.
+
+## Calculation rules (verified against existing code)
+- Approved invoices only; returns count negative. Old-balance lines excluded from sales/cost.
+- Material cost = main-inventory `costPrice` (fallback: weighted average purchase cost).
+- Project expenses = expenses whose `project_name` matches the project, within the date range.
 
 ## Notes
-- No database changes needed — invoices already store `project_name`.
-- Only English UI labels (no Roman Urdu), consistent with the rest of the app.
+- One small migration (add column + nothing else — grants/RLS already cover expenses).
+- English-only UI labels.
