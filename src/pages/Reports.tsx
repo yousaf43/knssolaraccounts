@@ -994,6 +994,76 @@ function IncomeStatement({
 }
 
 // --- Profit & Loss by Invoice ---
+type InvoicePnlRow = {
+  id: string;
+  date: string;
+  number: string;
+  documentNumber: string;
+  customer: string;
+  projectName: string;
+  sales: number;
+  discount: number;
+  cost: number;
+  profit: number;
+  margin: number;
+  isReturn: boolean;
+};
+
+function computeInvoicePnlRows(
+  invoices: Invoice[],
+  inventory: InventoryItem[],
+  getAvgCost: (item: InventoryItem) => number,
+  fromDate: Date | undefined,
+  toDate: Date | undefined,
+  salesTaxRate: number,
+): InvoicePnlRow[] {
+  const byId = new Map(inventory.map(item => [item.id, item]));
+  const byName = new Map(inventory.map(item => [normName(item.name), item]));
+  const costOf = (id?: string, description?: string) => {
+    const item = (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
+    if (!item) return 0;
+    const costPrice = Number(item.costPrice) || 0;
+    return costPrice > 0 ? costPrice : getAvgCost(item);
+  };
+  const lineCost = (line: Invoice["items"][number]) => {
+    if (line.adhocLines?.length) {
+      const bundleCost = line.adhocLines.reduce((sum, part) => sum + (part.qty || 0) * costOf(part.itemId), 0);
+      return bundleCost * (line.qty || 1);
+    }
+    return (line.qty || 0) * costOf(line.inventoryItemId, line.description);
+  };
+  const discountOf = (invoice: Invoice) => (invoice.items || []).reduce(
+    (sum, item) => sum + (item.qty || 0) * (item.rate || 0) * ((item.discount || 0) / 100), 0
+  ) + (Number(invoice.discount) || 0);
+  const taxMultiplier = 1 + Math.max(0, salesTaxRate) / 100;
+  const period = uniqueInvoicesById(invoices).filter(invoice => inRange(invoice.date, fromDate, toDate));
+  return period
+    .filter(invoice => countsAsSale(invoice) || invoice.isReturn || invoice.status === "returned")
+    .map(invoice => {
+      const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
+      const sign = isReturn ? -1 : 1;
+      const discount = discountOf(invoice);
+      const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
+      const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
+      const profit = sales - cost;
+      return {
+        id: invoice.id,
+        date: invoice.date,
+        number: invoice.number || "—",
+        documentNumber: invoice.documentNumber || "—",
+        customer: invoice.customer || "—",
+        projectName: invoice.projectName || "",
+        sales,
+        discount: sign * (discount / taxMultiplier),
+        cost,
+        profit,
+        margin: sales !== 0 ? (profit / Math.abs(sales)) * 100 : 0,
+        isReturn,
+      };
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
 function ProfitLossByInvoice({
   invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter,
@@ -1013,58 +1083,15 @@ function ProfitLossByInvoice({
   const { formatCurrency, formatDate } = useSettings();
 
   const rows = useMemo(() => {
-    const byId = new Map(inventory.map(item => [item.id, item]));
-    const byName = new Map(inventory.map(item => [normName(item.name), item]));
-    const costOf = (id?: string, description?: string) => {
-      const item = (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
-      if (!item) return 0;
-      const costPrice = Number(item.costPrice) || 0;
-      return costPrice > 0 ? costPrice : getAvgCost(item);
-    };
-    const lineCost = (line: Invoice["items"][number]) => {
-      if (line.adhocLines?.length) {
-        const bundleCost = line.adhocLines.reduce((sum, part) => sum + (part.qty || 0) * costOf(part.itemId), 0);
-        return bundleCost * (line.qty || 1);
-      }
-      return (line.qty || 0) * costOf(line.inventoryItemId, line.description);
-    };
-    const discountOf = (invoice: Invoice) => (invoice.items || []).reduce(
-      (sum, item) => sum + (item.qty || 0) * (item.rate || 0) * ((item.discount || 0) / 100), 0
-    ) + (Number(invoice.discount) || 0);
-    const taxMultiplier = 1 + Math.max(0, salesTaxRate) / 100;
-    const period = uniqueInvoicesById(invoices).filter(invoice => inRange(invoice.date, fromDate, toDate));
-    return period
-      .filter(invoice => countsAsSale(invoice) || invoice.isReturn || invoice.status === "returned")
-      .map(invoice => {
-        const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
-        const sign = isReturn ? -1 : 1;
-        const discount = discountOf(invoice);
-        const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
-        const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
-        const profit = sales - cost;
-        return {
-          id: invoice.id,
-          date: invoice.date,
-          number: invoice.number || "—",
-          documentNumber: invoice.documentNumber || "—",
-          customer: invoice.customer || "—",
-          sales,
-          discount: sign * (discount / taxMultiplier),
-          cost,
-          profit,
-          margin: sales !== 0 ? (profit / Math.abs(sales)) * 100 : 0,
-          isReturn,
-        };
-      })
+    return computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
       .filter(row => {
         const tokens = tokenize(search);
-        if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer)) return false;
+        if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
         if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
         if (profitFilter === "profit" && row.profit < 0) return false;
         if (profitFilter === "loss" && row.profit >= 0) return false;
         return true;
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      });
   }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
 
   const totals = rows.reduce((sum, row) => ({
