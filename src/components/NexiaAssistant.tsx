@@ -156,13 +156,13 @@ export function NexiaAssistant() {
       const current = [...attachments];
       for (const file of Array.from(list)) {
         if (current.length >= MAX_FILES) {
-          toast.error(`Zyada se zyada ${MAX_FILES} files bhej sakte hain`);
+          toast.error(`You can attach up to ${MAX_FILES} files`);
           break;
         }
         const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
         const isImage = file.type.startsWith("image/");
         if (!isPdf && !isImage) {
-          toast.error(`${file.name}: sirf PDF ya image support hai`);
+          toast.error(`${file.name}: only PDF and image files are supported`);
           continue;
         }
         if (file.size > MAX_FILE_BYTES) {
@@ -322,7 +322,7 @@ export function NexiaAssistant() {
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || "audio/webm" });
-        if (blob.size < 1000) { toast.error("Recording bohot chhoti thi"); return; }
+        if (blob.size < 1000) { toast.error("The recording was too short"); return; }
         setTranscribing(true);
         try {
           const buf = await blob.arrayBuffer();
@@ -502,10 +502,10 @@ export function NexiaAssistant() {
                 className="h-7 text-[11px] gap-1.5"
                 onClick={() => void createQuotationDraft()}
                 disabled={loading || creatingDraft || attaching}
-                title="Scanned quotation se draft quotation banayein"
+                title="Create a draft quotation from the scanned quotation"
               >
                 {creatingDraft ? <Loader2 className="w-3 h-3 animate-spin" /> : <FilePlus2 className="w-3 h-3" />}
-                Quotation draft banayein
+                Create quotation draft
               </Button>
             </div>
           )}

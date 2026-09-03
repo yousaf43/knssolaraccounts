@@ -773,7 +773,7 @@ export default function Settings() {
 
             <div className="text-xs text-muted-foreground border-t pt-3 space-y-1">
               <p><strong>Included Tables (21):</strong> Customers, Suppliers, Inventory, Invoices, Sales Orders, Quotations, Receipts, Expenses, Purchase Orders, Bills, Purchase Payments, Stock Adjustments, Accounts, Ledger Entries, Other Payments, Other Receipts, Transfers, Reconcile Entries, Solar Washing, Activity Logs, User Settings</p>
-              <p>⚠️ Export sirf aapka data download karta hai — original data safe rehta hai.</p>
+              <p>⚠️ Export downloads a copy of your data — the original data remains safe.</p>
             </div>
           </div>
         </TabsContent>
