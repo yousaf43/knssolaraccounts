@@ -1102,15 +1102,14 @@ function ProfitLossByInvoice({
   };
 
   const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
-      .filter(row => {
-        const tokens = tokenize(search);
-        if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
-        if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
-        if (profitFilter === "profit" && row.profit < 0) return false;
-        if (profitFilter === "loss" && row.profit >= 0) return false;
-        return true;
-      }));
-  }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
+    .filter(row => {
+      const tokens = tokenize(search);
+      if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
+      if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
+      if (profitFilter === "profit" && row.profit < 0) return false;
+      if (profitFilter === "loss" && row.profit >= 0) return false;
+      return true;
+    }), [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
 
   const totals = rows.reduce((sum, row) => ({
     sales: sum.sales + row.sales,
