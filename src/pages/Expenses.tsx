@@ -49,16 +49,26 @@ export default function Expenses() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
+  const [projectFilter, setProjectFilter] = useState("all");
   // Customer discounts always count as expenses (Sales Discount)
   const discountRows = useMemo(() => buildDiscountExpenses(invoices), [invoices]);
 
   const totalDiscounts = discountRows.reduce((s, r) => s + r.amount, 0);
   const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
   const total = expenseTotal + totalDiscounts;
+  const projectSuggestions = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach(i => i.projectName && set.add(i.projectName));
+    expenses.forEach(e => e.projectName && set.add(e.projectName));
+    return Array.from(set).sort();
+  }, [invoices, expenses]);
   const rows = useMemo(() => {
     const list: (Expense & { isDiscount?: boolean })[] = [...expenses, ...discountRows];
-    return list.sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
-  }, [expenses, discountRows]);
+    const filtered = projectFilter === "all" ? list
+      : projectFilter === "none" ? list.filter(e => !e.projectName)
+      : list.filter(e => (e.projectName || "") === projectFilter);
+    return filtered.sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
+  }, [expenses, discountRows, projectFilter]);
   const pgExpenses = usePagination(rows);
 
 
@@ -221,6 +231,20 @@ export default function Expenses() {
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select nominal account (optional)" /></SelectTrigger>
                 <SelectContent>{nominalAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div className="md:col-span-3">
+              <Label>Project / Site</Label>
+              <Input
+                list="expense-project-suggestions"
+                value={form.projectName || ""}
+                onChange={(e) => setForm({ ...form, projectName: e.target.value })}
+                className="mt-1"
+                placeholder="Optional — link this expense to a project / site (e.g. labor pay for Site A)"
+                maxLength={120}
+              />
+              <datalist id="expense-project-suggestions">
+                {projectSuggestions.map((p) => <option key={p} value={p} />)}
+              </datalist>
             </div>
             <div className="md:col-span-3 flex gap-3 justify-end">
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
