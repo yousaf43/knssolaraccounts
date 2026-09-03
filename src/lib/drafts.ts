@@ -18,7 +18,10 @@ export type Draft = {
   updatedAt: string;
 };
 
-const STORAGE_KEY = "kns.drafts.v1";
+import { scopedKey, subscribeStorageScope } from "@/lib/storageScope";
+
+const STORAGE_BASE = "kns.drafts.v1";
+const storageKey = () => scopedKey(STORAGE_BASE);
 const EVENT = "kns-drafts-changed";
 const MAX_DRAFTS = 50;
 
@@ -31,7 +34,7 @@ export const draftKindLabels: Record<DraftKind, string> = {
 function readAll(): Draft[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKey());
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -51,12 +54,12 @@ function writeAll(drafts: Draft[]) {
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, MAX_DRAFTS);
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+    window.localStorage.setItem(storageKey(), JSON.stringify(trimmed));
   } catch {
     // Quota exceeded: drop the oldest half and retry once.
     try {
       window.localStorage.setItem(
-        STORAGE_KEY,
+        storageKey(),
         JSON.stringify(trimmed.slice(0, Math.ceil(trimmed.length / 2))),
       );
     } catch {
@@ -106,11 +109,13 @@ export function clearDrafts(): void {
 export function subscribeDrafts(cb: () => void): () => void {
   if (typeof window === "undefined") return () => undefined;
   const onStorage = (e: StorageEvent) => {
-    if (e.key === null || e.key === STORAGE_KEY) cb();
+    if (e.key === null || e.key === storageKey()) cb();
   };
+  const unsubScope = subscribeStorageScope(cb);
   window.addEventListener(EVENT, cb);
   window.addEventListener("storage", onStorage);
   return () => {
+    unsubScope();
     window.removeEventListener(EVENT, cb);
     window.removeEventListener("storage", onStorage);
   };
