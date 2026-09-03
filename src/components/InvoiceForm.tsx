@@ -14,7 +14,7 @@ import { ProductPickerWithBundle, type AdhocBundleLine } from "@/components/Prod
 import { HighlightText } from "@/components/HighlightText";
 import { BundleItemsRow } from "@/components/BundleItemsRow";
 import { useSettings } from "@/contexts/SettingsContext";
-import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+import type { Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, Customer, InventoryItem, Receipt } from "@/data/mockData";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { getAdhocBundleValue } from "@/lib/adhocBundle";
@@ -68,7 +68,7 @@ type InvoiceDraftData = {
 
 export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editInvoice, nextNumber, onAddCustomer, accounts: propAccounts, receipts = [], initialLedger = null, draftKind = "invoice", initialDraft = null }: Props) {
   const { formatCurrency, formatDate } = useSettings();
-  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
+  const accounts = propAccounts || [];
   const draft = (initialDraft || undefined) as Partial<InvoiceDraftData> | undefined;
   const [customNumber, setCustomNumber] = useState(draft?.customNumber ?? editInvoice?.number ?? "");
   const [documentNumber, setDocumentNumber] = useState(draft?.documentNumber ?? editInvoice?.documentNumber ?? "");

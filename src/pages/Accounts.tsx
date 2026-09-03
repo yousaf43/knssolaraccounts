@@ -11,7 +11,7 @@ import { useAccountsCloud, useLedgerEntriesCloud, useOtherPaymentsCloud, useOthe
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
 
-import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+import type { Account } from "@/data/defaultAccounts";
 type OtherPayment = { id: string; date: string; account: string; payee: string; amount: number; reference: string; description: string };
 type OtherReceipt = { id: string; date: string; account: string; receivedFrom: string; amount: number; reference: string; description: string };
 type Transfer = { id: string; date: string; fromAccount: string; toAccount: string; amount: number; reference: string };

@@ -22,6 +22,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
 import ksLogo from "@/assets/ks-logo.png";
+import { useSettings } from "@/contexts/SettingsContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -51,6 +52,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
   const { role, profile, isSuperAdmin } = useAuth();
+  const { settings } = useSettings();
 
   const isCollapsed = isMobile ? false : collapsed;
 
@@ -68,8 +70,8 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
       <div className="relative flex items-center justify-center px-2 py-4">
         <div className={`${isCollapsed ? "w-12" : "w-full"} rounded-xl bg-white/95 p-2 shadow-[0_8px_24px_-16px_hsl(var(--sidebar-primary))] ring-1 ring-sidebar-border/60 transition-all duration-300`}>
           <img
-            src={ksLogo}
-            alt="K&S Solar Energy"
+            src={settings.logoUrl || ksLogo}
+            alt={`${settings.companyName || "Company"} logo`}
             className={`${isCollapsed ? "h-8 w-full" : "h-16 w-full"} object-contain transition-all duration-300`}
           />
         </div>

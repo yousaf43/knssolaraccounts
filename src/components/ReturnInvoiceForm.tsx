@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { X, Plus, Trash2, RotateCcw, ArrowLeftRight } from "lucide-react";
 import { useSettings } from "@/contexts/SettingsContext";
-import { defaultAccounts, type Account } from "@/data/defaultAccounts";
+import type { Account } from "@/data/defaultAccounts";
 import type { Invoice, InvoiceItem, InventoryItem } from "@/data/mockData";
 
 type Props = {
@@ -31,7 +31,7 @@ type Props = {
 
 export function ReturnInvoiceForm({ invoices, inventory, onSaveReturn, onCancel, nextReturnNumber, accounts: propAccounts }: Props) {
   const { formatCurrency, formatDate } = useSettings();
-  const accounts = propAccounts && propAccounts.length > 0 ? propAccounts : defaultAccounts;
+  const accounts = propAccounts || [];
   const [selectedInvoiceId, setSelectedInvoiceId] = useState("");
   const [returnType, setReturnType] = useState<"return" | "exchange">("return");
   const [returnItems, setReturnItems] = useState<{ index: number; returnQty: number; selected: boolean }[]>([]);
