@@ -57,7 +57,7 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
   const docLabel = isQuotation ? "Quotation" : "Invoice";
   const { formatCurrency, settings, formatDate } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
-  const [printWidth, setPrintWidth] = useState<"a4" | "80mm" | "58mm">("a4");
+  const [printWidth, setPrintWidth] = useState<"a4" | "80mm" | "58mm">(settings.thermalPrintWidth);
 
   const subtotal = invoice.items.reduce((s, i) => s + i.amount, 0);
   const discountRate = invoice.discount ?? 0;

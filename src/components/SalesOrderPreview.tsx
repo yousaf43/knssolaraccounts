@@ -17,7 +17,7 @@ type Props = {
 export function SalesOrderPreview({ order, onClose, showPrices = false, customers = [], inventory = [] }: Props) {
   const { formatCurrency, settings, formatDate } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
-  const [printWidth, setPrintWidth] = useState<"a4" | "80mm" | "58mm">("a4");
+  const [printWidth, setPrintWidth] = useState<"a4" | "80mm" | "58mm">(settings.thermalPrintWidth);
 
   const norm = (v?: string | null) => (v ?? "").trim().toLowerCase();
   const customer = customers.find(
