@@ -178,7 +178,7 @@ export function NexiaAssistant() {
             size: file.size,
           });
         } catch {
-          toast.error(`${file.name}: parhi nahin ja saki`);
+          toast.error(`${file.name}: could not be read`);
         }
       }
       setAttachments(current);
