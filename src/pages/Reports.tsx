@@ -30,6 +30,7 @@ import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { countsAsSale } from "@/lib/salesStatus";
 import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
 import { amountToWords, formatCompactAmount } from "@/lib/amountWords";
+import { toast } from "sonner";
 
 const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
 
@@ -1043,31 +1044,33 @@ function computeInvoicePnlRows(
     .map(invoice => {
       const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
       const sign = isReturn ? -1 : 1;
-      const discount = discountOf(invoice);
-      const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
-      const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
-      const profit = sales - cost;
-      return {
-        id: invoice.id,
-        date: invoice.date,
-        number: invoice.number || "—",
-        documentNumber: invoice.documentNumber || "—",
-        customer: invoice.customer || "—",
-        projectName: invoice.projectName || "",
-        sales,
-        discount: sign * (discount / taxMultiplier),
-        cost,
-        profit,
-        margin: sales !== 0 ? (profit / Math.abs(sales)) * 100 : 0,
-        isReturn,
-      };
+       const discount = discountOf(invoice);
+       const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
+       const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
+       const operatingExpense = sign * (Number(invoice.operatingExpense) || 0);
+       const profit = sales - cost - operatingExpense;
+       return {
+         id: invoice.id,
+         date: invoice.date,
+         number: invoice.number || "—",
+         documentNumber: invoice.documentNumber || "—",
+         customer: invoice.customer || "—",
+         projectName: invoice.projectName || "",
+         sales,
+         discount: sign * (discount / taxMultiplier),
+         cost,
+         operatingExpense,
+         profit,
+         margin: sales !== 0 ? (profit / Math.abs(sales)) * 100 : 0,
+         isReturn,
+       };
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 function ProfitLossByInvoice({
   invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
-  salesTaxRate, search, customer, profitFilter,
+  salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
   inventory: InventoryItem[];
@@ -1080,6 +1083,7 @@ function ProfitLossByInvoice({
   search: string;
   customer: string;
   profitFilter: string;
+  updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, formatDate } = useSettings();
 
