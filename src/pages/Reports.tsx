@@ -1526,7 +1526,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             salesTaxRate={Number(salesTaxRate) || 0}
             incomeTaxRate={Number(incomeTaxRate) || 0}
             onStats={setPlStats}
-          />
+              />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: "Total Revenue", value: filteredData.reduce((s, d) => s + d.sales, 0), cls: "text-primary" },
