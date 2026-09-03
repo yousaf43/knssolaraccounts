@@ -1153,32 +1153,96 @@ function ProfitLossByInvoice({
               </thead>
               <tbody>
                 {rows.map((row, index) => (
-                  <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-3 py-2 text-muted-foreground">{index + 1}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
-                    <td className="px-3 py-2 font-medium"><HighlightText text={row.number} query={search} /></td>
-                    <td className="px-3 py-2"><HighlightText text={row.documentNumber} query={search} /></td>
-                    <td className="px-3 py-2"><HighlightText text={row.customer} query={search || customer} /></td>
-                    <td className="px-3 py-2 text-muted-foreground">{row.projectName || "—"}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
-                    <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
-                    <td className="px-3 py-2 text-right" onClick={(event) => event.stopPropagation()}>
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={expenseDrafts[row.id] ?? String(Math.abs(row.operatingExpense) || "")}
-                        onChange={(event) => setExpenseDrafts(prev => ({ ...prev, [row.id]: event.target.value }))}
-                        onBlur={(event) => void saveOperatingExpense(row, event.target.value)}
-                        onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
-                        className="h-7 w-28 ml-auto text-right text-xs"
-                        aria-label={`Operating expense for invoice ${row.number}`}
-                      />
-                    </td>
-                    <td className={`px-3 py-2 text-right font-semibold ${row.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(row.profit)}</td>
-                    <td className={`px-3 py-2 text-right ${row.margin >= 0 ? "text-success" : "text-destructive"}`}>{row.margin.toFixed(1)}%</td>
-                  </tr>
+                  <Fragment key={row.id}>
+                    <tr className="border-b last:border-0 hover:bg-muted/30 cursor-pointer" onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}>
+                      <td className="px-3 py-2 text-muted-foreground">{index + 1}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
+                      <td className="px-3 py-2 font-medium">
+                        <span className="inline-flex items-center gap-1.5">
+                          {expandedId === row.id ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                          <HighlightText text={row.number} query={search} />
+                        </span>
+                      </td>
+                      <td className="px-3 py-2"><HighlightText text={row.documentNumber} query={search} /></td>
+                      <td className="px-3 py-2"><HighlightText text={row.customer} query={search || customer} /></td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.projectName || "—"}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
+                      <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
+                      <td className="px-3 py-2 text-right" onClick={(event) => event.stopPropagation()}>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={expenseDrafts[row.id] ?? String(Math.abs(row.operatingExpense) || "")}
+                          onChange={(event) => setExpenseDrafts(prev => ({ ...prev, [row.id]: event.target.value }))}
+                          onBlur={(event) => void saveOperatingExpense(row, event.target.value)}
+                          onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+                          className="h-7 w-28 ml-auto text-right text-xs"
+                          aria-label={`Operating expense for invoice ${row.number}`}
+                        />
+                      </td>
+                      <td className={`px-3 py-2 text-right font-semibold ${row.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(row.profit)}</td>
+                      <td className={`px-3 py-2 text-right ${row.margin >= 0 ? "text-success" : "text-destructive"}`}>{row.margin.toFixed(1)}%</td>
+                    </tr>
+                    {expandedId === row.id && (
+                      <tr className="border-b bg-muted/20">
+                        <td colSpan={12} className="px-6 py-4">
+                          {(() => {
+                            const invoice = invoices.find(item => item.id === row.id);
+                            const lines = invoice?.items || [];
+                            if (lines.length === 0) return <p className="text-xs text-muted-foreground">No items on this invoice.</p>;
+                            return (
+                              <>
+                                <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Invoice Items ({lines.length})</p>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="border-b">
+                                        <th className="text-left py-1 pr-2">Sr</th>
+                                        <th className="text-left py-1 pr-2">Product</th>
+                                        <th className="text-right py-1 pr-2">Qty</th>
+                                        <th className="text-right py-1 pr-2">Rate</th>
+                                        <th className="text-right py-1 pr-2">Discount</th>
+                                        <th className="text-right py-1">Amount</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {lines.map((line, lineIndex) => (
+                                        <Fragment key={lineIndex}>
+                                          <tr className="border-b last:border-0">
+                                            <td className="py-1 pr-2 text-muted-foreground">{lineIndex + 1}</td>
+                                            <td className="py-1 pr-2 font-medium">{line.bundleTitle ? `${line.bundleTitle} (Bundle)` : line.description}</td>
+                                            <td className="py-1 pr-2 text-right">{line.qty}</td>
+                                            <td className="py-1 pr-2 text-right">{formatCurrency(line.rate)}</td>
+                                            <td className="py-1 pr-2 text-right text-warning">{line.discount ? `${line.discount}%` : "—"}</td>
+                                            <td className="py-1 text-right">{formatCurrency(line.amount ?? (line.qty || 0) * (line.rate || 0))}</td>
+                                          </tr>
+                                          {line.adhocLines?.map((part, partIndex) => {
+                                            const partItem = inventoryById.get(part.itemId);
+                                            return (
+                                              <tr key={`${lineIndex}-${partIndex}`} className="border-b last:border-0 text-muted-foreground">
+                                                <td className="py-0.5 pr-2"></td>
+                                                <td className="py-0.5 pr-2 pl-4">↳ {partItem?.name || "Item"}</td>
+                                                <td className="py-0.5 pr-2 text-right">{part.qty}</td>
+                                                <td className="py-0.5 pr-2 text-right">{formatCurrency(part.rate)}</td>
+                                                <td className="py-0.5 pr-2 text-right">—</td>
+                                                <td className="py-0.5 text-right">{formatCurrency((part.qty || 0) * (part.rate || 0))}</td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </Fragment>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
               <tfoot>
