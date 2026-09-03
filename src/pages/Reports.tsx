@@ -1004,6 +1004,7 @@ type InvoicePnlRow = {
   sales: number;
   discount: number;
   cost: number;
+  operatingExpense: number;
   profit: number;
   margin: number;
   isReturn: boolean;
