@@ -1,6 +1,8 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { format, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type AppSettings = {
   companyName: string;
