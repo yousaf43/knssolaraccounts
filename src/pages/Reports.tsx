@@ -1337,7 +1337,7 @@ function ProfitLossByProject({
 }
 
 // --- Report Detail ---
-function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger }: {
+function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger, updateInvoice }: {
   report: Report; onBack: () => void;
   monthlySales: MonthlyReportRow[];
   kpiData: { totalSales: number; totalExpenses: number; netProfit: number; outstandingReceivables: number; outstandingPayables: number; bankBalance: number };
@@ -1355,6 +1355,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   stockAdjustments: StockAdjustment[];
   accounts: Account[];
   ledger: LedgerEntry[];
+  updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, settings, formatDate } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
@@ -1698,7 +1699,22 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             </div>
           )}
-          {showInvoicePnL ? (
+          {report.code === "130" && pl130View === "project" ? (
+            <ProfitLossByProject
+              invoices={invoices}
+              inventory={inventory}
+              getAvgCost={getAvgCost}
+              fromDate={fromDate}
+              toDate={toDate}
+              dateRange={dateRange}
+              companyName={companyName}
+              salesTaxRate={Number(salesTaxRate) || 0}
+              search={plInvoiceSearch}
+              customer={plCustomerFilter}
+              profitFilter={plProfitFilter}
+              updateInvoice={updateInvoice}
+            />
+          ) : showInvoicePnL ? (
             <ProfitLossByInvoice
               invoices={invoices}
               inventory={inventory}
@@ -1711,6 +1727,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               search={plInvoiceSearch}
               customer={plCustomerFilter}
               profitFilter={plProfitFilter}
+              updateInvoice={updateInvoice}
             />
           ) : (
             <>
@@ -3791,7 +3808,7 @@ export default function Reports() {
   ]);
 
   // Read real data from cloud
-  const { data: invoices } = useInvoicesCloud();
+  const { data: invoices, upsert: updateInvoice } = useInvoicesCloud();
   const { data: rawExpenses } = useExpensesCloud();
   const { data: bills } = useBillsCloud();
   // Customer discounts count as expenses (Sales Discount) across all reports.
@@ -3885,7 +3902,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
-    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} />;
+    return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} updateInvoice={updateInvoice} />;
   }
 
   return (
