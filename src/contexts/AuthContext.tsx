@@ -126,6 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Keep browser-local data (drafts, recent tabs) isolated per account.
+  useEffect(() => {
+    setStorageScope(company?.id || user?.id || null);
+  }, [company?.id, user?.id]);
+
+
+
   const signUp = async (email: string, password: string, fullName: string) => {
     const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin } });
     return { error: error as Error | null };
