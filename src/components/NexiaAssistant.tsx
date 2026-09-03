@@ -166,7 +166,7 @@ export function NexiaAssistant() {
           continue;
         }
         if (file.size > MAX_FILE_BYTES) {
-          toast.error(`${file.name}: file 12 MB se bari hai`);
+          toast.error(`${file.name}: files must be 12 MB or smaller`);
           continue;
         }
         try {
