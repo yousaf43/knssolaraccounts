@@ -1677,7 +1677,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         )}
         {showInvoicePnL && (
           <>
-            <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder="Search invoice, document or customer" className="h-8 text-xs w-full sm:w-64" />
+            {report.code === "130" && (
+              <div className="flex items-center gap-1 rounded-lg border p-0.5">
+                <Button variant={pl130View === "project" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("project")}>By Project</Button>
+                <Button variant={pl130View === "invoice" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("invoice")}>By Invoice</Button>
+              </div>
+            )}
+            <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder={report.code === "130" && pl130View === "project" ? "Search project, site or customer" : "Search invoice, document or customer"} className="h-8 text-xs w-full sm:w-64" />
             <Input value={plCustomerFilter} onChange={(e) => setPlCustomerFilter(e.target.value)} placeholder="Filter customer" className="h-8 text-xs w-full sm:w-44" />
             <Select value={plProfitFilter} onValueChange={setPlProfitFilter}>
               <SelectTrigger className="h-8 text-xs w-36"><SelectValue placeholder="Profit filter" /></SelectTrigger>
@@ -1815,7 +1821,22 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             </div>
           )}
-          {showInvoicePnL ? (
+          {report.code === "130" && pl130View === "project" ? (
+            <ProfitLossByProject
+              invoices={invoices}
+              expenses={expenses}
+              inventory={inventory}
+              getAvgCost={getAvgCost}
+              fromDate={fromDate}
+              toDate={toDate}
+              dateRange={dateRange}
+              companyName={companyName}
+              salesTaxRate={Number(salesTaxRate) || 0}
+              search={plInvoiceSearch}
+              customer={plCustomerFilter}
+              profitFilter={plProfitFilter}
+            />
+          ) : showInvoicePnL ? (
             <ProfitLossByInvoice
               invoices={invoices}
               inventory={inventory}
