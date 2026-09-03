@@ -1,3 +1,4 @@
+import { scopedKey } from "@/lib/storageScope";
 import { useState, useMemo } from "react";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -65,7 +66,7 @@ export default function Expenses() {
   const pettyCashAccount = accounts.find(a => a.name === "Petty Cash");
   const pettyCashOpeningBalance = pettyCashAccount?.balance ?? 0;
   // Petty Cash ledger balance (transfers in/out)
-  const pettyCashLedgerEntries = JSON.parse(localStorage.getItem("ledgerEntries") || "[]") as { bank: string; type: string; amount: number }[];
+  const pettyCashLedgerEntries = JSON.parse(localStorage.getItem(scopedKey("ledgerEntries")) || "[]") as { bank: string; type: string; amount: number }[];
   const pettyCashLedgerBalance = pettyCashLedgerEntries.filter(e => e.bank === "Petty Cash").reduce((s, e) => s + (e.type === "incoming" ? e.amount : -e.amount), 0);
   const pettyCashBudget = pettyCashOpeningBalance + pettyCashLedgerBalance;
   const cashExpenses = expenses.filter(e => e.paymentMethod === "Cash").reduce((s, e) => s + e.amount, 0);
