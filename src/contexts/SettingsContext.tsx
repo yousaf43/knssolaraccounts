@@ -16,6 +16,7 @@ export type AppSettings = {
   fiscalYearStart: string; // "01" to "12"
   dateFormat: string;
   logoUrl: string;
+  thermalPrintWidth: "80mm" | "58mm";
 };
 
 const defaultSettings: AppSettings = {
