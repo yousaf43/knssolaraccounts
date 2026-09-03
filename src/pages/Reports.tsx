@@ -1109,7 +1109,7 @@ function ProfitLossByInvoice({
         if (profitFilter === "profit" && row.profit < 0) return false;
         if (profitFilter === "loss" && row.profit >= 0) return false;
         return true;
-      });
+      }));
   }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
 
   const totals = rows.reduce((sum, row) => ({
