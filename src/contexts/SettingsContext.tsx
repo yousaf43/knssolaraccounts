@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,17 +20,18 @@ export type AppSettings = {
 };
 
 const defaultSettings: AppSettings = {
-  companyName: "K&S Solar Energy",
-  companyEmail: "info@knssolar.com",
-  companyPhone: "+92 300 0000000",
-  companyAddress: "Lahore, Pakistan",
+  companyName: "",
+  companyEmail: "",
+  companyPhone: "",
+  companyAddress: "",
   currency: "PKR",
   currencyLocale: "en-PK",
-  taxRate: 17,
+  taxRate: 0,
   taxLabel: "GST",
   fiscalYearStart: "07",
   dateFormat: "dd-MM-yyyy",
   logoUrl: "",
+  thermalPrintWidth: "80mm",
 };
 
 type SettingsContextType = {
@@ -43,7 +44,27 @@ type SettingsContextType = {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useLocalStorage<AppSettings>("cb-settings-v2", defaultSettings);
+  const { user, company } = useAuth();
+  const storageKey = `cb-settings-v3-${company?.id || user?.id || "guest"}`;
+  const initialSettings = { ...defaultSettings, companyName: company?.name || "" };
+  const [settings, setSettings] = useLocalStorage<AppSettings>(storageKey, initialSettings);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const loadCloudSettings = async () => {
+      const { data } = await supabase.from("user_settings").select("settings_data").eq("user_id", user.id).maybeSingle();
+      if (!active) return;
+      const cloud = data?.settings_data;
+      if (cloud && typeof cloud === "object" && !Array.isArray(cloud)) {
+        setSettings((prev) => ({ ...prev, ...(cloud as Partial<AppSettings>) }));
+      } else if (company?.name) {
+        setSettings((prev) => ({ ...prev, companyName: prev.companyName || company.name }));
+      }
+    };
+    void loadCloudSettings();
+    return () => { active = false; };
+  }, [user, company?.id, company?.name, setSettings]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat(settings.currencyLocale, {

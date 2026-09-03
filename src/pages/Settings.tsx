@@ -48,7 +48,7 @@ type UserWithRole = {
 
 export default function Settings() {
   const { settings, setSettings, formatDate } = useSettings();
-  const { profile, role, user, refreshProfile, twoFAEnabled, setTwoFAEnabled } = useAuth();
+  const { profile, role, user, company, refreshProfile, twoFAEnabled, setTwoFAEnabled } = useAuth();
   const [form, setForm] = useState<AppSettings>({ ...settings });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>(settings.logoUrl || "");
@@ -114,7 +114,16 @@ export default function Settings() {
       logoUrl = urlData?.signedUrl || "";
       setUploading(false);
     }
-    setSettings({ ...form, logoUrl });
+    const nextSettings = { ...form, logoUrl };
+    setSettings(nextSettings);
+    if (user) {
+      const { data: existing } = await supabase.from("user_settings").select("id").eq("user_id", user.id).maybeSingle();
+      if (existing) {
+        await supabase.from("user_settings").update({ settings_data: nextSettings }).eq("user_id", user.id);
+      } else {
+        await supabase.from("user_settings").insert({ user_id: user.id, company_id: company?.id || null, settings_data: nextSettings });
+      }
+    }
     setLogoPreview(logoUrl);
     setLogoFile(null);
     toast.success("Settings saved successfully");
@@ -414,6 +423,17 @@ export default function Settings() {
               <div><Label>Email</Label><Input type="email" value={form.companyEmail} onChange={(e) => update("companyEmail", e.target.value)} className="mt-1" /></div>
               <div><Label>Phone</Label><Input value={form.companyPhone} onChange={(e) => update("companyPhone", e.target.value)} className="mt-1" /></div>
               <div><Label>Address</Label><Input value={form.companyAddress} onChange={(e) => update("companyAddress", e.target.value)} className="mt-1" /></div>
+            </div>
+            <div className="border-t pt-4 space-y-2">
+              <Label>Thermal printer width</Label>
+              <Select value={form.thermalPrintWidth} onValueChange={(value) => setForm((prev) => ({ ...prev, thermalPrintWidth: value as AppSettings["thermalPrintWidth"] }))}>
+                <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="80mm">80mm (standard)</SelectItem>
+                  <SelectItem value="58mm">58mm (compact)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">This size is used when printing invoices and sales documents.</p>
             </div>
 
             {/* Category Management */}

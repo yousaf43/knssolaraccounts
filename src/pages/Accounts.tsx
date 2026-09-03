@@ -78,14 +78,7 @@ export default function Accounts() {
   const { data: transfers, setData: setTransfers, upsert: upsertTransfer, remove: removeTransfer } = useTransfersCloud();
   const { data: reconcile, setData: setReconcile, upsert: upsertReconcile } = useReconcileEntriesCloud();
 
-  // Seed default accounts if none exist
-  const [seeded, setSeeded] = useState(false);
-  useEffect(() => {
-    if (!accountsLoading && accounts.length === 0 && !seeded) {
-      setSeeded(true);
-      defaultAccounts.forEach(a => upsertAccount({ ...a, id: crypto.randomUUID() }));
-    }
-  }, [accountsLoading, accounts.length]);
+  // Accounts belong to the current company. New workspaces start empty so they can add their own banks.
 
    // Ledger
   const { data: ledger, setData: setLedger, upsert: upsertLedger, remove: removeLedger } = useLedgerEntriesCloud();
