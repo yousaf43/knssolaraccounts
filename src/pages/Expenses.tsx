@@ -254,6 +254,20 @@ export default function Expenses() {
         </div>
       )}
 
+      {projectSuggestions.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Project / Site:</Label>
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="h-8 text-xs w-56"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              <SelectItem value="none">No Project (Overhead)</SelectItem>
+              {projectSuggestions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="bg-card rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -261,6 +275,7 @@ export default function Expenses() {
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Category</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Description</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Project / Site</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nominal Account</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Payment</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">Amount</th>
@@ -273,6 +288,7 @@ export default function Expenses() {
                 <td className="px-4 py-3 text-muted-foreground">{formatDate(e.date)}</td>
                 <td className="px-4 py-3"><Badge className={`${categoryColors[e.category] || "bg-muted text-muted-foreground"} border-0`}>{e.category}</Badge></td>
                 <td className="px-4 py-3">{e.description}</td>
+                <td className="px-4 py-3">{e.projectName ? <Badge variant="outline" className="text-xs">{e.projectName}</Badge> : <span className="text-muted-foreground text-xs">—</span>}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{e.nominalAccount || "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{e.paymentMethod}</td>
                 <td className="px-4 py-3 text-right font-semibold">{formatCurrency(e.amount)}</td>
