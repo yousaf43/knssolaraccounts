@@ -47,7 +47,7 @@ type AuthContextType = {
 };
 
 const twoFAKey = (uid: string) => `2fa_verified_${uid}`;
-const twoFAEnabledKey = (uid: string) => `2fa_enabled_${uid}`;
+const twoFAEnabledKey = (uid: string) => `2fa_enabled_v2_${uid}`;
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -102,8 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => { if (user) await fetchProfile(user.id); };
   const resolveTwoFAEnabled = (u: User) => {
-    const meta = (u.user_metadata as { two_fa_enabled?: boolean } | null)?.two_fa_enabled;
-    if (typeof meta === "boolean") { localStorage.setItem(twoFAEnabledKey(u.id), meta ? "1" : "0"); return meta; }
     return localStorage.getItem(twoFAEnabledKey(u.id)) === "1";
   };
 
