@@ -1635,6 +1635,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </ResponsiveContainer>
             )}
           </div>
+            </>
           )}
         </>
       )}
