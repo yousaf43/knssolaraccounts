@@ -157,10 +157,19 @@ export function AppLayout() {
           <RecentTabs />
           {/* Content */}
           <main id="main-scroll" className="flex-1 p-3 sm:p-6">
-            {/* content */}
-            <div key={location.pathname} className="page-enter">
-              <Outlet />
-            </div>
+            {/* Keep-alive pages: visited pages stay mounted, only hidden. */}
+            {allowedPages
+              .filter((p) => mountedPaths.includes(p.path))
+              .map((p) => (
+                <div
+                  key={p.path}
+                  style={{ display: p.path === currentPath ? "block" : "none" }}
+                  className={p.path === currentPath ? "page-enter" : undefined}
+                >
+                  {p.element}
+                </div>
+              ))}
+            {!activePage && (isSales ? <Navigate to="/" replace /> : <NotFound />)}
           </main>
           <footer className="shrink-0 border-t border-border/40 bg-transparent py-2 text-center text-[10px] text-muted-foreground/60">
             Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
