@@ -76,30 +76,10 @@ function ProtectedRoutes() {
     );
   }
 
-  const isSales = role === "sales";
-
   return (
     <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/invoices" element={<Invoices />} />
-        
-        <Route path="/customers" element={<Customers />} />
-        {!isSales && <Route path="/purchases" element={<Purchases />} />}
-        {!isSales && <Route path="/expenses" element={<Expenses />} />}
-        {!isSales && <Route path="/inventory" element={<Inventory />} />}
-        {!isSales && <Route path="/store-inventory" element={<StoreInventory />} />}
-        {!isSales && <Route path="/accounts" element={<Accounts />} />}
-        {!isSales && <Route path="/assets" element={<Assets />} />}
-        {!isSales && <Route path="/reports" element={<Reports />} />}
-        <Route path="/activity-logs" element={<ActivityLogs />} />
-        <Route path="/solar-washing" element={<SolarWashing />} />
-        <Route path="/drafts" element={<DraftsPage />} />
-        <Route path="/trash" element={<TrashPage />} />
-        <Route path="/settings" element={<Settings />} />
-        {isSuperAdmin && <Route path="/platform-admin" element={<PlatformAdmin />} />}
-      </Route>
-      <Route path="*" element={isSales ? <Navigate to="/" replace /> : <NotFound />} />
+      {/* AppLayout renders pages keep-alive (mounted once, hidden when inactive). */}
+      <Route path="*" element={<AppLayout />} />
     </Routes>
   );
 }
