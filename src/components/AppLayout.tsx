@@ -2,16 +2,55 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { NexiaAssistant } from "@/components/NexiaAssistant";
 import { RecentTabs } from "@/components/RecentTabs";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Outlet } from "react-router-dom";
 import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { useLocation, Navigate } from "react-router-dom";
 import { useTabScrollMemory } from "@/hooks/useTabScrollMemory";
 import { useTabStateMemory } from "@/hooks/useTabStateMemory";
+import Dashboard from "@/pages/Dashboard";
+import Invoices from "@/pages/Invoices";
+import Customers from "@/pages/Customers";
+import Purchases from "@/pages/Purchases";
+import Expenses from "@/pages/Expenses";
+import Inventory from "@/pages/Inventory";
+import StoreInventory from "@/pages/StoreInventory";
+import Accounts from "@/pages/Accounts";
+import Assets from "@/pages/Assets";
+import Reports from "@/pages/Reports";
+import Settings from "@/pages/Settings";
+import PlatformAdmin from "@/pages/PlatformAdmin";
+import ActivityLogs from "@/pages/ActivityLogs";
+import TrashPage from "@/pages/Trash";
+import DraftsPage from "@/pages/Drafts";
+import SolarWashing from "@/pages/SolarWashing";
+import NotFound from "@/pages/NotFound";
+
+type KeepAlivePage = { path: string; element: ReactNode; adminOnly?: boolean; superAdminOnly?: boolean };
+
+// Pages stay mounted once visited (keep-alive) — switching tabs never reloads
+// the page or loses its state; they are only hidden with display:none.
+const KEEP_ALIVE_PAGES: KeepAlivePage[] = [
+  { path: "/", element: <Dashboard /> },
+  { path: "/invoices", element: <Invoices /> },
+  { path: "/customers", element: <Customers /> },
+  { path: "/purchases", element: <Purchases />, adminOnly: true },
+  { path: "/expenses", element: <Expenses />, adminOnly: true },
+  { path: "/inventory", element: <Inventory />, adminOnly: true },
+  { path: "/store-inventory", element: <StoreInventory />, adminOnly: true },
+  { path: "/accounts", element: <Accounts />, adminOnly: true },
+  { path: "/assets", element: <Assets />, adminOnly: true },
+  { path: "/reports", element: <Reports />, adminOnly: true },
+  { path: "/activity-logs", element: <ActivityLogs /> },
+  { path: "/solar-washing", element: <SolarWashing /> },
+  { path: "/drafts", element: <DraftsPage /> },
+  { path: "/trash", element: <TrashPage /> },
+  { path: "/settings", element: <Settings /> },
+  { path: "/platform-admin", element: <PlatformAdmin />, superAdminOnly: true },
+];
 
 export function AppLayout() {
   const { profile, role, company, isSuperAdmin, signOut } = useAuth();
@@ -20,6 +59,23 @@ export function AppLayout() {
   const location = useLocation();
   useTabScrollMemory();
   useTabStateMemory();
+
+  const isSales = role === "sales";
+  const allowedPages = KEEP_ALIVE_PAGES.filter(
+    (p) => (!p.adminOnly || !isSales) && (!p.superAdminOnly || isSuperAdmin)
+  );
+  const currentPath = location.pathname;
+  const activePage = allowedPages.find((p) => p.path === currentPath);
+
+  // Track which pages have been visited; visited pages stay mounted.
+  const [mountedPaths, setMountedPaths] = useState<string[]>(() =>
+    activePage ? [activePage.path] : []
+  );
+  useEffect(() => {
+    if (activePage && !mountedPaths.includes(activePage.path)) {
+      setMountedPaths((prev) => [...prev, activePage.path]);
+    }
+  }, [activePage, mountedPaths]);
 
 
   return (
