@@ -2030,7 +2030,21 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             </div>
           )}
-          {report.code === "130" && pl130View === "project" ? (
+          {report.code === "130" && pl130View === "voucher" ? (
+            <SiteVoucherStatement
+              invoices={invoices}
+              inventory={inventory}
+              getAvgCost={getAvgCost}
+              fromDate={fromDate}
+              toDate={toDate}
+              companyName={companyName}
+              salesTaxRate={Number(salesTaxRate) || 0}
+              search={plInvoiceSearch}
+              customer={plCustomerFilter}
+              updateInvoice={updateInvoice}
+            />
+          ) : report.code === "130" && pl130View === "project" ? (
+
             <ProfitLossByProject
               invoices={invoices}
               inventory={inventory}
