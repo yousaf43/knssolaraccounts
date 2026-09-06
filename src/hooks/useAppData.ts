@@ -213,11 +213,12 @@ function useTable<T extends { id: string }>(
   orderCol: string = "created_at"
 ) {
   const { user } = useAuth();
+  const userId = user?.id;
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    if (!user) { setLoading(false); return; }
+    if (!userId) { setLoading(false); return; }
     setLoading(true);
     const { data: rows } = await supabase
       .from(tableName as never)
@@ -225,30 +226,30 @@ function useTable<T extends { id: string }>(
       .order(orderCol, { ascending: false });
     if (rows) setData((rows as Record<string, unknown>[]).map(fromDb));
     setLoading(false);
-  }, [user, tableName, orderCol]);
+  }, [userId, tableName, orderCol]);
 
   useEffect(() => { fetch(); }, [fetch]);
 
   const upsert = useCallback(async (item: T) => {
-    if (!user) return;
-    const row = toDb(item, user.id);
+    if (!userId) return;
+    const row = toDb(item, userId);
     const { error } = await supabase.from(tableName as never).upsert(row as never, { onConflict: "id" });
     if (error) throw error;
     setData((prev) => {
       const exists = prev.find((d) => d.id === item.id);
       return exists ? prev.map((d) => d.id === item.id ? item : d) : [item, ...prev];
     });
-  }, [user, tableName, toDb]);
+  }, [userId, tableName, toDb]);
 
   const remove = useCallback(async (id: string) => {
-    if (!user) return;
+    if (!userId) return;
     await supabase.from(tableName as never).delete().eq("id", id);
     setData((prev) => prev.filter((d) => d.id !== id));
-  }, [user, tableName]);
+  }, [userId, tableName]);
 
   // Replace all items (for bulk operations like inventory set)
   const replaceAll = useCallback(async (items: T[]) => {
-    if (!user) return;
+    if (!userId) return;
     // Delete all rows visible to this user (shared data)
     const { data: existingRows } = await supabase.from(tableName as never).select("id");
     if (existingRows && existingRows.length > 0) {
@@ -258,11 +259,11 @@ function useTable<T extends { id: string }>(
       }
     }
     if (items.length > 0) {
-      const rows = items.map((item) => toDb(item, user.id));
+      const rows = items.map((item) => toDb(item, userId));
       await supabase.from(tableName as never).insert(rows as never);
     }
     setData(items);
-  }, [user, tableName, toDb]);
+  }, [userId, tableName, toDb]);
 
   return { data, setData, loading, fetch, upsert, remove, replaceAll };
 }
