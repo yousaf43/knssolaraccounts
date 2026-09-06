@@ -1402,6 +1402,263 @@ function ProfitLossByProject({
   );
 }
 
+// --- Site / Installation Voucher Statement ---
+function SiteVoucherStatement({
+  invoices, inventory, getAvgCost, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
+}: {
+  invoices: Invoice[];
+  inventory: InventoryItem[];
+  getAvgCost: (item: InventoryItem) => number;
+  fromDate?: Date;
+  toDate?: Date;
+  companyName: string;
+  salesTaxRate: number;
+  search: string;
+  customer: string;
+  updateInvoice: (invoice: Invoice) => Promise<unknown>;
+}) {
+  const { formatCurrency, formatDate } = useSettings();
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [meta, setMeta] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
+    .filter(row => {
+      const tokens = tokenize(search);
+      if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
+      if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
+      return true;
+    }), [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer]);
+
+  const activeId = selectedId && rows.some(r => r.id === selectedId) ? selectedId : (rows[0]?.id || "");
+  const row = rows.find(r => r.id === activeId);
+  const invoice = invoices.find(i => i.id === activeId);
+
+  useEffect(() => {
+    const saved = (invoice?.projectMeta || {}) as Record<string, unknown>;
+    setMeta({
+      siteRefId: String(saved.siteRefId ?? ""),
+      completionDate: String(saved.completionDate ?? ""),
+      leadTechnician: String(saved.leadTechnician ?? ""),
+      labourPersons: String(saved.labourPersons ?? ""),
+      projectTiming: String(saved.projectTiming ?? ""),
+      categorySite: String(saved.categorySite ?? ""),
+      projectLocation: String(saved.projectLocation ?? ""),
+      installationFee: String(saved.installationFee ?? ""),
+      civilWork: String(saved.civilWork ?? ""),
+      transportation: String(saved.transportation ?? ""),
+      fuel: String(saved.fuel ?? ""),
+      labourPayroll: String(saved.labourPayroll ?? ""),
+      foodOther: String(saved.foodOther ?? ""),
+    });
+  }, [activeId, invoice]);
+
+  const num = (key: string) => Math.max(0, Number(meta[key]) || 0);
+  const set = (key: string, value: string) => setMeta(prev => ({ ...prev, [key]: value }));
+
+  const gross = (row?.sales || 0) + (row?.discount || 0);
+  const discount = row?.discount || 0;
+  const installationFee = num("installationFee");
+  const netRevenue = gross - discount;
+  const productSelling = netRevenue - installationFee;
+  const materialCost = row?.cost || 0;
+  const manualExpenses = num("civilWork") + num("transportation") + num("fuel") + num("labourPayroll") + num("foodOther");
+  const totalExpenses = materialCost + manualExpenses;
+  const netProfit = netRevenue - totalExpenses;
+  const margin = netRevenue ? (netProfit / Math.abs(netRevenue)) * 100 : 0;
+
+  const save = async () => {
+    if (!invoice) return;
+    setSaving(true);
+    try {
+      await updateInvoice({
+        ...invoice,
+        operatingExpense: manualExpenses,
+        projectMeta: {
+          siteRefId: meta.siteRefId, completionDate: meta.completionDate, leadTechnician: meta.leadTechnician,
+          labourPersons: meta.labourPersons, projectTiming: meta.projectTiming, categorySite: meta.categorySite,
+          projectLocation: meta.projectLocation, installationFee: num("installationFee"), civilWork: num("civilWork"),
+          transportation: num("transportation"), fuel: num("fuel"), labourPayroll: num("labourPayroll"),
+          foodOther: num("foodOther"),
+        },
+      });
+      toast.success("Site statement saved");
+    } catch {
+      toast.error("Could not save site statement");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const expenseSlices = [
+    { name: "Materials", value: materialCost, color: "#334155" },
+    { name: "Civil", value: num("civilWork"), color: "#0ea5e9" },
+    { name: "Freight", value: num("transportation"), color: "#f59e0b" },
+    { name: "Fuel", value: num("fuel"), color: "#22c55e" },
+    { name: "Labour", value: num("labourPayroll"), color: "#a855f7" },
+    { name: "Misc", value: num("foodOther"), color: "#ef4444" },
+  ].filter(slice => slice.value > 0);
+
+  const field = (label: string, key: string, placeholder?: string) => (
+    <div>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <Input value={meta[key] ?? ""} onChange={e => set(key, e.target.value)} placeholder={placeholder}
+        className="h-7 text-sm font-semibold border-0 border-b rounded-none px-0 focus-visible:ring-0 print:border-0" />
+    </div>
+  );
+
+  const moneyRow = (label: string, value: number, key?: string) => (
+    <tr className="border-b last:border-0">
+      <td className="py-1.5 px-3">{label}</td>
+      <td className="py-1.5 px-3 text-right font-semibold w-52">
+        {key ? (
+          <Input type="number" min={0} step={0.01} value={meta[key] ?? ""} onChange={e => set(key, e.target.value)}
+            placeholder="0" className="h-7 text-right text-sm ml-auto w-40 print:border-0" />
+        ) : formatCurrency(value)}
+      </td>
+    </tr>
+  );
+
+  if (rows.length === 0) {
+    return <div className="bg-card rounded-lg border p-10 text-center text-sm text-muted-foreground">No invoices found for the selected filters.</div>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2 print:hidden">
+        <Select value={activeId} onValueChange={setSelectedId}>
+          <SelectTrigger className="h-9 text-xs w-full sm:w-96"><SelectValue placeholder="Select project / invoice" /></SelectTrigger>
+          <SelectContent>
+            {rows.map(r => (
+              <SelectItem key={r.id} value={r.id}>
+                {r.number} · {r.projectName || r.customer} · {formatDate(r.date)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button size="sm" onClick={() => void save()} disabled={saving}>{saving ? "Saving…" : "Save statement"}</Button>
+      </div>
+
+      <div id="report-print-table" className="bg-card rounded-lg border p-5 space-y-4">
+        <div className="flex items-start justify-between border-b pb-3">
+          <div>
+            <h2 className="text-xl font-extrabold tracking-tight">{companyName}</h2>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">System Installation, Commissioning &amp; Audit Statement</p>
+          </div>
+          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">Official Voucher</Badge>
+        </div>
+
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide bg-muted px-3 py-1.5 rounded-sm border-l-4 border-primary">1. Client &amp; Site Overview</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 px-3 pt-3">
+            {field("Site Reference ID", "siteRefId", "SITE-01")}
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+              <p className="text-sm font-semibold py-1">{row?.number || "—"}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Customer Name</p>
+              <p className="text-sm font-semibold py-1">{row?.customer || "—"}</p>
+            </div>
+            {field("Completion Date", "completionDate", "28-08-2026")}
+            {field("Lead Technician", "leadTechnician", "Name")}
+            {field("Labour Persons", "labourPersons", "2")}
+            {field("Project Timing", "projectTiming", "3 Day (12 hour)")}
+            {field("Category / Site", "categorySite", "Installation")}
+            {field("Project Location / Area", "projectLocation", "Area")}
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Project / Site</p>
+              <p className="text-sm font-semibold py-1">{row?.projectName || "—"}</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide bg-muted px-3 py-1.5 rounded-sm border-l-4 border-primary">2. Revenue &amp; Invoicing Breakdown</p>
+          <table className="w-full text-sm mt-2">
+            <thead><tr className="bg-foreground text-background"><th className="text-left px-3 py-1.5 font-semibold">Revenue Description</th><th className="text-right px-3 py-1.5 font-semibold">Amount</th></tr></thead>
+            <tbody>
+              {moneyRow("1. Gross Invoiced Amount Total (Customer Invoicing)", gross)}
+              {moneyRow("2. Discount Allowed to Client (-)", discount)}
+              {moneyRow("3. Product Selling Amount (Just Materials Revenue)", productSelling)}
+              {moneyRow("4. Installation & Services Fee", installationFee, "installationFee")}
+              <tr className="bg-muted/60 font-bold"><td className="py-2 px-3">NET REALIZED REVENUE</td><td className="py-2 px-3 text-right">{formatCurrency(netRevenue)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide bg-muted px-3 py-1.5 rounded-sm border-l-4 border-primary">3. Project Expenses (Cost of Project)</p>
+          <table className="w-full text-sm mt-2">
+            <thead><tr className="bg-foreground text-background"><th className="text-left px-3 py-1.5 font-semibold">Expense Description</th><th className="text-right px-3 py-1.5 font-semibold">Amount</th></tr></thead>
+            <tbody>
+              {moneyRow("1. Material & Product Purchase Cost", materialCost)}
+              {moneyRow("2. Civil Work", 0, "civilWork")}
+              {moneyRow("3. Transportation & Freight Cost", 0, "transportation")}
+              {moneyRow("4. Motorcycle & Fuel Expense", 0, "fuel")}
+              {moneyRow("5. Labour Payroll Expense", 0, "labourPayroll")}
+              {moneyRow("6. Food & Other Expenses", 0, "foodOther")}
+              <tr className="bg-muted/60 font-bold"><td className="py-2 px-3">TOTAL PROJECT EXPENSES</td><td className="py-2 px-3 text-right">{formatCurrency(totalExpenses)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="rounded-lg border p-4 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Net Revenue</p>
+            <p className="text-xl font-extrabold">{formatCurrency(netRevenue)}</p>
+          </div>
+          <div className="rounded-lg border p-4 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Total Expenses</p>
+            <p className="text-xl font-extrabold">{formatCurrency(totalExpenses)}</p>
+          </div>
+          <div className="rounded-lg border p-4 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Net Profit &amp; Margin</p>
+            <p className={`text-xl font-extrabold ${netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netProfit)}</p>
+            <p className="text-xs text-muted-foreground">{margin.toFixed(2)}% Profit Margin</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded-lg border p-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-center mb-2">Revenue vs Expense vs Net Profit</p>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={[{ name: "Revenue", value: netRevenue }, { name: "Expenses", value: totalExpenses }, { name: "Profit", value: netProfit }]}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" fontSize={11} />
+                <YAxis fontSize={10} tickFormatter={v => formatCompactAmount(Number(v))} />
+                <Tooltip formatter={(v: number) => formatCurrency(Number(v))} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {[netRevenue, totalExpenses, netProfit].map((v, i) => (
+                    <Cell key={i} fill={i === 0 ? "hsl(var(--primary))" : i === 1 ? "#f59e0b" : (netProfit >= 0 ? "#22c55e" : "#ef4444")} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="rounded-lg border p-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-center mb-2">Expense Distribution</p>
+            {expenseSlices.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-16">No expenses entered yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={expenseSlices} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={2}>
+                    {expenseSlices.map(slice => <Cell key={slice.name} fill={slice.color} />)}
+                  </Pie>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: number) => formatCurrency(Number(v))} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // --- Report Detail ---
 function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown, inventory, assets, invoices, expenses, bills, customers, receipts, salesOrders, purchaseOrders, purchasePayments, stockAdjustments, accounts, ledger, updateInvoice }: {
   report: Report; onBack: () => void;
@@ -1448,7 +1705,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [salesTaxRate, setSalesTaxRate] = useState("");
   const [incomeTaxRate, setIncomeTaxRate] = useState("");
   const [plView, setPlView] = useState<"summary" | "invoice">("summary");
-  const [pl130View, setPl130View] = useState<"project" | "invoice">("project");
+  const [pl130View, setPl130View] = useState<"project" | "invoice" | "voucher">("project");
   const [plInvoiceSearch, setPlInvoiceSearch] = useState("");
   const [plCustomerFilter, setPlCustomerFilter] = useState("");
   const [plProfitFilter, setPlProfitFilter] = useState("all");
@@ -1631,6 +1888,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               <div className="flex items-center gap-1 rounded-lg border p-0.5">
                 <Button variant={pl130View === "project" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("project")}>By Project</Button>
                 <Button variant={pl130View === "invoice" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("invoice")}>By Invoice</Button>
+                <Button variant={pl130View === "voucher" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("voucher")}>Site Statement</Button>
+
               </div>
             )}
             <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder="Search invoice, document, project or customer" className="h-8 text-xs w-full sm:w-64" />
@@ -1771,7 +2030,21 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             </div>
           )}
-          {report.code === "130" && pl130View === "project" ? (
+          {report.code === "130" && pl130View === "voucher" ? (
+            <SiteVoucherStatement
+              invoices={invoices}
+              inventory={inventory}
+              getAvgCost={getAvgCost}
+              fromDate={fromDate}
+              toDate={toDate}
+              companyName={companyName}
+              salesTaxRate={Number(salesTaxRate) || 0}
+              search={plInvoiceSearch}
+              customer={plCustomerFilter}
+              updateInvoice={updateInvoice}
+            />
+          ) : report.code === "130" && pl130View === "project" ? (
+
             <ProfitLossByProject
               invoices={invoices}
               inventory={inventory}

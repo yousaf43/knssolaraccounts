@@ -26,6 +26,23 @@ export type InvoiceItem = {
 };
 
 
+/** Manually entered site / installation details used by the Project P&L voucher */
+export type ProjectMeta = {
+  siteRefId?: string;
+  completionDate?: string;
+  leadTechnician?: string;
+  labourPersons?: string;
+  projectTiming?: string;
+  categorySite?: string;
+  projectLocation?: string;
+  installationFee?: number;
+  civilWork?: number;
+  transportation?: number;
+  fuel?: number;
+  labourPayroll?: number;
+  foodOther?: number;
+};
+
 export type Invoice = {
   id: string;
   number: string;
@@ -43,6 +60,8 @@ export type Invoice = {
   tax?: number;
   discount?: number;
   operatingExpense?: number;
+  projectMeta?: ProjectMeta;
+
   payments?: { date: string; amount: number; method: string; reference?: string }[];
 };
 

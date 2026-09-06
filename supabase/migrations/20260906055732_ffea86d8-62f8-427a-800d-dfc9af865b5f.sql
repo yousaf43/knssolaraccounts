@@ -1,0 +1,1 @@
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS project_meta jsonb NOT NULL DEFAULT '{}'::jsonb;

@@ -458,6 +458,7 @@ export type Database = {
           number: string | null
           operating_expense: number
           payments: Json | null
+          project_meta: Json
           project_name: string | null
           status: string | null
           tax: number | null
@@ -479,6 +480,7 @@ export type Database = {
           number?: string | null
           operating_expense?: number
           payments?: Json | null
+          project_meta?: Json
           project_name?: string | null
           status?: string | null
           tax?: number | null
@@ -500,6 +502,7 @@ export type Database = {
           number?: string | null
           operating_expense?: number
           payments?: Json | null
+          project_meta?: Json
           project_name?: string | null
           status?: string | null
           tax?: number | null
