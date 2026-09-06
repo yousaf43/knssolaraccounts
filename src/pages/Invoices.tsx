@@ -201,14 +201,20 @@ export default function Invoices() {
     else if (saved.view === "form-receipt-for-invoice" && invoice) setReceivePaymentInvoice(invoice);
     else if (saved.view === "quotation-form") {
       setEditQuotation(quotation || null);
-      setResumeDraft({ id: `quotation:${quotation?.id || "new"}`, kind: "quotation", data: getDraft(`quotation:${quotation?.id || "new"}`)?.data || {} });
+      const draftId = `quotation:${quotation?.id || "new"}`;
+      const draft = getDraft(draftId);
+      if (draft) setResumeDraft({ id: draftId, kind: "quotation", data: draft.data });
     } else if (saved.view === "form" && saved.activeTab === "sales-orders") {
       setEditOrder(order || null);
-      setResumeDraft({ id: `sales-order:${order?.id || "new"}`, kind: "sales-order", data: getDraft(`sales-order:${order?.id || "new"}`)?.data || {} });
+      const draftId = `sales-order:${order?.id || "new"}`;
+      const draft = getDraft(draftId);
+      if (draft) setResumeDraft({ id: draftId, kind: "sales-order", data: draft.data });
     } else if (saved.view === "form" && saved.activeTab === "receipts") setEditReceipt(receipt || null);
     else if (saved.view === "form") {
       setEditInvoice(invoice || null);
-      setResumeDraft({ id: `invoice:${invoice?.id || "new"}`, kind: "invoice", data: getDraft(`invoice:${invoice?.id || "new"}`)?.data || {} });
+      const draftId = `invoice:${invoice?.id || "new"}`;
+      const draft = getDraft(draftId);
+      if (draft) setResumeDraft({ id: draftId, kind: "invoice", data: draft.data });
     }
     setView(saved.view);
     workspaceRestoredRef.current = true;
