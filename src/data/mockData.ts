@@ -60,6 +60,8 @@ export type Invoice = {
   tax?: number;
   discount?: number;
   operatingExpense?: number;
+  projectMeta?: ProjectMeta;
+
   payments?: { date: string; amount: number; method: string; reference?: string }[];
 };
 

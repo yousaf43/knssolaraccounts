@@ -72,13 +72,15 @@ const invoiceFromDb = (r: Record<string, unknown>): Invoice => ({
   notes: (r.notes as string) || "", tax: Number(r.tax) || 0,
   discount: Number(r.discount) || 0,
   operatingExpense: Number(r.operating_expense) || 0,
+  projectMeta: (r.project_meta as Invoice["projectMeta"]) || {},
   payments: (r.payments as Invoice["payments"]) || [],
 });
 const invoiceToDb = (i: Invoice, userId: string) => ({
   id: i.id, user_id: userId, number: i.number, document_number: i.documentNumber || "",
   project_name: i.projectName || "", customer: i.customer, date: i.date, due_date: i.dueDate,
   amount: i.amount, status: i.status, items: i.items || [], notes: i.notes || "",
-  tax: i.tax || 0, discount: i.discount || 0, operating_expense: i.operatingExpense || 0, payments: i.payments || [],
+  tax: i.tax || 0, discount: i.discount || 0, operating_expense: i.operatingExpense || 0,
+  project_meta: i.projectMeta || {}, payments: i.payments || [],
 });
 
 // SalesOrder
