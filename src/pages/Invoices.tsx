@@ -56,6 +56,23 @@ const quotationStatusStyles: Record<string, string> = {
   rejected: "bg-destructive/10 text-destructive hover:bg-destructive/20 border-0",
 };
 
+const INVOICE_WORKSPACE_KEY = "invoice-workspace-v1";
+type InvoiceWorkspace = {
+  activeTab: string;
+  view: "list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form";
+  documentId?: string;
+  showPrices?: boolean;
+};
+
+function readInvoiceWorkspace(): InvoiceWorkspace | null {
+  try {
+    const raw = sessionStorage.getItem(INVOICE_WORKSPACE_KEY);
+    return raw ? JSON.parse(raw) as InvoiceWorkspace : null;
+  } catch {
+    return null;
+  }
+}
+
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.trim().split("\n");
   if (lines.length < 2) return [];
@@ -100,7 +117,9 @@ export default function Invoices() {
   const { data: quotations, upsert: upsertQuotation, remove: removeQuotation, setData: setQuotations } = useQuotationsCloud();
   const { data: ledger, setData: setLedger, upsert: upsertLedger, remove: removeLedger } = useLedgerEntriesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
-  const [activeTab, setActiveTab] = useState("invoices");
+  const savedWorkspaceRef = useRef<InvoiceWorkspace | null>(readInvoiceWorkspace());
+  const workspaceRestoredRef = useRef(false);
+  const [activeTab, setActiveTab] = useState(() => savedWorkspaceRef.current?.activeTab || "invoices");
   const [view, setView] = useState<"list" | "form" | "preview" | "form-receipt-for-invoice" | "so-preview" | "quotation-form" | "return-form">("list");
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [editOrder, setEditOrder] = useState<SalesOrder | null>(null);
@@ -155,6 +174,52 @@ export default function Invoices() {
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
   const [confirmApproveSO, setConfirmApproveSO] = useState<SalesOrder | null>(null);
   const isCompactHeader = isScrolled || activeTab === "quotations";
+
+  // Recover the exact document/reporting workspace after a browser suspends
+  // and reloads this tab. Editable forms use their visibility-saved draft.
+  useEffect(() => {
+    if (workspaceRestoredRef.current) return;
+    const saved = savedWorkspaceRef.current;
+    if (!saved || saved.view === "list") {
+      workspaceRestoredRef.current = true;
+      return;
+    }
+    const waitingForData =
+      (saved.activeTab === "invoices" && invoices.length === 0) ||
+      (saved.activeTab === "quotations" && quotations.length === 0) ||
+      (saved.activeTab === "sales-orders" && salesOrders.length === 0) ||
+      (saved.activeTab === "receipts" && receipts.length === 0);
+    if (saved.documentId && waitingForData) return;
+
+    const invoice = saved.documentId ? invoices.find(item => item.id === saved.documentId) : null;
+    const quotation = saved.documentId ? quotations.find(item => item.id === saved.documentId) : null;
+    const order = saved.documentId ? salesOrders.find(item => item.id === saved.documentId) : null;
+    const receipt = saved.documentId ? receipts.find(item => item.id === saved.documentId) : null;
+
+    if (saved.view === "preview" && (invoice || quotation)) setPreviewInvoice(invoice || quotation as unknown as Invoice);
+    else if (saved.view === "so-preview" && order) setPreviewSO({ order, showPrices: saved.showPrices !== false });
+    else if (saved.view === "form-receipt-for-invoice" && invoice) setReceivePaymentInvoice(invoice);
+    else if (saved.view === "quotation-form") {
+      setEditQuotation(quotation || null);
+      setResumeDraft({ id: `quotation:${quotation?.id || "new"}`, kind: "quotation", data: getDraft(`quotation:${quotation?.id || "new"}`)?.data || {} });
+    } else if (saved.view === "form" && saved.activeTab === "sales-orders") {
+      setEditOrder(order || null);
+      setResumeDraft({ id: `sales-order:${order?.id || "new"}`, kind: "sales-order", data: getDraft(`sales-order:${order?.id || "new"}`)?.data || {} });
+    } else if (saved.view === "form" && saved.activeTab === "receipts") setEditReceipt(receipt || null);
+    else if (saved.view === "form") {
+      setEditInvoice(invoice || null);
+      setResumeDraft({ id: `invoice:${invoice?.id || "new"}`, kind: "invoice", data: getDraft(`invoice:${invoice?.id || "new"}`)?.data || {} });
+    }
+    setView(saved.view);
+    workspaceRestoredRef.current = true;
+  }, [invoices, quotations, salesOrders, receipts]);
+
+  useEffect(() => {
+    if (!workspaceRestoredRef.current) return;
+    const documentId = previewInvoice?.id || previewSO?.order.id || receivePaymentInvoice?.id || editQuotation?.id || editOrder?.id || editReceipt?.id || editInvoice?.id;
+    const workspace: InvoiceWorkspace = { activeTab, view, documentId, showPrices: previewSO?.showPrices };
+    try { sessionStorage.setItem(INVOICE_WORKSPACE_KEY, JSON.stringify(workspace)); } catch { /* best-effort browser-tab recovery */ }
+  }, [activeTab, view, previewInvoice?.id, previewSO, receivePaymentInvoice?.id, editQuotation?.id, editOrder?.id, editReceipt?.id, editInvoice?.id]);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");

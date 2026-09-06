@@ -123,6 +123,17 @@ const allReports: Report[] = [
   { code: "242", title: "Revenue vs Expense Comparison", category: "Management", section: "analytical" },
 ];
 
+const OPEN_REPORT_KEY = "reports-open-report-v1";
+
+function readOpenReport(): Report | null {
+  try {
+    const code = sessionStorage.getItem(OPEN_REPORT_KEY);
+    return code ? allReports.find(report => report.code === code) || null : null;
+  } catch {
+    return null;
+  }
+}
+
 const generalCategories = ["Favourites", "Sales", "Purchases", "Combined Statements", "Cash & Bank", "Inventory", "Taxation", "Management", "Assets"];
 const analyticalCategories = ["Favourites", "Sales", "Purchases", "Cash & Bank", "Inventory", "Management"];
 
@@ -4159,7 +4170,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
 // --- Main Reports Page ---
 export default function Reports() {
-  const [activeReport, setActiveReport] = useState<Report | null>(null);
+  const [activeReport, setActiveReport] = useState<Report | null>(() => readOpenReport());
   const [generalTab, setGeneralTab] = useState("Favourites");
   const [analyticalTab, setAnalyticalTab] = useState("Favourites");
   const [searchQuery, setSearchQuery] = useState("");
@@ -4169,6 +4180,15 @@ export default function Reports() {
     "121", "123", "125", "127", "130", "129", "135", "258", "307", "381", "383",
     "272",
   ]);
+
+  useEffect(() => {
+    try {
+      if (activeReport) sessionStorage.setItem(OPEN_REPORT_KEY, activeReport.code);
+      else sessionStorage.removeItem(OPEN_REPORT_KEY);
+    } catch {
+      /* best-effort browser-tab recovery */
+    }
+  }, [activeReport]);
 
   // Read real data from cloud
   const { data: invoices, upsert: updateInvoice } = useInvoicesCloud();
