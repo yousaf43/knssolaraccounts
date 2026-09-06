@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { setStorageScope } from "@/lib/storageScope";
@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [twoFAVerified, setTwoFAVerifiedState] = useState(false);
   const [twoFAEnabled, setTwoFAEnabledState] = useState(false);
+  const hydratedUserIdRef = useRef<string | null>(null);
 
   const setTwoFAVerified = (v: boolean) => {
     setTwoFAVerifiedState(v);
@@ -108,14 +109,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const hydrate = (nextSession: Session | null) => {
+      const nextUser = nextSession?.user ?? null;
+      const nextUserId = nextUser?.id ?? null;
+      const accountChanged = hydratedUserIdRef.current !== nextUserId;
+
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      setCompanyResolved(!nextSession?.user);
-      if (nextSession?.user) {
-        const enabled = resolveTwoFAEnabled(nextSession.user);
+      setUser(nextUser);
+
+      // Auth emits SIGNED_IN/TOKEN_REFRESHED again when a browser tab regains
+      // focus. Keep the mounted workspace intact for the same account so all
+      // open forms, filters, sections and scroll positions remain unchanged.
+      if (!accountChanged) {
+        setLoading(false);
+        return;
+      }
+
+      hydratedUserIdRef.current = nextUserId;
+      setCompanyResolved(!nextUser);
+      if (nextUser) {
+        const enabled = resolveTwoFAEnabled(nextUser);
         setTwoFAEnabledState(enabled);
-        setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(nextSession.user.id)) === "1");
-        setTimeout(() => { void fetchProfile(nextSession.user.id); }, 0);
+        setTwoFAVerifiedState(!enabled || sessionStorage.getItem(twoFAKey(nextUser.id)) === "1");
+        setTimeout(() => { void fetchProfile(nextUser.id); }, 0);
       } else {
         setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setCompanyResolved(true);
         setTwoFAVerifiedState(false); setTwoFAEnabledState(false);
@@ -145,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (user) sessionStorage.removeItem(twoFAKey(user.id));
     await supabase.auth.signOut();
+    hydratedUserIdRef.current = null;
     setUser(null); setSession(null); setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setCompanyResolved(true); setTwoFAVerifiedState(false);
   };
 
