@@ -1705,7 +1705,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [salesTaxRate, setSalesTaxRate] = useState("");
   const [incomeTaxRate, setIncomeTaxRate] = useState("");
   const [plView, setPlView] = useState<"summary" | "invoice">("summary");
-  const [pl130View, setPl130View] = useState<"project" | "invoice">("project");
+  const [pl130View, setPl130View] = useState<"project" | "invoice" | "voucher">("project");
   const [plInvoiceSearch, setPlInvoiceSearch] = useState("");
   const [plCustomerFilter, setPlCustomerFilter] = useState("");
   const [plProfitFilter, setPlProfitFilter] = useState("all");
@@ -1888,6 +1888,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               <div className="flex items-center gap-1 rounded-lg border p-0.5">
                 <Button variant={pl130View === "project" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("project")}>By Project</Button>
                 <Button variant={pl130View === "invoice" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("invoice")}>By Invoice</Button>
+                <Button variant={pl130View === "voucher" ? "default" : "ghost"} size="sm" onClick={() => setPl130View("voucher")}>Site Statement</Button>
+
               </div>
             )}
             <Input value={plInvoiceSearch} onChange={(e) => setPlInvoiceSearch(e.target.value)} placeholder="Search invoice, document, project or customer" className="h-8 text-xs w-full sm:w-64" />
