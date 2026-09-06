@@ -1520,29 +1520,29 @@ function SiteVoucherStatement({
   };
 
   const expenseSlices = [
-    { name: "Materials", value: materialCost, color: "#334155" },
-    { name: "Civil", value: num("civilWork"), color: "#0ea5e9" },
-    { name: "Freight", value: num("transportation"), color: "#f59e0b" },
-    { name: "Fuel", value: num("fuel"), color: "#22c55e" },
-    { name: "Labour", value: num("labourPayroll"), color: "#a855f7" },
-    { name: "Misc", value: num("foodOther"), color: "#ef4444" },
+    { name: "Materials", value: materialCost, color: "hsl(var(--foreground))" },
+    { name: "Civil", value: num("civilWork"), color: "hsl(var(--primary))" },
+    { name: "Freight", value: num("transportation"), color: "hsl(var(--warning))" },
+    { name: "Fuel", value: num("fuel"), color: "hsl(var(--success))" },
+    { name: "Labour", value: num("labourPayroll"), color: "hsl(var(--accent))" },
+    { name: "Misc", value: num("foodOther"), color: "hsl(var(--destructive))" },
   ].filter(slice => slice.value > 0);
 
   const field = (label: string, key: string, placeholder?: string) => (
-    <div>
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+    <div className="min-w-0 border-b border-border/70 pb-1">
+      <p className="text-[9px] font-bold uppercase text-primary">{label}</p>
       <Input value={meta[key] ?? ""} onChange={e => set(key, e.target.value)} placeholder={placeholder}
-        className="h-7 text-sm font-semibold border-0 border-b rounded-none px-0 focus-visible:ring-0 print:border-0" />
+        className="h-7 text-sm font-semibold border-0 rounded-none px-0 shadow-none focus-visible:ring-0 print:border-0" />
     </div>
   );
 
   const moneyRow = (label: string, value: number, key?: string) => (
-    <tr className="border-b last:border-0">
-      <td className="py-1.5 px-3">{label}</td>
-      <td className="py-1.5 px-3 text-right font-semibold w-52">
+    <tr className="border-b border-border/70 last:border-0">
+      <td className="py-2 px-3 text-foreground/90">{label}</td>
+      <td className="py-2 px-3 text-right font-semibold tabular-nums w-52">
         {key ? (
           <Input type="number" min={0} step={0.01} value={meta[key] ?? ""} onChange={e => set(key, e.target.value)}
-            placeholder="0" className="h-7 text-right text-sm ml-auto w-40 print:border-0" />
+            placeholder="0" className="h-7 text-right text-sm font-semibold ml-auto w-40 bg-primary/5 border-primary/20 focus-visible:ring-primary/30 print:border-0 print:bg-transparent" />
         ) : formatCurrency(value)}
       </td>
     </tr>
@@ -1568,25 +1568,32 @@ function SiteVoucherStatement({
         <Button size="sm" onClick={() => void save()} disabled={saving}>{saving ? "Saving…" : "Save statement"}</Button>
       </div>
 
-      <div id="report-print-table" className="bg-card rounded-lg border p-5 space-y-4">
-        <div className="flex items-start justify-between border-b pb-3">
+      <div id="report-print-table" className="relative overflow-hidden bg-card border border-border shadow-elevated p-5 md:p-8 space-y-6 print:shadow-none print:border-0 print:p-0">
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b-2 border-primary/15 pb-5 pt-1">
           <div>
-            <h2 className="text-xl font-extrabold tracking-tight">{companyName}</h2>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">System Installation, Commissioning &amp; Audit Statement</p>
+            <p className="text-[10px] font-bold uppercase text-primary">Report 130</p>
+            <h2 className="text-2xl font-extrabold uppercase">{companyName}</h2>
+            <p className="text-[10px] font-semibold uppercase text-muted-foreground">System Installation, Commissioning &amp; Audit Statement</p>
           </div>
-          <Badge variant="outline" className="text-[10px] uppercase tracking-wide">Official Voucher</Badge>
+          <div className="sm:text-right">
+            <Badge className="rounded-sm px-3 py-1 text-[9px] uppercase">Official Voucher</Badge>
+            <p className="mt-2 text-xs font-semibold tabular-nums text-muted-foreground">Ref: {meta.siteRefId || row?.number || "—"}</p>
+            <p className="text-[10px] text-muted-foreground">Invoice date: {formatDate(row?.date)}</p>
+          </div>
         </div>
 
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide bg-muted px-3 py-1.5 rounded-sm border-l-4 border-primary">1. Client &amp; Site Overview</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 px-3 pt-3">
+          <p className="text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">1. Client &amp; Site Overview</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 px-3 pt-4">
             {field("Site Reference ID", "siteRefId", "SITE-01")}
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Invoice Number</p>
+            <div className="border-b border-border/70 pb-1">
+              <p className="text-[9px] font-bold uppercase text-primary">Invoice Number</p>
               <p className="text-sm font-semibold py-1">{row?.number || "—"}</p>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Customer Name</p>
+            <div className="border-b border-border/70 pb-1">
+              <p className="text-[9px] font-bold uppercase text-primary">Customer Name</p>
               <p className="text-sm font-semibold py-1">{row?.customer || "—"}</p>
             </div>
             {field("Completion Date", "completionDate", "28-08-2026")}
@@ -1595,31 +1602,31 @@ function SiteVoucherStatement({
             {field("Project Timing", "projectTiming", "3 Day (12 hour)")}
             {field("Category / Site", "categorySite", "Installation")}
             {field("Project Location / Area", "projectLocation", "Area")}
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Project / Site</p>
+            <div className="border-b border-border/70 pb-1">
+              <p className="text-[9px] font-bold uppercase text-primary">Project / Site</p>
               <p className="text-sm font-semibold py-1">{row?.projectName || "—"}</p>
             </div>
           </div>
         </div>
 
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide bg-muted px-3 py-1.5 rounded-sm border-l-4 border-primary">2. Revenue &amp; Invoicing Breakdown</p>
-          <table className="w-full text-sm mt-2">
-            <thead><tr className="bg-foreground text-background"><th className="text-left px-3 py-1.5 font-semibold">Revenue Description</th><th className="text-right px-3 py-1.5 font-semibold">Amount</th></tr></thead>
+          <p className="text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">2. Revenue &amp; Invoicing Breakdown</p>
+          <table className="w-full text-sm mt-3 border-t-2 border-primary">
+            <thead><tr className="bg-primary text-primary-foreground"><th className="text-left px-3 py-2 font-semibold">Revenue Description</th><th className="text-right px-3 py-2 font-semibold">Amount (PKR)</th></tr></thead>
             <tbody>
               {moneyRow("1. Gross Invoiced Amount Total (Customer Invoicing)", gross)}
               {moneyRow("2. Discount Allowed to Client (-)", discount)}
               {moneyRow("3. Product Selling Amount (Just Materials Revenue)", productSelling)}
               {moneyRow("4. Installation & Services Fee", installationFee, "installationFee")}
-              <tr className="bg-muted/60 font-bold"><td className="py-2 px-3">NET REALIZED REVENUE</td><td className="py-2 px-3 text-right">{formatCurrency(netRevenue)}</td></tr>
+              <tr className="bg-primary/10 font-extrabold"><td className="py-2.5 px-3">NET REALIZED REVENUE</td><td className="py-2.5 px-3 text-right tabular-nums">{formatCurrency(netRevenue)}</td></tr>
             </tbody>
           </table>
         </div>
 
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide bg-muted px-3 py-1.5 rounded-sm border-l-4 border-primary">3. Project Expenses (Cost of Project)</p>
-          <table className="w-full text-sm mt-2">
-            <thead><tr className="bg-foreground text-background"><th className="text-left px-3 py-1.5 font-semibold">Expense Description</th><th className="text-right px-3 py-1.5 font-semibold">Amount</th></tr></thead>
+          <p className="text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">3. Project Expenses (Cost of Project)</p>
+          <table className="w-full text-sm mt-3 border-t-2 border-primary">
+            <thead><tr className="bg-primary text-primary-foreground"><th className="text-left px-3 py-2 font-semibold">Expense Description</th><th className="text-right px-3 py-2 font-semibold">Amount (PKR)</th></tr></thead>
             <tbody>
               {moneyRow("1. Material & Product Purchase Cost", materialCost)}
               {moneyRow("2. Civil Work", 0, "civilWork")}
@@ -1627,30 +1634,30 @@ function SiteVoucherStatement({
               {moneyRow("4. Motorcycle & Fuel Expense", 0, "fuel")}
               {moneyRow("5. Labour Payroll Expense", 0, "labourPayroll")}
               {moneyRow("6. Food & Other Expenses", 0, "foodOther")}
-              <tr className="bg-muted/60 font-bold"><td className="py-2 px-3">TOTAL PROJECT EXPENSES</td><td className="py-2 px-3 text-right">{formatCurrency(totalExpenses)}</td></tr>
+              <tr className="bg-primary/10 font-extrabold"><td className="py-2.5 px-3">TOTAL PROJECT EXPENSES</td><td className="py-2.5 px-3 text-right tabular-nums">{formatCurrency(totalExpenses)}</td></tr>
             </tbody>
           </table>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-lg border p-4 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Net Revenue</p>
-            <p className="text-xl font-extrabold">{formatCurrency(netRevenue)}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 border border-border md:divide-x divide-y md:divide-y-0">
+          <div className="p-5 text-center bg-muted/20">
+            <p className="text-[9px] font-bold uppercase text-primary">Net Revenue</p>
+            <p className="text-xl font-extrabold tabular-nums">{formatCurrency(netRevenue)}</p>
           </div>
-          <div className="rounded-lg border p-4 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Total Expenses</p>
-            <p className="text-xl font-extrabold">{formatCurrency(totalExpenses)}</p>
+          <div className="p-5 text-center bg-muted/20">
+            <p className="text-[9px] font-bold uppercase text-primary">Total Expenses</p>
+            <p className="text-xl font-extrabold tabular-nums">{formatCurrency(totalExpenses)}</p>
           </div>
-          <div className="rounded-lg border p-4 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Net Profit &amp; Margin</p>
-            <p className={`text-xl font-extrabold ${netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netProfit)}</p>
-            <p className="text-xs text-muted-foreground">{margin.toFixed(2)}% Profit Margin</p>
+          <div className={`p-5 text-center border-t-4 md:border-t-0 md:border-b-4 ${netProfit >= 0 ? "border-success bg-success/5" : "border-destructive bg-destructive/5"}`}>
+            <p className="text-[9px] font-bold uppercase text-primary">Net Profit / Loss &amp; Margin</p>
+            <p className={`text-xl font-extrabold tabular-nums ${netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netProfit)}</p>
+            <p className="text-xs font-semibold text-muted-foreground">{margin.toFixed(2)}% {netProfit >= 0 ? "Profit" : "Loss"} Margin</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="rounded-lg border p-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-center mb-2">Revenue vs Expense vs Net Profit</p>
+          <div className="border border-border p-3">
+            <p className="text-[10px] font-extrabold uppercase text-center text-primary mb-2">Revenue vs Expense vs Net Profit</p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={[{ name: "Revenue", value: netRevenue }, { name: "Expenses", value: totalExpenses }, { name: "Profit", value: netProfit }]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -1659,14 +1666,14 @@ function SiteVoucherStatement({
                 <Tooltip formatter={(v: number) => formatCurrency(Number(v))} />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                   {[netRevenue, totalExpenses, netProfit].map((v, i) => (
-                    <Cell key={i} fill={i === 0 ? "hsl(var(--primary))" : i === 1 ? "#f59e0b" : (netProfit >= 0 ? "#22c55e" : "#ef4444")} />
+                    <Cell key={i} fill={i === 0 ? "hsl(var(--primary))" : i === 1 ? "hsl(var(--warning))" : (netProfit >= 0 ? "hsl(var(--success))" : "hsl(var(--destructive))")} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="rounded-lg border p-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-center mb-2">Expense Distribution</p>
+          <div className="border border-border p-3">
+            <p className="text-[10px] font-extrabold uppercase text-center text-primary mb-2">Expense Distribution</p>
             {expenseSlices.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-16">No expenses entered yet.</p>
             ) : (
@@ -1681,6 +1688,22 @@ function SiteVoucherStatement({
               </ResponsiveContainer>
             )}
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-7 print:pt-10">
+          <div>
+            <div className="h-8 border-b border-border" />
+            <div className="flex justify-between pt-2 text-[9px] font-bold uppercase text-muted-foreground"><span>Authorized Preparer</span><span>Date</span></div>
+          </div>
+          <div>
+            <div className="h-8 border-b border-border" />
+            <div className="flex justify-between pt-2 text-[9px] font-bold uppercase text-muted-foreground"><span>Site Supervisor Approval</span><span>Date</span></div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-t pt-3 text-[9px] uppercase text-muted-foreground">
+          <span>Official project profitability statement</span>
+          <span>Document: {row?.number || "—"} · Generated {formatDate(new Date())}</span>
         </div>
       </div>
     </div>
