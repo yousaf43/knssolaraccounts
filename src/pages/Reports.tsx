@@ -212,11 +212,17 @@ function DateRangePicker({ from, to, onFromChange, onToChange }: {
 
 // --- Export helpers ---
 function exportTablePrint(title: string, dateRange: string, tableHtml: string, companyName: string, extraHtml?: string) {
-  // Remove interactive elements (checkboxes/buttons) so nothing spills outside the page
+  // Turn editable fields into plain text before opening the isolated print document.
+  const printableFields = (html: string) => html.replace(/<input\b([^>]*)>/gi, (_input, attrs: string) => {
+    const valueMatch = attrs.match(/\bvalue=(?:"([^"]*)"|'([^']*)')/i);
+    const placeholderMatch = attrs.match(/\bplaceholder=(?:"([^"]*)"|'([^']*)')/i);
+    const value = valueMatch?.[1] ?? valueMatch?.[2] ?? placeholderMatch?.[1] ?? placeholderMatch?.[2] ?? "";
+    return `<span class="print-field-value">${value || "—"}</span>`;
+  });
+  // Remove controls so nothing spills outside the page. Keep chart SVGs for the statement.
   const cleanHtml = tableHtml
-    .replace(/<input[^>]*>/gi, "")
-    .replace(/<button[\s\S]*?<\/button>/gi, "")
-    .replace(/<svg[\s\S]*?<\/svg>/gi, "");
+    ? printableFields(tableHtml).replace(/<button[\s\S]*?<\/button>/gi, "")
+    : "";
   const cleanExtra = (extraHtml || "")
     .replace(/<input[^>]*>/gi, "")
     .replace(/<button[\s\S]*?<\/button>/gi, "")
@@ -242,6 +248,47 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       .text-right { text-align: right; }
       tfoot td { font-weight: bold; border-top: 2px solid #333; background: #f9f9f9; }
       .footer { margin-top: 20px; font-size: 10px; color: #999; text-align: center; }
+      /* Report 130 site statement has a self-contained print layout. */
+      #report-print-table.site-statement-print {
+        display: block; position: relative; width: 100%; padding: 7mm 8mm 5mm !important;
+        border: 1px solid #cbd5e1 !important; background: #fff !important; color: #172033;
+        font-family: Arial, sans-serif; box-shadow: none !important;
+      }
+      .site-statement-print .statement-accent { position: absolute; inset: 0 0 auto; height: 4px; background: #174a8b; }
+      .site-statement-print .statement-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12mm; padding: 2mm 0 4mm; border-bottom: 2px solid #d8e3f1; }
+      .site-statement-print .statement-header > div:last-child { text-align: right; min-width: 43mm; }
+      .site-statement-print .statement-report-code { margin: 0 0 1mm; color: #174a8b; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+      .site-statement-print .statement-header h2 { margin: 0; color: #172033; font-size: 20px; line-height: 1.1; font-weight: 800; text-transform: uppercase; }
+      .site-statement-print .statement-subtitle { margin: 1.5mm 0 0; color: #526071; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+      .site-statement-print .statement-badge { display: inline-block; padding: 1.5mm 3mm; border-radius: 2px; background: #174a8b; color: #fff; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+      .site-statement-print .statement-ref { margin: 2mm 0 .5mm; color: #334155; font-size: 9px; font-weight: 700; }
+      .site-statement-print .statement-date { margin: 0; color: #64748b; font-size: 8px; }
+      .site-statement-print .statement-section { margin-top: 4mm; break-inside: avoid; }
+      .site-statement-print .statement-section-title { margin: 0; padding: 2mm 3mm; border-left: 4px solid #174a8b; background: #eaf1f9; color: #174a8b; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+      .site-statement-print .statement-site-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 5mm; row-gap: 3mm; padding: 4mm 3mm 1mm; }
+      .site-statement-print .statement-field { min-width: 0; padding-bottom: 1.5mm; border-bottom: 1px solid #cbd5e1; }
+      .site-statement-print .statement-field-label { margin: 0 0 1mm; color: #174a8b; font-size: 7px; font-weight: 700; text-transform: uppercase; }
+      .site-statement-print .statement-field-text, .site-statement-print .print-field-value { display: block; min-height: 4mm; color: #172033; font-size: 9px; line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; }
+      .site-statement-print .statement-table { width: 100%; margin-top: 2.5mm; table-layout: fixed; border-collapse: collapse; border-top: 2px solid #174a8b; }
+      .site-statement-print .statement-table th { padding: 2mm 3mm; border: 1px solid #174a8b; background: #174a8b; color: #fff; font-size: 8px; font-weight: 700; text-align: left; }
+      .site-statement-print .statement-table th:last-child { width: 43mm; text-align: right; }
+      .site-statement-print .statement-table td { padding: 1.7mm 3mm; border: 1px solid #dbe2ea; color: #243247; font-size: 8.5px; }
+      .site-statement-print .statement-table td:last-child { width: 43mm; text-align: right; font-weight: 700; white-space: nowrap; }
+      .site-statement-print .statement-total td { background: #eaf1f9; color: #172033; font-weight: 800; }
+      .site-statement-print .statement-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 4mm; border: 1px solid #cbd5e1; break-inside: avoid; }
+      .site-statement-print .statement-summary > div { padding: 3.5mm; text-align: center; border-right: 1px solid #cbd5e1; background: #f8fafc; }
+      .site-statement-print .statement-summary > div:last-child { border-right: 0; border-bottom: 3px solid #178451; }
+      .site-statement-print .statement-summary-label { margin: 0 0 1mm; color: #174a8b; font-size: 7px; font-weight: 700; text-transform: uppercase; }
+      .site-statement-print .statement-summary-value { margin: 0; color: #172033; font-size: 14px; line-height: 1.2; font-weight: 800; }
+      .site-statement-print .statement-summary-note { margin: 1mm 0 0; color: #526071; font-size: 8px; font-weight: 700; }
+      .site-statement-print .statement-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3mm; margin-top: 4mm; break-inside: avoid; }
+      .site-statement-print .statement-chart { height: 52mm; padding: 3mm; border: 1px solid #cbd5e1; overflow: hidden; }
+      .site-statement-print .statement-chart-title { margin: 0 0 2mm; color: #174a8b; font-size: 8px; font-weight: 800; text-align: center; text-transform: uppercase; }
+      .site-statement-print .statement-chart .recharts-responsive-container { width: 100% !important; height: 43mm !important; }
+      .site-statement-print .statement-signatures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12mm; padding-top: 8mm; break-inside: avoid; }
+      .site-statement-print .statement-signature-line { height: 7mm; border-bottom: 1px solid #94a3b8; }
+      .site-statement-print .statement-signature-label { display: flex; justify-content: space-between; padding-top: 1.5mm; color: #64748b; font-size: 7px; font-weight: 700; text-transform: uppercase; }
+      .site-statement-print .statement-footer { display: flex; justify-content: space-between; gap: 8mm; margin-top: 5mm; padding-top: 2mm; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 7px; text-transform: uppercase; }
       ${isPanel ? `
       /* Professional A4 treatment for structured financial statements */
       #report-print-table {
@@ -379,7 +426,14 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-reconciliation-panel .pt-2 { padding-top: 8px; }
       #report-reconciliation-panel .pb-4 { padding-bottom: 12px; }
       `}
-      @media print { body { padding: 0; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
+      @media print {
+        body { padding: 0; }
+        thead { display: table-header-group; }
+        tr { page-break-inside: avoid; }
+        #report-print-table.site-statement-print { border: 0 !important; }
+        .site-statement-print .statement-section, .site-statement-print .statement-summary,
+        .site-statement-print .statement-charts, .site-statement-print .statement-signatures { break-inside: avoid; page-break-inside: avoid; }
+      }
     </style></head><body>
     ${isPanel ? "" : `<div class="header"><h1>${companyName}</h1><h2>${title}</h2></div>
     <div class="meta">Period: ${dateRange} | Generated: ${new Date().toLocaleString()}</div>`}
@@ -1568,25 +1622,25 @@ function SiteVoucherStatement({
         <Button size="sm" onClick={() => void save()} disabled={saving}>{saving ? "Saving…" : "Save statement"}</Button>
       </div>
 
-      <div id="report-print-table" className="relative overflow-hidden bg-card border border-border shadow-elevated p-5 md:p-8 space-y-6 print:shadow-none print:border-0 print:p-0">
-        <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+      <div id="report-print-table" className="site-statement-print relative overflow-hidden bg-card border border-border shadow-elevated p-5 md:p-8 space-y-6 print:shadow-none print:border-0 print:p-0">
+        <div className="statement-accent absolute inset-x-0 top-0 h-1 bg-primary" />
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b-2 border-primary/15 pb-5 pt-1">
+        <div className="statement-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b-2 border-primary/15 pb-5 pt-1">
           <div>
-            <p className="text-[10px] font-bold uppercase text-primary">Report 130</p>
+            <p className="statement-report-code text-[10px] font-bold uppercase text-primary">Report 130</p>
             <h2 className="text-2xl font-extrabold uppercase">{companyName}</h2>
-            <p className="text-[10px] font-semibold uppercase text-muted-foreground">System Installation, Commissioning &amp; Audit Statement</p>
+            <p className="statement-subtitle text-[10px] font-semibold uppercase text-muted-foreground">System Installation, Commissioning &amp; Audit Statement</p>
           </div>
           <div className="sm:text-right">
-            <Badge className="rounded-sm px-3 py-1 text-[9px] uppercase">Official Voucher</Badge>
-            <p className="mt-2 text-xs font-semibold tabular-nums text-muted-foreground">Ref: {meta.siteRefId || row?.number || "—"}</p>
-            <p className="text-[10px] text-muted-foreground">Invoice date: {formatDate(row?.date)}</p>
+            <Badge className="statement-badge rounded-sm px-3 py-1 text-[9px] uppercase">Official Voucher</Badge>
+            <p className="statement-ref mt-2 text-xs font-semibold tabular-nums text-muted-foreground">Ref: {meta.siteRefId || row?.number || "—"}</p>
+            <p className="statement-date text-[10px] text-muted-foreground">Invoice date: {formatDate(row?.date)}</p>
           </div>
         </div>
 
-        <div>
-          <p className="text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">1. Client &amp; Site Overview</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 px-3 pt-4">
+        <div className="statement-section">
+          <p className="statement-section-title text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">1. Client &amp; Site Overview</p>
+          <div className="statement-site-grid grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 px-3 pt-4">
             {field("Site Reference ID", "siteRefId", "SITE-01")}
             <div className="border-b border-border/70 pb-1">
               <p className="text-[9px] font-bold uppercase text-primary">Invoice Number</p>
@@ -1609,23 +1663,23 @@ function SiteVoucherStatement({
           </div>
         </div>
 
-        <div>
-          <p className="text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">2. Revenue &amp; Invoicing Breakdown</p>
-          <table className="w-full text-sm mt-3 border-t-2 border-primary">
+        <div className="statement-section">
+          <p className="statement-section-title text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">2. Revenue &amp; Invoicing Breakdown</p>
+          <table className="statement-table w-full text-sm mt-3 border-t-2 border-primary">
             <thead><tr className="bg-primary text-primary-foreground"><th className="text-left px-3 py-2 font-semibold">Revenue Description</th><th className="text-right px-3 py-2 font-semibold">Amount (PKR)</th></tr></thead>
             <tbody>
               {moneyRow("1. Gross Invoiced Amount Total (Customer Invoicing)", gross)}
               {moneyRow("2. Discount Allowed to Client (-)", discount)}
               {moneyRow("3. Product Selling Amount (Just Materials Revenue)", productSelling)}
               {moneyRow("4. Installation & Services Fee", installationFee, "installationFee")}
-              <tr className="bg-primary/10 font-extrabold"><td className="py-2.5 px-3">NET REALIZED REVENUE</td><td className="py-2.5 px-3 text-right tabular-nums">{formatCurrency(netRevenue)}</td></tr>
+              <tr className="statement-total bg-primary/10 font-extrabold"><td className="py-2.5 px-3">NET REALIZED REVENUE</td><td className="py-2.5 px-3 text-right tabular-nums">{formatCurrency(netRevenue)}</td></tr>
             </tbody>
           </table>
         </div>
 
-        <div>
-          <p className="text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">3. Project Expenses (Cost of Project)</p>
-          <table className="w-full text-sm mt-3 border-t-2 border-primary">
+        <div className="statement-section">
+          <p className="statement-section-title text-[11px] font-extrabold uppercase bg-primary/10 text-primary px-3 py-2 border-l-4 border-primary">3. Project Expenses (Cost of Project)</p>
+          <table className="statement-table w-full text-sm mt-3 border-t-2 border-primary">
             <thead><tr className="bg-primary text-primary-foreground"><th className="text-left px-3 py-2 font-semibold">Expense Description</th><th className="text-right px-3 py-2 font-semibold">Amount (PKR)</th></tr></thead>
             <tbody>
               {moneyRow("1. Material & Product Purchase Cost", materialCost)}
@@ -1634,30 +1688,30 @@ function SiteVoucherStatement({
               {moneyRow("4. Motorcycle & Fuel Expense", 0, "fuel")}
               {moneyRow("5. Labour Payroll Expense", 0, "labourPayroll")}
               {moneyRow("6. Food & Other Expenses", 0, "foodOther")}
-              <tr className="bg-primary/10 font-extrabold"><td className="py-2.5 px-3">TOTAL PROJECT EXPENSES</td><td className="py-2.5 px-3 text-right tabular-nums">{formatCurrency(totalExpenses)}</td></tr>
+              <tr className="statement-total bg-primary/10 font-extrabold"><td className="py-2.5 px-3">TOTAL PROJECT EXPENSES</td><td className="py-2.5 px-3 text-right tabular-nums">{formatCurrency(totalExpenses)}</td></tr>
             </tbody>
           </table>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 border border-border md:divide-x divide-y md:divide-y-0">
+        <div className="statement-summary grid grid-cols-1 md:grid-cols-3 border border-border md:divide-x divide-y md:divide-y-0">
           <div className="p-5 text-center bg-muted/20">
-            <p className="text-[9px] font-bold uppercase text-primary">Net Revenue</p>
-            <p className="text-xl font-extrabold tabular-nums">{formatCurrency(netRevenue)}</p>
+            <p className="statement-summary-label text-[9px] font-bold uppercase text-primary">Net Revenue</p>
+            <p className="statement-summary-value text-xl font-extrabold tabular-nums">{formatCurrency(netRevenue)}</p>
           </div>
           <div className="p-5 text-center bg-muted/20">
-            <p className="text-[9px] font-bold uppercase text-primary">Total Expenses</p>
-            <p className="text-xl font-extrabold tabular-nums">{formatCurrency(totalExpenses)}</p>
+            <p className="statement-summary-label text-[9px] font-bold uppercase text-primary">Total Expenses</p>
+            <p className="statement-summary-value text-xl font-extrabold tabular-nums">{formatCurrency(totalExpenses)}</p>
           </div>
           <div className={`p-5 text-center border-t-4 md:border-t-0 md:border-b-4 ${netProfit >= 0 ? "border-success bg-success/5" : "border-destructive bg-destructive/5"}`}>
-            <p className="text-[9px] font-bold uppercase text-primary">Net Profit / Loss &amp; Margin</p>
-            <p className={`text-xl font-extrabold tabular-nums ${netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netProfit)}</p>
-            <p className="text-xs font-semibold text-muted-foreground">{margin.toFixed(2)}% {netProfit >= 0 ? "Profit" : "Loss"} Margin</p>
+            <p className="statement-summary-label text-[9px] font-bold uppercase text-primary">Net Profit / Loss &amp; Margin</p>
+            <p className={`statement-summary-value text-xl font-extrabold tabular-nums ${netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(netProfit)}</p>
+            <p className="statement-summary-note text-xs font-semibold text-muted-foreground">{margin.toFixed(2)}% {netProfit >= 0 ? "Profit" : "Loss"} Margin</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="border border-border p-3">
-            <p className="text-[10px] font-extrabold uppercase text-center text-primary mb-2">Revenue vs Expense vs Net Profit</p>
+        <div className="statement-charts grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="statement-chart border border-border p-3">
+            <p className="statement-chart-title text-[10px] font-extrabold uppercase text-center text-primary mb-2">Revenue vs Expense vs Net Profit</p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={[{ name: "Revenue", value: netRevenue }, { name: "Expenses", value: totalExpenses }, { name: "Profit", value: netProfit }]}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -1672,8 +1726,8 @@ function SiteVoucherStatement({
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="border border-border p-3">
-            <p className="text-[10px] font-extrabold uppercase text-center text-primary mb-2">Expense Distribution</p>
+          <div className="statement-chart border border-border p-3">
+            <p className="statement-chart-title text-[10px] font-extrabold uppercase text-center text-primary mb-2">Expense Distribution</p>
             {expenseSlices.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-16">No expenses entered yet.</p>
             ) : (
@@ -1690,18 +1744,18 @@ function SiteVoucherStatement({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-7 print:pt-10">
+        <div className="statement-signatures grid grid-cols-1 md:grid-cols-2 gap-12 pt-7 print:pt-10">
           <div>
-            <div className="h-8 border-b border-border" />
-            <div className="flex justify-between pt-2 text-[9px] font-bold uppercase text-muted-foreground"><span>Authorized Preparer</span><span>Date</span></div>
+            <div className="statement-signature-line h-8 border-b border-border" />
+            <div className="statement-signature-label flex justify-between pt-2 text-[9px] font-bold uppercase text-muted-foreground"><span>Authorized Preparer</span><span>Date</span></div>
           </div>
           <div>
-            <div className="h-8 border-b border-border" />
-            <div className="flex justify-between pt-2 text-[9px] font-bold uppercase text-muted-foreground"><span>Site Supervisor Approval</span><span>Date</span></div>
+            <div className="statement-signature-line h-8 border-b border-border" />
+            <div className="statement-signature-label flex justify-between pt-2 text-[9px] font-bold uppercase text-muted-foreground"><span>Site Supervisor Approval</span><span>Date</span></div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-t pt-3 text-[9px] uppercase text-muted-foreground">
+        <div className="statement-footer flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-t pt-3 text-[9px] uppercase text-muted-foreground">
           <span>Official project profitability statement</span>
           <span>Document: {row?.number || "—"} · Generated {formatDate(new Date())}</span>
         </div>
