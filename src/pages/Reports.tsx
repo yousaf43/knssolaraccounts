@@ -229,6 +229,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
     .replace(/<svg[\s\S]*?<\/svg>/gi, "");
   // Panel reports (e.g. Income Statement) ship their own header + cards markup.
   const isPanel = !cleanHtml.trim().toLowerCase().startsWith("<table");
+  const isSiteStatement = cleanHtml.includes("site-statement-print");
   const content = `<html><head><title>${title}</title>
     <style>
       @page { size: A4 portrait; margin: 10mm; }
@@ -289,7 +290,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       .site-statement-print .statement-signature-line { height: 7mm; border-bottom: 1px solid #94a3b8; }
       .site-statement-print .statement-signature-label { display: flex; justify-content: space-between; padding-top: 1.5mm; color: #64748b; font-size: 7px; font-weight: 700; text-transform: uppercase; }
       .site-statement-print .statement-footer { display: flex; justify-content: space-between; gap: 8mm; margin-top: 5mm; padding-top: 2mm; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 7px; text-transform: uppercase; }
-      ${isPanel ? `
+      ${isPanel && !isSiteStatement ? `
       /* Professional A4 treatment for structured financial statements */
       #report-print-table {
         border: 1px solid #d7deea;
@@ -351,7 +352,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
         line-height: 1.45;
       }
       .footer { margin-top: 8px; color: #64748b; }
-      ` : `
+      ` : !isPanel ? `
       /* Reconciliation panel print styles */
       #report-reconciliation-panel {
         margin-top: 18px;
@@ -425,7 +426,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-reconciliation-panel .border-t { border-top: 1px solid #d7deea; }
       #report-reconciliation-panel .pt-2 { padding-top: 8px; }
       #report-reconciliation-panel .pb-4 { padding-bottom: 12px; }
-      `}
+      ` : ""}
       @media print {
         body { padding: 0; }
         thead { display: table-header-group; }
