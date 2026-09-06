@@ -108,13 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const hydrate = (nextSession: Session | null) => {
+    const hydrate = (nextSession: Session | null, isExplicitSignOut = false) => {
       const nextUser = nextSession?.user ?? null;
       const nextUserId = nextUser?.id ?? null;
       const accountChanged = hydratedUserIdRef.current !== nextUserId;
 
+      // A background token refresh can briefly report an empty session when a
+      // suspended browser tab wakes up.  Do not tear down the whole workspace
+      // unless Supabase emitted a real SIGNED_OUT event.
+      if (!nextSession && hydratedUserIdRef.current && !isExplicitSignOut) return;
+
       setSession(nextSession);
-      setUser(nextUser);
 
       // Auth emits SIGNED_IN/TOKEN_REFRESHED again when a browser tab regains
       // focus. Keep the mounted workspace intact for the same account so all
@@ -124,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      setUser(nextUser);
       hydratedUserIdRef.current = nextUserId;
       setCompanyResolved(!nextUser);
       if (nextUser) {
@@ -137,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setLoading(false);
     };
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => hydrate(nextSession));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => hydrate(nextSession, event === "SIGNED_OUT"));
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => hydrate(currentSession));
     return () => subscription.unsubscribe();
   }, []);
