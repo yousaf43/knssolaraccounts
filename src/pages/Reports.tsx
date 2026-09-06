@@ -1436,6 +1436,24 @@ function SiteVoucherStatement({
 
   useEffect(() => {
     const saved = (invoice?.projectMeta || {}) as Record<string, unknown>;
+    // Prefill installation fee / civil work from invoice lines that were already entered on the invoice.
+    const lineTotal = (pattern: RegExp) => (invoice?.items || []).reduce((sum, line) => {
+      const text = `${line.description || ""} ${line.bundleTitle || ""}`;
+      return pattern.test(text) ? sum + Math.abs((line.qty || 0) * (line.rate || 0) || (line.amount || 0)) : sum;
+    }, 0);
+    const fromInvoice = {
+      installationFee: lineTotal(/install|fitting|commission/i),
+      civilWork: lineTotal(/civil/i),
+      transportation: lineTotal(/transport|freight|delivery/i),
+      fuel: lineTotal(/fuel|petrol|diesel/i),
+      labourPayroll: lineTotal(/labour|labor|payroll|wage/i),
+      foodOther: lineTotal(/food|meal|refresh/i),
+    };
+    const prefilled = (key: keyof typeof fromInvoice) => {
+      const savedVal = Number(saved[key]);
+      if (saved[key] !== undefined && saved[key] !== null && String(saved[key]) !== "") return String(saved[key]);
+      return fromInvoice[key] > 0 ? String(fromInvoice[key]) : "";
+    };
     setMeta({
       siteRefId: String(saved.siteRefId ?? ""),
       completionDate: String(saved.completionDate ?? ""),
@@ -1444,12 +1462,12 @@ function SiteVoucherStatement({
       projectTiming: String(saved.projectTiming ?? ""),
       categorySite: String(saved.categorySite ?? ""),
       projectLocation: String(saved.projectLocation ?? ""),
-      installationFee: String(saved.installationFee ?? ""),
-      civilWork: String(saved.civilWork ?? ""),
-      transportation: String(saved.transportation ?? ""),
-      fuel: String(saved.fuel ?? ""),
-      labourPayroll: String(saved.labourPayroll ?? ""),
-      foodOther: String(saved.foodOther ?? ""),
+      installationFee: prefilled("installationFee"),
+      civilWork: prefilled("civilWork"),
+      transportation: prefilled("transportation"),
+      fuel: prefilled("fuel"),
+      labourPayroll: prefilled("labourPayroll"),
+      foodOther: prefilled("foodOther"),
     });
   }, [activeId, invoice]);
 
