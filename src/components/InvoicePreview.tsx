@@ -76,6 +76,8 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
 
   const amountInWords = numberToWords(Math.round(accountBalance));
 
+  const termsList = (settings.invoiceTerms ?? "").split("\n").map((t) => t.trim()).filter(Boolean);
+
   const handlePrint = () => {
     const content = printRef.current;
     if (!content) return;
