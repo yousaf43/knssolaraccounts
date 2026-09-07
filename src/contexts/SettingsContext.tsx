@@ -16,13 +16,26 @@ export type AppSettings = {
   dateFormat: string;
   logoUrl: string;
   thermalPrintWidth: "80mm" | "58mm";
+  /** One term per line, shown as a numbered list on invoices/quotations */
+  invoiceTerms: string;
 };
+
+export const DEFAULT_INVOICE_TERMS = [
+  "Payment is due within the specified due date mentioned above.",
+  "Goods once sold will not be taken back or exchanged.",
+  "All disputes are subject to local jurisdiction only.",
+  "Warranty claims must be reported within 7 days of delivery with proof of purchase.",
+  "Installation charges are not included unless specifically mentioned in the document.",
+  "Any delay in payment may attract additional charges as per company policy.",
+].join("\n");
 
 const defaultSettings: AppSettings = {
   companyName: "", companyEmail: "", companyPhone: "", companyAddress: "",
   currency: "PKR", currencyLocale: "en-PK", taxRate: 0, taxLabel: "GST",
   fiscalYearStart: "07", dateFormat: "dd-MM-yyyy", logoUrl: "", thermalPrintWidth: "80mm",
+  invoiceTerms: DEFAULT_INVOICE_TERMS,
 };
+
 
 type SettingsContextType = {
   settings: AppSettings;
