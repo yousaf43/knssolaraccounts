@@ -283,17 +283,15 @@ export function InvoicePreview({ invoice, onClose, receipts = [], customerOutsta
         </div>
 
         {/* Terms */}
-        <div className="terms-section mt-6 pt-4 border-t border-gray-200">
-          <p className="text-xs font-bold text-gray-700 mb-2">Terms &amp; Conditions:</p>
-          <ol className="text-[10px] text-gray-500 space-y-1 list-decimal list-inside leading-relaxed">
-            <li>Payment is due within the specified due date mentioned above.</li>
-            <li>Goods once sold will not be taken back or exchanged.</li>
-            <li>All disputes are subject to local jurisdiction only.</li>
-            <li>Warranty claims must be reported within 7 days of delivery with proof of purchase.</li>
-            <li>Installation charges are not included unless specifically mentioned in the {docLabel.toLowerCase()}.</li>
-            <li>Any delay in payment may attract additional charges as per company policy.</li>
-          </ol>
-        </div>
+        {termsList.length > 0 && (
+          <div className="terms-section mt-6 pt-4 border-t border-gray-200">
+            <p className="text-xs font-bold text-gray-700 mb-2">Terms &amp; Conditions:</p>
+            <ol className="text-[10px] text-gray-500 space-y-1 list-decimal list-inside leading-relaxed">
+              {termsList.map((t, i) => <li key={i}>{t}</li>)}
+            </ol>
+          </div>
+        )}
+
 
         {/* Footer bar */}
         <div className="footer-bar mt-6 h-3 rounded bg-blue-900"></div>
