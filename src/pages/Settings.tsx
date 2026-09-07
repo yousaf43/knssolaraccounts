@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from "react";
-import { useSettings, type AppSettings } from "@/contexts/SettingsContext";
+import { useSettings, type AppSettings, DEFAULT_INVOICE_TERMS } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -439,6 +440,21 @@ export default function Settings() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">This size is used when printing invoices and sales documents.</p>
+            </div>
+
+            <div className="border-t pt-4 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Invoice Terms &amp; Conditions</Label>
+                <Button variant="ghost" size="sm" onClick={() => update("invoiceTerms", DEFAULT_INVOICE_TERMS)}>Reset to default</Button>
+              </div>
+              <Textarea
+                value={form.invoiceTerms ?? ""}
+                onChange={(e) => update("invoiceTerms", e.target.value)}
+                rows={8}
+                placeholder="Write one condition per line..."
+                className="text-sm"
+              />
+              <p className="text-xs text-muted-foreground">Write one condition per line. These appear as a numbered list on invoices and quotations. Leave empty to hide the section.</p>
             </div>
 
             {/* Category Management */}
