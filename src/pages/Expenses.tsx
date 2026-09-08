@@ -50,8 +50,13 @@ export default function Expenses() {
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
   const [projectFilter, setProjectFilter] = useState("all");
-  // Customer discounts always count as expenses (Sales Discount)
-  const discountRows = useMemo(() => buildDiscountExpenses(invoices), [invoices]);
+  // Sales Discount rows are optional — toggled by the user
+  const [showDiscounts, setShowDiscounts] = useState(false);
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterName, setFilterName] = useState("");
+  const discountRows = useMemo(() => (showDiscounts ? buildDiscountExpenses(invoices) : []), [invoices, showDiscounts]);
 
   const totalDiscounts = discountRows.reduce((s, r) => s + r.amount, 0);
   const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -62,14 +67,29 @@ export default function Expenses() {
     expenses.forEach(e => e.projectName && set.add(e.projectName));
     return Array.from(set).sort();
   }, [invoices, expenses]);
+  const allCategories = useMemo(() => {
+    const set = new Set<string>(categories);
+    expenses.forEach(e => e.category && set.add(e.category));
+    if (showDiscounts) set.add("Sales Discount");
+    return Array.from(set).sort();
+  }, [expenses, showDiscounts]);
   const rows = useMemo(() => {
     const list: (Expense & { isDiscount?: boolean })[] = [...expenses, ...discountRows];
-    const filtered = projectFilter === "all" ? list
-      : projectFilter === "none" ? list.filter(e => !e.projectName)
-      : list.filter(e => (e.projectName || "") === projectFilter);
+    const nameQ = filterName.trim().toLowerCase();
+    const filtered = list.filter(e => {
+      if (projectFilter === "none" && e.projectName) return false;
+      if (projectFilter !== "all" && projectFilter !== "none" && (e.projectName || "") !== projectFilter) return false;
+      if (filterFrom && (e.date || "") < filterFrom) return false;
+      if (filterTo && (e.date || "") > filterTo) return false;
+      if (filterCategory !== "all" && e.category !== filterCategory) return false;
+      if (nameQ && !(e.description || "").toLowerCase().includes(nameQ)) return false;
+      return true;
+    });
     return filtered.sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
-  }, [expenses, discountRows, projectFilter]);
+  }, [expenses, discountRows, projectFilter, filterFrom, filterTo, filterCategory, filterName]);
   const pgExpenses = usePagination(rows);
+  const hasFilters = filterFrom || filterTo || filterCategory !== "all" || filterName.trim() || projectFilter !== "all";
+  const clearFilters = () => { setFilterFrom(""); setFilterTo(""); setFilterCategory("all"); setFilterName(""); setProjectFilter("all"); };
 
 
   // Petty Cash account balance
@@ -182,7 +202,13 @@ export default function Expenses() {
             <p className="text-xl font-bold">{formatCurrency(totalDiscounts)}</p>
           </div>
         </div>
-        <span className="text-xs text-muted-foreground">Counted automatically in expenses</span>
+        <Button
+          variant={showDiscounts ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowDiscounts(v => !v)}
+        >
+          {showDiscounts ? "Hide" : "Show"} in Expenses
+        </Button>
       </div>
 
 
@@ -254,11 +280,30 @@ export default function Expenses() {
         </div>
       )}
 
-      {projectSuggestions.length > 0 && (
-        <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">Project / Site:</Label>
+      {/* Filters */}
+      <div className="bg-card rounded-lg border p-3 flex flex-wrap items-end gap-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">From Date</Label>
+          <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-8 text-xs w-36 mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">To Date</Label>
+          <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-8 text-xs w-36 mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Category</Label>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="h-8 text-xs w-44 mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {allCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Project / Site</Label>
           <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="h-8 text-xs w-56"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs w-44 mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Projects</SelectItem>
               <SelectItem value="none">No Project (Overhead)</SelectItem>
@@ -266,7 +311,16 @@ export default function Expenses() {
             </SelectContent>
           </Select>
         </div>
-      )}
+        <div className="flex-1 min-w-[180px]">
+          <Label className="text-xs text-muted-foreground">Search by Name</Label>
+          <Input value={filterName} onChange={(e) => setFilterName(e.target.value)} placeholder="Search description..." className="h-8 text-xs mt-1" />
+        </div>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
+            <X className="w-3 h-3 mr-1" /> Clear
+          </Button>
+        )}
+      </div>
 
       <div className="bg-card rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
