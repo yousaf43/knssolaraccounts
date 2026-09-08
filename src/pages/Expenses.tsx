@@ -50,8 +50,13 @@ export default function Expenses() {
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState<Partial<Expense>>(emptyExpense());
   const [projectFilter, setProjectFilter] = useState("all");
-  // Customer discounts always count as expenses (Sales Discount)
-  const discountRows = useMemo(() => buildDiscountExpenses(invoices), [invoices]);
+  // Sales Discount rows are optional — toggled by the user
+  const [showDiscounts, setShowDiscounts] = useState(false);
+  const [filterFrom, setFilterFrom] = useState("");
+  const [filterTo, setFilterTo] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterName, setFilterName] = useState("");
+  const discountRows = useMemo(() => (showDiscounts ? buildDiscountExpenses(invoices) : []), [invoices, showDiscounts]);
 
   const totalDiscounts = discountRows.reduce((s, r) => s + r.amount, 0);
   const expenseTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -62,14 +67,29 @@ export default function Expenses() {
     expenses.forEach(e => e.projectName && set.add(e.projectName));
     return Array.from(set).sort();
   }, [invoices, expenses]);
+  const allCategories = useMemo(() => {
+    const set = new Set<string>(categories);
+    expenses.forEach(e => e.category && set.add(e.category));
+    if (showDiscounts) set.add("Sales Discount");
+    return Array.from(set).sort();
+  }, [expenses, showDiscounts]);
   const rows = useMemo(() => {
     const list: (Expense & { isDiscount?: boolean })[] = [...expenses, ...discountRows];
-    const filtered = projectFilter === "all" ? list
-      : projectFilter === "none" ? list.filter(e => !e.projectName)
-      : list.filter(e => (e.projectName || "") === projectFilter);
+    const nameQ = filterName.trim().toLowerCase();
+    const filtered = list.filter(e => {
+      if (projectFilter === "none" && e.projectName) return false;
+      if (projectFilter !== "all" && projectFilter !== "none" && (e.projectName || "") !== projectFilter) return false;
+      if (filterFrom && (e.date || "") < filterFrom) return false;
+      if (filterTo && (e.date || "") > filterTo) return false;
+      if (filterCategory !== "all" && e.category !== filterCategory) return false;
+      if (nameQ && !(e.description || "").toLowerCase().includes(nameQ)) return false;
+      return true;
+    });
     return filtered.sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
-  }, [expenses, discountRows, projectFilter]);
+  }, [expenses, discountRows, projectFilter, filterFrom, filterTo, filterCategory, filterName]);
   const pgExpenses = usePagination(rows);
+  const hasFilters = filterFrom || filterTo || filterCategory !== "all" || filterName.trim() || projectFilter !== "all";
+  const clearFilters = () => { setFilterFrom(""); setFilterTo(""); setFilterCategory("all"); setFilterName(""); setProjectFilter("all"); };
 
 
   // Petty Cash account balance
