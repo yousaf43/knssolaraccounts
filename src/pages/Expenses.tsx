@@ -202,7 +202,13 @@ export default function Expenses() {
             <p className="text-xl font-bold">{formatCurrency(totalDiscounts)}</p>
           </div>
         </div>
-        <span className="text-xs text-muted-foreground">Counted automatically in expenses</span>
+        <Button
+          variant={showDiscounts ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowDiscounts(v => !v)}
+        >
+          {showDiscounts ? "Hide" : "Show"} in Expenses
+        </Button>
       </div>
 
 
@@ -274,11 +280,30 @@ export default function Expenses() {
         </div>
       )}
 
-      {projectSuggestions.length > 0 && (
-        <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">Project / Site:</Label>
+      {/* Filters */}
+      <div className="bg-card rounded-lg border p-3 flex flex-wrap items-end gap-3">
+        <div>
+          <Label className="text-xs text-muted-foreground">From Date</Label>
+          <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-8 text-xs w-36 mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">To Date</Label>
+          <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-8 text-xs w-36 mt-1" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Category</Label>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="h-8 text-xs w-44 mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {allCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Project / Site</Label>
           <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="h-8 text-xs w-56"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs w-44 mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Projects</SelectItem>
               <SelectItem value="none">No Project (Overhead)</SelectItem>
@@ -286,7 +311,16 @@ export default function Expenses() {
             </SelectContent>
           </Select>
         </div>
-      )}
+        <div className="flex-1 min-w-[180px]">
+          <Label className="text-xs text-muted-foreground">Search by Name</Label>
+          <Input value={filterName} onChange={(e) => setFilterName(e.target.value)} placeholder="Search description..." className="h-8 text-xs mt-1" />
+        </div>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
+            <X className="w-3 h-3 mr-1" /> Clear
+          </Button>
+        )}
+      </div>
 
       <div className="bg-card rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
