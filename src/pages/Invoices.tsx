@@ -895,7 +895,13 @@ export default function Invoices() {
   if (view === "preview" && previewInvoice) {
     const isQ = (previewInvoice.number || "").startsWith("QTN");
     const cust = findCustomerByLabel(previewInvoice.customer);
-    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} docType={isQ ? "quotation" : "invoice"} customerPhone={cust?.phone} customerAddress={cust?.address} />;
+    const normName = (v?: string | null) => (v ?? "").trim().toLowerCase();
+    const customerOutstanding = isQ
+      ? 0
+      : invoices
+          .filter((inv) => normName(inv.customer) === normName(previewInvoice.customer))
+          .reduce((sum, inv) => sum + getInvoicePaymentSummary(inv, receipts).remaining, 0);
+    return <InvoicePreview invoice={previewInvoice} onClose={goList} receipts={receipts} customerOutstanding={customerOutstanding} docType={isQ ? "quotation" : "invoice"} customerPhone={cust?.phone} customerAddress={cust?.address} />;
   }
   if (view === "so-preview" && previewSO) {
     return <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} customers={customers} inventory={inventory} />;
