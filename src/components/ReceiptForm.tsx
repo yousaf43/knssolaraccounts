@@ -16,7 +16,7 @@ type Props = {
   customers: Customer[];
   invoices: Invoice[];
   receipts?: Receipt[];
-  onSave: (receipt: Receipt) => void;
+  onSave: (receipt: Receipt, discountAmount?: number) => void;
   onSaveBulk?: (receipts: Receipt[]) => void;
   onCancel: () => void;
   editReceipt?: Receipt | null;
@@ -222,7 +222,7 @@ export function ReceiptForm({
       paymentMethod: displayMethod,
       reference: reference.trim(),
       notes: discountAmount > 0 ? `${notes.trim()} | Discount: ${discountAmount}`.trim() : notes.trim(),
-    });
+    }, discountAmount > 0 ? discountAmount : undefined);
   };
 
   const customerInvoices = invoices.filter((inv) => inv.customer === customer);
