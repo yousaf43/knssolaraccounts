@@ -650,8 +650,27 @@ export default function Invoices() {
     upsertLedger(entry);
   };
 
-  const handleSaveReceipt = async (receipt: Receipt) => {
+  const handleSaveReceipt = async (receipt: Receipt, discountAmount?: number) => {
     await upsertReceipt(receipt);
+    // Discount given while receiving payment reduces the invoice balance
+    if (discountAmount && discountAmount > 0) {
+      const target = invoices.find(
+        (inv) =>
+          inv.number.trim().toLowerCase() === (receipt.invoiceNumber || "").trim().toLowerCase() &&
+          inv.customer.trim().toLowerCase() === receipt.customer.trim().toLowerCase(),
+      ) || invoices.find((inv) => inv.number.trim().toLowerCase() === (receipt.invoiceNumber || "").trim().toLowerCase());
+      if (target) {
+        const newAmount = Math.max(0, (target.amount || 0) - discountAmount);
+        const paidSoFar =
+          getInvoicePaymentSummary(target, receipts.filter((r) => r.id !== receipt.id)).totalPaid + (receipt.amount || 0);
+        await upsertInvoice({
+          ...target,
+          amount: newAmount,
+          discount: (target.discount || 0) + discountAmount,
+          status: paidSoFar >= newAmount - 0.01 ? "paid" : target.status,
+        });
+      }
+    }
     // Auto-create ledger entry in accounts
     if (!editReceipt) {
       createLedgerEntry(receipt);
