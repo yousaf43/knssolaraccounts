@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Users, Clock, ScrollText, Wallet, Search } from "lucide-react";
+import { Plus, Pencil, Users, Clock, ScrollText, Wallet, Search, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import BiometricAttendance from "@/components/hr/BiometricAttendance";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -23,7 +24,7 @@ const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 const emptyEmployee = (): Employee => ({
   id: crypto.randomUUID(), code: "", name: "", designation: "", department: "", phone: "",
-  cnic: "", address: "", joinDate: today(), salary: 0, status: "active", notes: "",
+  cnic: "", address: "", joinDate: today(), salary: 0, status: "active", notes: "", biometricId: "",
 });
 const emptyAttendance = (): AttendanceRecord => ({
   id: crypto.randomUUID(), employeeId: "", employeeName: "", date: today(),
@@ -204,6 +205,7 @@ export default function HR() {
         <TabsList className="flex-wrap">
           <TabsTrigger value="employees"><Users className="mr-2 h-4 w-4" />Employees</TabsTrigger>
           <TabsTrigger value="attendance"><Clock className="mr-2 h-4 w-4" />Attendance</TabsTrigger>
+          <TabsTrigger value="biometric"><Fingerprint className="mr-2 h-4 w-4" />Biometric Device</TabsTrigger>
           <TabsTrigger value="rules"><ScrollText className="mr-2 h-4 w-4" />Workplace Rules</TabsTrigger>
           <TabsTrigger value="payroll"><Wallet className="mr-2 h-4 w-4" />Payroll / Salary</TabsTrigger>
         </TabsList>
@@ -303,6 +305,11 @@ export default function HR() {
           </CardContent></Card>
         </TabsContent>
 
+        {/* ---------------- Biometric Device ---------------- */}
+        <TabsContent value="biometric" className="mt-4">
+          <BiometricAttendance onImported={() => { void attendance.refetch?.(); }} />
+        </TabsContent>
+
         {/* ---------------- Workplace Rules ---------------- */}
         <TabsContent value="rules" className="mt-4 space-y-3">
           <div className="flex justify-end">
@@ -388,6 +395,7 @@ export default function HR() {
           <DialogHeader><DialogTitle>{employees.data.some((e) => e.id === empForm.id) ? "Edit Employee" : "Add Employee"}</DialogTitle></DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
             <div><Label>Employee Code</Label><Input value={empForm.code} onChange={(e) => setEmpForm({ ...empForm, code: e.target.value })} /></div>
+            <div><Label>Biometric / Device User ID</Label><Input value={empForm.biometricId} onChange={(e) => setEmpForm({ ...empForm, biometricId: e.target.value })} placeholder="e.g. 101" /></div>
             <div><Label>Name *</Label><Input value={empForm.name} onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })} /></div>
             <div><Label>Designation</Label><Input value={empForm.designation} onChange={(e) => setEmpForm({ ...empForm, designation: e.target.value })} /></div>
             <div><Label>Department</Label><Input value={empForm.department} onChange={(e) => setEmpForm({ ...empForm, department: e.target.value })} /></div>
