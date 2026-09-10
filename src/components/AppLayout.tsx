@@ -27,6 +27,7 @@ import ActivityLogs from "@/pages/ActivityLogs";
 import TrashPage from "@/pages/Trash";
 import DraftsPage from "@/pages/Drafts";
 import SolarWashing from "@/pages/SolarWashing";
+import HR from "@/pages/HR";
 import NotFound from "@/pages/NotFound";
 
 type KeepAlivePage = { path: string; element: ReactNode; adminOnly?: boolean; superAdminOnly?: boolean };
@@ -45,6 +46,7 @@ const KEEP_ALIVE_PAGES: KeepAlivePage[] = [
   { path: "/assets", element: <Assets />, adminOnly: true },
   { path: "/reports", element: <Reports />, adminOnly: true },
   { path: "/activity-logs", element: <ActivityLogs /> },
+  { path: "/hr", element: <HR />, adminOnly: true },
   { path: "/solar-washing", element: <SolarWashing /> },
   { path: "/drafts", element: <DraftsPage /> },
   { path: "/trash", element: <TrashPage /> },
