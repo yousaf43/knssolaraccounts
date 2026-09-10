@@ -1,0 +1,2 @@
+ALTER TABLE public.attendance_devices ALTER COLUMN company_id SET DEFAULT private.current_company_id();
+ALTER TABLE public.attendance_punches ALTER COLUMN company_id SET DEFAULT private.current_company_id();
