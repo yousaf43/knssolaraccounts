@@ -441,6 +441,10 @@ export const useOtherReceiptsCloud = () => useTable("other_receipts", otherRecei
 export const useTransfersCloud = () => useTable("transfers", transferFromDb, transferToDb);
 export const useReconcileEntriesCloud = () => useTable("reconcile_entries", reconcileFromDb, reconcileToDb);
 export const useSolarWashingCloud = () => useTable("solar_washing" as any, solarWashingFromDb, solarWashingToDb);
+export const useEmployeesCloud = () => useTable("employees" as any, employeeFromDb, employeeToDb);
+export const useAttendanceCloud = () => useTable("attendance" as any, attendanceFromDb, attendanceToDb);
+export const useWorkplaceRulesCloud = () => useTable("workplace_rules" as any, ruleFromDb, ruleToDb);
+export const usePayrollCloud = () => useTable("payroll" as any, payrollFromDb, payrollToDb);
 
 // User Settings
 export function useUserSettingsCloud() {
