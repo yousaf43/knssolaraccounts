@@ -345,6 +345,81 @@ const solarWashingToDb = (w: SolarWashing, userId: string) => ({
   id: w.id, user_id: userId, date: w.date, customer: w.customer, amount: w.amount, notes: w.notes,
 });
 
+// HR — Employees
+export type Employee = {
+  id: string; code: string; name: string; designation: string; department: string;
+  phone: string; cnic: string; address: string; joinDate: string; salary: number;
+  status: "active" | "inactive"; notes: string;
+};
+const employeeFromDb = (r: Record<string, unknown>): Employee => ({
+  id: r.id as string, code: (r.code as string) || "", name: (r.name as string) || "",
+  designation: (r.designation as string) || "", department: (r.department as string) || "",
+  phone: (r.phone as string) || "", cnic: (r.cnic as string) || "", address: (r.address as string) || "",
+  joinDate: (r.join_date as string) || "", salary: Number(r.salary) || 0,
+  status: ((r.status as Employee["status"]) || "active"), notes: (r.notes as string) || "",
+});
+const employeeToDb = (e: Employee, userId: string) => ({
+  id: e.id, user_id: userId, code: e.code, name: e.name, designation: e.designation,
+  department: e.department, phone: e.phone, cnic: e.cnic, address: e.address,
+  join_date: e.joinDate, salary: e.salary, status: e.status, notes: e.notes,
+});
+
+// HR — Attendance
+export type AttendanceRecord = {
+  id: string; employeeId: string; employeeName: string; date: string;
+  checkIn: string; checkOut: string; status: "present" | "absent" | "leave" | "half-day" | "holiday";
+  hours: number; notes: string;
+};
+const attendanceFromDb = (r: Record<string, unknown>): AttendanceRecord => ({
+  id: r.id as string, employeeId: (r.employee_id as string) || "",
+  employeeName: (r.employee_name as string) || "", date: (r.date as string) || "",
+  checkIn: (r.check_in as string) || "", checkOut: (r.check_out as string) || "",
+  status: ((r.status as AttendanceRecord["status"]) || "present"),
+  hours: Number(r.hours) || 0, notes: (r.notes as string) || "",
+});
+const attendanceToDb = (a: AttendanceRecord, userId: string) => ({
+  id: a.id, user_id: userId, employee_id: a.employeeId || null, employee_name: a.employeeName,
+  date: a.date, check_in: a.checkIn, check_out: a.checkOut, status: a.status,
+  hours: a.hours, notes: a.notes,
+});
+
+// HR — Workplace Rules
+export type WorkplaceRule = {
+  id: string; title: string; category: string; description: string; effectiveDate: string; sortOrder: number;
+};
+const ruleFromDb = (r: Record<string, unknown>): WorkplaceRule => ({
+  id: r.id as string, title: (r.title as string) || "", category: (r.category as string) || "",
+  description: (r.description as string) || "", effectiveDate: (r.effective_date as string) || "",
+  sortOrder: Number(r.sort_order) || 0,
+});
+const ruleToDb = (r: WorkplaceRule, userId: string) => ({
+  id: r.id, user_id: userId, title: r.title, category: r.category,
+  description: r.description, effective_date: r.effectiveDate, sort_order: r.sortOrder,
+});
+
+// HR — Payroll
+export type PayrollEntry = {
+  id: string; employeeId: string; employeeName: string; month: string;
+  basicSalary: number; allowances: number; overtime: number; deductions: number; advance: number;
+  netPay: number; status: "pending" | "paid"; paidDate: string; paymentMethod: string; notes: string;
+};
+const payrollFromDb = (r: Record<string, unknown>): PayrollEntry => ({
+  id: r.id as string, employeeId: (r.employee_id as string) || "",
+  employeeName: (r.employee_name as string) || "", month: (r.month as string) || "",
+  basicSalary: Number(r.basic_salary) || 0, allowances: Number(r.allowances) || 0,
+  overtime: Number(r.overtime) || 0, deductions: Number(r.deductions) || 0,
+  advance: Number(r.advance) || 0, netPay: Number(r.net_pay) || 0,
+  status: ((r.status as PayrollEntry["status"]) || "pending"),
+  paidDate: (r.paid_date as string) || "", paymentMethod: (r.payment_method as string) || "",
+  notes: (r.notes as string) || "",
+});
+const payrollToDb = (p: PayrollEntry, userId: string) => ({
+  id: p.id, user_id: userId, employee_id: p.employeeId || null, employee_name: p.employeeName,
+  month: p.month, basic_salary: p.basicSalary, allowances: p.allowances, overtime: p.overtime,
+  deductions: p.deductions, advance: p.advance, net_pay: p.netPay, status: p.status,
+  paid_date: p.paidDate, payment_method: p.paymentMethod, notes: p.notes,
+});
+
 // =================== EXPORTS ===================
 
 export const useCustomersCloud = () => useTable("customers", customerFromDb, customerToDb);
