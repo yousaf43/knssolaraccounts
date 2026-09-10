@@ -2200,9 +2200,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: "Total Revenue", value: filteredData.reduce((s, d) => s + d.sales, 0), cls: "text-primary" },
-              { label: "Total Expenses", value: filteredData.reduce((s, d) => s + d.expenses, 0), cls: "text-destructive" },
-              { label: "Net Profit", value: filteredData.reduce((s, d) => s + d.sales - d.expenses, 0), cls: "text-success" },
+              { label: "Total Revenue", value: plStats?.netSales ?? 0, cls: "text-primary" },
+              { label: "Total Expenses", value: (plStats ? plStats.costOfSales + plStats.operatingExpenses + plStats.incomeTax : 0), cls: "text-destructive" },
+              { label: "Net Profit", value: plStats?.netIncome ?? 0, cls: "text-success" },
             ].map((m) => (
               <div key={m.label} className="bg-card border rounded-lg p-4">
                 <p className="text-sm text-muted-foreground">{m.label}</p>
