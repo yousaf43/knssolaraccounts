@@ -349,7 +349,7 @@ const solarWashingToDb = (w: SolarWashing, userId: string) => ({
 export type Employee = {
   id: string; code: string; name: string; designation: string; department: string;
   phone: string; cnic: string; address: string; joinDate: string; salary: number;
-  status: "active" | "inactive"; notes: string;
+  status: "active" | "inactive"; notes: string; biometricId: string;
 };
 const employeeFromDb = (r: Record<string, unknown>): Employee => ({
   id: r.id as string, code: (r.code as string) || "", name: (r.name as string) || "",
@@ -357,11 +357,13 @@ const employeeFromDb = (r: Record<string, unknown>): Employee => ({
   phone: (r.phone as string) || "", cnic: (r.cnic as string) || "", address: (r.address as string) || "",
   joinDate: (r.join_date as string) || "", salary: Number(r.salary) || 0,
   status: ((r.status as Employee["status"]) || "active"), notes: (r.notes as string) || "",
+  biometricId: (r.biometric_id as string) || "",
 });
 const employeeToDb = (e: Employee, userId: string) => ({
   id: e.id, user_id: userId, code: e.code, name: e.name, designation: e.designation,
   department: e.department, phone: e.phone, cnic: e.cnic, address: e.address,
   join_date: e.joinDate, salary: e.salary, status: e.status, notes: e.notes,
+  biometric_id: e.biometricId || null,
 });
 
 // HR — Attendance

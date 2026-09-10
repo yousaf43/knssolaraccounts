@@ -1,1 +1,4 @@
 project_id = "kaktpzpeqimttsqtrads"
+
+[functions.zkteco-attendance]
+verify_jwt = false
