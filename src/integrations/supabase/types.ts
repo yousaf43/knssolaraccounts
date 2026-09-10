@@ -111,6 +111,54 @@ export type Database = {
           },
         ]
       }
+      attendance: {
+        Row: {
+          check_in: string | null
+          check_out: string | null
+          company_id: string | null
+          created_at: string
+          date: string
+          employee_id: string | null
+          employee_name: string | null
+          hours: number
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          check_in?: string | null
+          check_out?: string | null
+          company_id?: string | null
+          created_at?: string
+          date: string
+          employee_id?: string | null
+          employee_name?: string | null
+          hours?: number
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          check_in?: string | null
+          check_out?: string | null
+          company_id?: string | null
+          created_at?: string
+          date?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          hours?: number
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       backups: {
         Row: {
           backup_data: Json
@@ -302,6 +350,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      employees: {
+        Row: {
+          address: string | null
+          cnic: string | null
+          code: string | null
+          company_id: string | null
+          created_at: string
+          department: string | null
+          designation: string | null
+          id: string
+          join_date: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          salary: number
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          cnic?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          id?: string
+          join_date?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          salary?: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          cnic?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          id?: string
+          join_date?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          salary?: number
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       expenses: {
         Row: {
@@ -690,6 +795,69 @@ export type Database = {
           id?: string
           used?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      payroll: {
+        Row: {
+          advance: number
+          allowances: number
+          basic_salary: number
+          company_id: string | null
+          created_at: string
+          deductions: number
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          month: string
+          net_pay: number
+          notes: string | null
+          overtime: number
+          paid_date: string | null
+          payment_method: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          advance?: number
+          allowances?: number
+          basic_salary?: number
+          company_id?: string | null
+          created_at?: string
+          deductions?: number
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          month: string
+          net_pay?: number
+          notes?: string | null
+          overtime?: number
+          paid_date?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          advance?: number
+          allowances?: number
+          basic_salary?: number
+          company_id?: string | null
+          created_at?: string
+          deductions?: number
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          month?: string
+          net_pay?: number
+          notes?: string | null
+          overtime?: number
+          paid_date?: string | null
+          payment_method?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1399,6 +1567,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workplace_rules: {
+        Row: {
+          category: string | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          effective_date: string | null
+          id: string
+          sort_order: number
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          effective_date?: string | null
+          id?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          effective_date?: string | null
+          id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
