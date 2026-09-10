@@ -159,6 +159,110 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_devices: {
+        Row: {
+          api_key: string
+          company_id: string | null
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          serial: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          api_key?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          serial?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          api_key?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          serial?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_devices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_punches: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          device_id: string | null
+          device_user_id: string
+          employee_id: string | null
+          employee_name: string | null
+          id: string
+          punch_date: string
+          punch_time: string
+          punch_type: string | null
+          raw: string | null
+          source: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          device_user_id: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          punch_date: string
+          punch_time: string
+          punch_type?: string | null
+          raw?: string | null
+          source?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          device_id?: string | null
+          device_user_id?: string
+          employee_id?: string | null
+          employee_name?: string | null
+          id?: string
+          punch_date?: string
+          punch_time?: string
+          punch_type?: string | null
+          raw?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_punches_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_punches_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backups: {
         Row: {
           backup_data: Json
@@ -354,6 +458,7 @@ export type Database = {
       employees: {
         Row: {
           address: string | null
+          biometric_id: string | null
           cnic: string | null
           code: string | null
           company_id: string | null
@@ -372,6 +477,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          biometric_id?: string | null
           cnic?: string | null
           code?: string | null
           company_id?: string | null
@@ -390,6 +496,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          biometric_id?: string | null
           cnic?: string | null
           code?: string | null
           company_id?: string | null
