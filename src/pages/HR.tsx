@@ -307,7 +307,7 @@ export default function HR() {
 
         {/* ---------------- Biometric Device ---------------- */}
         <TabsContent value="biometric" className="mt-4">
-          <BiometricAttendance onImported={() => { void attendance.refetch?.(); }} />
+          <BiometricAttendance onImported={() => { void attendance.fetch(); }} />
         </TabsContent>
 
         {/* ---------------- Workplace Rules ---------------- */}
