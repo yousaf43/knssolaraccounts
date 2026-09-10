@@ -61,7 +61,6 @@ export default function HR() {
   const [empForm, setEmpForm] = useState<Employee>(emptyEmployee);
   const [empSearch, setEmpSearch] = useState("");
   const [empStatus, setEmpStatus] = useState("all");
-  const [empDelete, setEmpDelete] = useState<Employee | null>(null);
 
   const activeEmployees = useMemo(() => employees.data.filter((e) => e.status === "active"), [employees.data]);
   const filteredEmployees = useMemo(() => {
@@ -84,7 +83,6 @@ export default function HR() {
   const [attForm, setAttForm] = useState<AttendanceRecord>(emptyAttendance);
   const [attDate, setAttDate] = useState("");
   const [attEmployee, setAttEmployee] = useState("all");
-  const [attDelete, setAttDelete] = useState<AttendanceRecord | null>(null);
 
   const filteredAttendance = useMemo(() => {
     return attendance.data
@@ -109,7 +107,6 @@ export default function HR() {
   // ---------- Rules ----------
   const [ruleDialog, setRuleDialog] = useState(false);
   const [ruleForm, setRuleForm] = useState<WorkplaceRule>(emptyRule);
-  const [ruleDelete, setRuleDelete] = useState<WorkplaceRule | null>(null);
   const sortedRules = useMemo(
     () => [...rules.data].sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title)),
     [rules.data],
@@ -126,7 +123,6 @@ export default function HR() {
   const [payDialog, setPayDialog] = useState(false);
   const [payForm, setPayForm] = useState<PayrollEntry>(emptyPayroll);
   const [payMonth, setPayMonth] = useState("");
-  const [payDelete, setPayDelete] = useState<PayrollEntry | null>(null);
 
   const netOf = (p: PayrollEntry) =>
     (p.basicSalary || 0) + (p.allowances || 0) + (p.overtime || 0) - (p.deductions || 0) - (p.advance || 0);
@@ -253,7 +249,7 @@ export default function HR() {
                     <TableCell>{statusBadge(e.status)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => { setEmpForm({ ...e }); setEmpDialog(true); }}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => setEmpDelete(e)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <ConfirmDeleteDialog onConfirm={() => { void employees.remove(e.id); }} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -298,7 +294,7 @@ export default function HR() {
                     <TableCell className="max-w-[200px] truncate">{a.notes || "-"}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => { setAttForm({ ...a }); setAttDialog(true); }}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => setAttDelete(a)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <ConfirmDeleteDialog onConfirm={() => { void attendance.remove(a.id); }} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -328,7 +324,7 @@ export default function HR() {
                   </div>
                   <div className="flex-shrink-0">
                     <Button variant="ghost" size="icon" onClick={() => { setRuleForm({ ...r }); setRuleDialog(true); }}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setRuleDelete(r)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    <ConfirmDeleteDialog onConfirm={() => { void rules.remove(r.id); }} />
                   </div>
                 </CardContent>
               </Card>
@@ -376,7 +372,7 @@ export default function HR() {
                     <TableCell>{statusBadge(p.status)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Button variant="ghost" size="icon" onClick={() => { setPayForm({ ...p }); setPayDialog(true); }}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => setPayDelete(p)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <ConfirmDeleteDialog onConfirm={() => { void payroll.remove(p.id); }} />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -513,30 +509,6 @@ export default function HR() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDeleteDialog
-        open={!!empDelete}
-        onOpenChange={(o) => !o && setEmpDelete(null)}
-        itemName={empDelete?.name}
-        onConfirm={async () => { if (empDelete) await employees.remove(empDelete.id); setEmpDelete(null); }}
-      />
-      <ConfirmDeleteDialog
-        open={!!attDelete}
-        onOpenChange={(o) => !o && setAttDelete(null)}
-        itemName={attDelete ? `${attDelete.employeeName} — ${attDelete.date}` : undefined}
-        onConfirm={async () => { if (attDelete) await attendance.remove(attDelete.id); setAttDelete(null); }}
-      />
-      <ConfirmDeleteDialog
-        open={!!ruleDelete}
-        onOpenChange={(o) => !o && setRuleDelete(null)}
-        itemName={ruleDelete?.title}
-        onConfirm={async () => { if (ruleDelete) await rules.remove(ruleDelete.id); setRuleDelete(null); }}
-      />
-      <ConfirmDeleteDialog
-        open={!!payDelete}
-        onOpenChange={(o) => !o && setPayDelete(null)}
-        itemName={payDelete ? `${payDelete.employeeName} — ${payDelete.month}` : undefined}
-        onConfirm={async () => { if (payDelete) await payroll.remove(payDelete.id); setPayDelete(null); }}
-      />
     </div>
   );
 }
