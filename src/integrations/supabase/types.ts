@@ -1371,35 +1371,50 @@ export type Database = {
       }
       solar_washing: {
         Row: {
+          address: string | null
           amount: number | null
           company_id: string | null
           created_at: string
           customer: string | null
           date: string | null
           id: string
+          issue: string | null
           notes: string | null
+          panels: number
+          phone: string | null
+          type: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           amount?: number | null
           company_id?: string | null
           created_at?: string
           customer?: string | null
           date?: string | null
           id?: string
+          issue?: string | null
           notes?: string | null
+          panels?: number
+          phone?: string | null
+          type?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           amount?: number | null
           company_id?: string | null
           created_at?: string
           customer?: string | null
           date?: string | null
           id?: string
+          issue?: string | null
           notes?: string | null
+          panels?: number
+          phone?: string | null
+          type?: string
           updated_at?: string
           user_id?: string
         }
