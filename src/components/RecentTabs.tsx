@@ -15,7 +15,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/accounts": "Accounts",
   "/assets": "Assets",
   "/reports": "Reports",
-  "/solar-washing": "Solar Washing",
+  "/solar-washing": "Solar Washing & Complaints",
   "/activity-logs": "Activity Logs",
   "/trash": "Trash",
   "/settings": "Settings",

@@ -336,13 +336,21 @@ const reconcileToDb = (e: ReconcileEntry, userId: string) => ({
 });
 
 // Solar Washing
-export type SolarWashing = { id: string; date: string; customer: string; amount: number; notes: string };
+export type SolarWashing = {
+  id: string; date: string; customer: string; amount: number; notes: string;
+  type: "washing" | "complaint"; address: string; phone: string; issue: string; panels: number;
+};
 const solarWashingFromDb = (r: Record<string, unknown>): SolarWashing => ({
   id: r.id as string, date: (r.date as string) || "", customer: (r.customer as string) || "",
   amount: Number(r.amount) || 0, notes: (r.notes as string) || "",
+  type: ((r.type as string) === "complaint" ? "complaint" : "washing"),
+  address: (r.address as string) || "", phone: (r.phone as string) || "",
+  issue: (r.issue as string) || "", panels: Number(r.panels) || 0,
 });
 const solarWashingToDb = (w: SolarWashing, userId: string) => ({
   id: w.id, user_id: userId, date: w.date, customer: w.customer, amount: w.amount, notes: w.notes,
+  type: w.type || "washing", address: w.address || null, phone: w.phone || null,
+  issue: w.issue || null, panels: w.panels || 0,
 });
 
 // HR — Employees

@@ -393,7 +393,8 @@ export function InvoiceForm({ customers, inventory = [], onSave, onCancel, editI
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label>Invoice Number</Label>
-          <Input value={customNumber || nextNumber} onChange={(e) => setCustomNumber(e.target.value)} placeholder={nextNumber} className="mt-1" />
+          <Input value={editInvoice?.number || nextNumber} readOnly disabled className="mt-1 bg-muted/50" />
+          <p className="mt-1 text-[11px] text-muted-foreground">Auto-generated and locked</p>
         </div>
         <div>
           <Label>Document Number</Label>

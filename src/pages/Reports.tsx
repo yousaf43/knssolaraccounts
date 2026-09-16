@@ -1800,6 +1800,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [nominalSearch, setNominalSearch] = useState("");
   const [nominalAccountFilter, setNominalAccountFilter] = useState("all");
   const [nominalPayMethod, setNominalPayMethod] = useState("all");
+  const [nominalCategory, setNominalCategory] = useState("all");
   const [nominalView, setNominalView] = useState<"summary" | "detail">("summary");
   const [receiptSearch, setReceiptSearch] = useState("");
   const [txnSearch, setTxnSearch] = useState("");
@@ -3931,10 +3932,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         const accountOf = (e: Expense) => (e.nominalAccount || "").trim() || "Unallocated (No Nominal Account)";
         const accList = Array.from(new Set(periodExpenses.map(accountOf))).sort((a, b) => a.localeCompare(b));
         const methodList = Array.from(new Set(periodExpenses.map(e => (e.paymentMethod || "").trim()).filter(Boolean))).sort();
+        const categoryList = Array.from(new Set(periodExpenses.map(e => (e.category || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
         const tokens = tokenize(nominalSearch);
 
         const visible = periodExpenses
           .filter(e => nominalAccountFilter === "all" || accountOf(e) === nominalAccountFilter)
+          .filter(e => nominalCategory === "all" || (e.category || "").trim() === nominalCategory)
           .filter(e => nominalPayMethod === "all" || (e.paymentMethod || "") === nominalPayMethod)
           .filter(e => matchesTokens(tokens, accountOf(e), e.description || "", e.category || "", e.paymentMethod || "", e.date || ""))
           .sort((a, b) => accountOf(a).localeCompare(accountOf(b)) || (a.date || "").localeCompare(b.date || ""));
@@ -3986,6 +3989,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       {accList.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  <Select value={nominalCategory} onValueChange={setNominalCategory}>
+                    <SelectTrigger className="h-9 text-xs w-44"><SelectValue placeholder="Category" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categoryList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <Select value={nominalPayMethod} onValueChange={setNominalPayMethod}>
                     <SelectTrigger className="h-9 text-xs w-40"><SelectValue placeholder="Payment" /></SelectTrigger>
                     <SelectContent>
@@ -4000,8 +4010,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <SelectItem value="detail">Detailed</SelectItem>
                     </SelectContent>
                   </Select>
-                  {(nominalSearch || nominalAccountFilter !== "all" || nominalPayMethod !== "all") && (
-                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setNominalSearch(""); setNominalAccountFilter("all"); setNominalPayMethod("all"); }}>Reset</Button>
+                  {(nominalSearch || nominalAccountFilter !== "all" || nominalPayMethod !== "all" || nominalCategory !== "all") && (
+                    <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setNominalSearch(""); setNominalAccountFilter("all"); setNominalPayMethod("all"); setNominalCategory("all"); }}>Reset</Button>
                   )}
                 </div>
               </div>
