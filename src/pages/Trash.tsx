@@ -36,7 +36,7 @@ const TYPE_LABELS: Record<string, string> = {
   bill: "Bill",
   purchase_order: "Purchase Order",
   purchase_payment: "Purchase Payment",
-  solar_washing: "Solar Washing",
+  solar_washing: "Solar Washing & Complaints",
 };
 
 /**
