@@ -1008,7 +1008,7 @@ function IncomeStatement({
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
-      <div id="report-print-table" className="invoice-pnl-print">
+      <div id="report-print-table">
         <div
           className="text-center py-4 px-4"
           style={{ background: "#1d4ed8", color: "#ffffff" }}
@@ -1261,7 +1261,7 @@ function ProfitLossByInvoice({
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
-      <div id="report-print-table">
+      <div id="report-print-table" className="invoice-pnl-print">
         <div className="border-b px-4 py-4 text-center">
           <h2 className="text-lg font-bold">{companyName}</h2>
           <p className="text-sm font-semibold">Profit &amp; Loss (By Invoice)</p>
