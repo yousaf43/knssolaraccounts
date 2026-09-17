@@ -230,9 +230,10 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
   // Panel reports (e.g. Income Statement) ship their own header + cards markup.
   const isPanel = !cleanHtml.trim().toLowerCase().startsWith("<table");
   const isSiteStatement = cleanHtml.includes("site-statement-print");
+  const isInvoicePnl = cleanHtml.includes("invoice-pnl-print");
   const content = `<html><head><title>${title}</title>
     <style>
-      @page { size: A4 portrait; margin: 10mm; }
+      @page { size: A4 ${isInvoicePnl ? "landscape" : "portrait"}; margin: ${isInvoicePnl ? "8mm" : "10mm"}; }
       * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { font-family: Arial, sans-serif; padding: ${isPanel ? "0" : "16px"}; color: #222; font-size: 12px; margin: 0; }
       .header { text-align: center; margin-bottom: 20px; }
@@ -426,6 +427,76 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-reconciliation-panel .border-t { border-top: 1px solid #d7deea; }
       #report-reconciliation-panel .pt-2 { padding-top: 8px; }
       #report-reconciliation-panel .pb-4 { padding-bottom: 12px; }
+      ` : ""}
+      ${isInvoicePnl ? `
+      /* Report 130: wide invoice profitability schedule */
+      body { background: #fff; color: #172033; font-family: Arial, sans-serif; }
+      #report-print-table.invoice-pnl-print {
+        width: 100%; border: 1px solid #b9c7da; background: #fff; overflow: visible;
+      }
+      #report-print-table.invoice-pnl-print > div:first-child {
+        position: relative; padding: 7mm 8mm 5mm !important; background: #174a8b !important;
+        border: 0; border-bottom: 1.5mm solid #d7a62f; color: #fff; text-align: left !important;
+      }
+      #report-print-table.invoice-pnl-print > div:first-child::after {
+        content: "FINANCIAL PERFORMANCE REPORT"; position: absolute; right: 8mm; top: 7mm;
+        padding: 1.5mm 2.5mm; border: 1px solid rgba(255,255,255,.55); color: #fff;
+        font-size: 6.5pt; font-weight: 700; letter-spacing: .08em;
+      }
+      #report-print-table.invoice-pnl-print > div:first-child h2 {
+        margin: 0 0 1.5mm !important; color: #fff !important; font-size: 16pt !important;
+        line-height: 1.1; letter-spacing: 0; text-align: left !important;
+      }
+      #report-print-table.invoice-pnl-print > div:first-child p {
+        display: inline; margin: 0 4mm 0 0 !important; color: #fff !important;
+        font-size: 8pt !important; text-align: left !important;
+      }
+      #report-print-table.invoice-pnl-print > div:first-child p:last-child { color: #e8eef7 !important; }
+      #report-print-table.invoice-pnl-print .overflow-x-auto { overflow: visible !important; }
+      #report-print-table.invoice-pnl-print table {
+        width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important;
+      }
+      #report-print-table.invoice-pnl-print thead { display: table-header-group; }
+      #report-print-table.invoice-pnl-print th {
+        padding: 2.2mm 1.2mm !important; border: 0 !important; border-right: 1px solid #c6d1df !important;
+        border-bottom: 1px solid #aab9cc !important; background: #e8eef6 !important; color: #26384f !important;
+        font-size: 6.8pt !important; line-height: 1.15; font-weight: 700; white-space: normal !important;
+        overflow-wrap: normal !important; word-break: normal !important;
+      }
+      #report-print-table.invoice-pnl-print td {
+        padding: 1.8mm 1.2mm !important; border: 0 !important; border-right: 1px solid #e1e7ef !important;
+        border-bottom: 1px solid #d8e0ea !important; color: #172033 !important; font-size: 6.8pt !important;
+        line-height: 1.2; vertical-align: middle; white-space: normal !important; overflow-wrap: anywhere !important;
+      }
+      #report-print-table.invoice-pnl-print tbody tr:nth-child(even) td { background: #f6f8fb !important; }
+      #report-print-table.invoice-pnl-print tbody tr { break-inside: avoid; page-break-inside: avoid; }
+      #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print td:nth-child(1) { width: 7mm !important; text-align: center !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(2), #report-print-table.invoice-pnl-print td:nth-child(2) { width: 18mm !important; white-space: nowrap !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(3), #report-print-table.invoice-pnl-print td:nth-child(3) { width: 19mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(4), #report-print-table.invoice-pnl-print td:nth-child(4) { width: 20mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(5), #report-print-table.invoice-pnl-print td:nth-child(5) { width: 28mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(6), #report-print-table.invoice-pnl-print td:nth-child(6) { width: 31mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(7), #report-print-table.invoice-pnl-print td:nth-child(7) { width: 22mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(8), #report-print-table.invoice-pnl-print td:nth-child(8) { width: 19mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(9), #report-print-table.invoice-pnl-print td:nth-child(9) { width: 22mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(10), #report-print-table.invoice-pnl-print td:nth-child(10) { width: 23mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(11), #report-print-table.invoice-pnl-print td:nth-child(11) { width: 22mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(12), #report-print-table.invoice-pnl-print td:nth-child(12) { width: 14mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(n+7), #report-print-table.invoice-pnl-print td:nth-child(n+7) {
+        text-align: right !important; white-space: nowrap !important; font-variant-numeric: tabular-nums;
+      }
+      #report-print-table.invoice-pnl-print .invoice-expand-icon,
+      #report-print-table.invoice-pnl-print .invoice-detail-row { display: none !important; }
+      #report-print-table.invoice-pnl-print .print-field-value {
+        display: block; min-width: 0; color: #172033; font-size: 6.8pt; text-align: right; white-space: nowrap;
+      }
+      #report-print-table.invoice-pnl-print tfoot { display: table-row-group; }
+      #report-print-table.invoice-pnl-print tfoot td {
+        padding-top: 2.5mm !important; padding-bottom: 2.5mm !important; border-top: 1mm solid #174a8b !important;
+        border-bottom: 0 !important; background: #dfe9f5 !important; color: #102a4d !important; font-weight: 800 !important;
+      }
+      #report-print-table.invoice-pnl-print tfoot td:first-child { text-align: left !important; }
+      .footer { margin-top: 3mm; color: #65758b; font-size: 6.5pt; text-transform: uppercase; letter-spacing: .05em; }
       ` : ""}
       @media print {
         body { padding: 0; }
@@ -1190,7 +1261,7 @@ function ProfitLossByInvoice({
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
-      <div id="report-print-table">
+      <div id="report-print-table" className="invoice-pnl-print">
         <div className="border-b px-4 py-4 text-center">
           <h2 className="text-lg font-bold">{companyName}</h2>
           <p className="text-sm font-semibold">Profit &amp; Loss (By Invoice)</p>
@@ -1225,7 +1296,7 @@ function ProfitLossByInvoice({
                       <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
                       <td className="px-3 py-2 font-medium">
                         <span className="inline-flex items-center gap-1.5">
-                          {expandedId === row.id ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                          {expandedId === row.id ? <ChevronDown className="invoice-expand-icon w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="invoice-expand-icon w-3.5 h-3.5 text-muted-foreground" />}
                           <HighlightText text={row.number} query={search} />
                         </span>
                       </td>
@@ -1252,7 +1323,7 @@ function ProfitLossByInvoice({
                       <td className={`px-3 py-2 text-right ${row.margin >= 0 ? "text-success" : "text-destructive"}`}>{row.margin.toFixed(1)}%</td>
                     </tr>
                     {expandedId === row.id && (
-                      <tr className="border-b bg-muted/20">
+                      <tr className="invoice-detail-row border-b bg-muted/20">
                         <td colSpan={12} className="px-6 py-4">
                           {(() => {
                             const invoice = invoices.find(item => item.id === row.id);
