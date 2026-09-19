@@ -2120,7 +2120,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
             const tableEl = document.getElementById("report-print-table");
             const reconEl = document.getElementById("report-reconciliation-panel");
-            if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, reconEl?.outerHTML);
+            const noteEl = document.getElementById("report-outstanding-note");
+            const extra = [reconEl?.outerHTML, noteEl?.outerHTML].filter(Boolean).join("") || undefined;
+            if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, extra);
             else exportPDF(report, filteredData, dateRange);
           }}>
             <FileText className="w-3.5 h-3.5" /> PDF
@@ -2128,14 +2130,17 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
             const tableEl = document.getElementById("report-print-table");
             const reconEl = document.getElementById("report-reconciliation-panel");
+            const noteEl = document.getElementById("report-outstanding-note");
+            const extra = [reconEl?.outerHTML, noteEl?.outerHTML].filter(Boolean).join("") || undefined;
             if (tableEl) {
-              exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, reconEl?.outerHTML);
+              exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, extra);
             } else {
               exportPDF(report, filteredData, dateRange);
             }
           }}>
             <FileText className="w-3.5 h-3.5" /> Print
           </Button>
+
         </div>
       </div>
 
