@@ -386,7 +386,7 @@ export default function Inventory() {
           <PopoverTrigger asChild>
             <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateFrom ? format(dateFrom, "PP") : "Start"}
+              {dateFrom ? format(dateFrom, "dd-MM-yyyy") : "Start"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -400,7 +400,7 @@ export default function Inventory() {
           <PopoverTrigger asChild>
             <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateTo ? format(dateTo, "PP") : "End"}
+              {dateTo ? format(dateTo, "dd-MM-yyyy") : "End"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
