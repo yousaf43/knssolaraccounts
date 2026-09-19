@@ -494,7 +494,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print .invoice-expand-icon,
       #report-print-table.invoice-pnl-print .invoice-detail-row { display: none !important; }
       #report-print-table.invoice-pnl-print .print-field-value {
-        display: block; min-width: 0; color: #172033; font-size: 6.8pt; text-align: right; white-space: nowrap;
+        display: block; min-width: 0; color: #0f1b2d; font-size: 6.8pt; text-align: right; white-space: nowrap; font-weight: 700;
       }
       #report-print-table.invoice-pnl-print tfoot { display: table-row-group; }
       #report-print-table.invoice-pnl-print tfoot td {
