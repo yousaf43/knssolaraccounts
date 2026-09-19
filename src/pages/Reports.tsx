@@ -466,9 +466,14 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       }
       #report-print-table.invoice-pnl-print td {
         padding: 1.8mm 1.2mm !important; border: 0 !important; border-right: 1px solid #e1e7ef !important;
-        border-bottom: 1px solid #d8e0ea !important; color: #172033 !important; font-size: 6.8pt !important;
+        border-bottom: 1px solid #d8e0ea !important; color: #0f1b2d !important; font-size: 6.8pt !important;
         line-height: 1.2; vertical-align: middle; white-space: normal !important; overflow-wrap: anywhere !important;
+        font-weight: 700 !important;
       }
+      #report-print-table.invoice-pnl-print th { font-weight: 800 !important; color: #10233c !important; }
+      #report-print-table.invoice-pnl-print td span,
+      #report-print-table.invoice-pnl-print td div { font-weight: 700 !important; color: #0f1b2d !important; }
+
       #report-print-table.invoice-pnl-print tbody tr:nth-child(even) td { background: #f6f8fb !important; }
       #report-print-table.invoice-pnl-print tbody tr { break-inside: avoid; page-break-inside: avoid; }
       #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print td:nth-child(1) { width: 7mm !important; text-align: center !important; }
