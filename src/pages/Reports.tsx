@@ -19,7 +19,7 @@ import {
   useInvoicesCloud, useExpensesCloud, useBillsCloud, useInventoryCloud,
   useCustomersCloud, useReceiptsCloud, useSalesOrdersCloud, usePurchaseOrdersCloud,
   useAccountsCloud, useLedgerEntriesCloud, usePurchasePaymentsCloud,
-  useStockAdjustmentsCloud,
+  useStockAdjustmentsCloud, useSolarWashingCloud,
 } from "@/hooks/useAppData";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Badge } from "@/components/ui/badge";
