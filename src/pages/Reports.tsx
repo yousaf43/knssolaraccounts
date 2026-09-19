@@ -2519,6 +2519,99 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       )}
 
       {/* Discount Report (By Customer) — 038 */}
+      {report.code === "265" && (() => {
+        const tokens = tokenize(swSearch);
+        const rows = (solarWashing || [])
+          .filter(r => inRange(r.date, fromDate, toDate))
+          .filter(r => swType === "all" || r.type === swType)
+          .filter(r => matchesTokens(tokens, r.customer, r.phone, r.address, r.issue, r.notes))
+          .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        const totalAmount = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+        const totalPanels = rows.reduce((s, r) => s + (Number(r.panels) || 0), 0);
+        const washCount = rows.filter(r => r.type === "washing").length;
+        const complaintCount = rows.filter(r => r.type === "complaint").length;
+        return (
+          <div className="bg-card rounded-lg border p-6">
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+              <h2 className="text-lg font-semibold">Solar Washing &amp; Complaints — {rows.length} records</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Input
+                  value={swSearch}
+                  onChange={(e) => setSwSearch(e.target.value)}
+                  placeholder="Search customer, phone, address, issue…"
+                  className="h-9 w-full sm:w-64"
+                />
+                <Select value={swType} onValueChange={(v) => setSwType(v as typeof swType)}>
+                  <SelectTrigger className="h-9 text-xs w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="washing">Washing</SelectItem>
+                    <SelectItem value="complaint">Complaints</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(swSearch || swType !== "all") && (
+                  <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setSwSearch(""); setSwType("all"); }}>Reset</Button>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              {[
+                { label: "Washing Jobs", value: String(washCount) },
+                { label: "Complaints", value: String(complaintCount) },
+                { label: "Panels Washed", value: String(totalPanels) },
+                { label: "Total Amount", value: formatCurrency(totalAmount) },
+              ].map(c => (
+                <div key={c.label} className="border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">{c.label}</p>
+                  <p className="text-lg font-semibold">{c.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="overflow-x-auto">
+              <table id="report-print-table" className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground w-12">Sr #</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Date</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Type</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Customer</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Phone</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Address</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Issue / Notes</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Panels</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.length === 0 ? (
+                    <tr><td colSpan={9} className="text-center py-6 text-muted-foreground">No records in this range.</td></tr>
+                  ) : rows.map((r, i) => (
+                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{formatDate(r.date)}</td>
+                      <td className="px-3 py-2 capitalize">{r.type}</td>
+                      <td className="px-3 py-2 font-medium"><HighlightText text={r.customer} query={swSearch} /></td>
+                      <td className="px-3 py-2"><HighlightText text={r.phone || "—"} query={swSearch} /></td>
+                      <td className="px-3 py-2"><HighlightText text={r.address || "—"} query={swSearch} /></td>
+                      <td className="px-3 py-2"><HighlightText text={r.type === "complaint" ? (r.issue || r.notes || "—") : (r.notes || "—")} query={swSearch} /></td>
+                      <td className="px-3 py-2 text-right">{r.type === "washing" ? r.panels : "—"}</td>
+                      <td className="px-3 py-2 text-right font-semibold">{formatCurrency(r.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t bg-muted/30 font-semibold">
+                    <td className="px-3 py-2" colSpan={7}>Total</td>
+                    <td className="px-3 py-2 text-right">{totalPanels}</td>
+                    <td className="px-3 py-2 text-right">{formatCurrency(totalAmount)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
       {report.code === "038" && (() => {
         const saleInvoices = uniqueInvoicesById(invoices.filter(countsAsSale))
           .filter(i => inRange(i.date, fromDate, toDate));
