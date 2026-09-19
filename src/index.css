@@ -117,6 +117,32 @@
     background-attachment: fixed;
   }
 
+  /* Smooth theme & surface transitions across the whole app */
+  body,
+  header,
+  footer,
+  aside,
+  nav,
+  main,
+  .surface-card,
+  .kpi-card,
+  .glass-panel,
+  [data-sidebar],
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="dialog"],
+  [role="menu"],
+  table,
+  th,
+  td {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 0.25s;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   /* Refined scrollbars */
   * {
     scrollbar-width: thin;
@@ -223,7 +249,7 @@
   }
 
   .page-enter {
-    animation: fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: page-transition-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .stagger-children > * {
@@ -253,6 +279,20 @@
 @keyframes fade-in-up {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth page-switch transition: fade + gentle rise + subtle blur settle */
+@keyframes page-transition-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.995);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 @keyframes shimmer-sweep {
