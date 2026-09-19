@@ -499,7 +499,25 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print tfoot td:first-child { text-align: left !important; }
       .footer { margin-top: 3mm; color: #65758b; font-size: 6.5pt; text-transform: uppercase; letter-spacing: .05em; }
       ` : ""}
+      /* Outstanding balances note (Report 121) */
+      #report-outstanding-note {
+        margin-top: 6mm; padding: 4mm 5mm; border: 1px solid #cbd5e1; border-radius: 4px;
+        background: #f8fafc; page-break-inside: avoid;
+      }
+      #report-outstanding-note > p:first-child {
+        margin: 0 0 3mm; font-size: 11px; font-weight: 700; color: #174a8b; text-transform: uppercase; letter-spacing: .04em;
+      }
+      #report-outstanding-note .grid {
+        display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 4mm !important;
+      }
+      #report-outstanding-note .grid > div {
+        padding: 3mm; border: 1px solid #dbe3ee; border-left: 3px solid #174a8b; border-radius: 3px; background: #fff;
+      }
+      #report-outstanding-note .grid > div > p:first-child { margin: 0 0 1.5mm; font-size: 9px; color: #64748b; text-transform: uppercase; }
+      #report-outstanding-note .grid > div > p:last-child { margin: 0; font-size: 12px; font-weight: 700; color: #1e293b; }
+      #report-outstanding-note > p:last-child { margin: 3mm 0 0; font-size: 9px; color: #64748b; font-style: italic; }
       @media print {
+
         body { padding: 0; }
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
