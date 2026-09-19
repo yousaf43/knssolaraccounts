@@ -499,7 +499,25 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print tfoot td:first-child { text-align: left !important; }
       .footer { margin-top: 3mm; color: #65758b; font-size: 6.5pt; text-transform: uppercase; letter-spacing: .05em; }
       ` : ""}
+      /* Outstanding balances note (Report 121) */
+      #report-outstanding-note {
+        margin-top: 6mm; padding: 4mm 5mm; border: 1px solid #cbd5e1; border-radius: 4px;
+        background: #f8fafc; page-break-inside: avoid;
+      }
+      #report-outstanding-note > p:first-child {
+        margin: 0 0 3mm; font-size: 11px; font-weight: 700; color: #174a8b; text-transform: uppercase; letter-spacing: .04em;
+      }
+      #report-outstanding-note .grid {
+        display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 4mm !important;
+      }
+      #report-outstanding-note .grid > div {
+        padding: 3mm; border: 1px solid #dbe3ee; border-left: 3px solid #174a8b; border-radius: 3px; background: #fff;
+      }
+      #report-outstanding-note .grid > div > p:first-child { margin: 0 0 1.5mm; font-size: 9px; color: #64748b; text-transform: uppercase; }
+      #report-outstanding-note .grid > div > p:last-child { margin: 0; font-size: 12px; font-weight: 700; color: #1e293b; }
+      #report-outstanding-note > p:last-child { margin: 3mm 0 0; font-size: 9px; color: #64748b; font-style: italic; }
       @media print {
+
         body { padding: 0; }
         thead { display: table-header-group; }
         tr { page-break-inside: avoid; }
@@ -2120,7 +2138,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
             const tableEl = document.getElementById("report-print-table");
             const reconEl = document.getElementById("report-reconciliation-panel");
-            if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, reconEl?.outerHTML);
+            const noteEl = document.getElementById("report-outstanding-note");
+            const extra = [reconEl?.outerHTML, noteEl?.outerHTML].filter(Boolean).join("") || undefined;
+            if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, extra);
             else exportPDF(report, filteredData, dateRange);
           }}>
             <FileText className="w-3.5 h-3.5" /> PDF
@@ -2128,14 +2148,17 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => {
             const tableEl = document.getElementById("report-print-table");
             const reconEl = document.getElementById("report-reconciliation-panel");
+            const noteEl = document.getElementById("report-outstanding-note");
+            const extra = [reconEl?.outerHTML, noteEl?.outerHTML].filter(Boolean).join("") || undefined;
             if (tableEl) {
-              exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, reconEl?.outerHTML);
+              exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, extra);
             } else {
               exportPDF(report, filteredData, dateRange);
             }
           }}>
             <FileText className="w-3.5 h-3.5" /> Print
           </Button>
+
         </div>
       </div>
 
@@ -2294,7 +2317,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const advance = saleInvs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).overpaid, 0);
             const payable = kpiData.outstandingPayables || 0;
             return (
-              <div className="bg-card border rounded-lg p-4">
+              <div id="report-outstanding-note" className="bg-card border rounded-lg p-4">
+
                 <p className="text-sm font-semibold mb-2">Note — Outstanding Balances</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                   <div>
