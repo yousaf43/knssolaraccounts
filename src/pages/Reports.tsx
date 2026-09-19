@@ -2299,7 +2299,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const advance = saleInvs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).overpaid, 0);
             const payable = kpiData.outstandingPayables || 0;
             return (
-              <div className="bg-card border rounded-lg p-4">
+              <div id="report-outstanding-note" className="bg-card border rounded-lg p-4">
+
                 <p className="text-sm font-semibold mb-2">Note — Outstanding Balances</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                   <div>
