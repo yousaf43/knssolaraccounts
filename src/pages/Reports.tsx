@@ -2283,6 +2283,35 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             ))}
           </div>
+          {(() => {
+            const saleInvs = uniqueInvoicesById(invoices.filter(countsAsSale))
+              .filter(i => inRange(i.date, fromDate, toDate));
+            const receivable = saleInvs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).remaining, 0);
+            const advance = saleInvs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).overpaid, 0);
+            const payable = kpiData.outstandingPayables || 0;
+            return (
+              <div className="bg-card border rounded-lg p-4">
+                <p className="text-sm font-semibold mb-2">Note — Outstanding Balances</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Outstanding Receivables (Customers)</p>
+                    <p className="font-semibold text-destructive">{formatCurrency(receivable)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Customer Advances / Overpaid</p>
+                    <p className="font-semibold text-success">{formatCurrency(advance)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Outstanding Payables (Suppliers)</p>
+                    <p className="font-semibold text-destructive">{formatCurrency(payable)}</p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2 italic">
+                  Outstanding balances are shown for information only and are not part of the profit calculation.
+                </p>
+              </div>
+            );
+          })()}
           <div className="bg-card rounded-2xl border p-6 shadow-soft">
             <div className="flex items-center justify-between mb-2">
               <div>
