@@ -28,6 +28,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 
 const allNavItems = [
+  { title: "HR", url: "/hr", icon: UserCog, roles: ["admin", "accountant"] },
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin", "accountant", "sales"] },
   { title: "Invoices", url: "/invoices", icon: FileText, roles: ["admin", "accountant", "sales"] },
   
@@ -39,7 +40,6 @@ const allNavItems = [
   { title: "Accounts", url: "/accounts", icon: Landmark, roles: ["admin", "accountant"] },
   { title: "Assets", url: "/assets", icon: Building2, roles: ["admin", "accountant"] },
   { title: "Reports", url: "/reports", icon: BarChart3, roles: ["admin", "accountant"] },
-  { title: "HR", url: "/hr", icon: UserCog, roles: ["admin", "accountant"] },
   { title: "Solar Washing & Complaints", url: "/solar-washing", icon: Droplets, roles: ["admin", "accountant", "sales"] },
   { title: "Drafts", url: "/drafts", icon: FileEdit, roles: ["admin", "accountant", "sales"] },
   { title: "Activity Logs", url: "/activity-logs", icon: History, roles: ["admin", "accountant", "sales"] },
