@@ -310,3 +310,116 @@
   }
 }
 
+
+/* ---------------------------------------------------------------
+   Motion layer: menus, dialogs, popovers and panels open smoothly
+   --------------------------------------------------------------- */
+
+@keyframes overlay-fade-in {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(6px); }
+}
+
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.94) translateY(-6px); }
+  60% { opacity: 1; transform: scale(1.012) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes modal-in {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.92) translateY(16px); filter: blur(6px); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) translateY(0); filter: blur(0); }
+}
+
+@keyframes menu-item-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Dialog / Sheet / Alert overlays: soft blur wash */
+[data-radix-popper-content-wrapper] { will-change: transform; }
+
+[role="dialog"][data-state="open"] ~ div,
+div[data-state="open"][class*="fixed inset-0"] {
+  animation: overlay-fade-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Modal content: springy lift-in */
+[role="dialog"][data-state="open"][class*="translate-x-[-50%]"] {
+  animation: modal-in 0.34s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+/* Dropdown / Select / Popover / Context menus */
+[data-radix-menu-content][data-state="open"],
+[data-radix-select-content][data-state="open"],
+[data-radix-popover-content][data-state="open"],
+[data-radix-dropdown-menu-content][data-state="open"] {
+  animation: pop-in 0.26s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+  transform-origin: var(--radix-popper-transform-origin, top center);
+}
+
+[data-radix-menu-content][data-state="closed"],
+[data-radix-select-content][data-state="closed"],
+[data-radix-popover-content][data-state="closed"],
+[data-radix-dropdown-menu-content][data-state="closed"] {
+  animation: pop-out 0.14s ease-in both;
+}
+
+/* Menu entries cascade in and glide on hover */
+[data-radix-menu-content] [role^="menuitem"],
+[data-radix-select-content] [role="option"] {
+  animation: menu-item-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease, padding-left 0.18s ease;
+}
+[data-radix-menu-content] [role^="menuitem"]:nth-child(1) { animation-delay: 0.02s; }
+[data-radix-menu-content] [role^="menuitem"]:nth-child(2) { animation-delay: 0.045s; }
+[data-radix-menu-content] [role^="menuitem"]:nth-child(3) { animation-delay: 0.07s; }
+[data-radix-menu-content] [role^="menuitem"]:nth-child(4) { animation-delay: 0.095s; }
+[data-radix-menu-content] [role^="menuitem"]:nth-child(5) { animation-delay: 0.12s; }
+[data-radix-menu-content] [role^="menuitem"]:nth-child(n + 6) { animation-delay: 0.14s; }
+[data-radix-menu-content] [role^="menuitem"]:hover,
+[data-radix-select-content] [role="option"]:hover {
+  transform: translateX(2px);
+}
+
+/* Sidebar navigation: smooth highlight slide */
+[data-sidebar="menu-button"] {
+  transition: background-color 0.22s ease, color 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
+}
+[data-sidebar="menu-button"]:hover { transform: translateX(3px); }
+[data-sidebar="menu-button"] svg { transition: transform 0.25s cubic-bezier(0.22, 1.2, 0.36, 1); }
+[data-sidebar="menu-button"]:hover svg { transform: scale(1.12); }
+
+/* Tabs: content fades up when a tab opens, indicator glides */
+[role="tabpanel"][data-state="active"] {
+  animation: fade-in-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[role="tab"] {
+  transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease, transform 0.2s ease;
+}
+[role="tab"]:hover { transform: translateY(-1px); }
+
+/* Accordion & collapsible panels */
+[data-state="open"] > svg.lucide-chevron-down,
+[data-state="open"] > * > svg.lucide-chevron-down { transform: rotate(180deg); }
+
+/* Cards and interactive surfaces */
+.surface-card:hover { box-shadow: var(--shadow-elevated); }
+button, [role="button"] { transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease; }
+button:active:not(:disabled) { transform: scale(0.975); }
+
+/* Inputs get a gentle focus ring grow */
+input, textarea, select {
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background-color 0.2s ease;
+}
+input:focus-visible, textarea:focus-visible {
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.14);
+}
+
+/* Table rows lift slightly on hover */
+tbody tr:hover { box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.5); }
