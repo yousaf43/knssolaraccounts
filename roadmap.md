@@ -1,0 +1,1 @@
+- [ ] Upgrade the full website to a futuristic K&S theme with attractive page and menu transitions
