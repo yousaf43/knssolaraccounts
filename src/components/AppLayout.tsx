@@ -6,6 +6,7 @@ import { Bell, Search, LogOut, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, Navigate } from "react-router-dom";
@@ -82,8 +83,8 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="flex min-h-screen w-full p-0 lg:p-4">
-        <div className="flex flex-1 min-w-0 rounded-none border-0 lg:rounded-3xl lg:border border-border/60 bg-card/40 shadow-[0_30px_90px_-40px_hsl(var(--primary)/0.45)]">
+      <div className="app-workspace flex min-h-screen w-full p-0 lg:p-3">
+        <div className="app-frame flex flex-1 min-w-0 overflow-hidden rounded-none border-0 lg:rounded-2xl lg:border border-border/70 bg-card/55 shadow-[var(--shadow-dashboard)] backdrop-blur-sm">
         {/* Desktop sidebar */}
         {!isMobile && (
           <div className="sticky top-4 h-[calc(100vh-2rem)] self-start flex-shrink-0">
@@ -93,15 +94,15 @@ export function AppLayout() {
 
         <div className="flex-1 flex min-w-0 flex-col min-h-[calc(100vh-2rem)]">
           {/* Top bar */}
-          <header className="glass-panel h-14 sm:h-16 border-b border-border/60 flex items-center justify-between px-3 sm:px-6 flex-shrink-0 gap-2 sticky top-0 z-30 shadow-[0_1px_0_0_hsl(var(--border)/0.6),0_10px_30px_-24px_hsl(var(--primary)/0.6)]">
+          <header className="app-topbar glass-panel h-14 sm:h-16 border-b border-border/70 flex items-center justify-between px-3 sm:px-5 flex-shrink-0 gap-2 sticky top-0 z-30 shadow-[0_10px_30px_-24px_hsl(var(--primary)/0.6)]">
 
             {/* Mobile menu button */}
             {isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetTrigger asChild>
-                  <button className="p-2 rounded-md hover:bg-muted transition-colors press">
+                  <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Open navigation">
                     <Menu className="w-5 h-5" />
-                  </button>
+                  </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0 w-64 [&>button]:hidden">
                   <AppSidebar onNavigate={() => setSidebarOpen(false)} />
@@ -109,7 +110,7 @@ export function AppLayout() {
               </Sheet>
             )}
 
-            <div className="group flex items-center gap-2 flex-1 max-w-md rounded-full border border-border/70 bg-background/60 px-3 py-1.5 transition-all duration-300 focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-[0_0_0_4px_hsl(var(--primary)/0.10)]">
+            <div className="group flex items-center gap-2 flex-1 max-w-md rounded-lg border border-border/80 bg-background/70 px-3 py-1.5 shadow-sm transition-all duration-300 focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-[0_0_0_3px_hsl(var(--ring)/0.12)]">
               <Search className="w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <input
                 type="text"
@@ -119,10 +120,10 @@ export function AppLayout() {
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
               <ThemeToggle />
-              <button className="relative p-2 rounded-md hover:bg-muted transition-colors press">
+              <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications">
                 <Bell className="w-5 h-5 text-muted-foreground" />
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive animate-pulse-glow" />
-              </button>
+              </Button>
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent ring-2 ring-background shadow-sm transition-transform duration-300 hover:scale-105 flex items-center justify-center text-primary-foreground text-sm font-semibold overflow-hidden">
                   {profile?.avatar_url ? (
@@ -147,18 +148,21 @@ export function AppLayout() {
                   </div>
                 </div>
               </div>
-              <button
+              <Button
                 onClick={signOut}
-                className="p-2 rounded-md hover:bg-muted transition-colors press"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
                 title="Sign out"
+                aria-label="Sign out"
               >
                 <LogOut className="w-4 h-4 text-muted-foreground" />
-              </button>
+              </Button>
             </div>
           </header>
           <RecentTabs />
           {/* Content */}
-          <main id="main-scroll" className="flex-1 p-3 sm:p-6">
+          <main id="main-scroll" className="relative flex-1 overflow-x-hidden p-3 sm:p-5 lg:p-6">
             {/* Keep-alive pages: visited pages stay mounted, only hidden. */}
             {allowedPages
               .filter((p) => mountedPaths.includes(p.path))
