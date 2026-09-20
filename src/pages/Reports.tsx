@@ -2447,7 +2447,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               });
               return [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
             })();
-            const expColors = ["#f43f5e", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#8b5cf6", "#ec4899", "#64748b", "#14b8a6", "#eab308"];
+            const expenseColors = [
+              "hsl(var(--destructive))",
+              "hsl(var(--warning))",
+              "hsl(var(--accent))",
+              "hsl(var(--primary))",
+              "hsl(var(--success))",
+              "hsl(var(--muted-foreground))",
+            ];
             const chartRows = [
               { name: "Net Sales", value: plStats.netSales, fill: "url(#plgrad-sales)", group: "P&L" },
               { name: "Cost of Sales", value: plStats.costOfSales, fill: "url(#plgrad-cogs)", group: "P&L" },
@@ -2455,7 +2462,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               { name: "Operating Expenses", value: plStats.operatingExpenses, fill: "url(#plgrad-exp)", group: "P&L" },
               ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, fill: "url(#plgrad-tax)", group: "P&L" }] : []),
               { name: "Profit", value: plStats.netIncome, fill: "url(#plgrad-profit)", group: "P&L" },
-              ...expRows.map((r, i) => ({ name: r.name, value: r.value, fill: expColors[i % expColors.length], group: "Expense" })),
             ];
             const gradDefs = [
               { id: "plgrad-sales", stops: ["#60a5fa", "#3b82f6"] },
@@ -2466,18 +2472,13 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               { id: "plgrad-profit", stops: plStats.netIncome >= 0 ? ["#4ade80", "#16a34a"] : ["#f87171", "#dc2626"] },
             ];
             return (
-              <div className="bg-card rounded-2xl border p-6 shadow-soft">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <div>
-                    <h2 className="text-xl font-semibold">Profit &amp; Loss + Operating Expenses</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Financial summary and expense categories for the selected period</p>
+              <>
+                <div className="bg-card rounded-2xl border p-6 shadow-soft">
+                  <div className="mb-2">
+                    <h2 className="text-xl font-semibold">Profit &amp; Loss</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Financial summary for the selected period</p>
                   </div>
-                  <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-[#3b82f6]" />P&amp;L Summary</span>
-                    <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />Expense Categories</span>
-                  </div>
-                </div>
-                <ResponsiveContainer width="100%" height={420}>
+                  <ResponsiveContainer width="100%" height={380}>
                   <BarChart data={chartRows} margin={{ top: 24, right: 12, left: 12, bottom: 60 }} barCategoryGap="18%">
                     <defs>
                       {gradDefs.map((g) => (
@@ -2524,9 +2525,59 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         className="fill-foreground text-[10px] font-medium"
                       />
                     </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="bg-card rounded-2xl border p-6 shadow-soft">
+                  <div className="mb-2">
+                    <h2 className="text-xl font-semibold">Operating Expense Breakdown</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Category-wise expenses for the selected period</p>
+                  </div>
+                  {expRows.length === 0 ? (
+                    <p className="text-muted-foreground text-sm text-center py-12">No operating expenses found for the selected period.</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={360}>
+                      <BarChart data={expRows} margin={{ top: 24, right: 12, left: 12, bottom: 60 }} barCategoryGap="22%">
+                        <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis
+                          dataKey="name"
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
+                          interval={0}
+                          angle={-35}
+                          textAnchor="end"
+                          axisLine={{ stroke: "hsl(var(--border))" }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          stroke="hsl(var(--muted-foreground))"
+                          tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                          tickFormatter={(v: number) => formatCompactAmount(v)}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
+                          formatter={(v: number, _name: string, item: any) => [formatCurrency(v), item.payload.name]}
+                          contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "10px", fontSize: "12px" }}
+                        />
+                        <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={58}>
+                          {expRows.map((row, index) => (
+                            <Cell key={row.name} fill={expenseColors[index % expenseColors.length]} />
+                          ))}
+                          <LabelList
+                            dataKey="value"
+                            position="top"
+                            formatter={(v: number) => formatCompactAmount(v)}
+                            className="fill-foreground text-[10px] font-medium"
+                          />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </>
             );
           })()}
             </>
