@@ -198,7 +198,7 @@
   }
 
   .surface-card {
-    @apply rounded-2xl border bg-card transition-all duration-300;
+    @apply rounded-lg border bg-card transition-all duration-300;
     box-shadow: var(--shadow-soft);
   }
 
@@ -420,6 +420,74 @@ div[data-state="open"][class*="fixed inset-0"] {
 [data-sidebar="menu-button"]:hover { transform: translateX(3px); }
 [data-sidebar="menu-button"] svg { transition: transform 0.25s cubic-bezier(0.22, 1.2, 0.36, 1); }
 [data-sidebar="menu-button"]:hover svg { transform: scale(1.12); }
+
+/* Futuristic application shell */
+.app-sidebar {
+  background-image:
+    linear-gradient(hsl(var(--sidebar-primary) / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--sidebar-primary) / 0.035) 1px, transparent 1px),
+    linear-gradient(160deg, hsl(var(--sidebar-primary) / 0.10), transparent 42%);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+}
+.app-sidebar nav a::after {
+  content: "";
+  position: absolute;
+  inset: 6px 6px 6px auto;
+  width: 2px;
+  border-radius: 2px;
+  background: hsl(var(--sidebar-primary));
+  opacity: 0;
+  transform: scaleY(0.25);
+  transition: opacity 0.2s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.app-sidebar nav a:hover::after,
+.app-sidebar nav a[aria-current="page"]::after { opacity: 0.85; transform: scaleY(1); }
+.app-topbar::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--accent) / 0.65), transparent);
+  pointer-events: none;
+}
+.recent-tabs button::after {
+  content: "";
+  position: absolute;
+  inset: auto 16% -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transform: scaleX(0.25);
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.recent-tabs button.bg-card::after { opacity: 1; transform: scaleX(1); }
+
+/* Consistent data surfaces across all accounting pages */
+main .bg-card.border,
+main .bg-card[class*="border-"] {
+  box-shadow: var(--shadow-soft);
+}
+main table {
+  border-color: hsl(var(--border));
+}
+main thead {
+  background: linear-gradient(180deg, hsl(var(--secondary)), hsl(var(--muted) / 0.72));
+}
+main thead th {
+  color: hsl(var(--foreground) / 0.82);
+  font-weight: 650;
+}
+main input:not([type="checkbox"]):not([type="radio"]),
+main textarea,
+main [role="combobox"] {
+  background-color: hsl(var(--background) / 0.72);
+}
+main input:not([type="checkbox"]):not([type="radio"]):focus,
+main textarea:focus,
+main [role="combobox"]:focus {
+  background-color: hsl(var(--background));
+}
 
 /* Tabs: content fades up when a tab opens, indicator glides */
 [role="tabpanel"][data-state="active"] {
