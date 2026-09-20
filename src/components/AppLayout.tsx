@@ -163,7 +163,7 @@ export function AppLayout() {
           </header>
           <RecentTabs />
           {/* Content */}
-          <main id="main-scroll" className="relative flex-1 overflow-x-hidden p-3 sm:p-5 lg:p-6">
+          <main id="main-scroll" className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6">
             {/* Keep-alive pages: visited pages stay mounted, only hidden. */}
             {allowedPages
               .filter((p) => mountedPaths.includes(p.path))
