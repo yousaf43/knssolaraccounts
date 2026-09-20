@@ -224,10 +224,11 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
   const cleanHtml = tableHtml
     ? printableFields(tableHtml).replace(/<button[\s\S]*?<\/button>/gi, "")
     : "";
+  const extraContainsCharts = (extraHtml || "").includes("report-pl-charts");
   const cleanExtra = (extraHtml || "")
     .replace(/<input[^>]*>/gi, "")
     .replace(/<button[\s\S]*?<\/button>/gi, "")
-    .replace(/<svg[\s\S]*?<\/svg>/gi, "");
+    .replace(extraContainsCharts ? /$^/ : /<svg[\s\S]*?<\/svg>/gi, "");
   // Panel reports (e.g. Income Statement) ship their own header + cards markup.
   const isPanel = !cleanHtml.trim().toLowerCase().startsWith("<table");
   const isSiteStatement = cleanHtml.includes("site-statement-print");
@@ -235,6 +236,12 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
   const content = `<html><head><title>${title}</title>
     <style>
       @page { size: A4 ${isInvoicePnl ? "landscape" : "portrait"}; margin: ${isInvoicePnl ? "8mm" : "10mm"}; }
+      :root {
+        --background: 0 0% 100%; --foreground: 217 33% 17%; --card: 0 0% 100%;
+        --muted: 210 40% 96%; --muted-foreground: 215 16% 47%; --border: 214 32% 91%;
+        --primary: 215 71% 32%; --destructive: 0 72% 51%; --warning: 38 92% 50%;
+        --accent: 188 86% 36%; --success: 142 71% 36%;
+      }
       * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { font-family: Arial, sans-serif; padding: ${isPanel ? "0" : "16px"}; color: #222; font-size: 12px; margin: 0; }
       .header { text-align: center; margin-bottom: 20px; }
@@ -521,6 +528,19 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-outstanding-note .grid > div > p:first-child { margin: 0 0 1.5mm; font-size: 9px; color: #64748b; text-transform: uppercase; }
       #report-outstanding-note .grid > div > p:last-child { margin: 0; font-size: 12px; font-weight: 700; color: #1e293b; }
       #report-outstanding-note > p:last-child { margin: 3mm 0 0; font-size: 9px; color: #64748b; font-style: italic; }
+      /* Report 121 printable charts */
+      #report-pl-charts { margin-top: 6mm; }
+      #report-pl-charts > div {
+        margin-bottom: 6mm; padding: 4mm !important; border: 1px solid #cbd5e1 !important;
+        border-radius: 3px !important; background: #fff !important; box-shadow: none !important;
+        break-inside: avoid; page-break-inside: avoid;
+      }
+      #report-pl-charts .pl-chart-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8mm; margin-bottom: 2mm; }
+      #report-pl-charts .pl-chart-header h2 { margin: 0; color: #172033; font-size: 13px; font-weight: 800; }
+      #report-pl-charts .pl-chart-header p { margin: 1mm 0 0; color: #64748b; font-size: 8px; }
+      #report-pl-charts .pl-chart-date { flex: 0 0 auto; margin: 0 !important; color: #174a8b !important; font-size: 8px !important; font-weight: 700; text-align: right; }
+      #report-pl-charts .recharts-responsive-container { width: 100% !important; height: 72mm !important; }
+      #report-pl-charts svg { width: 100% !important; max-width: 100%; }
       @media print {
 
         body { padding: 0; }
@@ -2145,7 +2165,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const tableEl = document.getElementById("report-print-table");
             const reconEl = document.getElementById("report-reconciliation-panel");
             const noteEl = document.getElementById("report-outstanding-note");
-            const extra = [reconEl?.outerHTML, noteEl?.outerHTML].filter(Boolean).join("") || undefined;
+            const chartsEl = document.getElementById("report-pl-charts");
+            const extra = [reconEl?.outerHTML, noteEl?.outerHTML, chartsEl?.outerHTML].filter(Boolean).join("") || undefined;
             if (tableEl) exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, extra);
             else exportPDF(report, filteredData, dateRange);
           }}>
@@ -2155,7 +2176,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const tableEl = document.getElementById("report-print-table");
             const reconEl = document.getElementById("report-reconciliation-panel");
             const noteEl = document.getElementById("report-outstanding-note");
-            const extra = [reconEl?.outerHTML, noteEl?.outerHTML].filter(Boolean).join("") || undefined;
+            const chartsEl = document.getElementById("report-pl-charts");
+            const extra = [reconEl?.outerHTML, noteEl?.outerHTML, chartsEl?.outerHTML].filter(Boolean).join("") || undefined;
             if (tableEl) {
               exportTablePrint(report.title, dateRange, tableEl.outerHTML, companyName, extra);
             } else {
@@ -2472,11 +2494,14 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               { id: "plgrad-profit", stops: plStats.netIncome >= 0 ? ["#4ade80", "#16a34a"] : ["#f87171", "#dc2626"] },
             ];
             return (
-              <>
+              <div id="report-pl-charts" className="space-y-4">
                 <div className="bg-card rounded-2xl border p-6 shadow-soft">
-                  <div className="mb-2">
-                    <h2 className="text-xl font-semibold">Profit &amp; Loss</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Financial summary for the selected period</p>
+                  <div className="pl-chart-header mb-2 flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">Profit &amp; Loss</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">Financial summary for the selected period</p>
+                    </div>
+                    <p className="pl-chart-date shrink-0 text-right text-xs font-semibold text-primary">{dateRange}</p>
                   </div>
                   <ResponsiveContainer width="100%" height={380}>
                   <BarChart data={chartRows} margin={{ top: 24, right: 12, left: 12, bottom: 60 }} barCategoryGap="18%">
@@ -2530,9 +2555,12 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 </div>
 
                 <div className="bg-card rounded-2xl border p-6 shadow-soft">
-                  <div className="mb-2">
-                    <h2 className="text-xl font-semibold">Operating Expense Breakdown</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Category-wise expenses for the selected period</p>
+                  <div className="pl-chart-header mb-2 flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">Operating Expense Breakdown</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">Category-wise expenses for the selected period</p>
+                    </div>
+                    <p className="pl-chart-date shrink-0 text-right text-xs font-semibold text-primary">{dateRange}</p>
                   </div>
                   {expRows.length === 0 ? (
                     <p className="text-muted-foreground text-sm text-center py-12">No operating expenses found for the selected period.</p>
@@ -2577,7 +2605,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     </ResponsiveContainer>
                   )}
                 </div>
-              </>
+              </div>
             );
           })()}
             </>
