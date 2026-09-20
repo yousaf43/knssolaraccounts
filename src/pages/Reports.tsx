@@ -227,7 +227,8 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
   const extraContainsCharts = (extraHtml || "").includes("report-pl-charts");
   const cleanExtra = (extraHtml || "")
     .replace(/<input[^>]*>/gi, "")
-    .replace(/<button[\s\S]*?<\/button>/gi, "")
+    .replace(/<button\b[^>]*>/gi, '<div class="print-balance-card">')
+    .replace(/<\/button>/gi, "</div>")
     .replace(extraContainsCharts ? /$^/ : /<svg[\s\S]*?<\/svg>/gi, "");
   // Panel reports (e.g. Income Statement) ship their own header + cards markup.
   const isPanel = !cleanHtml.trim().toLowerCase().startsWith("<table");
@@ -526,7 +527,8 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
         padding: 3mm; border: 1px solid #dbe3ee; border-left: 3px solid #174a8b; border-radius: 3px; background: #fff;
       }
       #report-outstanding-note .grid > div > p:first-child { margin: 0 0 1.5mm; font-size: 9px; color: #64748b; text-transform: uppercase; }
-      #report-outstanding-note .grid > div > p:last-child { margin: 0; font-size: 12px; font-weight: 700; color: #1e293b; }
+      #report-outstanding-note .grid > div > p:nth-child(2) { margin: 0; font-size: 12px; font-weight: 700; color: #1e293b; }
+      #report-outstanding-note .grid > div > p:nth-child(n+3) { display: none; }
       #report-outstanding-note > p:last-child { margin: 3mm 0 0; font-size: 9px; color: #64748b; font-style: italic; }
       /* Report 121 printable charts */
       #report-pl-charts { margin-top: 6mm; }
