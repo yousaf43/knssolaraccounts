@@ -250,7 +250,7 @@
   .page-enter {
     position: relative;
     isolation: isolate;
-    animation: page-transition-in 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: page-transition-in 0.68s cubic-bezier(0.16, 1, 0.3, 1) both;
     transform-origin: 50% 0;
     will-change: transform, opacity, filter;
   }
@@ -266,10 +266,6 @@
     opacity: 0.75;
     box-shadow: 0 0 18px hsl(var(--accent) / 0.48);
   }
-  .page-enter > *:first-child {
-    animation: content-reveal 0.56s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
   .stagger-children > * {
     animation: fade-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
@@ -303,8 +299,8 @@
 @keyframes page-transition-in {
   from {
     opacity: 0;
-    transform: translate3d(22px, 18px, 0) scale(0.985);
-    filter: blur(9px) saturate(0.72);
+    transform: translate3d(16px, 10px, 0) scale(0.992);
+    filter: blur(7px) saturate(0.78);
   }
   55% { opacity: 1; filter: blur(0) saturate(1.06); }
   to {
@@ -536,7 +532,7 @@ main [role="combobox"]:focus {
 
 /* Tabs: content fades up when a tab opens, indicator glides */
 [role="tabpanel"][data-state="active"] {
-  animation: fade-in-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: panel-live-in 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 [role="tab"] {
   transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease, transform 0.2s ease;
@@ -562,3 +558,16 @@ input:focus-visible, textarea:focus-visible {
 
 /* Table rows lift slightly on hover */
 tbody tr:hover { box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.5); }
+
+@keyframes panel-live-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.994);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}

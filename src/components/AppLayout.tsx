@@ -60,6 +60,7 @@ export function AppLayout() {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const activePageRef = useRef<HTMLDivElement>(null);
+  const navigationSequenceRef = useRef(0);
   const location = useLocation();
   useTabScrollMemory();
   useTabStateMemory();
@@ -81,33 +82,41 @@ export function AppLayout() {
     }
   }, [activePage, mountedPaths]);
 
-  // Keep-alive pages do not remount, so replay the entrance choreography on
-  // every route change without clearing the page's forms, filters or data.
+  // Keep-alive pages do not remount. Replay motion on the visible page and
+  // its first content blocks after every route change without clearing state.
   useEffect(() => {
     const page = activePageRef.current;
     if (!page) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    page.classList.remove("page-enter");
-    void page.offsetWidth;
-    page.classList.add("page-enter");
+    navigationSequenceRef.current += 1;
+    page.dataset.navigationSequence = String(navigationSequenceRef.current);
+    const frame = window.requestAnimationFrame(() => {
+      page.classList.remove("page-enter");
+      void page.offsetWidth;
+      page.classList.add("page-enter");
 
-    const sections = Array.from(page.children).slice(0, 7);
-    sections.forEach((section, index) => {
-      if (!(section instanceof HTMLElement)) return;
-      section.animate(
-        [
-          { opacity: 0, transform: "translateY(14px) scale(0.995)" },
-          { opacity: 1, transform: "translateY(0) scale(1)" },
-        ],
-        {
-          duration: 460,
-          delay: 70 + index * 38,
-          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-          fill: "both",
-        }
-      );
+      const contentRoot = page.firstElementChild instanceof HTMLElement ? page.firstElementChild : page;
+      const sections = Array.from(contentRoot.children).slice(0, 8);
+      sections.forEach((section, index) => {
+        if (!(section instanceof HTMLElement)) return;
+        section.getAnimations().forEach((animation) => animation.cancel());
+        section.animate(
+          [
+            { opacity: 0, transform: "translate3d(0, 18px, 0) scale(0.992)", filter: "blur(5px)" },
+            { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0)" },
+          ],
+          {
+            duration: 520,
+            delay: 90 + index * 45,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+            fill: "both",
+          }
+        );
+      });
     });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [currentPath, mountedPaths]);
 
 
@@ -193,7 +202,7 @@ export function AppLayout() {
           </header>
           <RecentTabs />
           {/* Content */}
-          <main id="main-scroll" className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6">
+          <main id="main-scroll" className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 pb-3 pt-0 sm:px-5 sm:pb-5 lg:px-6 lg:pb-6">
             {/* Keep-alive pages: visited pages stay mounted, only hidden. */}
             {allowedPages
               .filter((p) => mountedPaths.includes(p.path))

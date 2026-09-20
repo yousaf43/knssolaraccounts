@@ -74,10 +74,10 @@ export function StickyPageHeader({
 
   return (
     <div
-      className={`sticky top-14 sm:top-16 z-20 -mx-3 sm:-mx-6 px-3 sm:px-6 transition-all duration-300 ease-out ${
+      className={`sticky top-0 z-20 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 transition-all duration-300 ease-out ${
         compact
           ? "bg-background/75 backdrop-blur-xl py-2 border-b border-border/60 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.15)]"
-          : "bg-background pt-3 sm:pt-6 pb-3 space-y-4 border-b"
+          : "bg-background pt-3 pb-3 space-y-4 border-b"
       }`}
     >
       {compact ? (

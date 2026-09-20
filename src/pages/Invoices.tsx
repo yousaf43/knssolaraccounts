@@ -161,9 +161,9 @@ export default function Invoices() {
     return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
   });
 
-  // Top app bar height (h-14 mobile / h-16 sm+) — used to offset sticky table headers.
-  const topBarH = typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches ? 64 : 56;
-  const theadTop = stickyHeaderH + topBarH;
+  // The app's main content owns scrolling, so table headers only offset the
+  // sticky page toolbar (not the top bar outside this scroll container).
+  const theadTop = stickyHeaderH;
 
 
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
@@ -1086,10 +1086,10 @@ export default function Invoices() {
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); goList(); }}>
         <div
           ref={stickyHeaderRef}
-          className={`sticky top-14 sm:top-16 z-20 -mx-3 sm:-mx-6 px-3 sm:px-6 transition-all duration-300 ease-out ${
+          className={`sticky top-0 z-20 -mx-3 sm:-mx-5 lg:-mx-6 px-3 sm:px-5 lg:px-6 transition-all duration-300 ease-out ${
             isCompactHeader
               ? "bg-background/75 backdrop-blur-xl py-2 border-b border-border/60 shadow-[0_4px_16px_-8px_rgba(0,0,0,0.15)]"
-              : "bg-background pt-3 sm:pt-6 pb-3 space-y-4 border-b"
+              : "bg-background pt-3 pb-3 space-y-4 border-b"
           }`}
         >
           {isCompactHeader ? (
