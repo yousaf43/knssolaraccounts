@@ -83,16 +83,17 @@ export function AppLayout() {
 
   return (
     <>
-      <div className="app-workspace flex min-h-screen w-full p-0 lg:p-3">
-        <div className="app-frame flex flex-1 min-w-0 overflow-hidden rounded-none border-0 lg:rounded-2xl lg:border border-border/70 bg-card/55 shadow-[var(--shadow-dashboard)] backdrop-blur-sm">
+      <div className="app-workspace flex h-screen w-full overflow-hidden p-0 lg:p-3">
+        <div className="app-frame flex flex-1 min-w-0 h-full overflow-hidden rounded-none border-0 lg:rounded-2xl lg:border border-border/70 bg-card/55 shadow-[var(--shadow-dashboard)] backdrop-blur-sm">
         {/* Desktop sidebar */}
         {!isMobile && (
-          <div className="sticky top-4 h-[calc(100vh-2rem)] self-start flex-shrink-0">
+          <div className="h-full flex-shrink-0">
             <AppSidebar />
           </div>
         )}
 
-        <div className="flex-1 flex min-w-0 flex-col min-h-[calc(100vh-2rem)]">
+        <div className="flex-1 flex min-w-0 min-h-0 flex-col">
+
           {/* Top bar */}
           <header className="app-topbar glass-panel h-14 sm:h-16 border-b border-border/70 flex items-center justify-between px-3 sm:px-5 flex-shrink-0 gap-2 sticky top-0 z-30 shadow-[0_10px_30px_-24px_hsl(var(--primary)/0.6)]">
 
@@ -162,7 +163,7 @@ export function AppLayout() {
           </header>
           <RecentTabs />
           {/* Content */}
-          <main id="main-scroll" className="relative flex-1 overflow-x-hidden p-3 sm:p-5 lg:p-6">
+          <main id="main-scroll" className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6">
             {/* Keep-alive pages: visited pages stay mounted, only hidden. */}
             {allowedPages
               .filter((p) => mountedPaths.includes(p.path))
