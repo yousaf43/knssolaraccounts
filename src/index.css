@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,47 +6,47 @@
 
 @layer base {
   :root {
-    --background: 215 40% 98%;
-    --foreground: 224 45% 12%;
+    --background: 210 33% 98%;
+    --foreground: 218 42% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 45% 12%;
+    --card-foreground: 218 42% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 45% 12%;
+    --popover-foreground: 218 42% 13%;
 
-    --primary: 231 62% 52%;
+    --primary: 215 74% 42%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 250 78% 66%;
+    --primary-glow: 190 88% 43%;
 
     --secondary: 215 42% 96%;
-    --secondary-foreground: 224 45% 14%;
+    --secondary-foreground: 218 42% 15%;
 
     --muted: 214 36% 95%;
     --muted-foreground: 218 14% 46%;
 
-    --accent: 190 90% 45%;
+    --accent: 184 78% 38%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 353 78% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 216 26% 90%;
-    --input: 216 26% 90%;
-    --ring: 231 62% 52%;
+    --border: 213 28% 87%;
+    --input: 213 28% 87%;
+    --ring: 190 88% 40%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --font-display: 'Instrument Serif', serif;
-    --font-body: 'Inter', sans-serif;
+    --font-display: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+    --font-body: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
 
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-aurora: linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 45%, hsl(var(--accent)) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100% / 0.9), hsl(0 0% 100% / 0.6));
+    --gradient-primary: linear-gradient(125deg, hsl(var(--primary)), hsl(var(--accent)));
+    --gradient-aurora: linear-gradient(110deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 58%, hsl(var(--warning)) 140%);
+    --gradient-surface: linear-gradient(145deg, hsl(var(--card)), hsl(var(--secondary) / 0.72));
 
-    --shadow-dashboard: 0 25px 80px -12px hsl(231 62% 20% / 0.14), 0 0 0 1px hsl(224 45% 12% / 0.05);
-    --shadow-soft: 0 1px 2px hsl(224 45% 12% / 0.04), 0 8px 24px -12px hsl(231 62% 30% / 0.16);
-    --shadow-elevated: 0 20px 50px -20px hsl(231 62% 30% / 0.32);
+    --shadow-dashboard: 0 30px 90px -38px hsl(215 74% 24% / 0.30), 0 0 0 1px hsl(218 42% 12% / 0.05);
+    --shadow-soft: 0 1px 2px hsl(218 42% 12% / 0.05), 0 12px 30px -20px hsl(215 74% 28% / 0.28);
+    --shadow-elevated: 0 24px 55px -28px hsl(215 74% 26% / 0.44);
     --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.16), 0 12px 40px -12px hsl(var(--primary) / 0.45);
 
     --success: 158 72% 38%;
@@ -56,40 +54,40 @@
     --warning: 35 95% 52%;
     --warning-foreground: 24 60% 12%;
 
-    --sidebar-background: 232 44% 12%;
+    --sidebar-background: 220 48% 11%;
     --sidebar-foreground: 218 32% 82%;
-    --sidebar-primary: 190 90% 55%;
+    --sidebar-primary: 185 84% 51%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 232 40% 19%;
+    --sidebar-accent: 215 45% 19%;
     --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 232 34% 22%;
-    --sidebar-ring: 190 90% 55%;
-    --sidebar-muted: 232 26% 30%;
+    --sidebar-border: 211 36% 23%;
+    --sidebar-ring: 185 84% 51%;
+    --sidebar-muted: 215 22% 55%;
   }
 
   .dark {
-    --background: 231 40% 6%;
+    --background: 220 42% 6%;
     --foreground: 210 40% 98%;
-    --card: 232 36% 10%;
+    --card: 219 34% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 232 36% 10%;
+    --popover: 219 34% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 244 76% 66%;
+    --primary: 207 82% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 262 82% 72%;
+    --primary-glow: 184 82% 52%;
     --secondary: 231 28% 17%;
     --secondary-foreground: 210 40% 98%;
     --muted: 231 26% 17%;
     --muted-foreground: 217 18% 68%;
-    --accent: 190 90% 52%;
+    --accent: 184 82% 48%;
     --accent-foreground: 231 40% 8%;
     --destructive: 353 70% 48%;
     --destructive-foreground: 0 0% 100%;
     --border: 231 24% 20%;
     --input: 231 24% 20%;
-    --ring: 244 76% 66%;
-    --gradient-surface: linear-gradient(180deg, hsl(232 36% 14% / 0.9), hsl(232 36% 10% / 0.6));
-    --sidebar-background: 231 42% 8%;
+    --ring: 184 82% 52%;
+    --gradient-surface: linear-gradient(145deg, hsl(219 34% 13%), hsl(219 34% 9%));
+    --sidebar-background: 220 46% 7%;
     --sidebar-foreground: 218 30% 84%;
     --sidebar-primary: 190 90% 58%;
     --sidebar-primary-foreground: 231 40% 8%;
@@ -109,11 +107,12 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
     background-image:
-      radial-gradient(55% 45% at 100% 0%, hsl(var(--accent) / 0.10), transparent 70%),
-      radial-gradient(50% 45% at 0% 100%, hsl(var(--primary) / 0.10), transparent 70%),
-      radial-gradient(40% 30% at 50% -10%, hsl(var(--primary-glow) / 0.08), transparent 70%);
+      linear-gradient(hsl(var(--primary) / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.035) 1px, transparent 1px),
+      linear-gradient(135deg, hsl(var(--background)), hsl(var(--secondary) / 0.55));
+    background-size: 32px 32px, 32px 32px, 100% 100%;
     background-attachment: fixed;
   }
 
@@ -199,7 +198,7 @@
   }
 
   .surface-card {
-    @apply rounded-2xl border bg-card transition-all duration-300;
+    @apply rounded-lg border bg-card transition-all duration-300;
     box-shadow: var(--shadow-soft);
   }
 
@@ -249,7 +248,23 @@
   }
 
   .page-enter {
-    animation: page-transition-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    position: relative;
+    isolation: isolate;
+    animation: page-transition-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .page-enter::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -8px 0 auto;
+    height: 2px;
+    background: var(--gradient-primary);
+    transform-origin: left;
+    animation: page-scan-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+    opacity: 0.5;
+  }
+  .page-enter > *:first-child {
+    animation: content-reveal 0.56s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .stagger-children > * {
@@ -285,14 +300,25 @@
 @keyframes page-transition-in {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.995);
-    filter: blur(4px);
+    transform: translateY(18px) scale(0.992);
+    filter: blur(7px) saturate(0.8);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
     filter: blur(0);
   }
+}
+
+@keyframes content-reveal {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes page-scan-in {
+  from { transform: scaleX(0); opacity: 0; }
+  45% { opacity: 0.8; }
+  to { transform: scaleX(1); opacity: 0; }
 }
 
 @keyframes shimmer-sweep {
@@ -394,6 +420,74 @@ div[data-state="open"][class*="fixed inset-0"] {
 [data-sidebar="menu-button"]:hover { transform: translateX(3px); }
 [data-sidebar="menu-button"] svg { transition: transform 0.25s cubic-bezier(0.22, 1.2, 0.36, 1); }
 [data-sidebar="menu-button"]:hover svg { transform: scale(1.12); }
+
+/* Futuristic application shell */
+.app-sidebar {
+  background-image:
+    linear-gradient(hsl(var(--sidebar-primary) / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--sidebar-primary) / 0.035) 1px, transparent 1px),
+    linear-gradient(160deg, hsl(var(--sidebar-primary) / 0.10), transparent 42%);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+}
+.app-sidebar nav a::after {
+  content: "";
+  position: absolute;
+  inset: 6px 6px 6px auto;
+  width: 2px;
+  border-radius: 2px;
+  background: hsl(var(--sidebar-primary));
+  opacity: 0;
+  transform: scaleY(0.25);
+  transition: opacity 0.2s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.app-sidebar nav a:hover::after,
+.app-sidebar nav a[aria-current="page"]::after { opacity: 0.85; transform: scaleY(1); }
+.app-topbar::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--accent) / 0.65), transparent);
+  pointer-events: none;
+}
+.recent-tabs button::after {
+  content: "";
+  position: absolute;
+  inset: auto 16% -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transform: scaleX(0.25);
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.recent-tabs button.bg-card::after { opacity: 1; transform: scaleX(1); }
+
+/* Consistent data surfaces across all accounting pages */
+main .bg-card.border,
+main .bg-card[class*="border-"] {
+  box-shadow: var(--shadow-soft);
+}
+main table {
+  border-color: hsl(var(--border));
+}
+main thead {
+  background: linear-gradient(180deg, hsl(var(--secondary)), hsl(var(--muted) / 0.72));
+}
+main thead th {
+  color: hsl(var(--foreground) / 0.82);
+  font-weight: 650;
+}
+main input:not([type="checkbox"]):not([type="radio"]),
+main textarea,
+main [role="combobox"] {
+  background-color: hsl(var(--background) / 0.72);
+}
+main input:not([type="checkbox"]):not([type="radio"]):focus,
+main textarea:focus,
+main [role="combobox"]:focus {
+  background-color: hsl(var(--background));
+}
 
 /* Tabs: content fades up when a tab opens, indicator glides */
 [role="tabpanel"][data-state="active"] {

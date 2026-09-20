@@ -84,7 +84,7 @@ export function RecentTabs() {
   };
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar border-b bg-muted/30 px-2 sm:px-4 h-9 flex-shrink-0">
+    <div className="recent-tabs flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-border/70 bg-background/65 px-2 sm:px-4 h-10 flex-shrink-0 backdrop-blur-md">
       {tabs.map((tab) => {
         const active = tab.path === currentPath;
         const isHome = tab.path === "/";
@@ -93,10 +93,10 @@ export function RecentTabs() {
             key={tab.path}
             onClick={() => navigate(tab.path)}
             className={cn(
-              "group flex items-center gap-1.5 px-2.5 h-7 rounded-t-md text-xs font-medium border border-b-0 transition-colors flex-shrink-0 -mb-px",
+              "group relative flex items-center gap-1.5 px-2.5 h-7 rounded-md text-xs font-medium border transition-all duration-200 flex-shrink-0",
               active
-                ? "bg-background border-border text-foreground"
-                : "bg-transparent border-transparent text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                ? "bg-card border-primary/30 text-foreground shadow-sm"
+                : "bg-transparent border-transparent text-muted-foreground hover:border-border hover:bg-card/70 hover:text-foreground"
             )}
           >
             {isHome && <Home className="w-3 h-3" />}
