@@ -236,6 +236,12 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
   const content = `<html><head><title>${title}</title>
     <style>
       @page { size: A4 ${isInvoicePnl ? "landscape" : "portrait"}; margin: ${isInvoicePnl ? "8mm" : "10mm"}; }
+      :root {
+        --background: 0 0% 100%; --foreground: 217 33% 17%; --card: 0 0% 100%;
+        --muted: 210 40% 96%; --muted-foreground: 215 16% 47%; --border: 214 32% 91%;
+        --primary: 215 71% 32%; --destructive: 0 72% 51%; --warning: 38 92% 50%;
+        --accent: 188 86% 36%; --success: 142 71% 36%;
+      }
       * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       body { font-family: Arial, sans-serif; padding: ${isPanel ? "0" : "16px"}; color: #222; font-size: 12px; margin: 0; }
       .header { text-align: center; margin-bottom: 20px; }
