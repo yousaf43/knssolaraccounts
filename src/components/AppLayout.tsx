@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, Navigate } from "react-router-dom";
 import { useTabScrollMemory } from "@/hooks/useTabScrollMemory";
 import { useTabStateMemory } from "@/hooks/useTabStateMemory";
@@ -59,6 +59,7 @@ export function AppLayout() {
   const { profile, role, company, isSuperAdmin, signOut } = useAuth();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const activePageRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   useTabScrollMemory();
   useTabStateMemory();
@@ -79,6 +80,35 @@ export function AppLayout() {
       setMountedPaths((prev) => [...prev, activePage.path]);
     }
   }, [activePage, mountedPaths]);
+
+  // Keep-alive pages do not remount, so replay the entrance choreography on
+  // every route change without clearing the page's forms, filters or data.
+  useEffect(() => {
+    const page = activePageRef.current;
+    if (!page) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    page.classList.remove("page-enter");
+    void page.offsetWidth;
+    page.classList.add("page-enter");
+
+    const sections = Array.from(page.children).slice(0, 7);
+    sections.forEach((section, index) => {
+      if (!(section instanceof HTMLElement)) return;
+      section.animate(
+        [
+          { opacity: 0, transform: "translateY(14px) scale(0.995)" },
+          { opacity: 1, transform: "translateY(0) scale(1)" },
+        ],
+        {
+          duration: 460,
+          delay: 70 + index * 38,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          fill: "both",
+        }
+      );
+    });
+  }, [currentPath, mountedPaths]);
 
 
   return (
@@ -170,8 +200,10 @@ export function AppLayout() {
               .map((p) => (
                 <div
                   key={p.path}
+                  ref={p.path === currentPath ? activePageRef : undefined}
                   style={{ display: p.path === currentPath ? "block" : "none" }}
-                  className={p.path === currentPath ? "page-enter" : undefined}
+                  className={p.path === currentPath ? "page-enter page-stage" : undefined}
+                  aria-hidden={p.path !== currentPath}
                 >
                   {p.element}
                 </div>
