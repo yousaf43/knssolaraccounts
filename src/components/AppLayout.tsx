@@ -86,6 +86,7 @@ export function AppLayout() {
   useEffect(() => {
     const page = activePageRef.current;
     if (!page) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     page.classList.remove("page-enter");
     void page.offsetWidth;
@@ -107,7 +108,7 @@ export function AppLayout() {
         }
       );
     });
-  }, [currentPath]);
+  }, [currentPath, mountedPaths]);
 
 
   return (
