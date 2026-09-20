@@ -2430,105 +2430,15 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </div>
             );
           })()}
-          <div className="bg-card rounded-2xl border p-6 shadow-soft">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h2 className="text-xl font-semibold">Profit &amp; Loss Breakdown</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Key financial metrics for the selected period</p>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(var(--primary))]" />
-                <span>Sales</span>
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(25,90%,52%)]" />
-                <span>COGS</span>
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(142,71%,40%)]" />
-                <span>Gross</span>
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-[hsl(var(--destructive))]" />
-                <span>Expenses</span>
-              </div>
-            </div>
-            {!plStats ? (
-              <p className="text-muted-foreground text-sm text-center py-12">No data available. Add invoices and expenses to see reports.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={380}>
-                <BarChart
-                  layout="vertical"
-                  data={[
-                    { name: "Net Sales", value: plStats.netSales, grad: ["#3b82f6", "#6366f1"] },
-                    { name: "Cost of Sales", value: plStats.costOfSales, grad: ["#f97316", "#fb923c"] },
-                    { name: "Gross Income", value: plStats.grossIncome, grad: ["#22c55e", "#34d399"] },
-                    { name: "Operating Expenses", value: plStats.operatingExpenses, grad: ["#ef4444", "#f87171"] },
-                    ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, grad: ["#8b5cf6", "#a78bfa"] }] : []),
-                    { name: "Profit", value: plStats.netIncome, grad: plStats.netIncome >= 0 ? ["#15803d", "#16a34a"] : ["#dc2626", "#ef4444"] },
-                  ]}
-                  margin={{ top: 8, right: 90, left: 8, bottom: 8 }}
-                  barCategoryGap="22%"
-                >
-                  <defs>
-                    {[
-                      { name: "Net Sales", stops: ["#3b82f6", "#6366f1"] },
-                      { name: "Cost of Sales", stops: ["#f97316", "#fb923c"] },
-                      { name: "Gross Income", stops: ["#22c55e", "#34d399"] },
-                      { name: "Operating Expenses", stops: ["#ef4444", "#f87171"] },
-                      { name: "Income Tax", stops: ["#8b5cf6", "#a78bfa"] },
-                      { name: "Profit", stops: plStats.netIncome >= 0 ? ["#15803d", "#16a34a"] : ["#dc2626", "#ef4444"] },
-                    ].map((g) => (
-                      <linearGradient key={g.name} id={`grad-${g.name.replace(/\s+/g, "-")}`} x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor={g.stops[0]} stopOpacity={0.85} />
-                        <stop offset="100%" stopColor={g.stops[1]} stopOpacity={1} />
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                    tickFormatter={(v: number) => formatCompactAmount(v)}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }}
-                    interval={0}
-                    axisLine={{ stroke: "hsl(var(--border))" }}
-                    tickLine={false}
-                    width={140}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
-                    formatter={(v: number, _n: string, p: any) => {
-                      const pct = plStats.netSales ? ((v / plStats.netSales) * 100).toFixed(1) : "0.0";
-                      return [formatCurrency(v), `${p.payload.name} (${pct}% of Net Sales)`];
-                    }}
-                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "10px", fontSize: "12px" }}
-                  />
-                  <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                    {([
-                      { name: "Net Sales", color: "url(#grad-Net-Sales)" },
-                      { name: "Cost of Sales", color: "url(#grad-Cost-of-Sales)" },
-                      { name: "Gross Income", color: "url(#grad-Gross-Income)" },
-                      { name: "Operating Expenses", color: "url(#grad-Operating-Expenses)" },
-                      ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", color: "url(#grad-Income-Tax)" }] : []),
-                      { name: "Profit", color: "url(#grad-Profit)" },
-                    ]).map((d) => (
-                      <Cell key={d.name} fill={d.color} />
-                    ))}
-                    <LabelList
-                      dataKey="value"
-                      position="right"
-                      formatter={(v: number) => formatCompactAmount(v)}
-                      className="fill-foreground text-[11px] font-medium"
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-          {plStats && (() => {
+          {(() => {
+            if (!plStats) {
+              return (
+                <div className="bg-card rounded-2xl border p-6 shadow-soft">
+                  <h2 className="text-xl font-semibold">Profit &amp; Loss + Operating Expenses</h2>
+                  <p className="text-muted-foreground text-sm text-center py-12">No data available. Add invoices and expenses to see reports.</p>
+                </div>
+              );
+            }
             const expRows = (() => {
               const map = new Map<string, number>();
               expenses.filter(e => inRange(e.date, fromDate, toDate)).forEach(e => {
@@ -2537,41 +2447,82 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               });
               return [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
             })();
-            const expColors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#8b5cf6", "#ec4899", "#64748b", "#14b8a6", "#f43f5e"];
-            if (expRows.length === 0) return null;
+            const expColors = ["#f43f5e", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#8b5cf6", "#ec4899", "#64748b", "#14b8a6", "#eab308"];
+            const chartRows = [
+              { name: "Net Sales", value: plStats.netSales, fill: "url(#plgrad-sales)", group: "P&L" },
+              { name: "Cost of Sales", value: plStats.costOfSales, fill: "url(#plgrad-cogs)", group: "P&L" },
+              { name: "Gross Income", value: plStats.grossIncome, fill: "url(#plgrad-gross)", group: "P&L" },
+              { name: "Operating Expenses", value: plStats.operatingExpenses, fill: "url(#plgrad-exp)", group: "P&L" },
+              ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, fill: "url(#plgrad-tax)", group: "P&L" }] : []),
+              { name: "Profit", value: plStats.netIncome, fill: "url(#plgrad-profit)", group: "P&L" },
+              ...expRows.map((r, i) => ({ name: r.name, value: r.value, fill: expColors[i % expColors.length], group: "Expense" })),
+            ];
+            const gradDefs = [
+              { id: "plgrad-sales", stops: ["#60a5fa", "#3b82f6"] },
+              { id: "plgrad-cogs", stops: ["#fb923c", "#f97316"] },
+              { id: "plgrad-gross", stops: ["#34d399", "#22c55e"] },
+              { id: "plgrad-exp", stops: ["#f87171", "#ef4444"] },
+              { id: "plgrad-tax", stops: ["#a78bfa", "#8b5cf6"] },
+              { id: "plgrad-profit", stops: plStats.netIncome >= 0 ? ["#4ade80", "#16a34a"] : ["#f87171", "#dc2626"] },
+            ];
             return (
               <div className="bg-card rounded-2xl border p-6 shadow-soft">
-                <h2 className="text-xl font-semibold">Operating Expense Breakdown</h2>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-2">Expenses by category for the selected period</p>
-                <ResponsiveContainer width="100%" height={Math.max(220, expRows.length * 44 + 40)}>
-                  <BarChart layout="vertical" data={expRows} margin={{ top: 8, right: 90, left: 8, bottom: 8 }} barCategoryGap="22%">
-                    <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" horizontal={false} />
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <div>
+                    <h2 className="text-xl font-semibold">Profit &amp; Loss + Operating Expenses</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Financial summary aur expense categories — ek hi graph mein, selected period ke liye</p>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-[#3b82f6]" />P&amp;L Summary</span>
+                    <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />Expense Categories</span>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={420}>
+                  <BarChart data={chartRows} margin={{ top: 24, right: 12, left: 12, bottom: 60 }} barCategoryGap="18%">
+                    <defs>
+                      {gradDefs.map((g) => (
+                        <linearGradient key={g.id} id={g.id} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={g.stops[0]} stopOpacity={1} />
+                          <stop offset="100%" stopColor={g.stops[1]} stopOpacity={0.85} />
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" vertical={false} />
                     <XAxis
-                      type="number"
+                      dataKey="name"
+                      stroke="hsl(var(--muted-foreground))"
+                      tick={{ fontSize: 11, fill: "hsl(var(--foreground))" }}
+                      interval={0}
+                      angle={-35}
+                      textAnchor="end"
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      tickLine={false}
+                    />
+                    <YAxis
                       stroke="hsl(var(--muted-foreground))"
                       tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                       tickFormatter={(v: number) => formatCompactAmount(v)}
                       axisLine={false}
                       tickLine={false}
                     />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      stroke="hsl(var(--muted-foreground))"
-                      tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }}
-                      interval={0}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
-                      tickLine={false}
-                      width={140}
-                    />
                     <Tooltip
                       cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
-                      formatter={(v: number) => [formatCurrency(v), "Amount"]}
+                      formatter={(v: number, _n: string, p: any) => {
+                        const pct = plStats.netSales ? ((v / plStats.netSales) * 100).toFixed(1) : "0.0";
+                        return [formatCurrency(v), `${p.payload.name} · ${p.payload.group}${p.payload.group === "P&L" ? ` (${pct}% of Net Sales)` : ""}`];
+                      }}
                       contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "10px", fontSize: "12px" }}
                     />
-                    <Bar dataKey="value" radius={[0, 8, 8, 0]}>
-                      {expRows.map((r, i) => <Cell key={r.name} fill={expColors[i % expColors.length]} />)}
-                      <LabelList dataKey="value" position="right" formatter={(v: number) => formatCompactAmount(v)} className="fill-foreground text-[11px] font-medium" />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={52}>
+                      {chartRows.map((d) => (
+                        <Cell key={d.name} fill={d.fill} />
+                      ))}
+                      <LabelList
+                        dataKey="value"
+                        position="top"
+                        formatter={(v: number) => formatCompactAmount(v)}
+                        className="fill-foreground text-[10px] font-medium"
+                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
