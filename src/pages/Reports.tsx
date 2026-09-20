@@ -2470,7 +2470,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                   <div>
                     <h2 className="text-xl font-semibold">Profit &amp; Loss + Operating Expenses</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Financial summary aur expense categories — ek hi graph mein, selected period ke liye</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Financial summary and expense categories for the selected period</p>
                   </div>
                   <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-[#3b82f6]" />P&amp;L Summary</span>
