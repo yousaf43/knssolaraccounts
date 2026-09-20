@@ -1915,6 +1915,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
   const [swSearch, setSwSearch] = useState("");
   const [swType, setSwType] = useState<"all" | "washing" | "complaint">("all");
+  const [outstandingView, setOutstandingView] = useState<"receivable" | "advance" | "payable" | null>(null);
   const { data: solarWashing } = useSolarWashingCloud();
   
   const toggleMultiSelected = (key: string) =>
@@ -2321,24 +2322,108 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const receivable = saleInvs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).remaining, 0);
             const advance = saleInvs.reduce((s, inv) => s + getInvoicePaymentSummary(inv, receipts).overpaid, 0);
             const payable = kpiData.outstandingPayables || 0;
+
+            // Breakdown rows
+            const receivableRows = (() => {
+              const map = new Map<string, { name: string; amount: number; docs: string[] }>();
+              saleInvs.forEach(inv => {
+                const r = getInvoicePaymentSummary(inv, receipts).remaining;
+                if (r <= 0) return;
+                const key = normName(inv.customer) || "walk-in";
+                const cur = map.get(key) || { name: inv.customer || "Walk-in Customer", amount: 0, docs: [] };
+                cur.amount += r; cur.docs.push(inv.number);
+                map.set(key, cur);
+              });
+              return [...map.values()].sort((a, b) => b.amount - a.amount);
+            })();
+            const advanceRows = (() => {
+              const map = new Map<string, { name: string; amount: number; docs: string[] }>();
+              saleInvs.forEach(inv => {
+                const o = getInvoicePaymentSummary(inv, receipts).overpaid;
+                if (o <= 0) return;
+                const key = normName(inv.customer) || "walk-in";
+                const cur = map.get(key) || { name: inv.customer || "Walk-in Customer", amount: 0, docs: [] };
+                cur.amount += o; cur.docs.push(inv.number);
+                map.set(key, cur);
+              });
+              return [...map.values()].sort((a, b) => b.amount - a.amount);
+            })();
+            const payableRows = (() => {
+              const map = new Map<string, { name: string; amount: number; docs: string[] }>();
+              bills.filter(b => b.status !== "paid").forEach(bill => {
+                const paid = purchasePayments
+                  .filter(p => normName(p.billNumber) === normName(bill.number) && normName(p.supplier) === normName(bill.supplier))
+                  .reduce((s, p) => s + (p.amount || 0), 0);
+                const due = Math.max(0, (bill.amount || 0) - paid);
+                if (due <= 0) return;
+                const key = normName(bill.supplier) || "unknown";
+                const cur = map.get(key) || { name: bill.supplier || "Unknown Supplier", amount: 0, docs: [] };
+                cur.amount += due; cur.docs.push(bill.number);
+                map.set(key, cur);
+              });
+              return [...map.values()].sort((a, b) => b.amount - a.amount);
+            })();
+
+            const cards = [
+              { key: "receivable" as const, label: "Outstanding Receivables (Customers)", value: receivable, cls: "text-destructive" },
+              { key: "advance" as const, label: "Customer Advances / Overpaid", value: advance, cls: "text-success" },
+              { key: "payable" as const, label: "Outstanding Payables (Suppliers)", value: payable, cls: "text-destructive" },
+            ];
+            const activeRows = outstandingView === "receivable" ? receivableRows : outstandingView === "advance" ? advanceRows : outstandingView === "payable" ? payableRows : [];
+            const activeTitle = cards.find(c => c.key === outstandingView)?.label || "";
             return (
               <div id="report-outstanding-note" className="bg-card border rounded-lg p-4">
 
                 <p className="text-sm font-semibold mb-2">Note — Outstanding Balances</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Outstanding Receivables (Customers)</p>
-                    <p className="font-semibold text-destructive">{formatCurrency(receivable)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Customer Advances / Overpaid</p>
-                    <p className="font-semibold text-success">{formatCurrency(advance)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Outstanding Payables (Suppliers)</p>
-                    <p className="font-semibold text-destructive">{formatCurrency(payable)}</p>
-                  </div>
+                  {cards.map(c => (
+                    <button
+                      key={c.key}
+                      type="button"
+                      onClick={() => setOutstandingView(prev => prev === c.key ? null : c.key)}
+                      className={`text-left rounded-lg border p-3 transition-all hover:shadow-md hover:border-primary/40 ${outstandingView === c.key ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-transparent"}`}
+                    >
+                      <p className="text-muted-foreground text-xs">{c.label}</p>
+                      <p className={`font-semibold ${c.cls}`}>{formatCurrency(c.value)}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 underline underline-offset-2">
+                        {outstandingView === c.key ? "Hide breakdown" : "Click to view breakdown"}
+                      </p>
+                    </button>
+                  ))}
                 </div>
+                {outstandingView && (
+                  <div className="mt-3 border rounded-lg overflow-hidden">
+                    <p className="px-3 py-2 text-xs font-semibold bg-muted/60 border-b">{activeTitle} — Breakdown</p>
+                    {activeRows.length === 0 ? (
+                      <p className="text-xs text-muted-foreground px-3 py-3">No records found.</p>
+                    ) : (
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b bg-muted/30 text-muted-foreground">
+                            <th className="text-left px-3 py-1.5 font-medium">#</th>
+                            <th className="text-left px-3 py-1.5 font-medium">{outstandingView === "payable" ? "Supplier" : "Customer"}</th>
+                            <th className="text-left px-3 py-1.5 font-medium">{outstandingView === "payable" ? "Bill(s)" : "Invoice(s)"}</th>
+                            <th className="text-right px-3 py-1.5 font-medium">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeRows.map((r, i) => (
+                            <tr key={r.name} className="border-b last:border-0">
+                              <td className="px-3 py-1.5">{i + 1}</td>
+                              <td className="px-3 py-1.5 font-medium">{r.name}</td>
+                              <td className="px-3 py-1.5 text-muted-foreground">{r.docs.join(", ")}</td>
+                              <td className="px-3 py-1.5 text-right font-semibold">{formatCurrency(r.amount)}</td>
+                            </tr>
+                          ))}
+                          <tr className="bg-muted/40 font-bold">
+                            <td colSpan={3} className="px-3 py-1.5 text-right">Total</td>
+                            <td className="px-3 py-1.5 text-right">{formatCurrency(activeRows.reduce((s, r) => s + r.amount, 0))}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
                 <p className="text-[11px] text-muted-foreground mt-2 italic">
                   Outstanding balances are shown for information only and are not part of the profit calculation.
                 </p>
@@ -2365,18 +2450,19 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             {!plStats ? (
               <p className="text-muted-foreground text-sm text-center py-12">No data available. Add invoices and expenses to see reports.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={520}>
+              <ResponsiveContainer width="100%" height={380}>
                 <BarChart
+                  layout="vertical"
                   data={[
-                    { name: "Net Sales", value: plStats.netSales, color: "hsl(var(--primary))", grad: ["#3b82f6", "#6366f1"] },
-                    { name: "Cost of Sales", value: plStats.costOfSales, color: "hsl(25, 90%, 52%)", grad: ["#f97316", "#fb923c"] },
-                    { name: "Gross Income", value: plStats.grossIncome, color: "hsl(142, 71%, 40%)", grad: ["#22c55e", "#34d399"] },
-                    { name: "Operating Expenses", value: plStats.operatingExpenses, color: "hsl(var(--destructive))", grad: ["#ef4444", "#f87171"] },
-                    ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, color: "hsl(270, 60%, 55%)", grad: ["#8b5cf6", "#a78bfa"] }] : []),
-                    { name: "Profit", value: plStats.netIncome, color: plStats.netIncome >= 0 ? "hsl(142, 71%, 30%)" : "hsl(var(--destructive))", grad: plStats.netIncome >= 0 ? ["#15803d", "#16a34a"] : ["#dc2626", "#ef4444"] },
+                    { name: "Net Sales", value: plStats.netSales, grad: ["#3b82f6", "#6366f1"] },
+                    { name: "Cost of Sales", value: plStats.costOfSales, grad: ["#f97316", "#fb923c"] },
+                    { name: "Gross Income", value: plStats.grossIncome, grad: ["#22c55e", "#34d399"] },
+                    { name: "Operating Expenses", value: plStats.operatingExpenses, grad: ["#ef4444", "#f87171"] },
+                    ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", value: plStats.incomeTax, grad: ["#8b5cf6", "#a78bfa"] }] : []),
+                    { name: "Profit", value: plStats.netIncome, grad: plStats.netIncome >= 0 ? ["#15803d", "#16a34a"] : ["#dc2626", "#ef4444"] },
                   ]}
-                  margin={{ top: 24, right: 24, left: 8, bottom: 32 }}
-                  barCategoryGap="28%"
+                  margin={{ top: 8, right: 90, left: 8, bottom: 8 }}
+                  barCategoryGap="22%"
                 >
                   <defs>
                     {[
@@ -2387,28 +2473,30 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       { name: "Income Tax", stops: ["#8b5cf6", "#a78bfa"] },
                       { name: "Profit", stops: plStats.netIncome >= 0 ? ["#15803d", "#16a34a"] : ["#dc2626", "#ef4444"] },
                     ].map((g) => (
-                      <linearGradient key={g.name} id={`grad-${g.name.replace(/\s+/g, "-")}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={g.stops[0]} stopOpacity={1} />
-                        <stop offset="100%" stopColor={g.stops[1]} stopOpacity={0.82} />
+                      <linearGradient key={g.name} id={`grad-${g.name.replace(/\s+/g, "-")}`} x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor={g.stops[0]} stopOpacity={0.85} />
+                        <stop offset="100%" stopColor={g.stops[1]} stopOpacity={1} />
                       </linearGradient>
                     ))}
                   </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" vertical={false} />
+                  <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" horizontal={false} />
                   <XAxis
+                    type="number"
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v: number) => formatCompactAmount(v)}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    type="category"
                     dataKey="name"
                     stroke="hsl(var(--muted-foreground))"
                     tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }}
                     interval={0}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                     tickLine={false}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                    tickFormatter={(v: number) => formatCompactAmount(v)}
-                    axisLine={false}
-                    tickLine={false}
-                    width={70}
+                    width={140}
                   />
                   <Tooltip
                     cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
@@ -2418,20 +2506,20 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     }}
                     contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "10px", fontSize: "12px" }}
                   />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  <Bar dataKey="value" radius={[0, 8, 8, 0]}>
                     {([
                       { name: "Net Sales", color: "url(#grad-Net-Sales)" },
                       { name: "Cost of Sales", color: "url(#grad-Cost-of-Sales)" },
                       { name: "Gross Income", color: "url(#grad-Gross-Income)" },
                       { name: "Operating Expenses", color: "url(#grad-Operating-Expenses)" },
                       ...(plStats.incomeTax > 0 ? [{ name: "Income Tax", color: "url(#grad-Income-Tax)" }] : []),
-                      { name: "Profit", color: plStats.netIncome >= 0 ? "url(#grad-Profit)" : "url(#grad-Profit)" },
+                      { name: "Profit", color: "url(#grad-Profit)" },
                     ]).map((d) => (
                       <Cell key={d.name} fill={d.color} />
                     ))}
                     <LabelList
                       dataKey="value"
-                      position="top"
+                      position="right"
                       formatter={(v: number) => formatCompactAmount(v)}
                       className="fill-foreground text-[11px] font-medium"
                     />
@@ -2440,6 +2528,56 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               </ResponsiveContainer>
             )}
           </div>
+          {plStats && (() => {
+            const expRows = (() => {
+              const map = new Map<string, number>();
+              expenses.filter(e => inRange(e.date, fromDate, toDate)).forEach(e => {
+                const key = e.category || "Other";
+                map.set(key, (map.get(key) || 0) + (e.amount || 0));
+              });
+              return [...map.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+            })();
+            const expColors = ["#ef4444", "#f97316", "#f59e0b", "#84cc16", "#06b6d4", "#8b5cf6", "#ec4899", "#64748b", "#14b8a6", "#f43f5e"];
+            if (expRows.length === 0) return null;
+            return (
+              <div className="bg-card rounded-2xl border p-6 shadow-soft">
+                <h2 className="text-xl font-semibold">Operating Expense Breakdown</h2>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-2">Expenses by category for the selected period</p>
+                <ResponsiveContainer width="100%" height={Math.max(220, expRows.length * 44 + 40)}>
+                  <BarChart layout="vertical" data={expRows} margin={{ top: 8, right: 90, left: 8, bottom: 8 }} barCategoryGap="22%">
+                    <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      stroke="hsl(var(--muted-foreground))"
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(v: number) => formatCompactAmount(v)}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      stroke="hsl(var(--muted-foreground))"
+                      tick={{ fontSize: 12, fill: "hsl(var(--foreground))" }}
+                      interval={0}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      tickLine={false}
+                      width={140}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--muted) / 0.35)" }}
+                      formatter={(v: number) => [formatCurrency(v), "Amount"]}
+                      contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "10px", fontSize: "12px" }}
+                    />
+                    <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                      {expRows.map((r, i) => <Cell key={r.name} fill={expColors[i % expColors.length]} />)}
+                      <LabelList dataKey="value" position="right" formatter={(v: number) => formatCompactAmount(v)} className="fill-foreground text-[11px] font-medium" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            );
+          })()}
             </>
           )}
         </>
