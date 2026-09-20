@@ -1915,6 +1915,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("all");
   const [swSearch, setSwSearch] = useState("");
   const [swType, setSwType] = useState<"all" | "washing" | "complaint">("all");
+  const [outstandingView, setOutstandingView] = useState<"receivable" | "advance" | "payable" | null>(null);
   const { data: solarWashing } = useSolarWashingCloud();
   
   const toggleMultiSelected = (key: string) =>
