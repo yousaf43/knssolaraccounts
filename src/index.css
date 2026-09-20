@@ -250,18 +250,21 @@
   .page-enter {
     position: relative;
     isolation: isolate;
-    animation: page-transition-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: page-transition-in 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: 50% 0;
+    will-change: transform, opacity, filter;
   }
   .page-enter::before {
     content: "";
     position: absolute;
     z-index: -1;
     inset: -8px 0 auto;
-    height: 2px;
+    height: 3px;
     background: var(--gradient-primary);
     transform-origin: left;
     animation: page-scan-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
-    opacity: 0.5;
+    opacity: 0.75;
+    box-shadow: 0 0 18px hsl(var(--accent) / 0.48);
   }
   .page-enter > *:first-child {
     animation: content-reveal 0.56s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -300,12 +303,13 @@
 @keyframes page-transition-in {
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.992);
-    filter: blur(7px) saturate(0.8);
+    transform: translate3d(22px, 18px, 0) scale(0.985);
+    filter: blur(9px) saturate(0.72);
   }
+  55% { opacity: 1; filter: blur(0) saturate(1.06); }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
     filter: blur(0);
   }
 }
@@ -450,7 +454,36 @@ div[data-state="open"][class*="fixed inset-0"] {
   background: linear-gradient(90deg, transparent, hsl(var(--accent) / 0.65), transparent);
   pointer-events: none;
 }
-.recent-tabs button::after {
+.recent-tabs::before {
+  content: "";
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 28px;
+  align-self: stretch;
+  flex: 0 0 28px;
+  margin-right: -29px;
+  pointer-events: none;
+  background: linear-gradient(90deg, hsl(var(--background)), transparent);
+}
+.tab-motion-mark {
+  animation: tab-mark-breathe 2.6s ease-in-out infinite;
+}
+.recent-tab {
+  animation: recent-tab-arrive 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.recent-tab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 25%, hsl(var(--accent) / 0.13), transparent 75%);
+  transform: translateX(-115%);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+.recent-tab:hover::before,
+.recent-tab.is-active::before { transform: translateX(115%); }
+.recent-tab::after {
   content: "";
   position: absolute;
   inset: auto 16% -1px;
@@ -461,7 +494,19 @@ div[data-state="open"][class*="fixed inset-0"] {
   transform: scaleX(0.25);
   transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.recent-tabs button.bg-card::after { opacity: 1; transform: scaleX(1); }
+.recent-tab.is-active::after { opacity: 1; transform: scaleX(1); }
+.recent-tab.is-active {
+  box-shadow: 0 8px 20px -15px hsl(var(--primary) / 0.8), inset 0 1px 0 hsl(var(--accent) / 0.14);
+}
+
+@keyframes recent-tab-arrive {
+  from { opacity: 0; transform: translateY(-7px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes tab-mark-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.9) rotate(0); }
+  50% { opacity: 1; transform: scale(1.08) rotate(8deg); }
+}
 
 /* Consistent data surfaces across all accounting pages */
 main .bg-card.border,

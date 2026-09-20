@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { X, Home } from "lucide-react";
+import { X, Home, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { scopedKey, subscribeStorageScope } from "@/lib/storageScope";
+import { Button } from "@/components/ui/button";
 
 const ROUTE_TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -15,10 +16,13 @@ const ROUTE_TITLES: Record<string, string> = {
   "/accounts": "Accounts",
   "/assets": "Assets",
   "/reports": "Reports",
+  "/hr": "HR",
   "/solar-washing": "Solar Washing & Complaints",
+  "/drafts": "Drafts",
   "/activity-logs": "Activity Logs",
   "/trash": "Trash",
   "/settings": "Settings",
+  "/platform-admin": "Platform Admin",
 };
 
 const STORAGE_BASE = "recent-tabs-v1";
@@ -84,18 +88,25 @@ export function RecentTabs() {
   };
 
   return (
-    <div className="recent-tabs flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-border/70 bg-background/65 px-2 sm:px-4 h-10 flex-shrink-0 backdrop-blur-md">
-      {tabs.map((tab) => {
+    <div className="recent-tabs relative flex h-10 flex-shrink-0 items-center gap-1 overflow-x-auto border-b border-border/70 bg-background/65 px-2 backdrop-blur-md sm:px-4">
+      <div className="tab-motion-mark flex h-6 w-6 flex-none items-center justify-center text-primary" aria-hidden="true">
+        <Sparkles className="h-3.5 w-3.5" />
+      </div>
+      {tabs.map((tab, index) => {
         const active = tab.path === currentPath;
         const isHome = tab.path === "/";
         return (
-          <button
+          <Button
             key={tab.path}
+            type="button"
+            variant="ghost"
             onClick={() => navigate(tab.path)}
+            aria-current={active ? "page" : undefined}
+            style={{ animationDelay: `${Math.min(index * 30, 210)}ms` }}
             className={cn(
-              "group relative flex items-center gap-1.5 px-2.5 h-7 rounded-md text-xs font-medium border transition-all duration-200 flex-shrink-0",
+              "recent-tab group relative h-7 flex-shrink-0 gap-1.5 overflow-hidden rounded-md border px-2.5 text-xs font-medium",
               active
-                ? "bg-card border-primary/30 text-foreground shadow-sm"
+                ? "is-active border-primary/35 bg-card text-foreground shadow-sm"
                 : "bg-transparent border-transparent text-muted-foreground hover:border-border hover:bg-card/70 hover:text-foreground"
             )}
           >
@@ -112,7 +123,7 @@ export function RecentTabs() {
                 <X className="w-3 h-3" />
               </span>
             )}
-          </button>
+          </Button>
         );
       })}
     </div>
