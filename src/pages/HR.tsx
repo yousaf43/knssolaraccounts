@@ -50,7 +50,7 @@ const hoursBetween = (inT: string, outT: string) => {
 };
 
 export default function HR() {
-  const { formatCurrency, formatDate } = useSettings();
+  const { settings, formatCurrency, formatDate } = useSettings();
   const employees = useEmployeesCloud();
   const attendance = useAttendanceCloud();
   const rules = useWorkplaceRulesCloud();
