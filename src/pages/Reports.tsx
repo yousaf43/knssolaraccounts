@@ -464,7 +464,8 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print > div:first-child p:last-child { color: #e8eef7 !important; }
       #report-print-table.invoice-pnl-print .overflow-x-auto { overflow: visible !important; }
       #report-print-table.invoice-pnl-print table {
-        width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important;
+        display: table !important; width: 100% !important; min-width: 100% !important; max-width: none !important;
+        table-layout: fixed !important; border-collapse: collapse !important;
       }
       #report-print-table.invoice-pnl-print thead { display: table-header-group; }
       #report-print-table.invoice-pnl-print th {
@@ -486,17 +487,17 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print tbody tr:nth-child(even) td { background: #f6f8fb !important; }
       #report-print-table.invoice-pnl-print tbody tr { break-inside: avoid; page-break-inside: avoid; }
       #report-print-table.invoice-pnl-print .invoice-project-site { display: none !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print tbody td:nth-child(1) { width: 7mm !important; text-align: center !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(2), #report-print-table.invoice-pnl-print tbody td:nth-child(2) { width: 19mm !important; white-space: nowrap !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(3), #report-print-table.invoice-pnl-print tbody td:nth-child(3) { width: 20mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(4), #report-print-table.invoice-pnl-print tbody td:nth-child(4) { width: 22mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(5), #report-print-table.invoice-pnl-print tbody td:nth-child(5) { width: 40mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(7), #report-print-table.invoice-pnl-print tbody td:nth-child(7) { width: 28mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(8), #report-print-table.invoice-pnl-print tbody td:nth-child(8) { width: 22mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(9), #report-print-table.invoice-pnl-print tbody td:nth-child(9) { width: 28mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(10), #report-print-table.invoice-pnl-print tbody td:nth-child(10) { width: 28mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(11), #report-print-table.invoice-pnl-print tbody td:nth-child(11) { width: 30mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(12), #report-print-table.invoice-pnl-print tbody td:nth-child(12) { width: 15mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print tbody td:nth-child(1) { width: 3% !important; text-align: center !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(2), #report-print-table.invoice-pnl-print tbody td:nth-child(2) { width: 8% !important; white-space: nowrap !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(3), #report-print-table.invoice-pnl-print tbody td:nth-child(3) { width: 8% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(4), #report-print-table.invoice-pnl-print tbody td:nth-child(4) { width: 9% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(5), #report-print-table.invoice-pnl-print tbody td:nth-child(5) { width: 20% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(7), #report-print-table.invoice-pnl-print tbody td:nth-child(7) { width: 10% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(8), #report-print-table.invoice-pnl-print tbody td:nth-child(8) { width: 9% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(9), #report-print-table.invoice-pnl-print tbody td:nth-child(9) { width: 10% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(10), #report-print-table.invoice-pnl-print tbody td:nth-child(10) { width: 10% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(11), #report-print-table.invoice-pnl-print tbody td:nth-child(11) { width: 10% !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(12), #report-print-table.invoice-pnl-print tbody td:nth-child(12) { width: 3% !important; }
       #report-print-table.invoice-pnl-print th:nth-child(n+7), #report-print-table.invoice-pnl-print tbody td:nth-child(n+7) {
         text-align: right !important; white-space: nowrap !important; font-variant-numeric: tabular-nums;
       }
@@ -752,6 +753,7 @@ function IncomeStatement({
   onStats?: (s: { netSales: number; costOfSales: number; grossIncome: number; operatingExpenses: number; incomeTax: number; netIncome: number }) => void;
 }) {
   const { formatCurrency, formatDate } = useSettings();
+  const formatWholeCurrency = (amount: number) => formatCurrency(Math.round(amount));
   const detailed = report.code === "125";
   const summaryOnly = report.code === "123";
 
@@ -1368,9 +1370,9 @@ function ProfitLossByInvoice({
                       <td className="px-3 py-2"><HighlightText text={row.documentNumber} query={search} /></td>
                       <td className="px-3 py-2"><HighlightText text={row.customer} query={search || customer} /></td>
                       <td className="invoice-project-site px-3 py-2 text-muted-foreground">{row.projectName || "—"}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(row.sales)}</td>
-                      <td className="px-3 py-2 text-right text-warning">{formatCurrency(row.discount)}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(row.cost)}</td>
+                      <td className="px-3 py-2 text-right">{formatWholeCurrency(row.sales)}</td>
+                      <td className="px-3 py-2 text-right text-warning">{formatWholeCurrency(row.discount)}</td>
+                      <td className="px-3 py-2 text-right">{formatWholeCurrency(row.cost)}</td>
                       <td className="px-3 py-2 text-right" onClick={(event) => event.stopPropagation()}>
                         <Input
                           type="number"
@@ -1384,7 +1386,7 @@ function ProfitLossByInvoice({
                           aria-label={`Operating expense for invoice ${row.number}`}
                         />
                       </td>
-                      <td className={`px-3 py-2 text-right font-semibold ${row.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(row.profit)}</td>
+                      <td className={`px-3 py-2 text-right font-semibold ${row.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatWholeCurrency(row.profit)}</td>
                       <td className={`px-3 py-2 text-right ${row.margin >= 0 ? "text-success" : "text-destructive"}`}>{row.margin.toFixed(1)}%</td>
                     </tr>
                     {expandedId === row.id && (
@@ -1416,9 +1418,9 @@ function ProfitLossByInvoice({
                                             <td className="py-1 pr-2 text-muted-foreground">{lineIndex + 1}</td>
                                             <td className="py-1 pr-2 font-medium">{line.bundleTitle ? `${line.bundleTitle} (Bundle)` : line.description}</td>
                                             <td className="py-1 pr-2 text-right">{line.qty}</td>
-                                            <td className="py-1 pr-2 text-right">{formatCurrency(line.rate)}</td>
+                                            <td className="py-1 pr-2 text-right">{formatWholeCurrency(line.rate)}</td>
                                             <td className="py-1 pr-2 text-right text-warning">{line.discount ? `${line.discount}%` : "—"}</td>
-                                            <td className="py-1 text-right">{formatCurrency(line.amount ?? (line.qty || 0) * (line.rate || 0))}</td>
+                                            <td className="py-1 text-right">{formatWholeCurrency(line.amount ?? (line.qty || 0) * (line.rate || 0))}</td>
                                           </tr>
                                           {line.adhocLines?.map((part, partIndex) => {
                                             const partItem = inventoryById.get(part.itemId);
@@ -1427,9 +1429,9 @@ function ProfitLossByInvoice({
                                                 <td className="py-0.5 pr-2"></td>
                                                 <td className="py-0.5 pr-2 pl-4">↳ {partItem?.name || "Item"}</td>
                                                 <td className="py-0.5 pr-2 text-right">{part.qty}</td>
-                                                <td className="py-0.5 pr-2 text-right">{formatCurrency(part.rate)}</td>
+                                                <td className="py-0.5 pr-2 text-right">{formatWholeCurrency(part.rate)}</td>
                                                 <td className="py-0.5 pr-2 text-right">—</td>
-                                                <td className="py-0.5 text-right">{formatCurrency((part.qty || 0) * (part.rate || 0))}</td>
+                                                <td className="py-0.5 text-right">{formatWholeCurrency((part.qty || 0) * (part.rate || 0))}</td>
                                               </tr>
                                             );
                                           })}
@@ -1450,11 +1452,11 @@ function ProfitLossByInvoice({
               <tfoot>
                 <tr className="border-t-2 bg-muted/40 font-bold">
                   <td className="px-3 py-2" colSpan={6}>Total ({rows.length} invoices)</td>
-                  <td className="px-3 py-2 text-right">{formatCurrency(totals.sales)}</td>
-                  <td className="px-3 py-2 text-right text-warning">{formatCurrency(totals.discount)}</td>
-                  <td className="px-3 py-2 text-right">{formatCurrency(totals.cost)}</td>
-                  <td className="px-3 py-2 text-right">{formatCurrency(totals.operatingExpense)}</td>
-                  <td className={`px-3 py-2 text-right ${totals.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(totals.profit)}</td>
+                  <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.sales)}</td>
+                  <td className="px-3 py-2 text-right text-warning">{formatWholeCurrency(totals.discount)}</td>
+                  <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.cost)}</td>
+                  <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.operatingExpense)}</td>
+                  <td className={`px-3 py-2 text-right ${totals.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatWholeCurrency(totals.profit)}</td>
                   <td className="px-3 py-2 text-right">{totals.sales !== 0 ? `${((totals.profit / Math.abs(totals.sales)) * 100).toFixed(1)}%` : "0.0%"}</td>
                 </tr>
               </tfoot>
