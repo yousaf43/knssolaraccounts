@@ -486,18 +486,18 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print tbody tr:nth-child(even) td { background: #f6f8fb !important; }
       #report-print-table.invoice-pnl-print tbody tr { break-inside: avoid; page-break-inside: avoid; }
       #report-print-table.invoice-pnl-print .invoice-project-site { display: none !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print td:nth-child(1) { width: 7mm !important; text-align: center !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(2), #report-print-table.invoice-pnl-print td:nth-child(2) { width: 19mm !important; white-space: nowrap !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(3), #report-print-table.invoice-pnl-print td:nth-child(3) { width: 20mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(4), #report-print-table.invoice-pnl-print td:nth-child(4) { width: 22mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(5), #report-print-table.invoice-pnl-print td:nth-child(5) { width: 40mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(7), #report-print-table.invoice-pnl-print td:nth-child(7) { width: 28mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(8), #report-print-table.invoice-pnl-print td:nth-child(8) { width: 22mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(9), #report-print-table.invoice-pnl-print td:nth-child(9) { width: 28mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(10), #report-print-table.invoice-pnl-print td:nth-child(10) { width: 28mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(11), #report-print-table.invoice-pnl-print td:nth-child(11) { width: 30mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(12), #report-print-table.invoice-pnl-print td:nth-child(12) { width: 15mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(n+7), #report-print-table.invoice-pnl-print td:nth-child(n+7) {
+      #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print tbody td:nth-child(1) { width: 7mm !important; text-align: center !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(2), #report-print-table.invoice-pnl-print tbody td:nth-child(2) { width: 19mm !important; white-space: nowrap !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(3), #report-print-table.invoice-pnl-print tbody td:nth-child(3) { width: 20mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(4), #report-print-table.invoice-pnl-print tbody td:nth-child(4) { width: 22mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(5), #report-print-table.invoice-pnl-print tbody td:nth-child(5) { width: 40mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(7), #report-print-table.invoice-pnl-print tbody td:nth-child(7) { width: 28mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(8), #report-print-table.invoice-pnl-print tbody td:nth-child(8) { width: 22mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(9), #report-print-table.invoice-pnl-print tbody td:nth-child(9) { width: 28mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(10), #report-print-table.invoice-pnl-print tbody td:nth-child(10) { width: 28mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(11), #report-print-table.invoice-pnl-print tbody td:nth-child(11) { width: 30mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(12), #report-print-table.invoice-pnl-print tbody td:nth-child(12) { width: 15mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(n+7), #report-print-table.invoice-pnl-print tbody td:nth-child(n+7) {
         text-align: right !important; white-space: nowrap !important; font-variant-numeric: tabular-nums;
       }
       #report-print-table.invoice-pnl-print .invoice-expand-icon,
