@@ -753,7 +753,6 @@ function IncomeStatement({
   onStats?: (s: { netSales: number; costOfSales: number; grossIncome: number; operatingExpenses: number; incomeTax: number; netIncome: number }) => void;
 }) {
   const { formatCurrency, formatDate } = useSettings();
-  const formatWholeCurrency = (amount: number) => formatCurrency(Math.round(amount));
   const detailed = report.code === "125";
   const summaryOnly = report.code === "123";
 
@@ -1290,6 +1289,7 @@ function ProfitLossByInvoice({
   updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, formatDate } = useSettings();
+  const formatWholeCurrency = (amount: number) => formatCurrency(Math.round(amount));
   const [expenseDrafts, setExpenseDrafts] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
