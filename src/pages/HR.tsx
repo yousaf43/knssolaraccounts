@@ -380,6 +380,9 @@ export default function HR() {
             <Input type="month" className="w-44" value={payMonth} onChange={(e) => setPayMonth(e.target.value)} />
             <Button variant="outline" onClick={() => setPayMonth("")}>Clear</Button>
             <Button variant="outline" onClick={generatePayroll}>Generate Salary Sheet</Button>
+            <Button variant="outline" onClick={printAllSlips} disabled={filteredPayroll.length === 0}>
+              <Printer className="mr-2 h-4 w-4" />Print All Slips
+            </Button>
             <Button className="ml-auto" onClick={() => { setPayForm(emptyPayroll()); setPayDialog(true); }}><Plus className="mr-2 h-4 w-4" />Add Salary Entry</Button>
           </div>
 
@@ -413,6 +416,9 @@ export default function HR() {
                     <TableCell className="text-right font-semibold">{formatCurrency(netOf(p))}</TableCell>
                     <TableCell>{statusBadge(p.status)}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button variant="ghost" size="icon" aria-label={`Print salary slip for ${p.employeeName}`} title="Print salary slip" onClick={() => printSlip(p)}>
+                        <Printer className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => { setPayForm({ ...p }); setPayDialog(true); }}><Pencil className="h-4 w-4" /></Button>
                       <ConfirmDeleteDialog onConfirm={() => { void payroll.remove(p.id); }} />
                     </TableCell>

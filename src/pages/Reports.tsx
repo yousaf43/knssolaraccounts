@@ -234,6 +234,7 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
   const isPanel = !cleanHtml.trim().toLowerCase().startsWith("<table");
   const isSiteStatement = cleanHtml.includes("site-statement-print");
   const isInvoicePnl = cleanHtml.includes("invoice-pnl-print");
+  const isProfitLossSummary = cleanHtml.includes("pl-summary-print");
   const content = `<html><head><title>${title}</title>
     <style>
       @page { size: A4 ${isInvoicePnl ? "landscape" : "portrait"}; margin: ${isInvoicePnl ? "8mm" : "10mm"}; }
@@ -485,18 +486,18 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print tbody tr:nth-child(even) td { background: #f6f8fb !important; }
       #report-print-table.invoice-pnl-print tbody tr { break-inside: avoid; page-break-inside: avoid; }
       #report-print-table.invoice-pnl-print .invoice-project-site { display: none !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print td:nth-child(1) { width: 8mm !important; text-align: center !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(2), #report-print-table.invoice-pnl-print td:nth-child(2) { width: 20mm !important; white-space: nowrap !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(3), #report-print-table.invoice-pnl-print td:nth-child(3) { width: 22mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(4), #report-print-table.invoice-pnl-print td:nth-child(4) { width: 23mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(5), #report-print-table.invoice-pnl-print td:nth-child(5) { width: 34mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(7), #report-print-table.invoice-pnl-print td:nth-child(7) { width: 25mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(8), #report-print-table.invoice-pnl-print td:nth-child(8) { width: 22mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(9), #report-print-table.invoice-pnl-print td:nth-child(9) { width: 26mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(10), #report-print-table.invoice-pnl-print td:nth-child(10) { width: 29mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(11), #report-print-table.invoice-pnl-print td:nth-child(11) { width: 25mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(12), #report-print-table.invoice-pnl-print td:nth-child(12) { width: 17mm !important; }
-      #report-print-table.invoice-pnl-print th:nth-child(n+7), #report-print-table.invoice-pnl-print td:nth-child(n+7) {
+      #report-print-table.invoice-pnl-print th:nth-child(1), #report-print-table.invoice-pnl-print tbody td:nth-child(1) { width: 7mm !important; text-align: center !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(2), #report-print-table.invoice-pnl-print tbody td:nth-child(2) { width: 19mm !important; white-space: nowrap !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(3), #report-print-table.invoice-pnl-print tbody td:nth-child(3) { width: 20mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(4), #report-print-table.invoice-pnl-print tbody td:nth-child(4) { width: 22mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(5), #report-print-table.invoice-pnl-print tbody td:nth-child(5) { width: 40mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(7), #report-print-table.invoice-pnl-print tbody td:nth-child(7) { width: 28mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(8), #report-print-table.invoice-pnl-print tbody td:nth-child(8) { width: 22mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(9), #report-print-table.invoice-pnl-print tbody td:nth-child(9) { width: 28mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(10), #report-print-table.invoice-pnl-print tbody td:nth-child(10) { width: 28mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(11), #report-print-table.invoice-pnl-print tbody td:nth-child(11) { width: 30mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(12), #report-print-table.invoice-pnl-print tbody td:nth-child(12) { width: 15mm !important; }
+      #report-print-table.invoice-pnl-print th:nth-child(n+7), #report-print-table.invoice-pnl-print tbody td:nth-child(n+7) {
         text-align: right !important; white-space: nowrap !important; font-variant-numeric: tabular-nums;
       }
       #report-print-table.invoice-pnl-print .invoice-expand-icon,
@@ -507,10 +508,28 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
       #report-print-table.invoice-pnl-print tfoot { display: table-row-group; }
       #report-print-table.invoice-pnl-print tfoot td {
         padding-top: 2.5mm !important; padding-bottom: 2.5mm !important; border-top: 1mm solid #174a8b !important;
-        border-bottom: 0 !important; background: #dfe9f5 !important; color: #102a4d !important; font-weight: 800 !important;
+        border-bottom: 0 !important; background: #dfe9f5 !important; color: #102a4d !important; font-size: 6.4pt !important;
+        line-height: 1.15 !important; letter-spacing: 0 !important; white-space: nowrap !important; font-weight: 800 !important;
       }
       #report-print-table.invoice-pnl-print tfoot td:first-child { text-align: left !important; }
       .footer { margin-top: 3mm; color: #65758b; font-size: 6.5pt; text-transform: uppercase; letter-spacing: .05em; }
+      ` : ""}
+      ${isProfitLossSummary ? `
+      /* Report 121: strong, legible summary print */
+      #report-print-table.pl-summary-print,
+      #report-print-table.pl-summary-print * { color: #111827 !important; }
+      #report-print-table.pl-summary-print > div:first-child,
+      #report-print-table.pl-summary-print > div:first-child * { color: #fff !important; }
+      #report-print-table.pl-summary-print th,
+      #report-print-table.pl-summary-print td,
+      #report-print-table.pl-summary-print p,
+      #report-print-table.pl-summary-print span,
+      #report-print-table.pl-summary-print [style*="font-size"] { font-weight: 700 !important; }
+      #report-print-table.pl-summary-print th { font-weight: 800 !important; }
+      #report-print-table.pl-summary-print tbody tr[style*="background"] td { font-weight: 800 !important; }
+      #report-outstanding-note, #report-outstanding-note * { font-weight: 700 !important; }
+      #report-outstanding-note > p:first-child,
+      #report-outstanding-note .grid > div > p:nth-child(2) { font-weight: 800 !important; }
       ` : ""}
       /* Outstanding balances note (Report 121) */
       #report-outstanding-note {
@@ -1054,7 +1073,7 @@ function IncomeStatement({
 
   return (
     <div className="bg-card rounded-lg border overflow-hidden">
-      <div id="report-print-table">
+      <div id="report-print-table" className={report.code === "121" ? "pl-summary-print" : undefined}>
         <div
           className="text-center py-4 px-4"
           style={{ background: "#1d4ed8", color: "#ffffff" }}
