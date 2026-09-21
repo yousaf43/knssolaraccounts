@@ -507,6 +507,8 @@ function exportTablePrint(title: string, dateRange: string, tableHtml: string, c
         display: block; min-width: 0; color: #0f1b2d; font-size: 7.5pt; text-align: right; white-space: nowrap; font-weight: 700;
       }
       #report-print-table.invoice-pnl-print tfoot { display: table-row-group; }
+      #report-print-table.invoice-pnl-print .invoice-screen-total-row { display: none !important; }
+      #report-print-table.invoice-pnl-print .invoice-print-total-row { display: table-row !important; }
       #report-print-table.invoice-pnl-print tfoot td {
         padding: 2.5mm .8mm !important; border-top: 1mm solid #174a8b !important;
         border-bottom: 0 !important; background: #dfe9f5 !important; color: #102a4d !important; font-size: 6.4pt !important;
@@ -1451,8 +1453,17 @@ function ProfitLossByInvoice({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 bg-muted/40 font-bold">
+                <tr className="invoice-screen-total-row border-t-2 bg-muted/40 font-bold">
                   <td className="px-3 py-2" colSpan={6}>Total ({rows.length} invoices)</td>
+                  <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.sales)}</td>
+                  <td className="px-3 py-2 text-right text-warning">{formatWholeCurrency(totals.discount)}</td>
+                  <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.cost)}</td>
+                  <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.operatingExpense)}</td>
+                  <td className={`px-3 py-2 text-right ${totals.profit >= 0 ? "text-success" : "text-destructive"}`}>{formatWholeCurrency(totals.profit)}</td>
+                  <td className="px-3 py-2 text-right">{totals.sales !== 0 ? `${((totals.profit / Math.abs(totals.sales)) * 100).toFixed(1)}%` : "0.0%"}</td>
+                </tr>
+                <tr className="invoice-print-total-row hidden border-t-2 bg-muted/40 font-bold">
+                  <td className="px-3 py-2" colSpan={5}>Total ({rows.length} invoices)</td>
                   <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.sales)}</td>
                   <td className="px-3 py-2 text-right text-warning">{formatWholeCurrency(totals.discount)}</td>
                   <td className="px-3 py-2 text-right">{formatWholeCurrency(totals.cost)}</td>
