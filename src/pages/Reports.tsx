@@ -1296,7 +1296,7 @@ function ProfitLossByInvoice({
   const saveOperatingExpense = async (row: InvoicePnlRow, value: string) => {
     const invoice = invoices.find(item => item.id === row.id);
     if (!invoice) return;
-    const amount = Math.max(0, Number(value) || 0);
+    const amount = Math.round(Math.max(0, Number(value) || 0));
     setExpenseDrafts(prev => ({ ...prev, [row.id]: String(amount) }));
     try {
       await updateInvoice({ ...invoice, operatingExpense: amount });
@@ -1377,8 +1377,8 @@ function ProfitLossByInvoice({
                         <Input
                           type="number"
                           min={0}
-                          step={0.01}
-                          value={expenseDrafts[row.id] ?? String(Math.abs(row.operatingExpense) || "")}
+                          step={1}
+                          value={expenseDrafts[row.id] ?? String(Math.round(Math.abs(row.operatingExpense)) || "")}
                           onChange={(event) => setExpenseDrafts(prev => ({ ...prev, [row.id]: event.target.value }))}
                           onBlur={(event) => void saveOperatingExpense(row, event.target.value)}
                           onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
