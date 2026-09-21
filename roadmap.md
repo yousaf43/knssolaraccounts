@@ -1,3 +1,5 @@
 - [x] Upgrade the full website to a futuristic K&S theme with attractive page and menu transitions
 - [x] Refresh recent tabs and replay lively page-opening animations on every navigation
 - [x] Remove duplicate top spacing and make page/menu animations reliably visible
+- [x] Complete HR salary-slip printing controls
+- [x] Make Report 121 print bold and repair By Invoice print totals alignment
