@@ -168,6 +168,40 @@ export default function HR() {
     toast({ title: `Salary sheet generated for ${missing.length} employee(s)` });
   };
 
+  // ---------- Salary Slips ----------
+  const buildSlip = (p: PayrollEntry): SlipInput => {
+    const emp = employees.data.find((e) => e.id === p.employeeId);
+    const monthRecords = attendance.data.filter((a) => a.employeeId === p.employeeId && (a.date || "").slice(0, 7) === p.month);
+    return {
+      entry: { ...p, netPay: netOf(p) },
+      extra: {
+        code: emp?.code,
+        designation: emp?.designation,
+        department: emp?.department,
+        joinDate: emp?.joinDate,
+        presentDays: monthRecords.filter((a) => a.status === "present").length
+          + monthRecords.filter((a) => a.status === "half-day").length * 0.5,
+        absentDays: monthRecords.filter((a) => a.status === "absent").length,
+        leaveDays: monthRecords.filter((a) => a.status === "leave").length,
+      },
+    };
+  };
+
+  const company = {
+    name: settings.companyName,
+    address: settings.companyAddress,
+    phone: settings.companyPhone,
+    email: settings.companyEmail,
+    logoUrl: settings.logoUrl,
+  };
+
+  const printSlip = (p: PayrollEntry) => printSalarySlips([buildSlip(p)], company, formatCurrency, formatDate);
+  const printAllSlips = () => {
+    if (filteredPayroll.length === 0) { toast({ title: "No salary entries to print", variant: "destructive" }); return; }
+    printSalarySlips(filteredPayroll.map(buildSlip), company, formatCurrency, formatDate);
+  };
+
+
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
       present: "bg-emerald-500/15 text-emerald-600",
