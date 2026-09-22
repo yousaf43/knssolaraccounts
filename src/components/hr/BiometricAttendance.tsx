@@ -22,6 +22,8 @@ type Punch = {
   id: string; device_user_id: string; employee_name: string | null;
   punch_time: string; punch_date: string; punch_type: string | null; source: string;
 };
+type Emp = { id: string; name: string; code: string | null; biometric_id: string | null };
+
 
 const FN_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zkteco-attendance`;
 
@@ -66,12 +68,24 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
   const [devices, setDevices] = useState<Device[]>([]);
   const [pending, setPending] = useState<PendingDevice[]>([]);
   const [punches, setPunches] = useState<Punch[]>([]);
+  const [employees, setEmployees] = useState<Emp[]>([]);
+  const [linkChoice, setLinkChoice] = useState<Record<string, string>>({});
+  const [linking, setLinking] = useState(false);
   const [from, setFrom] = useState(monthAgo());
   const [to, setTo] = useState(today());
   const [loading, setLoading] = useState(false);
   const [dialog, setDialog] = useState(false);
   const [form, setForm] = useState({ name: "ZKTeco Device", serial: "" });
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const loadEmployees = useCallback(async () => {
+    const { data } = await supabase
+      .from("employees" as never)
+      .select("id,name,code,biometric_id")
+      .order("name");
+    setEmployees((data as unknown as Emp[]) || []);
+  }, []);
+
 
   const loadDevices = useCallback(async () => {
     const { data } = await supabase.from("attendance_devices" as never).select("*").order("created_at");
