@@ -109,7 +109,7 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
     setPending((data as unknown as PendingDevice[]) || []);
   }, []);
 
-  useEffect(() => { void loadDevices(); void loadPending(); }, [loadDevices, loadPending]);
+  useEffect(() => { void loadDevices(); void loadPending(); void loadEmployees(); }, [loadDevices, loadPending, loadEmployees]);
   useEffect(() => { void loadPunches(); }, [loadPunches]);
 
   // Keep looking for a machine that has just started talking to us.
@@ -128,6 +128,81 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
       return { address: FN_BASE, host: FN_BASE, port: "443" };
     }
   }, []);
+
+  /** Device IDs that are punching but are not linked to any employee yet. */
+  const unmatchedIds = useMemo(() => {
+    const map = new Map<string, { count: number; last: string }>();
+    for (const p of punches) {
+      if (p.employee_name) continue;
+      const cur = map.get(p.device_user_id);
+      if (!cur) map.set(p.device_user_id, { count: 1, last: p.punch_time });
+      else { cur.count++; if (p.punch_time > cur.last) cur.last = p.punch_time; }
+    }
+    return [...map.entries()].map(([id, v]) => ({ id, ...v })).sort((a, b) => Number(a.id) - Number(b.id));
+  }, [punches]);
+
+  /** Per person, per day: first punch = check in, last punch = check out. */
+  const daily = useMemo(() => {
+    const map = new Map<string, { date: string; who: string; unmatched: boolean; times: string[] }>();
+    for (const p of punches) {
+      const key = `${p.punch_date}|${p.device_user_id}`;
+      const entry = map.get(key) || {
+        date: p.punch_date,
+        who: p.employee_name || `Device ID ${p.device_user_id}`,
+        unmatched: !p.employee_name,
+        times: [],
+      };
+      entry.times.push(p.punch_time);
+      map.set(key, entry);
+    }
+    return [...map.values()]
+      .map((e) => {
+        const sorted = [...e.times].sort();
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+        const hours = sorted.length > 1
+          ? Math.round(((new Date(last).getTime() - new Date(first).getTime()) / 3600000) * 100) / 100
+          : 0;
+        return { ...e, first, last: sorted.length > 1 ? last : "", hours, punches: sorted.length };
+      })
+      .sort((a, b) => (a.date === b.date ? a.who.localeCompare(b.who) : b.date.localeCompare(a.date)));
+  }, [punches]);
+
+  /** Ask the server to re-apply employee mapping to punches already stored. */
+  const runRemap = useCallback(async () => {
+    if (!device) return;
+    const res = await fetch(FN_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": device.api_key },
+      body: JSON.stringify({ action: "remap" }),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(out?.error || "Could not refresh attendance");
+    return out;
+  }, [device]);
+
+  const linkEmployee = async (deviceUserId: string) => {
+    const employeeId = linkChoice[deviceUserId];
+    if (!employeeId) return;
+    setLinking(true);
+    try {
+      const { error } = await supabase
+        .from("employees" as never)
+        .update({ biometric_id: deviceUserId } as never)
+        .eq("id", employeeId);
+      if (error) throw new Error(error.message);
+      await runRemap();
+      await loadEmployees();
+      await loadPunches();
+      onImported?.();
+      toast({ title: "Employee linked", description: `Device ID ${deviceUserId} is now mapped` });
+    } catch (e) {
+      toast({ title: "Could not link employee", description: String(e), variant: "destructive" });
+    } finally {
+      setLinking(false);
+    }
+  };
+
 
   const claim = async (p: PendingDevice) => {
     const { error } = await supabase.rpc("claim_attendance_device" as never, { _id: p.id, _name: p.name } as never);
