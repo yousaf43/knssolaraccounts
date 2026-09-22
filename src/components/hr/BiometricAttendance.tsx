@@ -370,8 +370,93 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
         <Button variant="outline" onClick={() => { void loadPunches(); }} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>
+        <Button
+          variant="outline"
+          disabled={!device || linking}
+          onClick={() => {
+            setLinking(true);
+            void runRemap()
+              .then(() => { void loadPunches(); onImported?.(); toast({ title: "Attendance rebuilt" }); })
+              .catch((e) => toast({ title: "Could not rebuild attendance", description: String(e), variant: "destructive" }))
+              .finally(() => setLinking(false));
+          }}
+        >
+          <Link2 className="mr-2 h-4 w-4" />Rebuild Attendance
+        </Button>
         <span className="text-sm text-muted-foreground">{punches.length} punch record(s)</span>
       </div>
+
+      {unmatchedIds.length > 0 && (
+        <Card><CardContent className="space-y-3 p-4">
+          <div>
+            <p className="text-sm font-medium">Unknown device IDs</p>
+            <p className="text-xs text-muted-foreground">
+              These IDs punched on the machine but are not linked to any employee yet. Pick the right person for each ID.
+            </p>
+          </div>
+          {employees.length === 0 && (
+            <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+              No employees added yet. Add employees in the Employees tab first, then link them here.
+            </p>
+          )}
+          <div className="space-y-2">
+            {unmatchedIds.map((u) => (
+              <div key={u.id} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
+                <Badge variant="secondary">ID {u.id}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  {u.count} punch(es) · last {localTime(u.last)}
+                </span>
+                <div className="ml-auto flex items-center gap-2">
+                  <Select
+                    value={linkChoice[u.id] || ""}
+                    onValueChange={(v) => setLinkChoice((s) => ({ ...s, [u.id]: v }))}
+                  >
+                    <SelectTrigger className="w-56"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                    <SelectContent>
+                      {employees.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name}{e.code ? ` (${e.code})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" disabled={!linkChoice[u.id] || linking} onClick={() => { void linkEmployee(u.id); }}>
+                    Link
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent></Card>
+      )}
+
+      <Card><CardContent className="p-0 overflow-x-auto">
+        <div className="border-b p-3">
+          <p className="text-sm font-medium">Daily In / Out</p>
+          <p className="text-xs text-muted-foreground">First punch of the day is check in, last punch is check out.</p>
+        </div>
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Date</TableHead><TableHead>Person</TableHead>
+            <TableHead>Check In</TableHead><TableHead>Check Out</TableHead>
+            <TableHead>Hours</TableHead><TableHead>Punches</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {daily.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No attendance in this period</TableCell></TableRow>}
+            {daily.map((d) => (
+              <TableRow key={`${d.date}-${d.who}`}>
+                <TableCell>{localTime(`${d.date}T00:00:00Z`).split(", ")[0]}</TableCell>
+                <TableCell className={d.unmatched ? "text-muted-foreground" : "font-medium"}>{d.who}</TableCell>
+                <TableCell>{localTime(d.first).split(", ")[1]}</TableCell>
+                <TableCell>{d.last ? localTime(d.last).split(", ")[1] : "-"}</TableCell>
+                <TableCell>{d.hours ? `${d.hours} h` : "-"}</TableCell>
+                <TableCell>{d.punches}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent></Card>
+
 
       <Card><CardContent className="p-0 overflow-x-auto">
         <Table>
