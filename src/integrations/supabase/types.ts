@@ -1734,6 +1734,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_attendance_device: {
+        Args: { _id: string; _name?: string }
+        Returns: {
+          api_key: string
+          company_id: string | null
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          serial: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "attendance_devices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_company_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
@@ -1747,6 +1767,15 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_unclaimed_devices: {
+        Args: never
+        Returns: {
+          id: string
+          last_seen_at: string
+          name: string
+          serial: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "accountant" | "sales"

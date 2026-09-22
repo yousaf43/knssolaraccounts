@@ -15,6 +15,7 @@ type Device = {
   id: string; name: string; serial: string | null; api_key: string;
   last_seen_at: string | null; created_at: string;
 };
+type PendingDevice = { id: string; serial: string | null; name: string; last_seen_at: string | null };
 type Punch = {
   id: string; device_user_id: string; employee_name: string | null;
   punch_time: string; punch_date: string; punch_type: string | null; source: string;
@@ -61,6 +62,7 @@ function parseFile(text: string): { deviceUserId: string; time: string; type?: s
 
 export default function BiometricAttendance({ onImported }: { onImported?: () => void }) {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [pending, setPending] = useState<PendingDevice[]>([]);
   const [punches, setPunches] = useState<Punch[]>([]);
   const [from, setFrom] = useState(monthAgo());
   const [to, setTo] = useState(today());
@@ -86,11 +88,37 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
     setLoading(false);
   }, [from, to]);
 
-  useEffect(() => { void loadDevices(); }, [loadDevices]);
+  const loadPending = useCallback(async () => {
+    const { data } = await supabase.rpc("list_unclaimed_devices" as never);
+    setPending((data as unknown as PendingDevice[]) || []);
+  }, []);
+
+  useEffect(() => { void loadDevices(); void loadPending(); }, [loadDevices, loadPending]);
   useEffect(() => { void loadPunches(); }, [loadPunches]);
 
+  // Keep looking for a machine that has just started talking to us.
+  useEffect(() => {
+    const t = setInterval(() => { void loadPending(); void loadDevices(); }, 15000);
+    return () => clearInterval(t);
+  }, [loadPending, loadDevices]);
+
   const device = devices[0];
-  const pushUrl = useMemo(() => (device ? `${FN_BASE}/iclock/cdata?key=${device.api_key}` : ""), [device]);
+
+  const serverParts = useMemo(() => {
+    try {
+      const u = new URL(FN_BASE);
+      return { address: `${u.host}${u.pathname}`, host: u.host, port: u.protocol === "https:" ? "443" : "80" };
+    } catch {
+      return { address: FN_BASE, host: FN_BASE, port: "443" };
+    }
+  }, []);
+
+  const claim = async (p: PendingDevice) => {
+    const { error } = await supabase.rpc("claim_attendance_device" as never, { _id: p.id, _name: p.name } as never);
+    if (error) { toast({ title: "Could not link device", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Device linked", description: `Serial ${p.serial ?? ""} is now connected` });
+    await loadDevices(); await loadPending();
+  };
 
   const copy = (value: string, label: string) => {
     void navigator.clipboard.writeText(value);
@@ -151,49 +179,86 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
             <div className="flex items-center gap-2">
               <Fingerprint className="h-5 w-5 text-primary" />
               <div>
-                <p className="font-medium">Biometric Device (ZKTeco)</p>
-                <p className="text-xs text-muted-foreground">Punches arrive automatically, or upload the device export file</p>
+                <p className="font-medium">Biometric Device (ZKTeco MB460)</p>
+                <p className="text-xs text-muted-foreground">The machine sends punches here by itself — no extra program on any computer</p>
               </div>
             </div>
-            <Button variant="outline" onClick={() => setDialog(true)}><Plus className="mr-2 h-4 w-4" />Register Device</Button>
+            <Button variant="outline" onClick={() => setDialog(true)}><Plus className="mr-2 h-4 w-4" />Add Manually</Button>
           </div>
 
-          {devices.length === 0 && (
+          {/* Settings to type into the machine */}
+          <div className="rounded-lg border bg-muted/40 p-3 space-y-3">
+            <p className="text-sm font-medium">Settings to enter on the machine</p>
+            <p className="text-xs text-muted-foreground">
+              On the device: <span className="font-medium">Menu → Comm. → Cloud Server / ADMS</span>. Turn on
+              “Domain Name”, enter the address below, then save and restart the machine.
+            </p>
+            <div className="grid gap-2 md:grid-cols-2">
+              <div>
+                <Label className="text-xs">Server address</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={serverParts.address} className="font-mono text-xs" />
+                  <Button variant="outline" size="icon" onClick={() => copy(serverParts.address, "Server address")}><Copy className="h-4 w-4" /></Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Server port</Label>
+                  <Input readOnly value={serverParts.port} className="font-mono text-xs" />
+                </div>
+                <div>
+                  <Label className="text-xs">Enable proxy / SSL</Label>
+                  <Input readOnly value="HTTPS: ON" className="font-mono text-xs" />
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              As soon as the machine connects, it appears below for approval. Make sure each employee’s
+              “Biometric ID” in the Employees tab matches the User ID on the machine.
+            </p>
+          </div>
+
+          {pending.length > 0 && (
+            <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 space-y-2">
+              <p className="text-sm font-medium">New machine detected</p>
+              {pending.map((p) => (
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-background p-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{p.name}</span>
+                    {p.serial && <Badge variant="secondary">SN {p.serial}</Badge>}
+                    {p.last_seen_at && (
+                      <span className="text-xs text-muted-foreground">Contacted {localTime(p.last_seen_at)}</span>
+                    )}
+                  </div>
+                  <Button size="sm" onClick={() => { void claim(p); }}>Approve &amp; Connect</Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {devices.length === 0 && pending.length === 0 && (
             <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-              No device registered yet. Register your machine to get its connection address and key.
+              No machine connected yet. Enter the settings above on the device — it will show up here within a minute.
             </p>
           )}
 
-          {devices.map((d) => (
-            <div key={d.id} className="rounded-lg border p-3 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{d.name}</span>
-                  {d.serial && <Badge variant="secondary">SN {d.serial}</Badge>}
-                  <Badge className="border-0 bg-muted text-muted-foreground">
-                    {d.last_seen_at ? `Last contact: ${localTime(d.last_seen_at)}` : "Never contacted"}
-                  </Badge>
-                </div>
-                <ConfirmDeleteDialog onConfirm={() => { void removeDevice(d.id); }} />
-              </div>
-              <div className="grid gap-2 md:grid-cols-2">
-                <div>
-                  <Label className="text-xs">Device push address</Label>
-                  <div className="flex gap-2">
-                    <Input readOnly value={`${FN_BASE}/iclock/cdata?key=${d.api_key}`} className="font-mono text-xs" />
-                    <Button variant="outline" size="icon" onClick={() => copy(`${FN_BASE}/iclock/cdata?key=${d.api_key}`, "Address")}><Copy className="h-4 w-4" /></Button>
+          {devices.map((d) => {
+            const online = d.last_seen_at ? Date.now() - new Date(d.last_seen_at).getTime() < 10 * 60000 : false;
+            return (
+              <div key={d.id} className="rounded-lg border p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{d.name}</span>
+                    {d.serial && <Badge variant="secondary">SN {d.serial}</Badge>}
+                    <Badge className={online ? "border-0 bg-emerald-500/15 text-emerald-600" : "border-0 bg-muted text-muted-foreground"}>
+                      {online ? "Connected" : d.last_seen_at ? `Last contact: ${localTime(d.last_seen_at)}` : "Waiting for first contact"}
+                    </Badge>
                   </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Secret key (for the helper program)</Label>
-                  <div className="flex gap-2">
-                    <Input readOnly value={d.api_key} className="font-mono text-xs" />
-                    <Button variant="outline" size="icon" onClick={() => copy(d.api_key, "Key")}><Copy className="h-4 w-4" /></Button>
-                  </div>
+                  <ConfirmDeleteDialog onConfirm={() => { void removeDevice(d.id); }} />
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div className="flex flex-wrap items-center gap-2 border-t pt-3">
             <input
