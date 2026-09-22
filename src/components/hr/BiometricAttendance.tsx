@@ -171,9 +171,9 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
   /** Ask the server to re-apply employee mapping to punches already stored. */
   const runRemap = useCallback(async () => {
     if (!device) return;
-    const res = await fetch(FN_BASE, {
+    const res = await fetch(`${FN_BASE}?key=${encodeURIComponent(device.api_key)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": device.api_key },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "remap" }),
     });
     const out = await res.json().catch(() => null);
@@ -242,9 +242,9 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
     try {
       let inserted = 0, days = 0;
       for (let i = 0; i < parsed.length; i += 2000) {
-        const res = await fetch(FN_BASE, {
+        const res = await fetch(`${FN_BASE}?key=${encodeURIComponent(device.api_key)}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-api-key": device.api_key },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ punches: parsed.slice(i, i + 2000), source: "upload" }),
         });
         const out = await res.json();
