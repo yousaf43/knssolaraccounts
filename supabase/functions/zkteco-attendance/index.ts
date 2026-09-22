@@ -256,9 +256,16 @@ Deno.serve(async (req) => {
     if (!device) return json({ error: "Invalid device key" }, 401);
 
     const body = await req.json().catch(() => null);
+
+    if (body?.action === "remap") {
+      const result = await remap(device);
+      return json({ ok: true, ...result });
+    }
+
     const punches: Punch[] = Array.isArray(body?.punches) ? body.punches : [];
     if (punches.length === 0) return json({ error: "No punches provided" }, 400);
     if (punches.length > 5000) return json({ error: "Too many punches in one request (max 5000)" }, 400);
+
 
     await admin.from("attendance_devices").update({ last_seen_at: new Date().toISOString() }).eq("id", device.id);
     const result = await ingest(device, punches, typeof body?.source === "string" ? body.source : "device");
