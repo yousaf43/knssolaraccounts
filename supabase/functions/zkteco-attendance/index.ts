@@ -43,6 +43,71 @@ async function findDevice(apiKey?: string | null, serial?: string | null) {
   return null;
 }
 
+type Employee = { id: string; name: string; code: string | null; biometric_id: string | null };
+
+const makeMatcher = (employees: Employee[] | null) => (deviceUserId: string) =>
+  (employees || []).find(
+    (e) =>
+      (e.biometric_id && String(e.biometric_id).trim() === deviceUserId) ||
+      (e.code && String(e.code).trim() === deviceUserId),
+  ) || null;
+
+/** Rebuild the daily attendance rows for every affected "deviceUserId|date" key. */
+async function rebuildDays(
+  device: Record<string, unknown>,
+  employees: Employee[] | null,
+  touched: Set<string>,
+) {
+  const companyId = device.company_id as string | null;
+  const matchEmployee = makeMatcher(employees);
+  let days = 0;
+  for (const key of touched) {
+    const [deviceUserId, date] = key.split("|");
+    const { data: dayPunches } = await admin
+      .from("attendance_punches")
+      .select("punch_time")
+      .eq("company_id", companyId)
+      .eq("device_user_id", deviceUserId)
+      .eq("punch_date", date)
+      .order("punch_time", { ascending: true });
+    if (!dayPunches || dayPunches.length === 0) continue;
+
+    const local = (t: string) =>
+      new Date(new Date(t).getTime() + 5 * 3600 * 1000).toISOString().slice(11, 16);
+    const first = dayPunches[0].punch_time as string;
+    const last = dayPunches[dayPunches.length - 1].punch_time as string;
+    const checkIn = local(first);
+    const checkOut = dayPunches.length > 1 ? local(last) : "";
+    const hours = checkOut
+      ? Math.max(0, Math.round(((new Date(last).getTime() - new Date(first).getTime()) / 3600000) * 100) / 100)
+      : 0;
+
+    const emp = matchEmployee(deviceUserId);
+    const employeeName = emp?.name || `Device ID ${deviceUserId}`;
+
+    let query = admin.from("attendance").select("id").eq("company_id", companyId).eq("date", date);
+    query = emp?.id ? query.eq("employee_id", emp.id) : query.eq("employee_name", employeeName);
+    const { data: existing } = await query.maybeSingle();
+
+    const payload = {
+      company_id: companyId,
+      user_id: device.user_id ?? null,
+      employee_id: emp?.id ?? null,
+      employee_name: employeeName,
+      date,
+      check_in: checkIn,
+      check_out: checkOut,
+      status: "present",
+      hours,
+      notes: "Biometric device",
+    };
+    if (existing?.id) await admin.from("attendance").update(payload).eq("id", existing.id);
+    else await admin.from("attendance").insert(payload);
+    days++;
+  }
+  return days;
+}
+
 /** Insert punches, map them to employees and rebuild the daily attendance rows. */
 async function ingest(device: Record<string, unknown>, punches: Punch[], source: string) {
   const companyId = device.company_id as string | null;
@@ -50,13 +115,7 @@ async function ingest(device: Record<string, unknown>, punches: Punch[], source:
     .from("employees")
     .select("id,name,code,biometric_id")
     .eq("company_id", companyId);
-
-  const matchEmployee = (deviceUserId: string) =>
-    (employees || []).find(
-      (e) =>
-        (e.biometric_id && String(e.biometric_id).trim() === deviceUserId) ||
-        (e.code && String(e.code).trim() === deviceUserId),
-    ) || null;
+  const matchEmployee = makeMatcher(employees as Employee[] | null);
 
   const rows = [];
   const touched = new Set<string>();
@@ -86,59 +145,48 @@ async function ingest(device: Record<string, unknown>, punches: Punch[], source:
     ignoreDuplicates: true,
   });
 
-  // Rebuild attendance rows for every affected employee/day
-  let days = 0;
-  for (const key of touched) {
-    const [deviceUserId, date] = key.split("|");
-    const { data: dayPunches } = await admin
-      .from("attendance_punches")
-      .select("punch_time,employee_id,employee_name")
-      .eq("company_id", companyId)
-      .eq("device_user_id", deviceUserId)
-      .eq("punch_date", date)
-      .order("punch_time", { ascending: true });
-    if (!dayPunches || dayPunches.length === 0) continue;
-
-    const local = (t: string) =>
-      new Date(new Date(t).getTime() + 5 * 3600 * 1000).toISOString().slice(11, 16);
-    const checkIn = local(dayPunches[0].punch_time as string);
-    const checkOut = dayPunches.length > 1 ? local(dayPunches[dayPunches.length - 1].punch_time as string) : "";
-    const hours = checkOut
-      ? Math.max(
-          0,
-          Math.round(
-            ((new Date(dayPunches[dayPunches.length - 1].punch_time as string).getTime() -
-              new Date(dayPunches[0].punch_time as string).getTime()) /
-              3600000) * 100,
-          ) / 100,
-        )
-      : 0;
-
-    const emp = matchEmployee(deviceUserId);
-    const employeeName = emp?.name || `Device ID ${deviceUserId}`;
-
-    let query = admin.from("attendance").select("id,notes").eq("company_id", companyId).eq("date", date);
-    query = emp?.id ? query.eq("employee_id", emp.id) : query.eq("employee_name", employeeName);
-    const { data: existing } = await query.maybeSingle();
-
-    const payload = {
-      company_id: companyId,
-      user_id: device.user_id ?? null,
-      employee_id: emp?.id ?? null,
-      employee_name: employeeName,
-      date,
-      check_in: checkIn,
-      check_out: checkOut,
-      status: "present",
-      hours,
-      notes: "Biometric device",
-    };
-    if (existing?.id) await admin.from("attendance").update(payload).eq("id", existing.id);
-    else await admin.from("attendance").insert(payload);
-    days++;
-  }
+  const days = await rebuildDays(device, employees as Employee[] | null, touched);
   return { inserted: rows.length, days };
 }
+
+/** Re-apply employee mapping to punches already stored, then rebuild attendance. */
+async function remap(device: Record<string, unknown>) {
+  const companyId = device.company_id as string | null;
+  const { data: employees } = await admin
+    .from("employees")
+    .select("id,name,code,biometric_id")
+    .eq("company_id", companyId);
+  const matchEmployee = makeMatcher(employees as Employee[] | null);
+
+  const { data: punches } = await admin
+    .from("attendance_punches")
+    .select("device_user_id,punch_date")
+    .eq("company_id", companyId)
+    .limit(20000);
+
+  const touched = new Set<string>();
+  const ids = new Set<string>();
+  for (const p of punches || []) {
+    const uid = String(p.device_user_id).trim();
+    ids.add(uid);
+    touched.add(`${uid}|${p.punch_date}`);
+  }
+
+  let matched = 0;
+  for (const uid of ids) {
+    const emp = matchEmployee(uid);
+    await admin
+      .from("attendance_punches")
+      .update({ employee_id: emp?.id ?? null, employee_name: emp?.name ?? null })
+      .eq("company_id", companyId)
+      .eq("device_user_id", uid);
+    if (emp) matched++;
+  }
+
+  const days = await rebuildDays(device, employees as Employee[] | null, touched);
+  return { matchedIds: matched, days };
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
