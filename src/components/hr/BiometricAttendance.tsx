@@ -15,6 +15,7 @@ type Device = {
   id: string; name: string; serial: string | null; api_key: string;
   last_seen_at: string | null; created_at: string;
 };
+type PendingDevice = { id: string; serial: string | null; name: string; last_seen_at: string | null };
 type Punch = {
   id: string; device_user_id: string; employee_name: string | null;
   punch_time: string; punch_date: string; punch_type: string | null; source: string;
@@ -61,6 +62,7 @@ function parseFile(text: string): { deviceUserId: string; time: string; type?: s
 
 export default function BiometricAttendance({ onImported }: { onImported?: () => void }) {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [pending, setPending] = useState<PendingDevice[]>([]);
   const [punches, setPunches] = useState<Punch[]>([]);
   const [from, setFrom] = useState(monthAgo());
   const [to, setTo] = useState(today());
