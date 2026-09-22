@@ -145,23 +145,42 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const path = url.pathname;
-  const serial = url.searchParams.get("SN");
+  const serial = url.searchParams.get("SN") || req.headers.get("sn") || url.searchParams.get("sn");
   const apiKey = req.headers.get("x-api-key") || url.searchParams.get("key");
 
   try {
-    // ---- ZKTeco ADMS / push protocol ----
+    // ---- ZKTeco ADMS / push protocol (device talks to us directly, no helper app) ----
     if (path.includes("/iclock/")) {
-      const device = await findDevice(apiKey, serial);
+      let device = await findDevice(apiKey, serial);
+
+      // Unknown machine: self-register it so the user only has to approve it in the app.
+      if (!device && serial) {
+        const { data: created } = await admin
+          .from("attendance_devices")
+          .insert({
+            name: `ZKTeco ${serial}`,
+            serial,
+            api_key: crypto.randomUUID().replace(/-/g, ""),
+            last_seen_at: new Date().toISOString(),
+          })
+          .select()
+          .maybeSingle();
+        device = created ?? (await findDevice(null, serial));
+      }
       if (!device) return txt("Device not registered", 401);
       await admin.from("attendance_devices").update({ last_seen_at: new Date().toISOString() }).eq("id", device.id);
 
       if (path.includes("cdata") && req.method === "GET") {
         return txt(
-          `GET OPTION FROM: ${serial ?? ""}\nStamp=0\nOpStamp=0\nErrorDelay=30\nDelay=10\nTransTimes=00:00;12:00\nTransInterval=1\nTransFlag=1111000000\nRealtime=1\nEncrypt=0\n`,
+          `GET OPTION FROM: ${serial ?? ""}\nStamp=0\nOpStamp=0\nErrorDelay=30\nDelay=10\nTransTimes=00:00;12:00\nTransInterval=1\nTransFlag=1111000000\nRealtime=1\nEncrypt=0\nServerVer=2.4.1\nTimeZone=5\n`,
         );
       }
       if (path.includes("getrequest")) return txt("OK");
       if (path.includes("devicecmd")) return txt("OK");
+      if (path.includes("ping") || path.includes("registry")) return txt("OK");
+
+      // Not linked to a company yet — accept the traffic so the machine keeps talking to us.
+      if (!device.company_id) return txt("OK: 0");
 
       if (path.includes("cdata") && req.method === "POST") {
         const table = (url.searchParams.get("table") || "ATTLOG").toUpperCase();
