@@ -86,11 +86,37 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
     setLoading(false);
   }, [from, to]);
 
-  useEffect(() => { void loadDevices(); }, [loadDevices]);
+  const loadPending = useCallback(async () => {
+    const { data } = await supabase.rpc("list_unclaimed_devices" as never);
+    setPending((data as unknown as PendingDevice[]) || []);
+  }, []);
+
+  useEffect(() => { void loadDevices(); void loadPending(); }, [loadDevices, loadPending]);
   useEffect(() => { void loadPunches(); }, [loadPunches]);
 
+  // Keep looking for a machine that has just started talking to us.
+  useEffect(() => {
+    const t = setInterval(() => { void loadPending(); void loadDevices(); }, 15000);
+    return () => clearInterval(t);
+  }, [loadPending, loadDevices]);
+
   const device = devices[0];
-  const pushUrl = useMemo(() => (device ? `${FN_BASE}/iclock/cdata?key=${device.api_key}` : ""), [device]);
+
+  const serverParts = useMemo(() => {
+    try {
+      const u = new URL(FN_BASE);
+      return { address: `${u.host}${u.pathname}`, host: u.host, port: u.protocol === "https:" ? "443" : "80" };
+    } catch {
+      return { address: FN_BASE, host: FN_BASE, port: "443" };
+    }
+  }, []);
+
+  const claim = async (p: PendingDevice) => {
+    const { error } = await supabase.rpc("claim_attendance_device" as never, { _id: p.id, _name: p.name } as never);
+    if (error) { toast({ title: "Could not link device", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Device linked", description: `Serial ${p.serial ?? ""} is now connected` });
+    await loadDevices(); await loadPending();
+  };
 
   const copy = (value: string, label: string) => {
     void navigator.clipboard.writeText(value);
