@@ -45,6 +45,17 @@ export const minutesToLabel = (mins: number) => {
   return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
 };
 
+/** Formats stored 24-hour values for attendance screens and reports. */
+export const formatTime12 = (time?: string | null) => {
+  const mins = toMinutes(time);
+  if (mins === null) return "";
+  const hour24 = Math.floor(mins / 60) % 24;
+  const minute = mins % 60;
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 || 12;
+  return `${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")} ${period}`;
+};
+
 export type DayEvaluation = {
   checkIn: string;
   checkOut: string;
