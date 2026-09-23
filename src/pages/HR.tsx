@@ -650,6 +650,31 @@ export default function HR() {
         </DialogContent>
       </Dialog>
 
+      {/* Attendance timing rules dialog */}
+      <Dialog open={settingsDialog} onOpenChange={setSettingsDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Attendance Timing Rules</DialogTitle></DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><Label>Shift Start</Label><Input type="time" value={settingsForm.shiftStart} onChange={(e) => setSettingsForm({ ...settingsForm, shiftStart: e.target.value })} /></div>
+            <div><Label>Shift End</Label><Input type="time" value={settingsForm.shiftEnd} onChange={(e) => setSettingsForm({ ...settingsForm, shiftEnd: e.target.value })} /></div>
+            <div className="sm:col-span-2">
+              <Label>Check-in Cutoff</Label>
+              <Input type="time" value={settingsForm.checkInCutoff} onChange={(e) => setSettingsForm({ ...settingsForm, checkInCutoff: e.target.value })} />
+              <p className="mt-1 text-xs text-muted-foreground">A punch before this time is treated as arrival, a later punch as departure.</p>
+            </div>
+            <div><Label>Grace Minutes</Label><Input type="number" min={0} value={settingsForm.graceMinutes} onChange={(e) => setSettingsForm({ ...settingsForm, graceMinutes: Math.max(0, Number(e.target.value) || 0) })} /></div>
+            <div><Label>Minimum Overtime (minutes)</Label><Input type="number" min={0} value={settingsForm.minOvertimeMinutes} onChange={(e) => setSettingsForm({ ...settingsForm, minOvertimeMinutes: Math.max(0, Number(e.target.value) || 0) })} /></div>
+            <div className="sm:col-span-2"><Label>Full Working Day (hours)</Label><Input type="number" min={0} step="0.5" value={settingsForm.fullDayHours} onChange={(e) => setSettingsForm({ ...settingsForm, fullDayHours: Math.max(0, Number(e.target.value) || 0) })} /></div>
+            <p className="sm:col-span-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+              Example: shift ends at {settingsForm.shiftEnd} — if someone leaves at 19:00, one hour is counted as overtime automatically.
+            </p>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setSettingsDialog(false)}>Cancel</Button><Button onClick={saveAttSettings}>Save Rules</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       {/* Rule dialog */}
       <Dialog open={ruleDialog} onOpenChange={setRuleDialog}>
         <DialogContent>
