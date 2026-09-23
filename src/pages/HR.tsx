@@ -109,6 +109,75 @@ export default function HR() {
     toast({ title: "Attendance saved" });
   };
 
+  // ---------- Attendance rules / timing settings ----------
+  const { company: authCompany } = useAuth();
+  const [attSettings, setAttSettings] = useAttendanceSettings(authCompany?.id || "default");
+  const [settingsDialog, setSettingsDialog] = useState(false);
+  const [settingsForm, setSettingsForm] = useState(attSettings);
+  const openSettings = () => { setSettingsForm(attSettings); setSettingsDialog(true); };
+  const saveAttSettings = () => {
+    setAttSettings(settingsForm);
+    setSettingsDialog(false);
+    toast({ title: "Attendance rules saved" });
+  };
+
+  const evalOf = (a: AttendanceRecord) => evaluateDay(a, attSettings);
+
+  // ---------- Attendance report ----------
+  const [repFrom, setRepFrom] = useState(() => `${thisMonth()}-01`);
+  const [repTo, setRepTo] = useState(today);
+  const [repEmployee, setRepEmployee] = useState("all");
+
+  const reportRecords = useMemo(() => {
+    return attendance.data
+      .filter((a) => (!repFrom || a.date >= repFrom) && (!repTo || a.date <= repTo))
+      .filter((a) => (repEmployee === "all" ? true : a.employeeId === repEmployee))
+      .sort((a, b) => a.date.localeCompare(b.date) || (a.employeeName || "").localeCompare(b.employeeName || ""));
+  }, [attendance.data, repFrom, repTo, repEmployee]);
+
+  const reportRows: ReportRow[] = useMemo(
+    () => reportRecords.map((a) => {
+      const ev = evaluateDay(a, attSettings);
+      return {
+        date: a.date,
+        employee: a.employeeName || "-",
+        status: a.status || "present",
+        checkIn: ev.checkIn,
+        checkOut: ev.checkOut,
+        hours: ev.workedHours,
+        lateMinutes: ev.lateMinutes,
+        overtimeHours: ev.overtimeHours,
+      };
+    }),
+    [reportRecords, attSettings],
+  );
+
+  const reportSummary: ReportSummary[] = useMemo(() => {
+    const map = new Map<string, ReportSummary>();
+    for (const r of reportRows) {
+      const s = map.get(r.employee) || { employee: r.employee, present: 0, absent: 0, leave: 0, halfDay: 0, hours: 0, lateDays: 0, overtimeHours: 0 };
+      if (r.status === "present") s.present += 1;
+      else if (r.status === "absent") s.absent += 1;
+      else if (r.status === "leave") s.leave += 1;
+      else if (r.status === "half-day") s.halfDay += 1;
+      s.hours += r.hours;
+      s.overtimeHours += r.overtimeHours;
+      if (r.lateMinutes > 0) s.lateDays += 1;
+      map.set(r.employee, s);
+    }
+    return [...map.values()].sort((a, b) => a.employee.localeCompare(b.employee));
+  }, [reportRows]);
+
+  const reportTotals = useMemo(
+    () => reportSummary.reduce(
+      (t, s) => ({ hours: t.hours + s.hours, overtime: t.overtime + s.overtimeHours, late: t.late + s.lateDays, present: t.present + s.present }),
+      { hours: 0, overtime: 0, late: 0, present: 0 },
+    ),
+    [reportSummary],
+  );
+
+
+
   // ---------- Rules ----------
   const [ruleDialog, setRuleDialog] = useState(false);
   const [ruleForm, setRuleForm] = useState<WorkplaceRule>(emptyRule);
