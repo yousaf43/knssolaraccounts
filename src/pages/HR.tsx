@@ -310,7 +310,7 @@ export default function HR() {
           <Users className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold">Human Resources</h1>
+          <h1 className="text-2xl font-semibold">Human Resource</h1>
           <p className="text-sm text-muted-foreground">Employees, attendance, workplace rules and payroll</p>
         </div>
       </div>
@@ -326,6 +326,7 @@ export default function HR() {
         <TabsList className="flex-wrap">
           <TabsTrigger value="employees"><Users className="mr-2 h-4 w-4" />Employees</TabsTrigger>
           <TabsTrigger value="attendance"><Clock className="mr-2 h-4 w-4" />Attendance</TabsTrigger>
+          <TabsTrigger value="report"><FileBarChart className="mr-2 h-4 w-4" />Attendance Report</TabsTrigger>
           <TabsTrigger value="biometric"><Fingerprint className="mr-2 h-4 w-4" />Biometric Device</TabsTrigger>
           <TabsTrigger value="rules"><ScrollText className="mr-2 h-4 w-4" />Workplace Rules</TabsTrigger>
           <TabsTrigger value="payroll"><Wallet className="mr-2 h-4 w-4" />Payroll / Salary</TabsTrigger>
