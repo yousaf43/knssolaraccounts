@@ -394,7 +394,15 @@ export default function HR() {
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={() => { setAttDate(""); setAttEmployee("all"); }}>Clear</Button>
-            <Button className="ml-auto" onClick={() => { setAttForm(emptyAttendance()); setAttDialog(true); }}><Plus className="mr-2 h-4 w-4" />Mark Attendance</Button>
+            <Button variant="outline" className="ml-auto" onClick={openSettings}><SlidersHorizontal className="mr-2 h-4 w-4" />Timing Rules</Button>
+            <Button onClick={() => { setAttForm(emptyAttendance()); setAttDialog(true); }}><Plus className="mr-2 h-4 w-4" />Mark Attendance</Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="rounded-md border px-2 py-1">Shift <b className="text-foreground">{attSettings.shiftStart} - {attSettings.shiftEnd}</b></span>
+            <span className="rounded-md border px-2 py-1">Check-in cutoff <b className="text-foreground">{attSettings.checkInCutoff}</b></span>
+            <span className="rounded-md border px-2 py-1">Grace <b className="text-foreground">{attSettings.graceMinutes} min</b></span>
+            <span className="rounded-md border px-2 py-1">Overtime after <b className="text-foreground">{attSettings.shiftEnd}</b></span>
           </div>
 
           <Card><CardContent className="p-0 overflow-x-auto">
@@ -402,18 +410,23 @@ export default function HR() {
               <TableHeader><TableRow>
                 <TableHead>Sr #</TableHead><TableHead>Date</TableHead><TableHead>Employee</TableHead>
                 <TableHead>Check In</TableHead><TableHead>Check Out</TableHead><TableHead className="text-right">Hours</TableHead>
+                <TableHead>Late</TableHead><TableHead className="text-right">Overtime</TableHead>
                 <TableHead>Status</TableHead><TableHead>Notes</TableHead><TableHead className="text-right">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>
-                {filteredAttendance.length === 0 && <TableRow><TableCell colSpan={9} className="py-8 text-center text-muted-foreground">No attendance records</TableCell></TableRow>}
-                {filteredAttendance.map((a, i) => (
+                {filteredAttendance.length === 0 && <TableRow><TableCell colSpan={11} className="py-8 text-center text-muted-foreground">No attendance records</TableCell></TableRow>}
+                {filteredAttendance.map((a, i) => {
+                  const ev = evalOf(a);
+                  return (
                   <TableRow key={a.id}>
                     <TableCell>{i + 1}</TableCell>
                     <TableCell>{formatDate(a.date)}</TableCell>
                     <TableCell className="font-medium">{a.employeeName}</TableCell>
-                    <TableCell>{a.checkIn || "-"}</TableCell>
-                    <TableCell>{a.checkOut || "-"}</TableCell>
-                    <TableCell className="text-right">{a.hours || 0}</TableCell>
+                    <TableCell>{ev.checkIn || "-"}</TableCell>
+                    <TableCell>{ev.checkOut || "-"}</TableCell>
+                    <TableCell className="text-right">{ev.workedHours || a.hours || 0}</TableCell>
+                    <TableCell className={ev.late ? "text-amber-600 font-medium" : "text-muted-foreground"}>{ev.late ? minutesToLabel(ev.lateMinutes) : "-"}</TableCell>
+                    <TableCell className={`text-right ${ev.overtimeHours ? "text-primary font-medium" : "text-muted-foreground"}`}>{ev.overtimeHours ? `${ev.overtimeHours} h` : "-"}</TableCell>
                     <TableCell>{statusBadge(a.status)}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{a.notes || "-"}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
@@ -421,11 +434,68 @@ export default function HR() {
                       <ConfirmDeleteDialog onConfirm={() => { void attendance.remove(a.id); }} />
                     </TableCell>
                   </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent></Card>
+        </TabsContent>
+
+        {/* ---------------- Attendance Report ---------------- */}
+        <TabsContent value="report" className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <div><Label className="text-xs">From</Label><Input type="date" className="w-44" value={repFrom} onChange={(e) => setRepFrom(e.target.value)} /></div>
+            <div><Label className="text-xs">To</Label><Input type="date" className="w-44" value={repTo} onChange={(e) => setRepTo(e.target.value)} /></div>
+            <div>
+              <Label className="text-xs">Employee</Label>
+              <Select value={repEmployee} onValueChange={setRepEmployee}>
+                <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {employees.data.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" onClick={openSettings}><SlidersHorizontal className="mr-2 h-4 w-4" />Timing Rules</Button>
+            <Button className="ml-auto" onClick={printReport}><Printer className="mr-2 h-4 w-4" />Print / PDF</Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Present Days</p><p className="text-2xl font-semibold">{reportTotals.present}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Hours</p><p className="text-2xl font-semibold">{reportTotals.hours.toFixed(2)}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Overtime Hours</p><p className="text-2xl font-semibold text-primary">{reportTotals.overtime.toFixed(2)}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Late Arrivals</p><p className="text-2xl font-semibold text-amber-600">{reportTotals.late}</p></CardContent></Card>
+          </div>
+
+          <Card><CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Sr #</TableHead><TableHead>Employee</TableHead>
+                <TableHead className="text-center">Present</TableHead><TableHead className="text-center">Half Day</TableHead>
+                <TableHead className="text-center">Absent</TableHead><TableHead className="text-center">Leave</TableHead>
+                <TableHead className="text-center">Late Days</TableHead><TableHead className="text-right">Hours</TableHead>
+                <TableHead className="text-right">Overtime (h)</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {reportSummary.length === 0 && <TableRow><TableCell colSpan={9} className="py-8 text-center text-muted-foreground">No attendance in this range</TableCell></TableRow>}
+                {reportSummary.map((s, i) => (
+                  <TableRow key={s.employee}>
+                    <TableCell>{i + 1}</TableCell>
+                    <TableCell className="font-medium">{s.employee}</TableCell>
+                    <TableCell className="text-center text-emerald-600 font-medium">{s.present}</TableCell>
+                    <TableCell className="text-center">{s.halfDay}</TableCell>
+                    <TableCell className="text-center text-destructive">{s.absent}</TableCell>
+                    <TableCell className="text-center">{s.leave}</TableCell>
+                    <TableCell className="text-center text-amber-600">{s.lateDays}</TableCell>
+                    <TableCell className="text-right">{s.hours.toFixed(2)}</TableCell>
+                    <TableCell className="text-right text-primary font-medium">{s.overtimeHours.toFixed(2)}</TableCell>
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent></Card>
         </TabsContent>
+
 
         {/* ---------------- Biometric Device ---------------- */}
         <TabsContent value="biometric" className="mt-4">
