@@ -273,6 +273,20 @@ export default function HR() {
     printSalarySlips(filteredPayroll.map(buildSlip), company, formatCurrency, formatDate);
   };
 
+  const printReport = () => {
+    if (reportRows.length === 0) { toast({ title: "No attendance records in this range", variant: "destructive" }); return; }
+    printAttendanceReport({
+      company,
+      settings: attSettings,
+      periodLabel: `${repFrom ? formatDate(repFrom) : "Start"} to ${repTo ? formatDate(repTo) : "Today"}${repEmployee !== "all" ? ` | ${employees.data.find((e) => e.id === repEmployee)?.name || ""}` : ""}`,
+      rows: reportRows,
+      summary: reportSummary,
+      formatDate,
+    });
+  };
+
+
+
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
