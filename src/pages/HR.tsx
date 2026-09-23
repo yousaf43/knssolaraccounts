@@ -15,7 +15,7 @@ import BiometricAttendance from "@/components/hr/BiometricAttendance";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { printSalarySlips, type SlipInput } from "@/components/hr/salarySlip";
-import { useAttendanceSettings, evaluateDay, minutesToLabel } from "@/components/hr/attendanceSettings";
+import { useAttendanceSettings, evaluateDay, formatTime12, minutesToLabel } from "@/components/hr/attendanceSettings";
 import { printAttendanceReport, type ReportRow, type ReportSummary } from "@/components/hr/attendanceReport";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -50,6 +50,34 @@ const hoursBetween = (inT: string, outT: string) => {
   if ([ih, im, oh, om].some((n) => Number.isNaN(n))) return 0;
   const mins = oh * 60 + om - (ih * 60 + im);
   return Math.max(0, Math.round((mins / 60) * 100) / 100);
+};
+
+const Time12Input = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
+  const [hourValue = "09", minuteValue = "00"] = value.split(":");
+  const hour24 = Number(hourValue) || 0;
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = String(hour24 % 12 || 12);
+  const update = (hour: string, minute: string, nextPeriod: string) => {
+    const baseHour = Number(hour) % 12;
+    const nextHour = baseHour + (nextPeriod === "PM" ? 12 : 0);
+    onChange(`${String(nextHour).padStart(2, "0")}:${minute}`);
+  };
+  return (
+    <div className="grid grid-cols-[1fr_1fr_1fr] gap-1">
+      <Select value={hour12} onValueChange={(hour) => update(hour, minuteValue, period)}>
+        <SelectTrigger aria-label="Hour"><SelectValue /></SelectTrigger>
+        <SelectContent>{Array.from({ length: 12 }, (_, i) => String(i + 1)).map((hour) => <SelectItem key={hour} value={hour}>{hour}</SelectItem>)}</SelectContent>
+      </Select>
+      <Select value={minuteValue} onValueChange={(minute) => update(hour12, minute, period)}>
+        <SelectTrigger aria-label="Minute"><SelectValue /></SelectTrigger>
+        <SelectContent>{Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")).map((minute) => <SelectItem key={minute} value={minute}>{minute}</SelectItem>)}</SelectContent>
+      </Select>
+      <Select value={period} onValueChange={(nextPeriod) => update(hour12, minuteValue, nextPeriod)}>
+        <SelectTrigger aria-label="AM or PM"><SelectValue /></SelectTrigger>
+        <SelectContent><SelectItem value="AM">AM</SelectItem><SelectItem value="PM">PM</SelectItem></SelectContent>
+      </Select>
+    </div>
+  );
 };
 
 export default function HR() {
@@ -399,10 +427,10 @@ export default function HR() {
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <span className="rounded-md border px-2 py-1">Shift <b className="text-foreground">{attSettings.shiftStart} - {attSettings.shiftEnd}</b></span>
-            <span className="rounded-md border px-2 py-1">Check-in cutoff <b className="text-foreground">{attSettings.checkInCutoff}</b></span>
+            <span className="rounded-md border px-2 py-1">Shift <b className="text-foreground">{formatTime12(attSettings.shiftStart)} - {formatTime12(attSettings.shiftEnd)}</b></span>
+            <span className="rounded-md border px-2 py-1">Check-in cutoff <b className="text-foreground">{formatTime12(attSettings.checkInCutoff)}</b></span>
             <span className="rounded-md border px-2 py-1">Grace <b className="text-foreground">{attSettings.graceMinutes} min</b></span>
-            <span className="rounded-md border px-2 py-1">Overtime after <b className="text-foreground">{attSettings.shiftEnd}</b></span>
+            <span className="rounded-md border px-2 py-1">Overtime after <b className="text-foreground">{formatTime12(attSettings.shiftEnd)}</b></span>
           </div>
 
           <Card><CardContent className="p-0 overflow-x-auto">
@@ -422,11 +450,11 @@ export default function HR() {
                     <TableCell>{i + 1}</TableCell>
                     <TableCell>{formatDate(a.date)}</TableCell>
                     <TableCell className="font-medium">{a.employeeName}</TableCell>
-                    <TableCell>{ev.checkIn || "-"}</TableCell>
-                    <TableCell>{ev.checkOut || "-"}</TableCell>
+                    <TableCell>{formatTime12(ev.checkIn) || "-"}</TableCell>
+                    <TableCell>{formatTime12(ev.checkOut) || "-"}</TableCell>
                     <TableCell className="text-right">{ev.workedHours || a.hours || 0}</TableCell>
                     <TableCell className={ev.late ? "text-amber-600 font-medium" : "text-muted-foreground"}>{ev.late ? minutesToLabel(ev.lateMinutes) : "-"}</TableCell>
-                    <TableCell className={`text-right ${ev.overtimeHours ? "text-primary font-medium" : "text-muted-foreground"}`}>{ev.overtimeHours ? `${ev.overtimeHours} h` : "-"}</TableCell>
+                    <TableCell className={`text-right ${ev.overtimeHours ? "text-primary font-medium" : "text-muted-foreground"}`}>{ev.overtimeHours ? `${ev.overtimeHours.toFixed(2)} hours` : "-"}</TableCell>
                     <TableCell>{statusBadge(a.status)}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{a.notes || "-"}</TableCell>
                     <TableCell className="text-right whitespace-nowrap">
@@ -641,8 +669,8 @@ export default function HR() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Check In</Label><Input type="time" value={attForm.checkIn} onChange={(e) => setAttForm({ ...attForm, checkIn: e.target.value })} /></div>
-            <div><Label>Check Out</Label><Input type="time" value={attForm.checkOut} onChange={(e) => setAttForm({ ...attForm, checkOut: e.target.value })} /></div>
+            <div><Label>Check In</Label><Time12Input value={attForm.checkIn} onChange={(checkIn) => setAttForm({ ...attForm, checkIn })} /></div>
+            <div><Label>Check Out</Label><Time12Input value={attForm.checkOut} onChange={(checkOut) => setAttForm({ ...attForm, checkOut })} /></div>
             <div className="sm:col-span-2 text-sm text-muted-foreground">Working hours: <span className="font-medium text-foreground">{hoursBetween(attForm.checkIn, attForm.checkOut)}</span></div>
             <div className="sm:col-span-2"><Label>Notes</Label><Textarea rows={2} value={attForm.notes} onChange={(e) => setAttForm({ ...attForm, notes: e.target.value })} /></div>
           </div>
@@ -655,18 +683,18 @@ export default function HR() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Attendance Timing Rules</DialogTitle></DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div><Label>Shift Start</Label><Input type="time" value={settingsForm.shiftStart} onChange={(e) => setSettingsForm({ ...settingsForm, shiftStart: e.target.value })} /></div>
-            <div><Label>Shift End</Label><Input type="time" value={settingsForm.shiftEnd} onChange={(e) => setSettingsForm({ ...settingsForm, shiftEnd: e.target.value })} /></div>
+            <div><Label>Shift Start</Label><Time12Input value={settingsForm.shiftStart} onChange={(shiftStart) => setSettingsForm({ ...settingsForm, shiftStart })} /></div>
+            <div><Label>Shift End</Label><Time12Input value={settingsForm.shiftEnd} onChange={(shiftEnd) => setSettingsForm({ ...settingsForm, shiftEnd })} /></div>
             <div className="sm:col-span-2">
               <Label>Check-in Cutoff</Label>
-              <Input type="time" value={settingsForm.checkInCutoff} onChange={(e) => setSettingsForm({ ...settingsForm, checkInCutoff: e.target.value })} />
+              <Time12Input value={settingsForm.checkInCutoff} onChange={(checkInCutoff) => setSettingsForm({ ...settingsForm, checkInCutoff })} />
               <p className="mt-1 text-xs text-muted-foreground">A punch before this time is treated as arrival, a later punch as departure.</p>
             </div>
             <div><Label>Grace Minutes</Label><Input type="number" min={0} value={settingsForm.graceMinutes} onChange={(e) => setSettingsForm({ ...settingsForm, graceMinutes: Math.max(0, Number(e.target.value) || 0) })} /></div>
-            <div><Label>Minimum Overtime (minutes)</Label><Input type="number" min={0} value={settingsForm.minOvertimeMinutes} onChange={(e) => setSettingsForm({ ...settingsForm, minOvertimeMinutes: Math.max(0, Number(e.target.value) || 0) })} /></div>
+            <div><Label>Minimum Overtime (hours)</Label><Input type="number" min={0} step="0.25" value={settingsForm.minOvertimeMinutes / 60} onChange={(e) => setSettingsForm({ ...settingsForm, minOvertimeMinutes: Math.max(0, Number(e.target.value) || 0) * 60 })} /></div>
             <div className="sm:col-span-2"><Label>Full Working Day (hours)</Label><Input type="number" min={0} step="0.5" value={settingsForm.fullDayHours} onChange={(e) => setSettingsForm({ ...settingsForm, fullDayHours: Math.max(0, Number(e.target.value) || 0) })} /></div>
             <p className="sm:col-span-2 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              Example: shift ends at {settingsForm.shiftEnd} — if someone leaves at 19:00, one hour is counted as overtime automatically.
+              Example: shift ends at {formatTime12(settingsForm.shiftEnd)} — leaving at 07:00 PM counts as 1.00 overtime hour automatically.
             </p>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setSettingsDialog(false)}>Cancel</Button><Button onClick={saveAttSettings}>Save Rules</Button></DialogFooter>

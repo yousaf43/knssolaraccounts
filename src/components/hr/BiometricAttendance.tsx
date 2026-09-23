@@ -31,7 +31,16 @@ const today = () => new Date().toISOString().slice(0, 10);
 const monthAgo = () => new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
 const localTime = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Karachi", hour12: false });
+  new Date(iso).toLocaleString("en-GB", {
+    timeZone: "Asia/Karachi",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
 
 /** Parse a ZKTeco export (attlog .dat / .txt / .csv) into punches. */
 function parseFile(text: string): { deviceUserId: string; time: string; type?: string; raw: string }[] {

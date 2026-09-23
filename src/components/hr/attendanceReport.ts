@@ -1,4 +1,4 @@
-import type { AttendanceSettings } from "./attendanceSettings";
+import { formatTime12, type AttendanceSettings } from "./attendanceSettings";
 
 export type ReportCompany = {
   name?: string;
@@ -81,8 +81,8 @@ export function printAttendanceReport(opts: {
         <td>${esc(formatDate(r.date))}</td>
         <td><b>${esc(r.employee)}</b></td>
         <td class="c cap">${esc(r.status)}</td>
-        <td class="c">${esc(r.checkIn || "-")}</td>
-        <td class="c">${esc(r.checkOut || "-")}</td>
+        <td class="c">${esc(formatTime12(r.checkIn) || "-")}</td>
+        <td class="c">${esc(formatTime12(r.checkOut) || "-")}</td>
         <td class="n">${(r.hours || 0).toFixed(2)}</td>
         <td class="c ${r.lateMinutes > 0 ? "warn" : ""}">${lateLabel(r.lateMinutes)}</td>
         <td class="n ${r.overtimeHours > 0 ? "ot" : ""}">${r.overtimeHours > 0 ? r.overtimeHours.toFixed(2) : "-"}</td>
@@ -126,10 +126,10 @@ export function printAttendanceReport(opts: {
     </header>
 
     <div class="rules">
-      <div>Shift: <b>${esc(settings.shiftStart)} - ${esc(settings.shiftEnd)}</b></div>
-      <div>Check-in cutoff: <b>${esc(settings.checkInCutoff)}</b></div>
+      <div>Shift: <b>${esc(formatTime12(settings.shiftStart))} - ${esc(formatTime12(settings.shiftEnd))}</b></div>
+      <div>Check-in cutoff: <b>${esc(formatTime12(settings.checkInCutoff))}</b></div>
       <div>Grace: <b>${settings.graceMinutes} min</b></div>
-      <div>Overtime after: <b>${esc(settings.shiftEnd)} (+${settings.minOvertimeMinutes} min)</b></div>
+      <div>Overtime after: <b>${esc(formatTime12(settings.shiftEnd))} (${(settings.minOvertimeMinutes / 60).toFixed(2)} hour minimum)</b></div>
     </div>
 
     <h2>Summary</h2>
