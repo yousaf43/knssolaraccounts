@@ -364,7 +364,7 @@ export function NexiaAssistant() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
+          className="fixed bottom-5 left-5 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 transition-transform flex items-center justify-center"
           aria-label="Open Nexia assistant"
         >
           <MessageCircle className="w-6 h-6" />
@@ -372,7 +372,7 @@ export function NexiaAssistant() {
       )}
 
       {open && (
-        <div className="fixed bottom-5 right-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[min(620px,calc(100vh-2rem))] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-5 left-5 z-50 w-[min(400px,calc(100vw-2rem))] h-[min(620px,calc(100vh-2rem))] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground">
             <div>
