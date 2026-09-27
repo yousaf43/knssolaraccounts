@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { toast } from "@/hooks/use-toast";
+import { toMinutes, useAttendanceSettings } from "./attendanceSettings";
 
 
 type Device = {
@@ -84,6 +85,7 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
   const [to, setTo] = useState(today());
   const [loading, setLoading] = useState(false);
   const [dialog, setDialog] = useState(false);
+  const [settings] = useAttendanceSettings();
   const [form, setForm] = useState({ name: "ZKTeco Device", serial: "" });
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -150,7 +152,7 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
     return [...map.entries()].map(([id, v]) => ({ id, ...v })).sort((a, b) => Number(a.id) - Number(b.id));
   }, [punches]);
 
-  /** Per person, per day: first punch = check in, last punch = check out. */
+  /** Per person, per day: punch before the cutoff = check in, at/after it = check out. */
   const daily = useMemo(() => {
     const map = new Map<string, { date: string; who: string; unmatched: boolean; times: string[] }>();
     for (const p of punches) {
@@ -169,13 +171,22 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
         const sorted = [...e.times].sort();
         const first = sorted[0];
         const last = sorted[sorted.length - 1];
-        const hours = sorted.length > 1
-          ? Math.round(((new Date(last).getTime() - new Date(first).getTime()) / 3600000) * 100) / 100
+        // A punch at/after the check-in cutoff (default 12 PM) is a check-out, never a check-in.
+        const cutoffMin = toMinutes(settings.checkInCutoff) ?? 720;
+        const localMin = (iso: string) => {
+          const d = new Date(iso);
+          return (d.getUTCHours() + 5) % 24 * 60 + d.getUTCMinutes();
+        };
+        const firstMin = localMin(first);
+        const checkIn = firstMin < cutoffMin ? first : "";
+        const checkOut = sorted.length > 1 ? last : (firstMin >= cutoffMin ? first : "");
+        const hours = checkIn && checkOut
+          ? Math.round(((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 3600000) * 100) / 100
           : 0;
-        return { ...e, first, last: sorted.length > 1 ? last : "", hours, punches: sorted.length };
+        return { ...e, first: checkIn, last: checkOut, hours, punches: sorted.length };
       })
       .sort((a, b) => (a.date === b.date ? a.who.localeCompare(b.who) : b.date.localeCompare(a.date)));
-  }, [punches]);
+  }, [punches, settings.checkInCutoff]);
 
   /** Ask the server to re-apply employee mapping to punches already stored. */
   const runRemap = useCallback(async () => {
@@ -456,7 +467,7 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
               <TableRow key={`${d.date}-${d.who}`}>
                 <TableCell>{localTime(`${d.date}T00:00:00Z`).split(", ")[0]}</TableCell>
                 <TableCell className={d.unmatched ? "text-muted-foreground" : "font-medium"}>{d.who}</TableCell>
-                <TableCell>{localTime(d.first).split(", ")[1]}</TableCell>
+                <TableCell>{d.first ? localTime(d.first).split(", ")[1] : "-"}</TableCell>
                 <TableCell>{d.last ? localTime(d.last).split(", ")[1] : "-"}</TableCell>
                 <TableCell>{d.hours ? `${d.hours} h` : "-"}</TableCell>
                 <TableCell>{d.punches}</TableCell>

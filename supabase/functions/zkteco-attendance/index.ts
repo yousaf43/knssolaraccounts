@@ -76,9 +76,13 @@ async function rebuildDays(
       new Date(new Date(t).getTime() + 5 * 3600 * 1000).toISOString().slice(11, 16);
     const first = dayPunches[0].punch_time as string;
     const last = dayPunches[dayPunches.length - 1].punch_time as string;
-    const checkIn = local(first);
-    const checkOut = dayPunches.length > 1 ? local(last) : "";
-    const hours = checkOut
+    // A punch at/after 12:00 counts as a check-out, never as a check-in.
+    const CUTOFF = "12:00";
+    const firstLocal = local(first);
+    const lastLocal = local(last);
+    const checkIn = firstLocal < CUTOFF ? firstLocal : "";
+    const checkOut = dayPunches.length > 1 ? lastLocal : (firstLocal >= CUTOFF ? firstLocal : "");
+    const hours = checkIn && checkOut
       ? Math.max(0, Math.round(((new Date(last).getTime() - new Date(first).getTime()) / 3600000) * 100) / 100)
       : 0;
 
