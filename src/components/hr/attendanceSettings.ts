@@ -17,7 +17,7 @@ export type AttendanceSettings = {
 
 export const DEFAULT_ATTENDANCE_SETTINGS: AttendanceSettings = {
   shiftStart: "09:00",
-  checkInCutoff: "10:00",
+  checkInCutoff: "12:00",
   shiftEnd: "18:00",
   graceMinutes: 15,
   minOvertimeMinutes: 30,
