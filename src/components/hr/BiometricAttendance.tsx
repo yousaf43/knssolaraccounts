@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { toast } from "@/hooks/use-toast";
+import { toMinutes, useAttendanceSettings } from "./attendanceSettings";
 
 
 type Device = {
@@ -84,6 +85,7 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
   const [to, setTo] = useState(today());
   const [loading, setLoading] = useState(false);
   const [dialog, setDialog] = useState(false);
+  const [settings] = useAttendanceSettings();
   const [form, setForm] = useState({ name: "ZKTeco Device", serial: "" });
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -465,7 +467,7 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
               <TableRow key={`${d.date}-${d.who}`}>
                 <TableCell>{localTime(`${d.date}T00:00:00Z`).split(", ")[0]}</TableCell>
                 <TableCell className={d.unmatched ? "text-muted-foreground" : "font-medium"}>{d.who}</TableCell>
-                <TableCell>{localTime(d.first).split(", ")[1]}</TableCell>
+                <TableCell>{d.first ? localTime(d.first).split(", ")[1] : "-"}</TableCell>
                 <TableCell>{d.last ? localTime(d.last).split(", ")[1] : "-"}</TableCell>
                 <TableCell>{d.hours ? `${d.hours} h` : "-"}</TableCell>
                 <TableCell>{d.punches}</TableCell>
