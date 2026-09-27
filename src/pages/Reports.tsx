@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect, Fragment } from "react";
+import { BankReconciliationReport } from "@/components/reports/BankReconciliationReport";
 import { useSortableTables } from "@/hooks/useSortableTables";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
@@ -4802,6 +4803,7 @@ export default function Reports() {
   }, [analyticalTab, favorites]);
 
   if (activeReport) {
+    if (activeReport.code === "062") return <BankReconciliationReport accounts={accounts} ledger={ledger} onBack={() => setActiveReport(null)} />;
     return <ReportDetail report={activeReport} onBack={() => setActiveReport(null)} monthlySales={monthlySales} kpiData={kpiData} expenseBreakdown={expenseBreakdown} inventory={inventory} assets={assets} invoices={invoices} expenses={expenses} bills={bills} customers={customers} receipts={receipts} salesOrders={salesOrders} purchaseOrders={purchaseOrders} purchasePayments={purchasePayments} stockAdjustments={stockAdjustments} accounts={accounts} ledger={ledger} updateInvoice={updateInvoice} />;
   }
 
