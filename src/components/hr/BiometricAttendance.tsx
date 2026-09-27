@@ -169,13 +169,22 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
         const sorted = [...e.times].sort();
         const first = sorted[0];
         const last = sorted[sorted.length - 1];
-        const hours = sorted.length > 1
-          ? Math.round(((new Date(last).getTime() - new Date(first).getTime()) / 3600000) * 100) / 100
+        // A punch at/after the check-in cutoff (default 12 PM) is a check-out, never a check-in.
+        const cutoffMin = toMinutes(settings.checkInCutoff) ?? 720;
+        const localMin = (iso: string) => {
+          const d = new Date(iso);
+          return (d.getUTCHours() + 5) % 24 * 60 + d.getUTCMinutes();
+        };
+        const firstMin = localMin(first);
+        const checkIn = firstMin < cutoffMin ? first : "";
+        const checkOut = sorted.length > 1 ? last : (firstMin >= cutoffMin ? first : "");
+        const hours = checkIn && checkOut
+          ? Math.round(((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 3600000) * 100) / 100
           : 0;
-        return { ...e, first, last: sorted.length > 1 ? last : "", hours, punches: sorted.length };
+        return { ...e, first: checkIn, last: checkOut, hours, punches: sorted.length };
       })
       .sort((a, b) => (a.date === b.date ? a.who.localeCompare(b.who) : b.date.localeCompare(a.date)));
-  }, [punches]);
+  }, [punches, settings.checkInCutoff]);
 
   /** Ask the server to re-apply employee mapping to punches already stored. */
   const runRemap = useCallback(async () => {
