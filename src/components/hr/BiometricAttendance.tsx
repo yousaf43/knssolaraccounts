@@ -150,7 +150,7 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
     return [...map.entries()].map(([id, v]) => ({ id, ...v })).sort((a, b) => Number(a.id) - Number(b.id));
   }, [punches]);
 
-  /** Per person, per day: first punch = check in, last punch = check out. */
+  /** Per person, per day: punch before the cutoff = check in, at/after it = check out. */
   const daily = useMemo(() => {
     const map = new Map<string, { date: string; who: string; unmatched: boolean; times: string[] }>();
     for (const p of punches) {
