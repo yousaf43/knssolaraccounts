@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { type Expense } from "@/data/mockData";
-import { useExpensesCloud, useAccountsCloud, useInvoicesCloud } from "@/hooks/useAppData";
+import { useExpensesCloud, useAccountsCloud, useInvoicesCloud, useLedgerEntriesCloud } from "@/hooks/useAppData";
 import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,7 @@ export default function Expenses() {
   const { data: expenses, upsert: upsertExpense, remove: removeExpense } = useExpensesCloud();
   const { data: cloudAccounts } = useAccountsCloud();
   const { data: invoices } = useInvoicesCloud();
+  const { data: ledgerEntries } = useLedgerEntriesCloud();
   const accounts = cloudAccounts;
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
@@ -95,9 +96,8 @@ export default function Expenses() {
   // Petty Cash account balance
   const pettyCashAccount = accounts.find(a => a.name === "Petty Cash");
   const pettyCashOpeningBalance = pettyCashAccount?.balance ?? 0;
-  // Petty Cash ledger balance (transfers in/out)
-  const pettyCashLedgerEntries = JSON.parse(localStorage.getItem(scopedKey("ledgerEntries")) || "[]") as { bank: string; type: string; amount: number }[];
-  const pettyCashLedgerBalance = pettyCashLedgerEntries.filter(e => e.bank === "Petty Cash").reduce((s, e) => s + (e.type === "incoming" ? e.amount : -e.amount), 0);
+  // Petty Cash ledger balance (transfers in/out) — from cloud ledger
+  const pettyCashLedgerBalance = ledgerEntries.filter(e => e.bank === "Petty Cash").reduce((s, e) => s + (e.type === "incoming" ? e.amount : -e.amount), 0);
   const pettyCashBudget = pettyCashOpeningBalance + pettyCashLedgerBalance;
   const cashExpenses = expenses.filter(e => e.paymentMethod === "Cash").reduce((s, e) => s + e.amount, 0);
   const remainingPettyCash = pettyCashBudget - cashExpenses;
