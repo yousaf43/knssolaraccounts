@@ -1,4 +1,3 @@
-import { scopedKey } from "@/lib/storageScope";
 import { useState, useMemo } from "react";
 import { usePagination } from "@/hooks/usePagination";
 import { TablePagination } from "@/components/TablePagination";
