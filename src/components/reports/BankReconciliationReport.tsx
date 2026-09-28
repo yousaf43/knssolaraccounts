@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, FileSpreadsheet, FileText, Plus, Trash2, Upload, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText, Plus, Trash2, Upload, CheckCircle2, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { matchesQuery } from "@/lib/search";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
 
@@ -60,10 +62,7 @@ function parseCsv(text: string): StatementLine[] {
 
 export function BankReconciliationReport({ accounts, ledger, onBack }: { accounts: Account[]; ledger: LedgerEntry[]; onBack: () => void }) {
   const { formatCurrency, formatDate, settings } = useSettings();
-  const bankAccounts = useMemo(() => {
-    const list = accounts.filter((a) => !/cash|petty/i.test(a.name));
-    return list.length ? list : accounts;
-  }, [accounts]);
+  const bankAccounts = useMemo(() => accounts, [accounts]);
   const today = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 8) + "01";
   const [accountId, setAccountId] = useState<string>("");
