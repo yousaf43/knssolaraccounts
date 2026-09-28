@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from "react";
-import { ArrowLeft, FileSpreadsheet, FileText, Plus, Trash2, Upload, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, FileText, Plus, Trash2, Upload, CheckCircle2, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { matchesQuery } from "@/lib/search";
 import { useSettings } from "@/contexts/SettingsContext";
 import { toast } from "sonner";
 
@@ -60,10 +62,7 @@ function parseCsv(text: string): StatementLine[] {
 
 export function BankReconciliationReport({ accounts, ledger, onBack }: { accounts: Account[]; ledger: LedgerEntry[]; onBack: () => void }) {
   const { formatCurrency, formatDate, settings } = useSettings();
-  const bankAccounts = useMemo(() => {
-    const list = accounts.filter((a) => !/cash|petty/i.test(a.name));
-    return list.length ? list : accounts;
-  }, [accounts]);
+  const bankAccounts = useMemo(() => accounts, [accounts]);
   const today = new Date().toISOString().slice(0, 10);
   const monthStart = today.slice(0, 8) + "01";
   const [accountId, setAccountId] = useState<string>("");
@@ -75,6 +74,12 @@ export function BankReconciliationReport({ accounts, ledger, onBack }: { account
   const [preparedBy, setPreparedBy] = useState("");
   const [reviewedBy, setReviewedBy] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountQuery, setAccountQuery] = useState("");
+  const filteredAccounts = useMemo(
+    () => bankAccounts.filter((a) => matchesQuery(accountQuery, a.name, a.accountTitle, a.code)),
+    [bankAccounts, accountQuery]
+  );
 
   const account = bankAccounts.find((a) => a.id === accountId) || null;
   const money = (n: number) => formatCurrency(Math.round(n * 100) / 100);
@@ -239,10 +244,34 @@ export function BankReconciliationReport({ accounts, ledger, onBack }: { account
       <div className="rounded-lg border bg-card p-4 grid gap-3 md:grid-cols-4">
         <div className="md:col-span-2">
           <label className="text-xs text-muted-foreground">Bank Account</label>
-          <Select value={accountId} onValueChange={setAccountId}>
-            <SelectTrigger><SelectValue placeholder="Select a bank account" /></SelectTrigger>
-            <SelectContent>{bankAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}{a.accountTitle ? ` — ${a.accountTitle}` : ""}</SelectItem>)}</SelectContent>
-          </Select>
+          <Popover open={accountOpen} onOpenChange={setAccountOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" role="combobox" aria-expanded={accountOpen} className="w-full justify-between font-normal">
+                <span className="truncate">{account ? `${account.name}${account.accountTitle ? ` — ${account.accountTitle}` : ""}` : "Select an account"}</span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command shouldFilter={false}>
+                <CommandInput placeholder="Search account..." value={accountQuery} onValueChange={setAccountQuery} />
+                <CommandList>
+                  <CommandEmpty>No account found.</CommandEmpty>
+                  <CommandGroup>
+                    {filteredAccounts.map((a) => (
+                      <CommandItem
+                        key={a.id}
+                        value={a.id}
+                        onSelect={() => { setAccountId(a.id); setAccountOpen(false); setAccountQuery(""); }}
+                      >
+                        <Check className={`mr-2 h-4 w-4 ${accountId === a.id ? "opacity-100" : "opacity-0"}`} />
+                        {a.name}{a.accountTitle ? ` — ${a.accountTitle}` : ""}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
         <div><label className="text-xs text-muted-foreground">Start Date</label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
         <div><label className="text-xs text-muted-foreground">End Date</label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
