@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Building2, Globe, Receipt, Calendar, Save, Upload, Image, Users, Shield, Download, UploadCloud, Database, Cloud, Trash2, RotateCcw, Loader2, UserCircle, Edit, X, Check, FileDown, FileSpreadsheet, FileJson, FileCode, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MenuAccessDialog } from "@/components/MenuAccessDialog";
 import { useCloudBackup } from "@/hooks/useCloudBackup";
 import { useUserSettingsCloud } from "@/hooks/useAppData";
 import { exportAsJson, exportAsCsvZip } from "@/utils/exportData";
@@ -175,6 +176,7 @@ export default function Settings() {
 
   // Edit user dialog state
   const [editUser, setEditUser] = useState<UserWithRole | null>(null);
+  const [accessUser, setAccessUser] = useState<UserWithRole | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -866,6 +868,9 @@ export default function Settings() {
                                       <SelectItem value="sales">Sales</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAccessUser(u)} title="Menu access">
+                                    <Shield className="w-4 h-4" />
+                                  </Button>
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditUser(u)} title="Edit user">
                                     <Edit className="w-4 h-4" />
                                   </Button>
@@ -889,6 +894,7 @@ export default function Settings() {
         )}
       </Tabs>
 
+      <MenuAccessDialog member={accessUser} onClose={() => setAccessUser(null)} />
       <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>

@@ -26,6 +26,7 @@ import ksLogo from "@/assets/ks-logo.png";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { canAccessMenu } from "@/lib/menuAccess";
 
 const allNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin", "accountant", "sales"] },
@@ -54,12 +55,12 @@ interface AppSidebarProps {
 export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const isMobile = useIsMobile();
-  const { role, profile, isSuperAdmin } = useAuth();
+  const { role, profile, isSuperAdmin, menuAccess } = useAuth();
   const { settings } = useSettings();
 
   const isCollapsed = isMobile ? false : collapsed;
 
-  const navItems = allNavItems.filter((item) => !role || item.roles.includes(role));
+  const navItems = allNavItems.filter((item) => canAccessMenu(item.url, role, menuAccess));
   const displayedNavItems = isSuperAdmin
     ? [{ title: "Platform Admin", url: "/platform-admin", icon: ShieldCheck, roles: ["super-admin"] }, ...navItems]
     : navItems;

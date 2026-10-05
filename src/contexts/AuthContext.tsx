@@ -33,6 +33,7 @@ type AuthContextType = {
   session: Session | null;
   profile: Profile | null;
   role: AppRole | null;
+  menuAccess: string[] | null;
   loading: boolean;
   isSuperAdmin: boolean;
   company: Company | null;
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [menuAccess, setMenuAccess] = useState<string[] | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [companyResolved, setCompanyResolved] = useState(false);
@@ -84,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from("user_roles").select("role").eq("user_id", userId).single(),
       supabase.from("super_admins").select("user_id").eq("user_id", userId).maybeSingle(),
     ]);
+    const { data: accessData } = await supabase.from("user_menu_access").select("menus").eq("user_id", userId).maybeSingle();
+    setMenuAccess(accessData ? (accessData.menus as string[]) : null);
 
     setIsSuperAdmin(Boolean(superAdminData));
     if (profileData) {
@@ -169,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null); setSession(null); setProfile(null); setRole(null); setCompany(null); setIsSuperAdmin(false); setCompanyResolved(true); setTwoFAVerifiedState(false);
   };
 
-  return <AuthContext.Provider value={{ user, session, profile, role, loading, isSuperAdmin, company, companyResolved, twoFAVerified, setTwoFAVerified, twoFAEnabled, setTwoFAEnabled, signUp, signIn, signOut, refreshProfile }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, session, profile, role, menuAccess, loading, isSuperAdmin, company, companyResolved, twoFAVerified, setTwoFAVerified, twoFAEnabled, setTwoFAEnabled, signUp, signIn, signOut, refreshProfile }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
