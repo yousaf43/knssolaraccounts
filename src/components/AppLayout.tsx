@@ -1,3 +1,4 @@
+import { canAccessMenu } from "@/lib/menuAccess";
 import { AppSidebar } from "@/components/AppSidebar";
 import { NexiaAssistant } from "@/components/NexiaAssistant";
 import { RecentTabs } from "@/components/RecentTabs";
@@ -56,7 +57,7 @@ const KEEP_ALIVE_PAGES: KeepAlivePage[] = [
 ];
 
 export function AppLayout() {
-  const { profile, role, company, isSuperAdmin, signOut } = useAuth();
+  const { profile, role, company, isSuperAdmin, signOut, menuAccess } = useAuth();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const activePageRef = useRef<HTMLDivElement>(null);
@@ -67,7 +68,7 @@ export function AppLayout() {
 
   const isSales = role === "sales";
   const allowedPages = KEEP_ALIVE_PAGES.filter(
-    (p) => (!p.adminOnly || !isSales) && (!p.superAdminOnly || isSuperAdmin)
+    (p) => canAccessMenu(p.path, role, menuAccess) && (!p.superAdminOnly || isSuperAdmin)
   );
   const currentPath = location.pathname;
   const activePage = allowedPages.find((p) => p.path === currentPath);
