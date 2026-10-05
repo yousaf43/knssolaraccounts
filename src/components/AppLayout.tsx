@@ -218,7 +218,7 @@ export function AppLayout() {
                   {p.element}
                 </div>
               ))}
-            {!activePage && (isSales ? <Navigate to="/" replace /> : <NotFound />)}
+            {!activePage && (KEEP_ALIVE_PAGES.some((p) => p.path === currentPath) ? <Navigate to={allowedPages[0]?.path || "/settings"} replace /> : <NotFound />)}
           </main>
           <footer className="shrink-0 border-t border-border/40 bg-transparent py-2 text-center text-[10px] text-muted-foreground/60">
             Design & Developed by <span className="font-medium text-muted-foreground/80">Yousuf Enterprises</span>
