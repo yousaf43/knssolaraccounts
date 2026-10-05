@@ -1012,6 +1012,59 @@ export type Database = {
           },
         ]
       }
+      proposals: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          customer_name: string
+          data: Json
+          id: string
+          proposal_no: string
+          status: string
+          system_kw: number
+          system_type: string
+          total: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          customer_name?: string
+          data?: Json
+          id?: string
+          proposal_no: string
+          status?: string
+          system_kw?: number
+          system_type?: string
+          total?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          customer_name?: string
+          data?: Json
+          id?: string
+          proposal_no?: string
+          status?: string
+          system_kw?: number
+          system_type?: string
+          total?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_orders: {
         Row: {
           amount: number | null
