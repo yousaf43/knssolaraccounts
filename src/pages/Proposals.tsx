@@ -48,6 +48,7 @@ export interface Proposal {
   phone: string;
   cnic: string;
   systemType: "on-grid" | "off-grid" | "hybrid";
+  systemKw: number;
   panelQty: number;
   panelWatt: number;
   panelBrand: string;
@@ -133,6 +134,7 @@ const rowToProposal = (r: Row): Proposal =>
     id: r.id,
     proposalNo: r.proposal_no,
     status: r.status,
+    systemKw: Number(r.system_kw) || 0,
   }) as Proposal;
 
 export default function Proposals() {
