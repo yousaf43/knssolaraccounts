@@ -15,6 +15,7 @@ import { useTabScrollMemory } from "@/hooks/useTabScrollMemory";
 import { useTabStateMemory } from "@/hooks/useTabStateMemory";
 import Dashboard from "@/pages/Dashboard";
 import Invoices from "@/pages/Invoices";
+import Proposals from "@/pages/Proposals";
 import Customers from "@/pages/Customers";
 import Purchases from "@/pages/Purchases";
 import Expenses from "@/pages/Expenses";
@@ -39,6 +40,7 @@ type KeepAlivePage = { path: string; element: ReactNode; adminOnly?: boolean; su
 const KEEP_ALIVE_PAGES: KeepAlivePage[] = [
   { path: "/", element: <Dashboard /> },
   { path: "/invoices", element: <Invoices /> },
+  { path: "/proposals", element: <Proposals /> },
   { path: "/customers", element: <Customers /> },
   { path: "/purchases", element: <Purchases />, adminOnly: true },
   { path: "/expenses", element: <Expenses />, adminOnly: true },

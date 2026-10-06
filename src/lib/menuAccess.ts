@@ -4,6 +4,7 @@ export type MenuRole = "admin" | "accountant" | "sales";
 export const MENU_OPTIONS: { url: string; title: string; roles: MenuRole[] }[] = [
   { url: "/", title: "Dashboard", roles: ["admin", "accountant", "sales"] },
   { url: "/invoices", title: "Invoices", roles: ["admin", "accountant", "sales"] },
+  { url: "/proposals", title: "Proposals", roles: ["admin", "accountant", "sales"] },
   { url: "/customers", title: "Customers", roles: ["admin", "accountant", "sales"] },
   { url: "/purchases", title: "Purchases", roles: ["admin", "accountant"] },
   { url: "/expenses", title: "Expenses", roles: ["admin", "accountant"] },
