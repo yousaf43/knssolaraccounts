@@ -179,7 +179,7 @@ export default function Proposals() {
       r.customer_name.toLowerCase().includes(q)
     );
   });
-  const { page, setPage, totalPages, paginated } = usePagination(filtered, 25);
+  const { paginatedItems, currentPage, totalPages, totalItems, goToPage, resetPage } = usePagination(filtered, 25);
 
   const nextNo = () => {
     const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -343,7 +343,7 @@ export default function Proposals() {
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
-            setPage(1);
+            resetPage();
           }}
         />
       </div>
