@@ -126,16 +126,14 @@ type Row = {
   created_at: string;
 };
 
-const rowToProposal = (r: Row): Proposal => ({
-  id: r.id,
-  proposalNo: r.proposal_no,
-  status: r.status,
-  ...(emptyProposal() as object),
-  ...(r.data as object),
-  id: r.id,
-  proposalNo: r.proposal_no,
-  status: r.status,
-} as Proposal);
+const rowToProposal = (r: Row): Proposal =>
+  ({
+    ...emptyProposal(),
+    ...(r.data as object),
+    id: r.id,
+    proposalNo: r.proposal_no,
+    status: r.status,
+  }) as Proposal;
 
 export default function Proposals() {
   const { user, company } = useAuth();
