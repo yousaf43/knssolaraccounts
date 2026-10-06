@@ -19,6 +19,7 @@ import {
   UserCog,
   Search,
   ShieldCheck,
+  FileBadge,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useState } from "react";
@@ -31,6 +32,7 @@ import { canAccessMenu } from "@/lib/menuAccess";
 const allNavItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin", "accountant", "sales"] },
   { title: "Invoices", url: "/invoices", icon: FileText, roles: ["admin", "accountant", "sales"] },
+  { title: "Proposals", url: "/proposals", icon: FileBadge, roles: ["admin", "accountant", "sales"] },
   
   { title: "Customers", url: "/customers", icon: Users, roles: ["admin", "accountant", "sales"] },
   { title: "Purchases", url: "/purchases", icon: Truck, roles: ["admin", "accountant"] },
