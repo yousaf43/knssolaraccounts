@@ -88,6 +88,7 @@ const emptyProposal = (): Omit<Proposal, "id" | "proposalNo"> => ({
   phone: "",
   cnic: "",
   systemType: "on-grid",
+  systemKw: 0,
   panelQty: 0,
   panelWatt: 625,
   panelBrand: "JA Solar",
@@ -283,7 +284,7 @@ export default function Proposals() {
       system_kw: systemKw,
       total: itemsTotal,
       status: form.status,
-      data: { ...form, total: itemsTotal } as Record<string, unknown>,
+      data: JSON.parse(JSON.stringify({ ...form, systemKw, total: itemsTotal })),
       updated_at: new Date().toISOString(),
     };
     if (editing) {
@@ -293,7 +294,7 @@ export default function Proposals() {
     } else {
       const { error } = await supabase
         .from("proposals")
-        .insert({ ...payload, proposal_no: nextNo() });
+        .insert([{ ...payload, proposal_no: nextNo() }]);
       if (error) return toast.error("Failed to save proposal");
       toast.success("Proposal saved");
     }
