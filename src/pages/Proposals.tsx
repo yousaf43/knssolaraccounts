@@ -371,7 +371,7 @@ export default function Proposals() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginated.map((r) => (
+                {paginatedItems.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.proposal_no}</TableCell>
                     <TableCell>{r.customer_name}</TableCell>
@@ -405,7 +405,7 @@ export default function Proposals() {
                 ))}
               </TableBody>
             </Table>
-            <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            <TablePagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} onPageChange={goToPage} itemLabel="proposal" />
           </>
         )}
       </Card>
