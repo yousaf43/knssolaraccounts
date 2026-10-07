@@ -1360,7 +1360,7 @@ function ProfitLossByInvoice({
       if (profitFilter === "profit" && row.profit < 0) return false;
       if (profitFilter === "loss" && row.profit >= 0) return false;
       return true;
-    }), [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
+    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
 
   const totals = rows.reduce((sum, row) => ({
     sales: sum.sales + row.sales,
@@ -1522,12 +1522,13 @@ function ProfitLossByInvoice({
 }
 
 function ProfitLossByProject({
-  invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
+  fifoLayers?: FifoLayers;
   fromDate?: Date;
   toDate?: Date;
   dateRange: string;
@@ -1544,7 +1545,7 @@ function ProfitLossByProject({
   const [sort, setSort] = useState<"profit-desc" | "profit-asc" | "name">("profit-desc");
 
   const rows = useMemo(() => {
-    const invoiceRows = computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate);
+    const invoiceRows = computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers);
     const map = new Map<string, { key: string; project: string; customers: string[]; count: number; sales: number; discount: number; cost: number; expenseTotal: number; profit: number; margin: number; invRows: InvoicePnlRow[] }>();
     invoiceRows.forEach(row => {
       const key = normName(row.projectName) || "__none__";
@@ -1573,7 +1574,7 @@ function ProfitLossByProject({
     else if (sort === "profit-asc") filtered.sort((a, b) => a.profit - b.profit);
     else filtered.sort((a, b) => a.project.localeCompare(b.project));
     return filtered;
-  }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
+  }, [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
 
   const totals = rows.reduce((sum, row) => ({
     count: sum.count + row.count, sales: sum.sales + row.sales, discount: sum.discount + row.discount,
@@ -1661,11 +1662,12 @@ function ProfitLossByProject({
 
 // --- Site / Installation Voucher Statement ---
 function SiteVoucherStatement({
-  invoices, inventory, getAvgCost, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
+  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
 }: {
   invoices: Invoice[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
+  fifoLayers?: FifoLayers;
   fromDate?: Date;
   toDate?: Date;
   companyName: string;
@@ -1679,13 +1681,13 @@ function SiteVoucherStatement({
   const [meta, setMeta] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
+  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers)
     .filter(row => {
       const tokens = tokenize(search);
       if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
       if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
       return true;
-    }), [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer]);
+    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer]);
 
   const activeId = selectedId && rows.some(r => r.id === selectedId) ? selectedId : (rows[0]?.id || "");
   const row = rows.find(r => r.id === activeId);
