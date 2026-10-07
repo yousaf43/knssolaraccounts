@@ -1275,9 +1275,18 @@ function computeInvoicePnlRows(
     (sum, item) => sum + (item.qty || 0) * (item.rate || 0) * ((item.discount || 0) / 100), 0
   ) + (Number(invoice.discount) || 0);
   const taxMultiplier = 1 + Math.max(0, salesTaxRate) / 100;
-  const period = uniqueInvoicesById(invoices).filter(invoice => inRange(invoice.date, fromDate, toDate));
-  return period
+  const allSales = uniqueInvoicesById(invoices)
     .filter(invoice => countsAsSale(invoice) || invoice.isReturn || invoice.status === "returned")
+    .sort((a, b) => (parseDateSafe(a.date)?.getTime() ?? 0) - (parseDateSafe(b.date)?.getTime() ?? 0));
+  // Stock sold before the selected period consumed the oldest layers first,
+  // so consume those sales before costing the period's invoices (true FIFO).
+  if (fifoLayers) {
+    allSales
+      .filter(invoice => !inRange(invoice.date, fromDate, toDate) && (!fromDate || (parseDateSafe(invoice.date)?.getTime() ?? Infinity) < fromDate.getTime()))
+      .forEach(invoice => (invoice.items || []).forEach(lineCost));
+  }
+  const period = allSales.filter(invoice => inRange(invoice.date, fromDate, toDate));
+  return period
     .map(invoice => {
       const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
       const sign = isReturn ? -1 : 1;
