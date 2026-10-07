@@ -1315,12 +1315,13 @@ function computeInvoicePnlRows(
 }
 
 function ProfitLossByInvoice({
-  invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
+  fifoLayers?: FifoLayers;
   fromDate?: Date;
   toDate?: Date;
   dateRange: string;
@@ -1351,7 +1352,7 @@ function ProfitLossByInvoice({
 
   const inventoryById = useMemo(() => new Map(inventory.map(item => [item.id, item])), [inventory]);
 
-  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
+  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers)
     .filter(row => {
       const tokens = tokenize(search);
       if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
@@ -2107,14 +2108,23 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     return totals;
   }, [purchaseOrders, inventory]);
 
+  // FIFO cost layers from purchase orders + bills, oldest first.
+  const fifoLayers = useMemo(
+    () => buildFifoLayers(purchaseOrders, bills, inventory),
+    [purchaseOrders, bills, inventory]
+  );
+
   const getAvgCost = useCallback((item: InventoryItem): number => {
+    // FIFO first: the stock on hand is valued from the newest purchase layers.
+    const fifoAvg = fifoRemainingAvgCost(layersForItem(fifoLayers, item), Math.max(0, Number(item.qty) || 0));
+    if (fifoAvg > 0) return fifoAvg;
     const key = (item.uniqueCode || item.sku || item.name).trim().toLowerCase();
     const byKey = poAvgCostMap.get(`k:${key}`);
     if (byKey && byKey.qty > 0) return byKey.value / byKey.qty;
     const byId = poAvgCostMap.get(`id:${item.id}`);
     if (byId && byId.qty > 0) return byId.value / byId.qty;
     return item.costPrice || 0;
-  }, [poAvgCostMap]);
+  }, [fifoLayers, poAvgCostMap]);
 
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
