@@ -2356,6 +2356,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
+              fifoLayers={fifoLayers}
               fromDate={fromDate}
               toDate={toDate}
               companyName={companyName}
@@ -2370,6 +2371,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
+              fifoLayers={fifoLayers}
               fromDate={fromDate}
               toDate={toDate}
               dateRange={dateRange}
@@ -2385,6 +2387,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
+              fifoLayers={fifoLayers}
               fromDate={fromDate}
               toDate={toDate}
               dateRange={dateRange}
@@ -3390,7 +3393,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               const name = invItem?.name || fallbackName || "Unknown";
               const category = invItem?.category || "Uncategorized";
               const productType = (invItem?.productType as string | undefined) || "unknown";
-              const costPrice = invItem?.costPrice ?? 0;
+              const costPrice = invItem ? getAvgCost(invItem) : 0;
               if (!productMap[key]) productMap[key] = { key, name, category, productType, costPrice, qty: 0, revenue: 0, count: 0, details: [] };
               productMap[key].qty += qty;
               productMap[key].revenue += amount;
