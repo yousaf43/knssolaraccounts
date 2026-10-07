@@ -20,6 +20,9 @@ export function fifoKeysForItem(item: InventoryItem): string[] {
   const keys = [`id:${item.id}`];
   const identity = norm(item.uniqueCode || item.sku || item.name);
   if (identity) keys.push(`k:${identity}`);
+  // Purchase lines without an item id are keyed by description = item name.
+  const name = norm(item.name);
+  if (name && name !== identity) keys.push(`k:${name}`);
   return keys;
 }
 
