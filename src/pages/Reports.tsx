@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { countsAsSale } from "@/lib/salesStatus";
+import { buildFifoLayers, fifoConsumeCost, fifoRemainingAvgCost, layersForItem, type FifoLayers, type FifoLayer } from "@/lib/fifoCost";
 import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
 import { amountToWords, formatCompactAmount } from "@/lib/amountWords";
 import { toast } from "sonner";
@@ -1225,20 +1226,49 @@ function computeInvoicePnlRows(
   fromDate: Date | undefined,
   toDate: Date | undefined,
   salesTaxRate: number,
+  fifoLayers?: FifoLayers,
 ): InvoicePnlRow[] {
   const byId = new Map(inventory.map(item => [item.id, item]));
   const byName = new Map(inventory.map(item => [normName(item.name), item]));
+  const itemOf = (id?: string, description?: string) =>
+    (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
   const costOf = (id?: string, description?: string) => {
-    const item = (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
+    const item = itemOf(id, description);
     if (!item) return 0;
     const costPrice = Number(item.costPrice) || 0;
     return costPrice > 0 ? costPrice : getAvgCost(item);
   };
+
+  // FIFO consumption state: each item's layers are cloned once, then sales
+  // consume the oldest purchase layer first, in invoice date order.
+  const fifoConsumed = new Map<string, FifoLayer[]>();
+  const fifoLayersOf = (item: InventoryItem): FifoLayer[] | undefined => {
+    if (!fifoLayers) return undefined;
+    if (!fifoConsumed.has(item.id)) {
+      const src = layersForItem(fifoLayers, item);
+      fifoConsumed.set(item.id, src ? src.map(l => ({ ...l })) : []);
+    }
+    const layers = fifoConsumed.get(item.id);
+    return layers && layers.length ? layers : undefined;
+  };
+  const fifoCost = (item: InventoryItem | undefined, qty: number): number | undefined => {
+    if (!item || qty <= 0) return undefined;
+    const layers = fifoLayersOf(item);
+    if (!layers) return undefined;
+    return fifoConsumeCost(layers, qty);
+  };
+
   const lineCost = (line: Invoice["items"][number]) => {
     if (line.adhocLines?.length) {
-      const bundleCost = line.adhocLines.reduce((sum, part) => sum + (part.qty || 0) * costOf(part.itemId), 0);
-      return bundleCost * (line.qty || 1);
+      return line.adhocLines.reduce((sum, part) => {
+        const partQty = (part.qty || 0) * (line.qty || 1);
+        const fc = fifoCost(part.itemId ? byId.get(part.itemId) : undefined, partQty);
+        return sum + (fc !== undefined ? fc : partQty * costOf(part.itemId));
+      }, 0);
     }
+    const item = itemOf(line.inventoryItemId, line.description);
+    const fc = fifoCost(item, line.qty || 0);
+    if (fc !== undefined) return fc;
     return (line.qty || 0) * costOf(line.inventoryItemId, line.description);
   };
   const discountOf = (invoice: Invoice) => (invoice.items || []).reduce(
