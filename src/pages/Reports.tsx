@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { countsAsSale } from "@/lib/salesStatus";
+import { buildFifoLayers, fifoConsumeCost, fifoRemainingAvgCost, layersForItem, type FifoLayers, type FifoLayer } from "@/lib/fifoCost";
 import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
 import { amountToWords, formatCompactAmount } from "@/lib/amountWords";
 import { toast } from "sonner";
@@ -1225,29 +1226,67 @@ function computeInvoicePnlRows(
   fromDate: Date | undefined,
   toDate: Date | undefined,
   salesTaxRate: number,
+  fifoLayers?: FifoLayers,
 ): InvoicePnlRow[] {
   const byId = new Map(inventory.map(item => [item.id, item]));
   const byName = new Map(inventory.map(item => [normName(item.name), item]));
+  const itemOf = (id?: string, description?: string) =>
+    (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
   const costOf = (id?: string, description?: string) => {
-    const item = (id ? byId.get(id) : undefined) || (description ? byName.get(normName(description)) : undefined);
+    const item = itemOf(id, description);
     if (!item) return 0;
     const costPrice = Number(item.costPrice) || 0;
     return costPrice > 0 ? costPrice : getAvgCost(item);
   };
+
+  // FIFO consumption state: each item's layers are cloned once, then sales
+  // consume the oldest purchase layer first, in invoice date order.
+  const fifoConsumed = new Map<string, FifoLayer[]>();
+  const fifoLayersOf = (item: InventoryItem): FifoLayer[] | undefined => {
+    if (!fifoLayers) return undefined;
+    if (!fifoConsumed.has(item.id)) {
+      const src = layersForItem(fifoLayers, item);
+      fifoConsumed.set(item.id, src ? src.map(l => ({ ...l })) : []);
+    }
+    const layers = fifoConsumed.get(item.id);
+    return layers && layers.length ? layers : undefined;
+  };
+  const fifoCost = (item: InventoryItem | undefined, qty: number): number | undefined => {
+    if (!item || qty <= 0) return undefined;
+    const layers = fifoLayersOf(item);
+    if (!layers) return undefined;
+    return fifoConsumeCost(layers, qty);
+  };
+
   const lineCost = (line: Invoice["items"][number]) => {
     if (line.adhocLines?.length) {
-      const bundleCost = line.adhocLines.reduce((sum, part) => sum + (part.qty || 0) * costOf(part.itemId), 0);
-      return bundleCost * (line.qty || 1);
+      return line.adhocLines.reduce((sum, part) => {
+        const partQty = (part.qty || 0) * (line.qty || 1);
+        const fc = fifoCost(part.itemId ? byId.get(part.itemId) : undefined, partQty);
+        return sum + (fc !== undefined ? fc : partQty * costOf(part.itemId));
+      }, 0);
     }
+    const item = itemOf(line.inventoryItemId, line.description);
+    const fc = fifoCost(item, line.qty || 0);
+    if (fc !== undefined) return fc;
     return (line.qty || 0) * costOf(line.inventoryItemId, line.description);
   };
   const discountOf = (invoice: Invoice) => (invoice.items || []).reduce(
     (sum, item) => sum + (item.qty || 0) * (item.rate || 0) * ((item.discount || 0) / 100), 0
   ) + (Number(invoice.discount) || 0);
   const taxMultiplier = 1 + Math.max(0, salesTaxRate) / 100;
-  const period = uniqueInvoicesById(invoices).filter(invoice => inRange(invoice.date, fromDate, toDate));
-  return period
+  const allSales = uniqueInvoicesById(invoices)
     .filter(invoice => countsAsSale(invoice) || invoice.isReturn || invoice.status === "returned")
+    .sort((a, b) => (parseDateSafe(a.date)?.getTime() ?? 0) - (parseDateSafe(b.date)?.getTime() ?? 0));
+  // Stock sold before the selected period consumed the oldest layers first,
+  // so consume those sales before costing the period's invoices (true FIFO).
+  if (fifoLayers) {
+    allSales
+      .filter(invoice => !!fromDate && (parseDateSafe(invoice.date)?.getTime() ?? Infinity) < fromDate.getTime())
+      .forEach(invoice => (invoice.items || []).forEach(lineCost));
+  }
+  const period = allSales.filter(invoice => inRange(invoice.date, fromDate, toDate));
+  return period
     .map(invoice => {
       const isReturn = Boolean(invoice.isReturn || invoice.status === "returned");
       const sign = isReturn ? -1 : 1;
@@ -1276,12 +1315,13 @@ function computeInvoicePnlRows(
 }
 
 function ProfitLossByInvoice({
-  invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
+  fifoLayers?: FifoLayers;
   fromDate?: Date;
   toDate?: Date;
   dateRange: string;
@@ -1312,7 +1352,7 @@ function ProfitLossByInvoice({
 
   const inventoryById = useMemo(() => new Map(inventory.map(item => [item.id, item])), [inventory]);
 
-  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
+  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers)
     .filter(row => {
       const tokens = tokenize(search);
       if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
@@ -1320,7 +1360,7 @@ function ProfitLossByInvoice({
       if (profitFilter === "profit" && row.profit < 0) return false;
       if (profitFilter === "loss" && row.profit >= 0) return false;
       return true;
-    }), [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
+    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
 
   const totals = rows.reduce((sum, row) => ({
     sales: sum.sales + row.sales,
@@ -1482,12 +1522,13 @@ function ProfitLossByInvoice({
 }
 
 function ProfitLossByProject({
-  invoices, inventory, getAvgCost, fromDate, toDate, dateRange, companyName,
+  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
+  fifoLayers?: FifoLayers;
   fromDate?: Date;
   toDate?: Date;
   dateRange: string;
@@ -1504,7 +1545,7 @@ function ProfitLossByProject({
   const [sort, setSort] = useState<"profit-desc" | "profit-asc" | "name">("profit-desc");
 
   const rows = useMemo(() => {
-    const invoiceRows = computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate);
+    const invoiceRows = computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers);
     const map = new Map<string, { key: string; project: string; customers: string[]; count: number; sales: number; discount: number; cost: number; expenseTotal: number; profit: number; margin: number; invRows: InvoicePnlRow[] }>();
     invoiceRows.forEach(row => {
       const key = normName(row.projectName) || "__none__";
@@ -1533,7 +1574,7 @@ function ProfitLossByProject({
     else if (sort === "profit-asc") filtered.sort((a, b) => a.profit - b.profit);
     else filtered.sort((a, b) => a.project.localeCompare(b.project));
     return filtered;
-  }, [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
+  }, [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
 
   const totals = rows.reduce((sum, row) => ({
     count: sum.count + row.count, sales: sum.sales + row.sales, discount: sum.discount + row.discount,
@@ -1621,11 +1662,12 @@ function ProfitLossByProject({
 
 // --- Site / Installation Voucher Statement ---
 function SiteVoucherStatement({
-  invoices, inventory, getAvgCost, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
+  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
 }: {
   invoices: Invoice[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
+  fifoLayers?: FifoLayers;
   fromDate?: Date;
   toDate?: Date;
   companyName: string;
@@ -1639,13 +1681,13 @@ function SiteVoucherStatement({
   const [meta, setMeta] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate)
+  const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers)
     .filter(row => {
       const tokens = tokenize(search);
       if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
       if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
       return true;
-    }), [invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, search, customer]);
+    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer]);
 
   const activeId = selectedId && rows.some(r => r.id === selectedId) ? selectedId : (rows[0]?.id || "");
   const row = rows.find(r => r.id === activeId);
@@ -2068,14 +2110,23 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     return totals;
   }, [purchaseOrders, inventory]);
 
+  // FIFO cost layers from purchase orders + bills, oldest first.
+  const fifoLayers = useMemo(
+    () => buildFifoLayers(purchaseOrders, bills, inventory),
+    [purchaseOrders, bills, inventory]
+  );
+
   const getAvgCost = useCallback((item: InventoryItem): number => {
+    // FIFO first: the stock on hand is valued from the newest purchase layers.
+    const fifoAvg = fifoRemainingAvgCost(layersForItem(fifoLayers, item), Math.max(0, Number(item.qty) || 0));
+    if (fifoAvg > 0) return fifoAvg;
     const key = (item.uniqueCode || item.sku || item.name).trim().toLowerCase();
     const byKey = poAvgCostMap.get(`k:${key}`);
     if (byKey && byKey.qty > 0) return byKey.value / byKey.qty;
     const byId = poAvgCostMap.get(`id:${item.id}`);
     if (byId && byId.qty > 0) return byId.value / byId.qty;
     return item.costPrice || 0;
-  }, [poAvgCostMap]);
+  }, [fifoLayers, poAvgCostMap]);
 
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
@@ -2305,6 +2356,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
+              fifoLayers={fifoLayers}
               fromDate={fromDate}
               toDate={toDate}
               companyName={companyName}
@@ -2319,6 +2371,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
+              fifoLayers={fifoLayers}
               fromDate={fromDate}
               toDate={toDate}
               dateRange={dateRange}
@@ -2334,6 +2387,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
+              fifoLayers={fifoLayers}
               fromDate={fromDate}
               toDate={toDate}
               dateRange={dateRange}
@@ -3339,7 +3393,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
               const name = invItem?.name || fallbackName || "Unknown";
               const category = invItem?.category || "Uncategorized";
               const productType = (invItem?.productType as string | undefined) || "unknown";
-              const costPrice = invItem?.costPrice ?? 0;
+              const costPrice = invItem ? getAvgCost(invItem) : 0;
               if (!productMap[key]) productMap[key] = { key, name, category, productType, costPrice, qty: 0, revenue: 0, count: 0, details: [] };
               productMap[key].qty += qty;
               productMap[key].revenue += amount;
