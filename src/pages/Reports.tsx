@@ -1292,9 +1292,10 @@ function computeInvoicePnlRows(
       const sign = isReturn ? -1 : 1;
        const discount = discountOf(invoice);
        const sales = sign * ((Math.abs(saleAmount(invoice, inventory)) + discount) / taxMultiplier);
+       const netDiscount = sign * (discount / taxMultiplier);
        const cost = sign * (invoice.items || []).reduce((sum, line) => sum + Math.abs(lineCost(line)), 0);
        const operatingExpense = sign * (Number(invoice.operatingExpense) || 0);
-       const profit = sales - cost - operatingExpense;
+       const profit = sales - netDiscount - cost - operatingExpense;
        return {
          id: invoice.id,
          date: invoice.date,
