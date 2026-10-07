@@ -1282,7 +1282,7 @@ function computeInvoicePnlRows(
   // so consume those sales before costing the period's invoices (true FIFO).
   if (fifoLayers) {
     allSales
-      .filter(invoice => !inRange(invoice.date, fromDate, toDate) && (!fromDate || (parseDateSafe(invoice.date)?.getTime() ?? Infinity) < fromDate.getTime()))
+      .filter(invoice => !!fromDate && (parseDateSafe(invoice.date)?.getTime() ?? Infinity) < fromDate.getTime())
       .forEach(invoice => (invoice.items || []).forEach(lineCost));
   }
   const period = allSales.filter(invoice => inRange(invoice.date, fromDate, toDate));
