@@ -416,8 +416,8 @@ export default function Purchases() {
     removePayment(id); toast.success("Payment deleted");
   };
 
-  // Reusable Line Items Editor
-  const LineItemsEditor = ({ items, setItems }: { items: InvoiceItem[]; setItems: (v: InvoiceItem[]) => void }) => (
+  // Reusable Line Items Editor (plain render function — not a component — so inputs keep focus while typing)
+  const renderLineItemsEditor = (items: InvoiceItem[], setItems: (v: InvoiceItem[]) => void) => (
     <div className="space-y-2">
       <Label className="font-semibold">Line Items</Label>
       <div className="grid grid-cols-[220px_1fr_80px_100px_100px_40px] gap-2 text-xs font-medium text-muted-foreground">
@@ -639,7 +639,7 @@ export default function Purchases() {
                   </div>
                   <div><Label>Tax %</Label><Input type="number" value={poForm.tax} onChange={e => setPOForm({ ...poForm, tax: parseFloat(e.target.value) || 0 })} className="mt-1" min={0} /></div>
                 </div>
-                <LineItemsEditor items={poItems} setItems={setPOItems} />
+                {renderLineItemsEditor(poItems, setPOItems)}
                 <div className="flex justify-between items-center">
                   <div className="text-sm font-semibold">Total: {formatCurrency(calcTotal(poItems, poForm.tax))}</div>
                   <div className="flex gap-3">
@@ -781,7 +781,7 @@ export default function Purchases() {
                   </div>
                   <div><Label>Tax %</Label><Input type="number" value={billForm.tax} onChange={e => setBillForm({ ...billForm, tax: parseFloat(e.target.value) || 0 })} className="mt-1" min={0} /></div>
                 </div>
-                <LineItemsEditor items={billItems} setItems={setBillItems} />
+                {renderLineItemsEditor(billItems, setBillItems)}
                 <div className="flex justify-between items-center">
                   <div className="text-sm font-semibold">Total: {formatCurrency(calcTotal(billItems, billForm.tax))}</div>
                   <div className="flex gap-3">
