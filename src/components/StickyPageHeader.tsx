@@ -81,7 +81,7 @@ export function StickyPageHeader({
       }`}
     >
       {compact ? (
-        <div className="flex items-center gap-2 flex-nowrap">
+        <div className="flex items-center gap-2 flex-nowrap min-w-0 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center shadow-sm">
               <Icon className="w-3 h-3" />
@@ -98,12 +98,12 @@ export function StickyPageHeader({
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="min-w-0">
-              <h1 className="font-bold text-2xl truncate">{title}</h1>
+              <h1 className="font-bold text-xl sm:text-2xl truncate">{title}</h1>
               {subtitle && <p className="text-muted-foreground text-sm">{subtitle}</p>}
             </div>
-            {actionsFull && <div className="flex items-center gap-2 flex-shrink-0">{actionsFull}</div>}
+            {actionsFull && <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">{actionsFull}</div>}
           </div>
           {tabsFull}
           {extraFull}
