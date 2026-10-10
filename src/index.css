@@ -571,3 +571,19 @@ tbody tr:hover { box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.5); }
     filter: blur(0);
   }
 }
+
+/* Mobile layout fixes */
+.no-scrollbar{scrollbar-width:none}.no-scrollbar::-webkit-scrollbar{display:none}
+@media (max-width: 767px) {
+  #main-scroll { padding-top: 0.5rem; }
+  #main-scroll [role="tablist"] { max-width: 100%; overflow-x: auto; justify-content: flex-start; flex-wrap: nowrap; scrollbar-width: none; }
+  #main-scroll [role="tablist"]::-webkit-scrollbar { display: none; }
+  #main-scroll [role="tablist"] > * { flex-shrink: 0; }
+  #main-scroll table { min-width: 640px; }
+  #main-scroll .relative.w-full.overflow-auto, #main-scroll .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+  #main-scroll h1 { font-size: 1.25rem; line-height: 1.75rem; }
+  #main-scroll .flex.items-center.justify-between:not(nav *) { flex-wrap: wrap; row-gap: 0.5rem; }
+  #main-scroll .grid { min-width: 0; }
+  #main-scroll input, #main-scroll select, #main-scroll textarea { font-size: 16px; }
+  [role="dialog"] { max-width: calc(100vw - 1rem) !important; max-height: calc(100dvh - 1rem); overflow-y: auto; }
+}
