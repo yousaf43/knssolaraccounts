@@ -580,6 +580,7 @@ tbody tr:hover { box-shadow: inset 3px 0 0 hsl(var(--primary) / 0.5); }
   #main-scroll [role="tablist"]::-webkit-scrollbar { display: none; }
   #main-scroll [role="tablist"] > * { flex-shrink: 0; white-space: nowrap; }
   #main-scroll table { min-width: 640px; }
+  #main-scroll div:has(> table) { overflow-x: auto !important; max-width: 100%; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
   #main-scroll .relative.w-full.overflow-auto, #main-scroll .overflow-x-auto { -webkit-overflow-scrolling: touch; }
   #main-scroll h1 { font-size: 1.25rem; line-height: 1.75rem; }
   #main-scroll .flex.items-center.justify-between:not(nav *) { flex-wrap: wrap; row-gap: 0.5rem; }
