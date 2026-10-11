@@ -6,10 +6,10 @@ export function receiptMatchesInvoice(
   receipt: Pick<Receipt, "invoiceNumber" | "customer">,
   invoice: Pick<Invoice, "number" | "customer">
 ) {
-  return (
-    normalizeValue(receipt.invoiceNumber) === normalizeValue(invoice.number) &&
-    normalizeValue(receipt.customer) === normalizeValue(invoice.customer)
-  );
+  // Invoice numbers are unique per company, so the number alone links a receipt.
+  // Customer names can differ slightly (e.g. renamed customer, added city).
+  const num = normalizeValue(invoice.number);
+  return num !== "" && normalizeValue(receipt.invoiceNumber) === num;
 }
 
 export function getInvoiceReceipts(
