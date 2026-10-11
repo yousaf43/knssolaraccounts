@@ -129,6 +129,8 @@ export function printProposal(
   .proj{border:1px solid var(--line);border-radius:6px;padding:3.5mm 4mm;position:relative;background:#fff}
   .proj b{color:var(--navy);display:block;font-size:13px}.proj span{font-size:10.5px;color:var(--muted)}
   .proj p{font-size:11px;margin-top:1.5mm}.proj i{position:absolute;top:3mm;right:4mm;font-size:9.5px;color:#1E8449;font-style:normal;font-weight:700}
+  .proj.fp{padding:0 0 3mm;overflow:hidden}.proj.fp img{width:100%;height:42mm;object-fit:cover;display:block;margin-bottom:2.5mm}
+  .proj.fp b,.proj.fp span,.proj.fp p{padding:0 4mm}.proj.fp p.size{color:var(--blue);font-weight:800;font-size:13px}.proj.fp i{top:auto;bottom:3mm;background:#fff}
   .quote{background:var(--soft);border-left:4px solid var(--gold);padding:4mm 5mm;margin-top:4mm;font-style:italic;color:var(--navy)}
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
   @media print{@page{size:A4;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
@@ -303,5 +305,6 @@ export function printProposal(
   if (!w) return;
   w.document.write(html);
   w.document.close();
-  setTimeout(() => w.print(), 350);
+  const imgs = Array.from(w.document.images);
+  Promise.all(imgs.map((im) => (im.complete ? Promise.resolve() : new Promise((r) => { im.onload = im.onerror = () => r(null); })))).then(() => setTimeout(() => w.print(), 200));
 }
