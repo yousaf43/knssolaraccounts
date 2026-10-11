@@ -198,16 +198,16 @@ export function printProposal(
     <div class="feat"><b>03. Customer-Centric Approach</b><span>Personalized consultation, professional installation and excellent after-sales support.</span></div>
     <div class="feat"><b>04. Affordable & Reliable</b><span>Competitive pricing with a great return on investment.</span></div>
   </div>
-  <h3 class="sec">OUR SERVICES</h3>
+</div>
+
+<div class="page about">
+  <h3 class="sec" style="margin-top:0">OUR SERVICES</h3>
   <div class="grid2">
     <div class="feat"><b>Net Metering</b><span>Save up to 100% on bills by selling excess energy back to the grid — hassle-free paperwork.</span></div>
     <div class="feat"><b>Installation & Maintenance</b><span>Expert installation with <b>1 Year Free Maintenance</b>.</span></div>
     <div class="feat"><b>Solar Panel Washing</b><span>Professional cleaning for optimal energy production.</span></div>
     <div class="feat"><b>Residential • Commercial • Industrial • Agricultural</b><span>Home backup, business savings, high-capacity industrial plants and solar tube-wells.</span></div>
   </div>
-</div>
-
-<div class="page about">
   <h3 class="sec">OFFICIAL PARTNERSHIPS</h3>
   <div class="grid2">
     <div class="feat"><b>Itel Energy — Officially Authorised Dealer</b><span>Hybrid & On-Grid inverters, IP66, 5 Years Replacement warranty, plus Itel lithium batteries.</span></div>
