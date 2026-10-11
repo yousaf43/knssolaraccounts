@@ -10,8 +10,15 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export function printProposal(
   p: Proposal,
   company: { name: string; address: string; phone: string; email: string; logoUrl: string },
-  formatDate: (d: string | Date) => string
+  formatDate: (d: string | Date) => string,
+  projects: { title: string; customer: string; date: string; detail: string }[] = []
 ) {
+  const projectCards = projects.length
+    ? projects.map((pr) => `<div class="proj"><b>${esc(pr.title)}</b><span>${esc(pr.customer)}${pr.date ? " • " + formatDate(pr.date) : ""}</span><p>${esc(pr.detail || "Solar system installation")}</p><i>Completed ✓</i></div>`).join("")
+    : `<div class="proj"><b>Residential On-Grid Systems</b><p>Homes powered with net-metered solar, cutting bills by up to 80%.</p><i>Completed ✓</i></div>
+       <div class="proj"><b>Commercial & Industrial Plants</b><p>Shops, factories and offices running on clean daytime energy.</p><i>Completed ✓</i></div>
+       <div class="proj"><b>Hybrid Backup Systems</b><p>Battery-backed systems keeping essentials on during load-shedding.</p><i>Completed ✓</i></div>
+       <div class="proj"><b>Agricultural Solar Tube-wells</b><p>Solar pumping solutions saving diesel costs for farmers.</p><i>Completed ✓</i></div>`;
   const kw = p.systemKw;
   const typeLabel =
     p.systemType === "hybrid" ? "Hybrid" : p.systemType === "off-grid" ? "Off-Grid" : "On-Grid";
@@ -92,6 +99,18 @@ export function printProposal(
   .sig .s b{display:block;color:var(--navy)}
   .meta{display:grid;grid-template-columns:1fr 1fr;gap:2mm 8mm;font-size:12px}
   .meta div b{color:var(--navy)}
+  .about p{margin-bottom:3mm;text-align:justify}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:4mm 0}
+  .stat{background:var(--soft);border-top:3px solid var(--gold);border-radius:6px;padding:4mm;text-align:center}
+  .stat b{display:block;font-size:18px;color:var(--navy)}.stat span{font-size:10px;color:var(--muted)}
+  .feat{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:6px;padding:3mm 4mm}
+  .feat b{color:var(--navy);display:block;margin-bottom:1mm}.feat span{font-size:11px;color:var(--muted)}
+  .proj{border:1px solid var(--line);border-radius:6px;padding:3.5mm 4mm;position:relative;background:#fff}
+  .proj b{color:var(--navy);display:block;font-size:13px}.proj span{font-size:10.5px;color:var(--muted)}
+  .proj p{font-size:11px;margin-top:1.5mm}.proj i{position:absolute;top:3mm;right:4mm;font-size:9.5px;color:#1E8449;font-style:normal;font-weight:700}
+  .quote{background:var(--soft);border-left:4px solid var(--gold);padding:4mm 5mm;margin-top:4mm;font-style:italic;color:var(--navy)}
+  ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
   @media print{@page{size:A4;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
 
@@ -124,6 +143,45 @@ export function printProposal(
       <span>Valid until: ${validUntil ? formatDate(validUntil) : "-"}</span>
     </div>
   </div>
+</div>
+
+<div class="page about">
+  <div class="head">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : ""}
+    <div class="co"><b>${esc(company.name)}</b><span>${esc(company.address)}</span><span>${esc(company.phone)} • ${esc(company.email)}</span></div>
+  </div>
+  <h3 class="sec">ABOUT US</h3>
+  <p><b>${esc(company.name)}</b> is a trusted solar energy solutions provider delivering complete turnkey systems for homes, businesses, industries and agriculture. From site survey and system design to installation, net metering and after-sales support, our certified team handles every step with care.</p>
+  <p>We use only genuine Tier-1 panels, reliable inverters and engineered mounting structures, backed by manufacturer warranties and our own service commitment, so every customer gets lasting savings and peace of mind.</p>
+  <div class="grid4">
+    <div class="stat"><b>${Math.max(projects.length, 1)}+</b><span>Projects Delivered</span></div>
+    <div class="stat"><b>Tier-1</b><span>Genuine Products</span></div>
+    <div class="stat"><b>25+ yrs</b><span>Panel Performance</span></div>
+    <div class="stat"><b>24/7</b><span>After-Sales Support</span></div>
+  </div>
+  <h3 class="sec">WHY CHOOSE US</h3>
+  <div class="grid2">
+    <div class="feat"><b>Genuine Equipment</b><span>Original panels & inverters with valid warranty cards.</span></div>
+    <div class="feat"><b>Expert Engineering</b><span>Systems designed to your load, roof and budget.</span></div>
+    <div class="feat"><b>Net Metering Support</b><span>Complete DISCO paperwork and green meter process.</span></div>
+    <div class="feat"><b>Reliable Service</b><span>Washing, maintenance and quick complaint resolution.</span></div>
+  </div>
+  <h3 class="sec">OUR SERVICES</h3>
+  <div class="grid2">
+    <div class="feat"><b>On-Grid Systems</b><span>Lower bills with net metering.</span></div>
+    <div class="feat"><b>Hybrid Systems</b><span>Grid savings with battery backup.</span></div>
+    <div class="feat"><b>Off-Grid Systems</b><span>Full independence where grid is weak.</span></div>
+    <div class="feat"><b>Solar Water Pumps</b><span>Agricultural & domestic pumping.</span></div>
+  </div>
+  <h3 class="sec">HOW WE WORK</h3>
+  <ol class="steps"><li>Site survey & load analysis</li><li>System design & proposal</li><li>Supply of genuine equipment</li><li>Professional installation & testing</li><li>Net metering & handover</li><li>Ongoing maintenance & support</li></ol>
+</div>
+
+<div class="page">
+  <h3 class="sec">SUCCESS STORIES — OUR PROJECTS</h3>
+  <p style="margin-bottom:3mm;color:var(--muted)">A selection of systems successfully installed and commissioned by our team.</p>
+  <div class="grid2">${projectCards}</div>
+  <div class="quote">"Every installation is a long-term partnership. Our customers' savings are our best advertisement."</div>
 </div>
 
 <div class="page">
