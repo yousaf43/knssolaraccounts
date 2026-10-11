@@ -230,7 +230,7 @@ export function printProposal(
   </div>
   <p style="font-size:11px;color:var(--muted)">Backed by a team of professional electrical engineers specialised in renewable energy design, installation and optimisation.</p>
   <h3 class="sec">HOW WE WORK</h3>
-  <ol class="steps"><li>Site survey & load analysis</li><li>System design & proposal</li><li>Supply of genuine equipment</li><li>Professional installation & testing</li><li>Net metering & handover</li><li>1 year free maintenance & ongoing support</li></ol>
+  <p>1. Site survey & load analysis &nbsp;→&nbsp; 2. System design & proposal &nbsp;→&nbsp; 3. Supply of genuine equipment &nbsp;→&nbsp; 4. Professional installation & testing &nbsp;→&nbsp; 5. Net metering & handover &nbsp;→&nbsp; 6. 1 year free maintenance & ongoing support</p>
 </div>
 
 <div class="page">
