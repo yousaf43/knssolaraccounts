@@ -7,18 +7,34 @@ const money = (n: number) => `PKR ${Math.round(n).toLocaleString("en-PK")}`;
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** Company facts taken from the K&S Solar Energy company portfolio. */
+const PORTFOLIO = {
+  phone: "0328-0454939 | 0312-7973333",
+  email: "info@knssolar.com.pk",
+  address: "Basement Ramzan Plaza (Bhatti Market), College Road, Bhakkar, Pakistan",
+};
+
+const FEATURED = [
+  { title: "Jamil Flour Mill", place: "Bhakkar", size: "1.2 Megawatts", img: "/portfolio/project-jamil.jpg" },
+  { title: "Fazal Kareem Flour Mill", place: "Behal, Bhakkar", size: "421 Kilowatt", img: "/portfolio/project-fazal.jpg" },
+  { title: "Fatima Medical Complex", place: "Bhakkar", size: "100 Kilowatt", img: "/portfolio/project-fatima.jpg" },
+  { title: "Mr. Jhanzab Niazi's Home", place: "Bhakkar", size: "15 kW On-Grid", img: "/portfolio/project-jhanzab.jpg" },
+];
+
 export function printProposal(
   p: Proposal,
   company: { name: string; address: string; phone: string; email: string; logoUrl: string },
   formatDate: (d: string | Date) => string,
   projects: { title: string; customer: string; date: string; detail: string }[] = []
 ) {
-  const projectCards = projects.length
-    ? projects.map((pr) => `<div class="proj"><b>${esc(pr.title)}</b><span>${esc(pr.customer)}${pr.date ? " • " + formatDate(pr.date) : ""}</span><p>${esc(pr.detail || "Solar system installation")}</p><i>Completed ✓</i></div>`).join("")
-    : `<div class="proj"><b>Residential On-Grid Systems</b><p>Homes powered with net-metered solar, cutting bills by up to 80%.</p><i>Completed ✓</i></div>
-       <div class="proj"><b>Commercial & Industrial Plants</b><p>Shops, factories and offices running on clean daytime energy.</p><i>Completed ✓</i></div>
-       <div class="proj"><b>Hybrid Backup Systems</b><p>Battery-backed systems keeping essentials on during load-shedding.</p><i>Completed ✓</i></div>
-       <div class="proj"><b>Agricultural Solar Tube-wells</b><p>Solar pumping solutions saving diesel costs for farmers.</p><i>Completed ✓</i></div>`;
+  const abs = (u: string) => (u.startsWith("http") ? u : `${window.location.origin}${u}`);
+  const featuredCards = FEATURED.map(
+    (f) => `<div class="proj fp"><img src="${abs(f.img)}" alt=""><b>${esc(f.title)}</b><span>${esc(f.place)}</span><p class="size">${esc(f.size)}</p><i>Completed ✓</i></div>`
+  ).join("");
+  const projectCards = projects
+    .slice(0, 6)
+    .map((pr) => `<div class="proj"><b>${esc(pr.title)}</b><span>${esc(pr.customer)}${pr.date ? " • " + formatDate(pr.date) : ""}</span><p>${esc(pr.detail || "Solar system installation")}</p><i>Completed ✓</i></div>`)
+    .join("");
   const kw = p.systemKw;
   const typeLabel =
     p.systemType === "hybrid" ? "Hybrid" : p.systemType === "off-grid" ? "Off-Grid" : "On-Grid";
@@ -109,6 +125,8 @@ export function printProposal(
   .proj{border:1px solid var(--line);border-radius:6px;padding:3.5mm 4mm;position:relative;background:#fff}
   .proj b{color:var(--navy);display:block;font-size:13px}.proj span{font-size:10.5px;color:var(--muted)}
   .proj p{font-size:11px;margin-top:1.5mm}.proj i{position:absolute;top:3mm;right:4mm;font-size:9.5px;color:#1E8449;font-style:normal;font-weight:700}
+  .proj.fp{padding:0 0 3mm;overflow:hidden}.proj.fp img{width:100%;height:42mm;object-fit:cover;display:block;margin-bottom:2.5mm}
+  .proj.fp b,.proj.fp span,.proj.fp p{padding:0 4mm}.proj.fp p.size{color:var(--blue);font-weight:800;font-size:13px}.proj.fp i{top:auto;bottom:3mm;background:#fff}
   .quote{background:var(--soft);border-left:4px solid var(--gold);padding:4mm 5mm;margin-top:4mm;font-style:italic;color:var(--navy)}
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
   @media print{@page{size:A4;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
@@ -148,40 +166,77 @@ export function printProposal(
 <div class="page about">
   <div class="head">
     ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : ""}
-    <div class="co"><b>${esc(company.name)}</b><span>${esc(company.address)}</span><span>${esc(company.phone)} • ${esc(company.email)}</span></div>
+    <div class="co"><b>${esc(company.name)}</b><span>${esc(company.address || PORTFOLIO.address)}</span><span>${esc(company.phone || PORTFOLIO.phone)} • ${esc(company.email || PORTFOLIO.email)}</span></div>
   </div>
-  <h3 class="sec">ABOUT US</h3>
-  <p><b>${esc(company.name)}</b> is a trusted solar energy solutions provider delivering complete turnkey systems for homes, businesses, industries and agriculture. From site survey and system design to installation, net metering and after-sales support, our certified team handles every step with care.</p>
-  <p>We use only genuine Tier-1 panels, reliable inverters and engineered mounting structures, backed by manufacturer warranties and our own service commitment, so every customer gets lasting savings and peace of mind.</p>
+  <h3 class="sec">COMPANY PROFILE — SINCE 2013</h3>
+  <p><b>K&S Solar Energy Pvt. Ltd.</b> — <i>Run by Sun</i> — has been at the forefront of Pakistan's solar revolution since 2013, providing innovative and reliable renewable energy solutions. We started by offering high-quality solar installations for homes and businesses and have grown into a complete solar company delivering On-Grid, Off-Grid and Hybrid systems, Net Metering, maintenance and professional panel cleaning.</p>
+  <p>With more than a decade of excellence, we have successfully installed hundreds of solar projects — from small residential setups to large industrial plants such as the <b>1.2 MW Jamil Flour Mill</b>. Our commitment to quality, affordability and customer satisfaction has made us a trusted name in the solar industry.</p>
   <div class="grid4">
-    <div class="stat"><b>${Math.max(projects.length, 1)}+</b><span>Projects Delivered</span></div>
-    <div class="stat"><b>Tier-1</b><span>Genuine Products</span></div>
-    <div class="stat"><b>25+ yrs</b><span>Panel Performance</span></div>
-    <div class="stat"><b>24/7</b><span>After-Sales Support</span></div>
+    <div class="stat"><b>2013</b><span>Serving Since</span></div>
+    <div class="stat"><b>Hundreds</b><span>Projects Installed</span></div>
+    <div class="stat"><b>1.2 MW</b><span>Largest Single Plant</span></div>
+    <div class="stat"><b>10</b><span>Cities Served</span></div>
+  </div>
+  <div class="grid2">
+    <div>
+      <h3 class="sec">OUR VISION</h3>
+      <ul class="terms"><li><b>Empowering a Sustainable Future</b> — reliable, affordable, eco-friendly solar that reduces dependence on conventional power.</li><li><b>Customer-Centric Innovation</b> — cutting-edge technology for maximum efficiency, savings and long-term benefit.</li></ul>
+    </div>
+    <div>
+      <h3 class="sec">OUR MISSION</h3>
+      <ul class="terms"><li>Promote renewable energy for residential, commercial & industrial sectors.</li><li>Exceptional service from consultation to installation and maintenance.</li><li>Drive innovation & excellence with the latest technology.</li><li>Contribute to a greener planet by making clean energy accessible to all.</li></ul>
+    </div>
   </div>
   <h3 class="sec">WHY CHOOSE US</h3>
   <div class="grid2">
-    <div class="feat"><b>Genuine Equipment</b><span>Original panels & inverters with valid warranty cards.</span></div>
-    <div class="feat"><b>Expert Engineering</b><span>Systems designed to your load, roof and budget.</span></div>
-    <div class="feat"><b>Net Metering Support</b><span>Complete DISCO paperwork and green meter process.</span></div>
-    <div class="feat"><b>Reliable Service</b><span>Washing, maintenance and quick complaint resolution.</span></div>
+    <div class="feat"><b>01. Expertise & Experience</b><span>Years of solar industry experience and professional electrical engineers, tailored to your energy needs.</span></div>
+    <div class="feat"><b>02. High-Quality Products</b><span>Premium panels and equipment for durability, efficiency and long-term savings.</span></div>
+    <div class="feat"><b>03. Customer-Centric Approach</b><span>Personalized consultation, professional installation and excellent after-sales support.</span></div>
+    <div class="feat"><b>04. Affordable & Reliable</b><span>Competitive pricing with a great return on investment.</span></div>
   </div>
-  <h3 class="sec">OUR SERVICES</h3>
+</div>
+
+<div class="page about">
+  <h3 class="sec" style="margin-top:0">OUR SERVICES</h3>
   <div class="grid2">
-    <div class="feat"><b>On-Grid Systems</b><span>Lower bills with net metering.</span></div>
-    <div class="feat"><b>Hybrid Systems</b><span>Grid savings with battery backup.</span></div>
-    <div class="feat"><b>Off-Grid Systems</b><span>Full independence where grid is weak.</span></div>
-    <div class="feat"><b>Solar Water Pumps</b><span>Agricultural & domestic pumping.</span></div>
+    <div class="feat"><b>Net Metering</b><span>Save up to 100% on bills by selling excess energy back to the grid — hassle-free paperwork.</span></div>
+    <div class="feat"><b>Installation & Maintenance</b><span>Expert installation with <b>1 Year Free Maintenance</b></span></div>
+    <div class="feat"><b>Solar Panel Washing</b><span>Professional cleaning for optimal energy production.</span></div>
+    <div class="feat"><b>Residential • Commercial • Industrial • Agricultural</b><span>Home backup, business savings, high-capacity industrial plants and solar tube-wells.</span></div>
   </div>
+  <h3 class="sec">OFFICIAL PARTNERSHIPS</h3>
+  <div class="grid2">
+    <div class="feat"><b>Itel Energy — Officially Authorised Dealer</b><span>Hybrid & On-Grid inverters, IP66, 5 Years Replacement warranty, plus Itel lithium batteries.</span></div>
+    <div class="feat"><b>JA Solar — Direct Importer</b><span>World-class JA Solar panels imported directly — guaranteed original at competitive prices.</span></div>
+  </div>
+  <p style="margin-top:3mm"><b>Energy partners:</b> JA Solar, LONGi, Jinko, Astronergy, Talesun, Canadian Solar, Trina Solar, Runergy.<br>
+  <b>Inverter brands:</b> Itel, Huawei, SolarMax, Growatt, Long Life, MaxPower, Sofar, Livoltek, GoodWe, Inverex, Hopewind.<br>
+  <b>Finance partners:</b> U Microfinance Bank, Mobilink Microfinance Bank, The Bank of Punjab, JS Bank, Bank Al Habib.</p>
+  <h3 class="sec">AREA SERVED</h3>
+  <p><b>Head Office:</b> Bhakkar &nbsp;•&nbsp; <b>Offices:</b> Lahore, Islamabad, Multan, Faisalabad, Mianwali, Jauharabad, Samundri, Kamalia, Dadu (Sindh).</p>
+  <h3 class="sec">LEADERSHIP & TEAM</h3>
+  <div class="quote" style="margin-top:0">"We believe that every rooftop should harness solar power, and every business should enjoy energy freedom. Together, let's light up the world!" — <b>Khawar Mehmood</b>, CEO</div>
+  <div class="grid4" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><b style="font-size:13px">M. Adeel</b><span>General Manager</span></div>
+    <div class="stat"><b style="font-size:13px">M. Zaheer</b><span>GAM</span></div>
+    <div class="stat"><b style="font-size:13px">Zubair Akhter</b><span>SEM</span></div>
+    <div class="stat"><b style="font-size:13px">Khalid Haseeb</b><span>SMM</span></div>
+    <div class="stat"><b style="font-size:13px">M. Naveed</b><span>SAM</span></div>
+    <div class="stat"><b style="font-size:13px">M. Yousuf</b><span>SE</span></div>
+  </div>
+  <p style="font-size:11px;color:var(--muted)">Backed by a team of professional electrical engineers specialised in renewable energy design, installation and optimisation.</p>
   <h3 class="sec">HOW WE WORK</h3>
-  <ol class="steps"><li>Site survey & load analysis</li><li>System design & proposal</li><li>Supply of genuine equipment</li><li>Professional installation & testing</li><li>Net metering & handover</li><li>Ongoing maintenance & support</li></ol>
+  <p>1. Site survey & load analysis &nbsp;→&nbsp; 2. System design & proposal &nbsp;→&nbsp; 3. Supply of genuine equipment &nbsp;→&nbsp; 4. Professional installation & testing &nbsp;→&nbsp; 5. Net metering & handover &nbsp;→&nbsp; 6. 1 year free maintenance & ongoing support</p>
 </div>
 
 <div class="page">
-  <h3 class="sec">SUCCESS STORIES — OUR PROJECTS</h3>
-  <p style="margin-bottom:3mm;color:var(--muted)">A selection of systems successfully installed and commissioned by our team.</p>
-  <div class="grid2">${projectCards}</div>
-  <div class="quote">"Every installation is a long-term partnership. Our customers' savings are our best advertisement."</div>
+  <h3 class="sec">SUCCESS STORIES — PROJECT COMPLETION</h3>
+  <div class="grid2">${featuredCards}</div>
+  <h3 class="sec">CUSTOMER TESTIMONIALS</h3>
+  <div class="quote" style="margin-top:0"><b>Jamil Hussain</b> — "Jamil Flour Mill is now powered by a 1.2 MW solar energy system installed by K&S Solar Energy. Maximum efficiency, reduced electricity costs and sustainable energy for uninterrupted operations."</div>
+  <div class="quote"><b>Sheikh Habibullah</b> — "Atta Chaki is now powered by a 21 kW On-Grid Net Metering System, ensuring reduced electricity costs and maximum energy efficiency."</div>
+  <div class="quote"><b>Dr. Safdar Bukhari</b> — "The hospital now runs on an On-Grid Solar System installed by K&S Solar Energy — lower electricity costs and uninterrupted power. Their expert service made the transition smooth!"</div>
+  ${projects.length ? `<h3 class="sec">RECENTLY COMPLETED</h3><div class="grid2">${projectCards}</div>` : ""}
 </div>
 
 <div class="page">
@@ -246,5 +301,6 @@ export function printProposal(
   if (!w) return;
   w.document.write(html);
   w.document.close();
-  setTimeout(() => w.print(), 350);
+  const imgs = Array.from(w.document.images);
+  Promise.all(imgs.map((im) => (im.complete ? Promise.resolve() : new Promise((r) => { im.onload = im.onerror = () => r(null); })))).then(() => setTimeout(() => w.print(), 200));
 }
