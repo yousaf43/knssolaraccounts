@@ -1,4 +1,8 @@
 import type { Proposal } from "@/pages/Proposals";
+import jamilImg from "@/assets/portfolio/project-jamil.jpg.asset.json";
+import fazalImg from "@/assets/portfolio/project-fazal.jpg.asset.json";
+import fatimaImg from "@/assets/portfolio/project-fatima.jpg.asset.json";
+import jhanzabImg from "@/assets/portfolio/project-jhanzab.jpg.asset.json";
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -7,18 +11,34 @@ const money = (n: number) => `PKR ${Math.round(n).toLocaleString("en-PK")}`;
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** Company facts taken from the K&S Solar Energy company portfolio. */
+const PORTFOLIO = {
+  phone: "0328-0454939 | 0312-7973333",
+  email: "info@knssolar.com.pk",
+  address: "Basement Ramzan Plaza (Bhatti Market), College Road, Bhakkar, Pakistan",
+};
+
+const FEATURED = [
+  { title: "Jamil Flour Mill", place: "Bhakkar", size: "1.2 Megawatts", img: jamilImg.url },
+  { title: "Fazal Kareem Flour Mill", place: "Behal, Bhakkar", size: "421 Kilowatt", img: fazalImg.url },
+  { title: "Fatima Medical Complex", place: "Bhakkar", size: "100 Kilowatt", img: fatimaImg.url },
+  { title: "Mr. Jhanzab Niazi's Home", place: "Bhakkar", size: "15 kW On-Grid", img: jhanzabImg.url },
+];
+
 export function printProposal(
   p: Proposal,
   company: { name: string; address: string; phone: string; email: string; logoUrl: string },
   formatDate: (d: string | Date) => string,
   projects: { title: string; customer: string; date: string; detail: string }[] = []
 ) {
-  const projectCards = projects.length
-    ? projects.map((pr) => `<div class="proj"><b>${esc(pr.title)}</b><span>${esc(pr.customer)}${pr.date ? " • " + formatDate(pr.date) : ""}</span><p>${esc(pr.detail || "Solar system installation")}</p><i>Completed ✓</i></div>`).join("")
-    : `<div class="proj"><b>Residential On-Grid Systems</b><p>Homes powered with net-metered solar, cutting bills by up to 80%.</p><i>Completed ✓</i></div>
-       <div class="proj"><b>Commercial & Industrial Plants</b><p>Shops, factories and offices running on clean daytime energy.</p><i>Completed ✓</i></div>
-       <div class="proj"><b>Hybrid Backup Systems</b><p>Battery-backed systems keeping essentials on during load-shedding.</p><i>Completed ✓</i></div>
-       <div class="proj"><b>Agricultural Solar Tube-wells</b><p>Solar pumping solutions saving diesel costs for farmers.</p><i>Completed ✓</i></div>`;
+  const abs = (u: string) => (u.startsWith("http") ? u : `${window.location.origin}${u}`);
+  const featuredCards = FEATURED.map(
+    (f) => `<div class="proj fp"><img src="${abs(f.img)}" alt=""><b>${esc(f.title)}</b><span>${esc(f.place)}</span><p class="size">${esc(f.size)}</p><i>Completed ✓</i></div>`
+  ).join("");
+  const projectCards = projects
+    .slice(0, 6)
+    .map((pr) => `<div class="proj"><b>${esc(pr.title)}</b><span>${esc(pr.customer)}${pr.date ? " • " + formatDate(pr.date) : ""}</span><p>${esc(pr.detail || "Solar system installation")}</p><i>Completed ✓</i></div>`)
+    .join("");
   const kw = p.systemKw;
   const typeLabel =
     p.systemType === "hybrid" ? "Hybrid" : p.systemType === "off-grid" ? "Off-Grid" : "On-Grid";
