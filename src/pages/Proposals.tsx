@@ -17,6 +17,7 @@ import { TablePagination } from "@/components/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { toast } from "sonner";
 import { printProposal } from "@/lib/proposalPrint";
+import { useSalesOrdersCloud } from "@/hooks/useAppData";
 
 export interface ProposalItem {
   brand: string;
@@ -141,6 +142,7 @@ const rowToProposal = (r: Row): Proposal =>
 export default function Proposals() {
   const { user, company } = useAuth();
   const { settings, formatCurrency, formatDate } = useSettings();
+  const { data: salesOrdersAll } = useSalesOrdersCloud();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -316,7 +318,16 @@ export default function Proposals() {
       phone: settings.companyPhone || "",
       email: settings.companyEmail || "",
       logoUrl: settings.logoUrl || "",
-    }, formatDate);
+    }, formatDate, salesOrdersAll
+      .filter((o) => o.location === "completed" && o.status !== "cancelled")
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+      .slice(0, 8)
+      .map((o) => ({
+        title: o.projectName || o.customer,
+        customer: o.customer,
+        date: o.date,
+        detail: (o.items || []).slice(0, 3).map((i) => i.description).filter(Boolean).join(" • "),
+      })));
   };
 
   const hasBattery = form.systemType !== "on-grid" || form.battery !== null;
