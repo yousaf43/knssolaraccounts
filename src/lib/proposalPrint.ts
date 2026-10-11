@@ -1,8 +1,4 @@
 import type { Proposal } from "@/pages/Proposals";
-import jamilImg from "@/assets/portfolio/project-jamil.jpg.asset.json";
-import fazalImg from "@/assets/portfolio/project-fazal.jpg.asset.json";
-import fatimaImg from "@/assets/portfolio/project-fatima.jpg.asset.json";
-import jhanzabImg from "@/assets/portfolio/project-jhanzab.jpg.asset.json";
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -19,10 +15,10 @@ const PORTFOLIO = {
 };
 
 const FEATURED = [
-  { title: "Jamil Flour Mill", place: "Bhakkar", size: "1.2 Megawatts", img: jamilImg.url },
-  { title: "Fazal Kareem Flour Mill", place: "Behal, Bhakkar", size: "421 Kilowatt", img: fazalImg.url },
-  { title: "Fatima Medical Complex", place: "Bhakkar", size: "100 Kilowatt", img: fatimaImg.url },
-  { title: "Mr. Jhanzab Niazi's Home", place: "Bhakkar", size: "15 kW On-Grid", img: jhanzabImg.url },
+  { title: "Jamil Flour Mill", place: "Bhakkar", size: "1.2 Megawatts", img: "/portfolio/project-jamil.jpg" },
+  { title: "Fazal Kareem Flour Mill", place: "Behal, Bhakkar", size: "421 Kilowatt", img: "/portfolio/project-fazal.jpg" },
+  { title: "Fatima Medical Complex", place: "Bhakkar", size: "100 Kilowatt", img: "/portfolio/project-fatima.jpg" },
+  { title: "Mr. Jhanzab Niazi's Home", place: "Bhakkar", size: "15 kW On-Grid", img: "/portfolio/project-jhanzab.jpg" },
 ];
 
 export function printProposal(
