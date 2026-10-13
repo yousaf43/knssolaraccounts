@@ -28,7 +28,7 @@ export function printProposal(
   projects: { title: string; customer: string; date: string; detail: string }[] = []
 ) {
   const abs = (u: string) => (u.startsWith("http") ? u : `${window.location.origin}${u}`);
-  const LOGO = abs("/portfolio/ks-logo.png");
+  const LOGO = abs("/portfolio/ks-logo.webp");
   const featuredCards = FEATURED.map(
     (f) => `<div class="proj fp"><img src="${abs(f.img)}" alt=""><b>${esc(f.title)}</b><span>${esc(f.place)}</span><p class="size">${esc(f.size)}</p><i>Completed ✓</i></div>`
   ).join("");
