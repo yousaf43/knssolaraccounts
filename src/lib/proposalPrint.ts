@@ -348,31 +348,66 @@ export function printProposal(
   </div>
 </div>
 
-<div class="page about">
-  <h3 class="sec" style="margin-top:0">OUR VISION & MISSION</h3>
-  <div class="grid2">
+<div class="page tm">
+<style>
+  .tm .hd{text-align:center;margin-bottom:6mm}.tm .hd img{height:20mm}
+  .tm .hd .t{font-weight:800;letter-spacing:2px;color:#1E5F8C;font-size:13px;margin-top:2mm}
+  .tm .hd .s{font-style:italic;color:#C98A1B;font-size:11.5px;margin-top:1mm}
+  .tm .ceo{display:flex;gap:8mm;background:#0E3A5B;color:#fff;padding:5mm;align-items:center}
+  .tm .ceo img{width:46mm;height:46mm;object-fit:cover;background:#fff}
+  .tm .ceo h2{margin:0;font-size:22px;color:#fff;letter-spacing:.5px}
+  .tm .gold{color:#F2B33D;font-weight:700;font-size:11.5px}
+  .tm .ceo .co{font-weight:800;font-size:12.5px;margin:1.5mm 0}
+  .tm .ceo p{font-size:11px;line-height:1.6;margin:1mm 0 2mm;color:#E6EEF5}
+  .tm .st{text-align:center;color:#1E5F8C;font-weight:800;font-size:13px;margin:8mm 0 3mm}
+  .tm .team{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #dfe6ee}
+  .tm .team>div{background:#F3F6FA;text-align:center;padding:4mm 3mm;border-right:1px solid #dfe6ee}
+  .tm .team>div:last-child{border-right:0}
+  .tm .team img{width:38mm;height:40mm;object-fit:cover;display:block;margin:0 auto 2mm}
+  .tm .team b{display:block;color:#0E3A5B;font-size:12.5px}
+  .tm .team .r{color:#C98A1B;font-weight:700;font-size:10px;display:block;margin:.8mm 0}
+  .tm .team .d{color:#5b6573;font-size:10.5px}
+  .tm .focus{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #dfe6ee}
+  .tm .focus>div{text-align:center;padding:3mm 2mm;border-right:1px solid #dfe6ee}.tm .focus>div:last-child{border-right:0}
+  .tm .focus i{font-style:normal;color:#C98A1B;font-weight:700;font-size:11px;display:block}
+  .tm .focus b{display:block;color:#1E5F8C;font-size:12px;margin:1mm 0}
+  .tm .focus span{font-size:10px;color:#444}
+  .tm .ft{text-align:center;margin-top:9mm}.tm .ft .o{color:#D8901A;font-weight:800;font-size:15px;letter-spacing:.5px}
+  .tm .ft p{font-size:10.5px;margin:1.5mm 0}.tm .ft .c{color:#1E5F8C;font-weight:700}
+</style>
+  <div class="hd">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    <div class="t">LEADERSHIP &nbsp;•&nbsp; MANAGEMENT &nbsp;•&nbsp; PROFESSIONAL TEAM</div>
+    <div class="s">Powering Your Future with Trust, Quality &amp; Performance</div>
+  </div>
+  <div class="ceo">
+    <img src="${abs("/portfolio/team-ceo.jpg")}" alt="">
     <div>
-      <h3 class="sec">OUR VISION</h3>
-      <ul class="terms"><li><b>Empowering a Sustainable Future</b> — reliable, affordable, eco-friendly solar that reduces dependence on conventional power.</li><li><b>Customer-Centric Innovation</b> — cutting-edge technology for maximum efficiency, savings and long-term benefit.</li></ul>
-    </div>
-    <div>
-      <h3 class="sec">OUR MISSION</h3>
-      <ul class="terms"><li>Promote renewable energy for residential, commercial & industrial sectors.</li><li>Exceptional service from consultation to installation and maintenance.</li><li>Drive innovation & excellence with the latest technology.</li><li>Contribute to a greener planet by making clean energy accessible to all.</li></ul>
+      <h2>RAO KHAWAR MAHMOOD</h2>
+      <div class="gold">CHIEF EXECUTIVE OFFICER (CEO)</div>
+      <div class="co">K&amp;S SOLAR ENERGY PVT. LTD.</div>
+      <p>Providing leadership and strategic direction for a professional solar-energy company focused on quality products, reliable systems and long-term customer value.</p>
+      <div class="gold">18 YEARS OF SOLAR ENERGY EXPERIENCE</div>
     </div>
   </div>
-  <h3 class="sec">LEADERSHIP & TEAM</h3>
-  <div class="quote" style="margin-top:0">"We believe that every rooftop should harness solar power, and every business should enjoy energy freedom. Together, let's light up the world!" — <b>Khawar Mehmood</b>, CEO</div>
-  <div class="grid4" style="grid-template-columns:repeat(3,1fr)">
-    <div class="stat"><b style="font-size:13px">M. Adeel</b><span>General Manager</span></div>
-    <div class="stat"><b style="font-size:13px">M. Zaheer</b><span>GAM</span></div>
-    <div class="stat"><b style="font-size:13px">Zubair Akhter</b><span>SEM</span></div>
-    <div class="stat"><b style="font-size:13px">Khalid Haseeb</b><span>SMM</span></div>
-    <div class="stat"><b style="font-size:13px">M. Naveed</b><span>SAM</span></div>
-    <div class="stat"><b style="font-size:13px">M. Yousuf</b><span>SE</span></div>
+  <div class="st">LEADERSHIP TEAM</div>
+  <div class="team">
+    <div><img src="${abs("/portfolio/team-adeel.jpg")}" alt=""><b>ADEEL SARWAR</b><span class="r">GENERAL MANAGER</span><span class="d">General Management</span></div>
+    <div><img src="${abs("/portfolio/team-zubair.jpg")}" alt=""><b>MUHAMMAD ZUBAIR</b><span class="r">SNR. SALES EXECUTIVE</span><span class="d">Sales &amp; Customer Development</span></div>
+    <div><img src="${abs("/portfolio/team-zaheer.jpg")}" alt=""><b>MUHAMMAD ZAHEER</b><span class="r">FINANCE DEPARTMENT</span><span class="d">Finance &amp; Accounts</span></div>
   </div>
-  <p style="font-size:11px;color:var(--muted)">Backed by a team of professional electrical engineers specialised in renewable energy design, installation and optimisation.</p>
-  <h3 class="sec">HOW WE WORK</h3>
-  <p>1. Site survey & load analysis &nbsp;→&nbsp; 2. System design & proposal &nbsp;→&nbsp; 3. Supply of genuine equipment &nbsp;→&nbsp; 4. Professional installation & testing &nbsp;→&nbsp; 5. Net metering & handover &nbsp;→&nbsp; 6. 1 year free maintenance & ongoing support</p>
+  <div class="st">OUR PROFESSIONAL FOCUS</div>
+  <div class="focus">
+    <div><i>01</i><b>QUALITY</b><span>Genuine &amp; reliable products</span></div>
+    <div><i>02</i><b>EXPERTISE</b><span>Professional solar solutions</span></div>
+    <div><i>03</i><b>PERFORMANCE</b><span>Efficient system design</span></div>
+    <div><i>04</i><b>SERVICE</b><span>Customer-focused support</span></div>
+  </div>
+  <div class="ft">
+    <div class="o">ONE TEAM &nbsp;•&nbsp; ONE VISION &nbsp;•&nbsp; CLEANER ENERGY</div>
+    <p>K&amp;S Solar Energy Pvt. Ltd. &nbsp;|&nbsp; 4-Basement Ramzan Plaza, College Road, Bhakkar, Punjab, Pakistan</p>
+    <p class="c">+92-328-0454939 &nbsp;•&nbsp; info@knssolar.com.pk &nbsp;•&nbsp; knssolar.com.pk</p>
+  </div>
 </div>
 
 </body></html>`;
