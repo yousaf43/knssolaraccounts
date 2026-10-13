@@ -173,7 +173,9 @@ export default function Invoices() {
   const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
   const [confirmApproveSO, setConfirmApproveSO] = useState<SalesOrder | null>(null);
-  const isCompactHeader = isScrolled || activeTab === "quotations";
+  // Always use the slim toolbar: switching between tall/slim headers on scroll
+  // changed page height and caused a visible jump/flicker loop.
+  const isCompactHeader = true || isScrolled;
 
   // Recover the exact document/reporting workspace after a browser suspends
   // and reloads this tab. Editable forms use their visibility-saved draft.
@@ -1133,6 +1135,12 @@ export default function Invoices() {
                     <FilterBar showType={activeTab === "all"} />
                   </PopoverContent>
                 </Popover>
+                {(activeTab === "invoices" || activeTab === "sales-orders") && (
+                  <Button variant="outline" size="sm" className="h-7 px-2.5 rounded-full text-xs" title="Import CSV" onClick={() => activeTab === "invoices" ? invoiceFileRef.current?.click() : soFileRef.current?.click()}>
+                    <Upload className="w-3.5 h-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">Import</span>
+                  </Button>
+                )}
                 {activeTab !== "all" && (
                   <Button size="sm" className="h-7 px-2.5 text-xs rounded-full shadow-sm" onClick={handleNewClick}>
                     <Plus className="w-3.5 h-3.5 sm:mr-1" />
