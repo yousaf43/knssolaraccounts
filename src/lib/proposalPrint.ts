@@ -330,6 +330,23 @@ export function printProposal(
 </div>
 
 <div class="page">
+  <div class="phead">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    <span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span>
+  </div>
+  <h2 class="ptitle"><em>3</em> SOLAR RESOURCE AT THE SITE</h2>
+  <p style="font-size:11px">The chart below shows the average daily solar irradiation (peak sun hours, kWh/m²/day) at the installation site on a surface fixed at a 28°–30° tilt.</p>
+  <h3 class="sec">Solar Irradiance Chart for the Site</h3>
+  ${bar3d}
+  <p style="text-align:center;font-style:italic;font-size:9.5px;color:#555;margin:1mm 0 3mm">Figure 1: Solar irradiance (peak sun hours per day) for ${esc(p.city || "Bhakkar")}, Pakistan.</p>
+  <p style="font-size:11px">Irradiation in this area is ample and distributed evenly throughout the year. The annual average is approximately 6.45 peak sun hours (PSH) per day.</p>
+  <h3 class="sec">Daily Solar Irradiance Level – Average</h3>
+  ${sunCurve}
+  <p style="text-align:center;font-style:italic;font-size:9.5px;color:#555;margin:1mm 0 3mm">Figure 2: Average daily solar radiation pattern for ${esc(p.city || "Bhakkar")}, Pakistan.</p>
+  <p style="font-size:11px">The proposed solar PV system has been designed around this irradiance pattern.</p>
+</div>
+
+<div class="page">
   <h3 class="sec" style="margin-top:0">SOLAR USAGE & ENERGY ANALYSIS</h3>
   <div class="grid4">
     <div class="stat"><b>${kw} kWp</b><span>System Size</span></div>
