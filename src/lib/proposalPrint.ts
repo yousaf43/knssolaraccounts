@@ -156,6 +156,11 @@ export function printProposal(
   .legend{display:flex;gap:6mm;font-size:10.5px;color:var(--muted);margin-top:2mm}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
   .sys3d{width:100%;height:70mm;object-fit:contain;display:block;border-radius:8px}
   .flow{display:flex;align-items:center;justify-content:space-between;gap:2mm;margin-top:2mm}.flow div{flex:1;text-align:center;background:var(--soft);border-top:3px solid var(--blue);border-radius:6px;padding:2.5mm;font-size:10px;color:var(--muted)}.flow div b{display:block;color:var(--navy);font-size:12px}.flow em{color:var(--gold);font-style:normal;font-weight:800}
+  .phead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid var(--gold);padding-bottom:3mm;margin-bottom:7mm}.phead img{height:14mm}.phead b{color:var(--navy);font-size:15px}.phead span{font-size:11px;color:var(--muted)}
+  .ptitle{font-size:19px;color:var(--navy);font-weight:800;border-bottom:2.5px solid var(--gold);padding-bottom:2.5mm;margin-bottom:5mm}.ptitle em{color:var(--gold);font-style:normal;margin-right:2mm}
+  table.ov{border-collapse:separate;border-spacing:0 1.2mm}table.ov th,table.ov td{border:0;padding:3mm 4mm;font-size:12.5px;vertical-align:middle}table.ov th{width:36%;background:var(--soft);color:var(--blue);font-weight:700}table.ov td{border-bottom:1px solid var(--line);padding-left:5mm}
+  .kband{display:grid;grid-template-columns:repeat(4,1fr);background:var(--blue);color:#fff;border-bottom:3px solid var(--gold);margin:8mm 0 7mm}.kband div{text-align:center;padding:5mm 2mm;border-left:2px solid #fff}.kband div:first-child{border-left:0}.kband b{display:block;font-size:19px;font-weight:700}.kband span{font-size:9.5px;letter-spacing:.18em;opacity:.92}
+  .bgh{font-size:15px;color:var(--blue);margin-bottom:2mm}.bgp{font-size:12.5px;color:#333;margin-bottom:3mm;line-height:1.65}
   @media print{@page{size:A4;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
 
@@ -231,22 +236,40 @@ export function printProposal(
 </div>
 
 <div class="page">
-  <div class="head">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : ""}
-    <div class="co"><b>${esc(company.name)}</b><span>${esc(company.address)}</span><span>${esc(company.phone)} • ${esc(company.email)}</span></div>
+  <div class="phead">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    <span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span>
   </div>
+  <h2 class="ptitle"><em>1</em> PROJECT LOCATION &amp; OVERVIEW</h2>
+  <table class="ov">
+    <tr><th>Client</th><td>${esc(p.customerName) || "-"}${p.companyName ? ` — ${esc(p.companyName)}` : ""}</td></tr>
+    <tr><th>Project Location</th><td>${[p.address, p.city].filter(Boolean).map(esc).join(", ") || "-"}</td></tr>
+    ${p.phone ? `<tr><th>Contact</th><td>${esc(p.phone)}${p.cnic ? ` &nbsp;•&nbsp; CNIC ${esc(p.cnic)}` : ""}</td></tr>` : ""}
+    <tr><th>Proposal No. / Date</th><td>${esc(p.proposalNo)} &nbsp;•&nbsp; ${p.date ? formatDate(p.date) : "-"}${validUntil ? ` &nbsp;(valid until ${formatDate(validUntil)})` : ""}</td></tr>
+    <tr><th>PV Array Tilt Angle (flexible)</th><td>25° ~ 35°</td></tr>
+    <tr><th>PV Panels</th><td>${p.panelQty} units of ${p.panelWatt} W — ${esc(p.panelBrand) || "Mono PERC / Tier-1"}</td></tr>
+    <tr><th>PV Array Nominal Power</th><td><b>${kw} kWp</b></td></tr>
+    <tr><th>${typeLabel} Inverter</th><td>1 unit of ${p.inverterKw} kW${p.inverterBrand ? ` — ${esc(p.inverterBrand)}` : ""}</td></tr>
+    ${p.battery ? `<tr><th>Battery Bank</th><td>${p.battery.units} × ${p.battery.kwhEach} kWh ${esc(p.battery.type)} = ${(p.battery.units * p.battery.kwhEach).toFixed(1).replace(/\.0$/, "")} kWh</td></tr>` : ""}
+    <tr><th>System Type</th><td>${typeLabel} solar PV system${p.battery ? " with battery backup" : ""}${p.netBilling ? " and net metering" : ""}</td></tr>
+  </table>
+  <div class="kband">
+    <div><b>${kw} kWp</b><span>SYSTEM SIZE</span></div>
+    <div><b>${p.panelQty}</b><span>SOLAR PANELS</span></div>
+    <div><b>${Math.round(annualGen).toLocaleString()} kWh</b><span>EST. YEARLY GENERATION</span></div>
+    <div><b>${p.battery ? `${(p.battery.units * p.battery.kwhEach).toFixed(1).replace(/\.0$/, "")} kWh` : `${p.inverterKw} kW`}</b><span>${p.battery ? "BATTERY STORAGE" : "INVERTER CAPACITY"}</span></div>
+  </div>
+  <h4 class="bgh">Background of the Solar PV Power Project</h4>
+  <p class="bgp">${p.panelQty} solar PV modules (panels) totalling ${kw} kWp will be installed on the rooftop on a raised ${esc(p.structureType) || ""} structure. The ${typeLabel.toLowerCase()} inverter${p.battery ? " and the battery bank" : ""} will be installed in the equipment room, together with the distribution panel and safety devices.</p>
+  <p class="bgp">The customer will use the power generated by the solar PV system during the day${p.battery ? ", store surplus energy in the batteries, and use the stored energy when grid power is not available" : ""}${p.netBilling ? ", and can sell any excess power to the utility grid through net metering" : ""}.</p>
+</div>
 
-  <h3 class="sec">CUSTOMER PROPOSAL — ${esc(p.customerName).toUpperCase()}</h3>
-  <div class="meta">
-    <div><b>Customer:</b> ${esc(p.customerName)}</div>
-    <div><b>Company / Place:</b> ${esc(p.companyName) || "-"}</div>
-    <div><b>Address:</b> ${esc(p.address) || "-"}</div>
-    <div><b>City:</b> ${esc(p.city) || "-"}</div>
-    <div><b>Phone:</b> ${esc(p.phone) || "-"}</div>
-    <div><b>CNIC:</b> ${esc(p.cnic) || "-"}</div>
-    <div><b>Proposal No:</b> ${esc(p.proposalNo)}</div>
-    <div><b>Date:</b> ${p.date ? formatDate(p.date) : "-"}</div>
+<div class="page">
+  <div class="phead">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    <span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span>
   </div>
+  <h2 class="ptitle"><em>2</em> SYSTEM DETAILS &amp; IMPLEMENTATION</h2>
 
   <h3 class="sec">SYSTEM DETAILS</h3>
   <table>
