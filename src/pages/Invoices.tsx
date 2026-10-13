@@ -173,9 +173,9 @@ export default function Invoices() {
   const [receivePaymentInvoice, setReceivePaymentInvoice] = useState<Invoice | null>(null);
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null);
   const [confirmApproveSO, setConfirmApproveSO] = useState<SalesOrder | null>(null);
-  // Always use the slim toolbar: switching between tall/slim headers on scroll
+  // Always keep the full header: switching between tall/slim headers on scroll
   // changed page height and caused a visible jump/flicker loop.
-  const isCompactHeader = true || isScrolled;
+  const isCompactHeader = false && isScrolled;
 
   // Recover the exact document/reporting workspace after a browser suspends
   // and reloads this tab. Editable forms use their visibility-saved draft.
