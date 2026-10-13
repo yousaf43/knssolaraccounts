@@ -394,6 +394,39 @@ export function printProposal(
   <p style="font-size:11px;margin-top:5mm">Prices and exclusions are governed by the quotation terms in the quotation section.</p>
 </div>
 
+${(() => {
+  const TARIFF = 60; // PKR per unit (estimate)
+  const usable = annualUnits ? Math.min(annualGen, annualUnits) : annualGen;
+  const yearSave = Math.round(usable * TARIFF);
+  const monthSave = Math.round(yearSave / 12);
+  const cost = Math.max(0, Math.round(p.total));
+  const paybackYears = yearSave > 0 ? cost / yearSave : 0;
+  const pbY = Math.floor(paybackYears), pbM = Math.round((paybackYears - pbY) * 12);
+  const f = (n: number) => Math.round(n).toLocaleString("en-PK");
+  const periods: [string, number][] = [["1 Month", 1], ["6 Months", 6], ["1 Year", 12], ["2 Years", 24], ["3 Years", 36], ["5 Years", 60], ["10 Years", 120], ["15 Years", 180], ["20 Years", 240], ["25 Years", 300]];
+  const rows = periods.map(([l, m]) => { const s = monthSave * m; const net = s - cost; return `<tr><td>${l}</td><td class="num">${f(s)}</td><td class="num" style="color:${net >= 0 ? "#0a7a3b" : "#b42318"};font-weight:700">${net >= 0 ? "+" : ""}${f(net)}</td></tr>`; }).join("");
+  // cumulative chart years 0..25
+  const W = 620, H = 210, X0 = 60, Y0 = 20, PW = W - X0 - 15, PH = H - Y0 - 30;
+  const pts = Array.from({ length: 26 }, (_, y) => yearSave * y - cost);
+  const mx = Math.max(1, ...pts), mn = Math.min(0, ...pts);
+  const sx = (y: number) => X0 + (y / 25) * PW, sy = (v: number) => Y0 + ((mx - v) / (mx - mn)) * PH;
+  const bars = pts.map((v, y) => { const x = sx(y) - 8, y0 = sy(0), yv = sy(v); return `<rect x="${x}" y="${Math.min(y0, yv)}" width="16" height="${Math.max(1, Math.abs(yv - y0))}" fill="${v >= 0 ? "#2E9E5B" : "#D9534F"}" opacity=".85"/>${y % 5 === 0 ? `<text x="${sx(y)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="#555">Yr ${y}</text>` : ""}`; }).join("");
+  const grid = [0, .25, .5, .75, 1].map((t) => { const v = mn + (mx - mn) * t; const y = sy(v); return `<line x1="${X0}" y1="${y}" x2="${W - 15}" y2="${y}" stroke="#e5e9ef"/><text x="${X0 - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#666">${(v / 1e6).toFixed(1)}M</text>`; }).join("");
+  const pbX = paybackYears > 0 && paybackYears <= 25 ? `<line x1="${sx(paybackYears)}" y1="${Y0}" x2="${sx(paybackYears)}" y2="${Y0 + PH}" stroke="#F2B33D" stroke-width="2" stroke-dasharray="5 3"/><text x="${sx(paybackYears) + 4}" y="${Y0 + 10}" font-size="10" font-weight="700" fill="#B07A00">Payback ${paybackYears.toFixed(1)} yrs</text>` : "";
+  return `<div class="page qt">
+  <div class="phead">${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}<span>Solar Power Proposal &nbsp;|&nbsp; ${typeLabel} System</span></div>
+  <h2 class="ptitle"><em>5</em> PAYBACK &amp; SAVINGS</h2>
+  <div style="display:flex;gap:3mm;margin:3mm 0 5mm">
+    ${[["System Cost", `PKR ${f(cost)}`], ["Monthly Saving", `PKR ${f(monthSave)}`], ["Yearly Saving", `PKR ${f(yearSave)}`], ["Payback Period", yearSave > 0 ? `${pbY} yr ${pbM} mo` : "—"]].map(([k, v]) => `<div style="flex:1;background:#0E3A5B;color:#fff;border-radius:3mm;padding:3mm;text-align:center"><div style="font-size:9.5px;opacity:.8">${k}</div><div style="font-size:14px;font-weight:800;color:#F2B33D;margin-top:1mm">${v}</div></div>`).join("")}
+  </div>
+  <h4>Cumulative net benefit (25 years)</h4>
+  <svg viewBox="0 0 ${W} ${H}" width="100%">${grid}<line x1="${X0}" y1="${sy(0)}" x2="${W - 15}" y2="${sy(0)}" stroke="#333"/>${bars}${pbX}</svg>
+  <h4>Savings from month to years</h4>
+  <table class="it"><tr><th>Period</th><th style="width:30%">Total saving (PKR)</th><th style="width:30%">Net benefit after cost (PKR)</th></tr>${rows}</table>
+  <p style="font-size:9.5px;color:#555;margin-top:3mm">Estimate based on ${f(usable)} units/year of solar generation used on site at about PKR ${TARIFF} per unit. Actual savings depend on tariff, usage and weather.</p>
+</div>`;
+})()}
+
 <div class="page qt">
   <div class="qh">
     ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
