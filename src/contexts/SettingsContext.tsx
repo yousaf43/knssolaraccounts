@@ -93,7 +93,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     try {
       const d = typeof dateStr === "string" ? parseISO(dateStr) : dateStr;
       if (Number.isNaN(d.getTime())) return fallback;
-      return format(d, settings.dateFormat);
+      return format(d, "dd-MM-yyyy");
     } catch {
       return fallback;
     }
