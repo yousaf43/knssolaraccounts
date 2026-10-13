@@ -324,28 +324,71 @@ export function printProposal(
   <div class="flow"><div><b>${p.panelQty} × ${p.panelWatt}W</b>Solar Panels</div><em>➜</em><div><b>${esc(p.structureType) || "Structure"}</b>Mounting</div><em>➜</em><div><b>${p.inverterKw} kW</b>${typeLabel} Inverter</div>${p.battery ? `<em>➜</em><div><b>${(p.battery.units * p.battery.kwhEach).toFixed(1)} kWh</b>Battery</div>` : ""}<em>➜</em><div><b>${p.netBilling ? "Net Meter" : "Load"}</b>${p.netBilling ? "Grid" : "Your Home"}</div></div>
 </div>
 
-<div class="page">
-  <h3 class="sec">QUOTATION</h3>
-  <table>
-    <tr><th>#</th><th>Item / Brand</th><th>Description</th><th class="num">Qty</th><th>Unit</th><th class="num">Unit Price</th><th class="num">Amount</th></tr>
-    ${itemsRows}
-    <tr class="total-row"><td colspan="6">Quotation Total</td><td class="num">${money(p.total)}</td></tr>
+<style>
+  .qt table.it th{background:#0E3A5B;color:#fff;font-size:10.5px;padding:2.2mm 1.5mm;text-align:center}
+  .qt table.it td{font-size:10px;padding:2mm 1.5mm;vertical-align:middle;border-bottom:1px solid #e3e8ef}
+  .qt table.it td.d{color:#333;line-height:1.45}
+  .qt .tot td{background:#0E3A5B;color:#fff;font-weight:800;font-size:12.5px;padding:3mm}
+  .qt .tot td.g{background:#F2B33D;color:#0E3A5B;text-align:right;font-size:15px}
+  .qt .qh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5mm}
+  .qt .qh img{height:12mm}.qt .qh h1{margin:0;font-size:30px;letter-spacing:3px;color:#0E3A5B;border-bottom:3px solid #F2B33D;padding-bottom:1mm;text-align:right}
+  .qt .qh small{display:block;text-align:right;color:#1E5F8C;font-weight:700;font-size:11px;margin-top:1mm}
+  .qt table.inf td{font-size:10.5px;padding:1.3mm 2mm;border-bottom:1px solid #e3e8ef}.qt table.inf td.k{color:#1E5F8C;font-weight:700;width:15%}
+  .qt .subj{background:#FFF6DC;border-left:4px solid #F2B33D;padding:2.5mm 3mm;font-size:11.5px;font-weight:700;color:#0E3A5B;margin:5mm 0}
+  .qt h4{color:#0E3A5B;font-size:13px;margin:6mm 0 1mm;border-bottom:2px solid #F2B33D;padding-bottom:1mm}
+  .qt ul.tc{margin:2mm 0;padding-left:5mm}.qt ul.tc li{font-size:10px;margin:1.2mm 0;line-height:1.45}.qt ul.tc li::marker{color:#F2B33D}
+  .qt .pd p{font-size:11px;margin:1mm 0}
+  .qt .sg{display:flex;justify-content:space-between;margin-top:14mm}.qt .sg div{width:42%;border-top:1.5px solid #0E3A5B;padding-top:2mm;font-weight:700;color:#0E3A5B;font-size:11.5px}
+</style>
+<div class="page qt">
+  <div class="phead">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    <span>Solar Power Proposal &nbsp;|&nbsp; ${typeLabel} System</span>
+  </div>
+  <h2 class="ptitle"><em>5</em> FINANCIAL OUTCOME</h2>
+  <p style="font-size:11.5px">Priced scope for the <b>${kw} kWp</b> ${typeLabel.toLowerCase()} solar PV system${p.battery ? " with battery storage" : ""}. The following lines, quantities and amounts match the quotation.</p>
+  <table class="it">
+    <tr><th style="width:5%">#</th><th>Item and description</th><th style="width:7%">Qty</th><th style="width:8%">Unit</th><th style="width:15%">Unit price (PKR)</th><th style="width:17%">Amount (PKR)</th></tr>
+    ${p.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td class="d"><b style="color:#0E3A5B">${esc(it.brand)}</b><br>${esc(it.description)}</td><td style="text-align:center">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td class="num">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td></tr>`).join("")}
+    <tr class="tot"><td colspan="4">TOTAL AMOUNT IN PKR</td><td colspan="2" class="g">PKR ${Math.round(p.total).toLocaleString("en-PK")} /-</td></tr>
   </table>
+  <p style="font-size:11px;margin-top:5mm">Prices and exclusions are governed by the quotation terms in the quotation section.</p>
+</div>
 
-  <h3 class="sec">PAYMENT & DELIVERY</h3>
-  <div class="meta">
-    <div><b>Payment:</b> ${esc(p.paymentMethod)}</div>
-    <div><b>Delivery:</b> ${esc(p.delivery)}</div>
-    <div><b>Offer valid:</b> ${p.validDays} day(s)</div>
-    <div><b>Sales executive:</b> ${esc(p.salesExec)}</div>
+<div class="page qt">
+  <div class="qh">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    <div><h1>QUOTATION</h1><small>${esc(company.name)}</small></div>
   </div>
-
-  ${termsList ? `<h3 class="sec">TERMS & CONDITIONS</h3><ul class="terms">${termsList}</ul>` : ""}
-
-  <div class="sig">
-    <div class="s"><b>${esc(p.signedName)}</b>${esc(p.signedTitle)}<br>${esc(p.signedPhone)}<br>${esc(p.signedEmail)}</div>
-    <div class="s"><b>Customer Signature</b><br><br><br></div>
+  <table class="inf">
+    <tr><td class="k">Proposed To</td><td>${esc(p.customerName)}${p.companyName ? ` - ${esc(p.companyName)}` : ""}</td><td class="k">Quotation No.</td><td>${esc(p.proposalNo)}</td></tr>
+    <tr><td class="k">Address</td><td>${esc(p.address || p.city || "-")}</td><td class="k">Date</td><td>${p.date ? formatDate(p.date) : "-"}</td></tr>
+    <tr><td class="k">Contact #</td><td>${esc(p.phone || "-")}</td><td class="k">Valid for</td><td>${p.validDays} days</td></tr>
+    <tr><td class="k">CNIC #</td><td>${esc(p.cnic || "-")}</td><td class="k">Sales Executive</td><td>${esc(p.salesExec || "-")}</td></tr>
+  </table>
+  <div class="subj">SUBJECT: &nbsp;Quotation for ${kw} kW ${typeLabel} Solar System.</div>
+  <table class="it">
+    <tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:8%">Qty</th><th style="width:12%">Unit Price</th><th style="width:13%">Amount</th></tr>
+    ${p.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d">${esc(it.description)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td><td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td></tr>`).join("")}
+    <tr class="tot"><td colspan="4">TOTAL AMOUNT IN PKR</td><td colspan="2" class="g">${Math.round(p.total).toLocaleString("en-PK")} /-</td></tr>
+  </table>
+  <h4>Terms and Conditions</h4>
+  <ul class="tc">${termsList || [
+    `<li style="color:#C0262D;font-weight:700">Long-distance wire and internal wiring are not included.</li>`,
+    "Civil work is not included.",
+    "Quotation prices are exclusive of all taxes. If any tax is applied by the government after the quotation is delivered, the price will be revised.",
+    "All warranties are offered by the respective manufacturers. The manufacturers' terms and conditions apply to any warranty claim.",
+    "We expect no interference from the client side during installation. If any customization or alteration is required, it will be quoted separately.",
+    "In case of non-availability of the solar panel size/brand, alternate Tier-1 solar panels will be used.",
+    "FESCO demand notice fee and other WAPDA / FESCO expenses are not included.",
+    "Prices will change if a customized raised structure is required instead of the L2 C-type structure.",
+  ].map((t) => (t.startsWith("<li") ? t : `<li>${t}</li>`)).join("")}</ul>
+  <div class="pd">
+    <p><b>Payment Method:</b> ${esc(p.paymentMethod)}</p>
+    <p><b>Validity:</b> Our offer is valid for ${p.validDays} days.</p>
+    <p><b>Delivery:</b> ${esc(p.delivery)}</p>
   </div>
+  <div class="sg"><div>Customer's Signature</div><div>For ${esc(company.name)}</div></div>
 </div>
 
 <div class="page tm">
