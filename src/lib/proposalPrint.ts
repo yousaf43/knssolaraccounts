@@ -28,6 +28,7 @@ export function printProposal(
   projects: { title: string; customer: string; date: string; detail: string }[] = []
 ) {
   const abs = (u: string) => (u.startsWith("http") ? u : `${window.location.origin}${u}`);
+  const LOGO = abs("/portfolio/ks-logo.webp");
   const featuredCards = FEATURED.map(
     (f) => `<div class="proj fp"><img src="${abs(f.img)}" alt=""><b>${esc(f.title)}</b><span>${esc(f.place)}</span><p class="size">${esc(f.size)}</p><i>Completed ✓</i></div>`
   ).join("");
@@ -203,7 +204,7 @@ export function printProposal(
     <div class="shade"></div>
     <div class="ct">
       <div class="toprow">
-        <div class="brand">${company.logoUrl ? `<img class="logo" src="${esc(company.logoUrl)}" alt="">` : ""}<span class="rbs">Run by Sun</span></div>
+        <div class="brand">${LOGO ? `<img class="logo" src="${esc(LOGO)}" alt="">` : ""}<span class="rbs">Run by Sun</span></div>
         <div class="badges"><i>SECP</i><i>GOVT OF<br>PAKISTAN</i><i>AEDB</i></div>
       </div>
       <div class="tfp">TECHNICAL &amp; FINANCIAL PROPOSAL</div>
@@ -228,7 +229,7 @@ export function printProposal(
 
 <div class="page about">
   <div class="head">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : ""}
+    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : ""}
     <div class="co"><b>${esc(company.name)}</b><span>${esc(company.address || PORTFOLIO.address)}</span><span>${esc(company.phone || PORTFOLIO.phone)} • ${esc(company.email || PORTFOLIO.email)}</span></div>
   </div>
   <h3 class="sec">COMPANY PROFILE — SINCE 2013</h3>
@@ -281,7 +282,7 @@ export function printProposal(
 
 <div class="page">
   <div class="phead">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
     <span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span>
   </div>
   <h2 class="ptitle"><em>1</em> PROJECT LOCATION &amp; OVERVIEW</h2>
@@ -310,7 +311,7 @@ export function printProposal(
 
 <div class="page">
   <div class="phead">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
     <span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span>
   </div>
   <h2 class="ptitle"><em>2</em> SYSTEM DETAILS &amp; IMPLEMENTATION</h2>
@@ -331,7 +332,7 @@ export function printProposal(
 
 <div class="page">
   <div class="phead">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
     <span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span>
   </div>
   <h2 class="ptitle"><em>3</em> SOLAR RESOURCE AT THE SITE</h2>
@@ -380,7 +381,7 @@ export function printProposal(
 </style>
 <div class="page qt">
   <div class="phead">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
     <span>Solar Power Proposal &nbsp;|&nbsp; ${typeLabel} System</span>
   </div>
   <h2 class="ptitle"><em>5</em> FINANCIAL OUTCOME</h2>
@@ -395,7 +396,7 @@ export function printProposal(
 
 <div class="page qt">
   <div class="qh">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
     <div><h1>QUOTATION</h1><small>${esc(company.name)}</small></div>
   </div>
   <table class="inf">
@@ -457,7 +458,7 @@ export function printProposal(
   .tm .ft p{font-size:10.5px;margin:1.5mm 0}.tm .ft .c{color:#1E5F8C;font-weight:700}
 </style>
   <div class="hd">
-    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
     <div class="t">LEADERSHIP &nbsp;•&nbsp; MANAGEMENT &nbsp;•&nbsp; PROFESSIONAL TEAM</div>
     <div class="s">Powering Your Future with Trust, Quality &amp; Performance</div>
   </div>
