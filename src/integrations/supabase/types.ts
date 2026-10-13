@@ -455,6 +455,33 @@ export type Database = {
           },
         ]
       }
+      electricity_tariffs: {
+        Row: {
+          checked_at: string
+          effective_label: string | null
+          id: string
+          rates: Json
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          checked_at?: string
+          effective_label?: string | null
+          id: string
+          rates: Json
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checked_at?: string
+          effective_label?: string | null
+          id?: string
+          rates?: Json
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           address: string | null
