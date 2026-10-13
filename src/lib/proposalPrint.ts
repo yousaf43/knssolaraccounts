@@ -43,6 +43,16 @@ export function printProposal(
     ? new Date(new Date(p.date).getTime() + p.validDays * 86400000)
     : null;
 
+  const SUN = [0.72, 0.82, 1.0, 1.1, 1.18, 1.12, 1.0, 0.98, 1.0, 0.92, 0.8, 0.7];
+  const genMonthly = SUN.map((f) => kw * 4.5 * 30 * f);
+  const annualGen = genMonthly.reduce((a, b) => a + b, 0);
+  const coverage = annualUnits ? Math.min(100, Math.round((annualGen / annualUnits) * 100)) : 0;
+  const maxV = Math.max(1, ...genMonthly, ...p.monthlyUnits.map((u) => Number(u) || 0));
+  const barChart = `<svg viewBox="0 0 640 220" width="100%" height="200"><defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E9BDA"/><stop offset="1" stop-color="#0B3A5B"/></linearGradient><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD66B"/><stop offset="1" stop-color="#D8901A"/></linearGradient></defs>${MONTHS.map((m, i) => {
+    const x = 20 + i * 51; const u = Number(p.monthlyUnits[i]) || 0; const hu = (u / maxV) * 170; const hg = (genMonthly[i] / maxV) * 170;
+    return `<rect x="${x + 4}" y="${185 - hu}" width="18" height="${hu}" rx="2" fill="url(#gb)"/><rect x="${x}" y="${189 - hu}" width="4" height="${hu}" fill="#08304D" opacity=".5"/><rect x="${x + 24}" y="${185 - hg}" width="18" height="${hg}" rx="2" fill="url(#gg)"/><rect x="${x + 42}" y="${189 - hg}" width="4" height="${hg}" fill="#9A6510" opacity=".45"/><text x="${x + 23}" y="205" font-size="11" text-anchor="middle" fill="#5F6F7C">${m}</text>`;
+  }).join("")}<line x1="15" y1="185" x2="630" y2="185" stroke="#D7E0E7"/></svg>`;
+
   const itemsRows = p.items
     .map(
       (it, i) => `<tr>
@@ -129,36 +139,40 @@ export function printProposal(
   .proj.fp b,.proj.fp span,.proj.fp p{padding:0 4mm}.proj.fp p.size{color:var(--blue);font-weight:800;font-size:13px}.proj.fp i{top:auto;bottom:3mm;background:#fff}
   .quote{background:var(--soft);border-left:4px solid var(--gold);padding:4mm 5mm;margin-top:4mm;font-style:italic;color:var(--navy)}
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
+  .cover3d{position:relative;height:270mm;border-radius:8px;overflow:hidden;color:#fff}
+  .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,58,91,.85) 0%,rgba(11,58,91,.25) 45%,rgba(11,58,91,.9) 100%)}
+  .cover3d .ct{position:relative;padding:14mm}
+  .cover3d .logo{height:16mm;background:#fff;border-radius:6px;padding:2mm;margin-bottom:6mm}
+  .cover3d .tag{letter-spacing:.22em;font-size:10px;color:var(--gold);font-weight:700}
+  .cover3d h1{font-size:30px;font-weight:800;margin:6mm 0 3mm;text-shadow:0 3px 12px rgba(0,0,0,.5)}
+  .cover3d h1 span{color:var(--gold)}
+  .cover3d h2{font-size:18px;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .cover3d .cbox{position:absolute;left:12mm;right:12mm;bottom:12mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
+  .cover3d .cbox div{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-top:3px solid var(--gold);border-radius:8px;padding:4mm;backdrop-filter:blur(4px)}
+  .cover3d .cbox small{display:block;font-size:9px;letter-spacing:.18em;color:var(--gold);font-weight:700}
+  .cover3d .cbox b{display:block;font-size:14px;margin:1mm 0}.cover3d .cbox span{font-size:10px;opacity:.85}
+  .chart{border:1px solid var(--line);border-radius:8px;padding:3mm;background:linear-gradient(180deg,#fff,var(--soft))}
+  .legend{display:flex;gap:6mm;font-size:10.5px;color:var(--muted);margin-top:2mm}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .sys3d{width:100%;height:70mm;object-fit:contain;display:block;border-radius:8px}
+  .flow{display:flex;align-items:center;justify-content:space-between;gap:2mm;margin-top:2mm}.flow div{flex:1;text-align:center;background:var(--soft);border-top:3px solid var(--blue);border-radius:6px;padding:2.5mm;font-size:10px;color:var(--muted)}.flow div b{display:block;color:var(--navy);font-size:12px}.flow em{color:var(--gold);font-style:normal;font-weight:800}
   @media print{@page{size:A4;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
 
 <div class="page">
-  <div class="cover">
-    <div class="tag">CLEAN ENERGY • GENUINE PRODUCTS • PROFESSIONAL SERVICE</div>
-    <h1>${esc(company.name).toUpperCase()} POWER PROPOSAL</h1>
-    <h2>${kw} kW ${typeLabel} Solar System</h2>
-    <p class="sub">${p.systemType === "on-grid" ? "Grid-connected" : p.systemType === "hybrid" ? "Grid-connected with battery backup" : "Independent off-grid"}${p.netBilling ? " & Net Billing" : ""}</p>
-    <div class="box">
-      <h3>PREPARED FOR</h3>
-      <div class="row">
-        <div class="cell"><b>${esc(p.customerName)}</b><span>${esc(p.companyName)}</span></div>
-        <div class="cell"><b>${esc(p.city)}</b><span>${esc(p.address)}</span></div>
-        <div class="cell"><b>${esc(p.phone)}</b><span>Contact</span></div>
-      </div>
+  <div class="cover3d">
+    <img class="bg" src="${abs("/portfolio/cover-3d.jpg")}" alt="">
+    <div class="shade"></div>
+    <div class="ct">
+      ${company.logoUrl ? `<img class="logo" src="${esc(company.logoUrl)}" alt="">` : ""}
+      <div class="tag">CLEAN ENERGY • GENUINE PRODUCTS • PROFESSIONAL SERVICE</div>
+      <h1>${esc(company.name).toUpperCase()}<br><span>SOLAR POWER PROPOSAL</span></h1>
+      <h2>${kw} kW ${typeLabel} Solar System</h2>
     </div>
-    <div class="box">
-      <h3>QUICK SUMMARY</h3>
-      <div class="row">
-        <div class="cell"><b>${kw} kWp ${typeLabel}</b><span>System</span></div>
-        <div class="cell"><b>${money(p.total)}</b><span>Quote</span></div>
-        ${p.battery ? `<div class="cell"><b>${(p.battery.units * p.battery.kwhEach).toFixed(1)} kWh</b><span>Battery</span></div>` : ""}
-        ${annualUnits ? `<div class="cell"><b>${annualUnits.toLocaleString()} units</b><span>Annual usage</span></div>` : ""}
-      </div>
-    </div>
-    <div class="foot">
-      <span>Ref: ${esc(p.proposalNo)}</span>
-      <span>Date: ${p.date ? formatDate(p.date) : "-"}</span>
-      <span>Valid until: ${validUntil ? formatDate(validUntil) : "-"}</span>
+    <div class="cbox">
+      <div><small>PREPARED FOR</small><b>${esc(p.customerName)}</b><span>${esc(p.companyName || p.city)}</span></div>
+      <div><small>SYSTEM</small><b>${kw} kWp ${typeLabel}</b><span>${p.netBilling ? "With Net Billing" : "Solar Solution"}</span></div>
+      <div><small>REF / DATE</small><b>${esc(p.proposalNo)}</b><span>${p.date ? formatDate(p.date) : "-"}${validUntil ? " • Valid till " + formatDate(validUntil) : ""}</span></div>
     </div>
   </div>
 </div>
@@ -176,16 +190,6 @@ export function printProposal(
     <div class="stat"><b>Hundreds</b><span>Projects Installed</span></div>
     <div class="stat"><b>1.2 MW</b><span>Largest Single Plant</span></div>
     <div class="stat"><b>10</b><span>Cities Served</span></div>
-  </div>
-  <div class="grid2">
-    <div>
-      <h3 class="sec">OUR VISION</h3>
-      <ul class="terms"><li><b>Empowering a Sustainable Future</b> — reliable, affordable, eco-friendly solar that reduces dependence on conventional power.</li><li><b>Customer-Centric Innovation</b> — cutting-edge technology for maximum efficiency, savings and long-term benefit.</li></ul>
-    </div>
-    <div>
-      <h3 class="sec">OUR MISSION</h3>
-      <ul class="terms"><li>Promote renewable energy for residential, commercial & industrial sectors.</li><li>Exceptional service from consultation to installation and maintenance.</li><li>Drive innovation & excellence with the latest technology.</li><li>Contribute to a greener planet by making clean energy accessible to all.</li></ul>
-    </div>
   </div>
   <h3 class="sec">WHY CHOOSE US</h3>
   <div class="grid2">
@@ -214,19 +218,6 @@ export function printProposal(
   <b>Finance partners:</b> U Microfinance Bank, Mobilink Microfinance Bank, The Bank of Punjab, JS Bank, Bank Al Habib.</p>
   <h3 class="sec">AREA SERVED</h3>
   <p><b>Head Office:</b> Bhakkar &nbsp;•&nbsp; <b>Offices:</b> Lahore, Islamabad, Multan, Faisalabad, Mianwali, Jauharabad, Samundri, Kamalia, Dadu (Sindh).</p>
-  <h3 class="sec">LEADERSHIP & TEAM</h3>
-  <div class="quote" style="margin-top:0">"We believe that every rooftop should harness solar power, and every business should enjoy energy freedom. Together, let's light up the world!" — <b>Khawar Mehmood</b>, CEO</div>
-  <div class="grid4" style="grid-template-columns:repeat(3,1fr)">
-    <div class="stat"><b style="font-size:13px">M. Adeel</b><span>General Manager</span></div>
-    <div class="stat"><b style="font-size:13px">M. Zaheer</b><span>GAM</span></div>
-    <div class="stat"><b style="font-size:13px">Zubair Akhter</b><span>SEM</span></div>
-    <div class="stat"><b style="font-size:13px">Khalid Haseeb</b><span>SMM</span></div>
-    <div class="stat"><b style="font-size:13px">M. Naveed</b><span>SAM</span></div>
-    <div class="stat"><b style="font-size:13px">M. Yousuf</b><span>SE</span></div>
-  </div>
-  <p style="font-size:11px;color:var(--muted)">Backed by a team of professional electrical engineers specialised in renewable energy design, installation and optimisation.</p>
-  <h3 class="sec">HOW WE WORK</h3>
-  <p>1. Site survey & load analysis &nbsp;→&nbsp; 2. System design & proposal &nbsp;→&nbsp; 3. Supply of genuine equipment &nbsp;→&nbsp; 4. Professional installation & testing &nbsp;→&nbsp; 5. Net metering & handover &nbsp;→&nbsp; 6. 1 year free maintenance & ongoing support</p>
 </div>
 
 <div class="page">
@@ -245,7 +236,7 @@ export function printProposal(
     <div class="co"><b>${esc(company.name)}</b><span>${esc(company.address)}</span><span>${esc(company.phone)} • ${esc(company.email)}</span></div>
   </div>
 
-  <h3 class="sec">CUSTOMER & PROJECT</h3>
+  <h3 class="sec">CUSTOMER PROPOSAL — ${esc(p.customerName).toUpperCase()}</h3>
   <div class="meta">
     <div><b>Customer:</b> ${esc(p.customerName)}</div>
     <div><b>Company / Place:</b> ${esc(p.companyName) || "-"}</div>
@@ -267,8 +258,24 @@ export function printProposal(
     ${p.netBilling ? `<tr><td>Net Billing</td><td>${esc(p.disco)}</td><td>Green meter & net billing included</td><td>—</td></tr>` : ""}
     ${p.earthing ? `<tr><td>Earthing</td><td>—</td><td>Earthing & lightning arrestor included</td><td>—</td></tr>` : ""}
   </table>
+  <h3 class="sec">SYSTEM IMPLEMENTATION PLAN</h3>
+  <ol class="steps"><li>Site survey, shade analysis & roof load check</li><li>Installation of ${esc(p.structureType)} structure for ${p.panelQty} panels</li><li>Mounting of ${p.panelQty} × ${p.panelWatt} W ${esc(p.panelBrand)} panels (${kw} kWp)</li><li>${esc(p.inverterBrand)} ${p.inverterKw} kW ${typeLabel} inverter, DC/AC protection & wiring</li>${p.battery ? `<li>Battery bank installation & configuration</li>` : ""}${p.earthing ? `<li>Earthing & lightning arrestor</li>` : ""}${p.netBilling ? `<li>Net billing application & green meter with ${esc(p.disco)}</li>` : ""}<li>Testing, commissioning & handover with 1 year free maintenance</li></ol>
+</div>
 
-  ${usageRows ? `<h3 class="sec">ELECTRICITY USAGE (UNITS PER MONTH)</h3><table>${usageRows}</table>` : ""}
+<div class="page">
+  <h3 class="sec" style="margin-top:0">SOLAR USAGE & ENERGY ANALYSIS</h3>
+  <div class="grid4">
+    <div class="stat"><b>${kw} kWp</b><span>System Size</span></div>
+    <div class="stat"><b>${Math.round(annualGen).toLocaleString()}</b><span>Est. Units / Year</span></div>
+    <div class="stat"><b>${annualUnits ? annualUnits.toLocaleString() : "—"}</b><span>Your Units / Year</span></div>
+    <div class="stat"><b>${coverage ? coverage + "%" : "—"}</b><span>Solar Coverage</span></div>
+  </div>
+  <div class="chart">${barChart}</div>
+  <div class="legend"><span><i style="background:var(--blue)"></i>Your usage (units)</span><span><i style="background:var(--gold)"></i>Estimated solar generation</span></div>
+  ${usageRows ? `<table style="margin-top:3mm">${usageRows}</table>` : ""}
+  <h3 class="sec">SYSTEM STRUCTURE</h3>
+  <img class="sys3d" src="${abs("/portfolio/system-3d.jpg")}" alt="">
+  <div class="flow"><div><b>${p.panelQty} × ${p.panelWatt}W</b>Solar Panels</div><em>➜</em><div><b>${esc(p.structureType) || "Structure"}</b>Mounting</div><em>➜</em><div><b>${p.inverterKw} kW</b>${typeLabel} Inverter</div>${p.battery ? `<em>➜</em><div><b>${(p.battery.units * p.battery.kwhEach).toFixed(1)} kWh</b>Battery</div>` : ""}<em>➜</em><div><b>${p.netBilling ? "Net Meter" : "Load"}</b>${p.netBilling ? "Grid" : "Your Home"}</div></div>
 </div>
 
 <div class="page">
@@ -293,6 +300,33 @@ export function printProposal(
     <div class="s"><b>${esc(p.signedName)}</b>${esc(p.signedTitle)}<br>${esc(p.signedPhone)}<br>${esc(p.signedEmail)}</div>
     <div class="s"><b>Customer Signature</b><br><br><br></div>
   </div>
+</div>
+
+<div class="page about">
+  <h3 class="sec" style="margin-top:0">OUR VISION & MISSION</h3>
+  <div class="grid2">
+    <div>
+      <h3 class="sec">OUR VISION</h3>
+      <ul class="terms"><li><b>Empowering a Sustainable Future</b> — reliable, affordable, eco-friendly solar that reduces dependence on conventional power.</li><li><b>Customer-Centric Innovation</b> — cutting-edge technology for maximum efficiency, savings and long-term benefit.</li></ul>
+    </div>
+    <div>
+      <h3 class="sec">OUR MISSION</h3>
+      <ul class="terms"><li>Promote renewable energy for residential, commercial & industrial sectors.</li><li>Exceptional service from consultation to installation and maintenance.</li><li>Drive innovation & excellence with the latest technology.</li><li>Contribute to a greener planet by making clean energy accessible to all.</li></ul>
+    </div>
+  </div>
+  <h3 class="sec">LEADERSHIP & TEAM</h3>
+  <div class="quote" style="margin-top:0">"We believe that every rooftop should harness solar power, and every business should enjoy energy freedom. Together, let's light up the world!" — <b>Khawar Mehmood</b>, CEO</div>
+  <div class="grid4" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat"><b style="font-size:13px">M. Adeel</b><span>General Manager</span></div>
+    <div class="stat"><b style="font-size:13px">M. Zaheer</b><span>GAM</span></div>
+    <div class="stat"><b style="font-size:13px">Zubair Akhter</b><span>SEM</span></div>
+    <div class="stat"><b style="font-size:13px">Khalid Haseeb</b><span>SMM</span></div>
+    <div class="stat"><b style="font-size:13px">M. Naveed</b><span>SAM</span></div>
+    <div class="stat"><b style="font-size:13px">M. Yousuf</b><span>SE</span></div>
+  </div>
+  <p style="font-size:11px;color:var(--muted)">Backed by a team of professional electrical engineers specialised in renewable energy design, installation and optimisation.</p>
+  <h3 class="sec">HOW WE WORK</h3>
+  <p>1. Site survey & load analysis &nbsp;→&nbsp; 2. System design & proposal &nbsp;→&nbsp; 3. Supply of genuine equipment &nbsp;→&nbsp; 4. Professional installation & testing &nbsp;→&nbsp; 5. Net metering & handover &nbsp;→&nbsp; 6. 1 year free maintenance & ongoing support</p>
 </div>
 
 </body></html>`;
