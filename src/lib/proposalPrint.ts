@@ -48,6 +48,27 @@ export function printProposal(
   const annualGen = genMonthly.reduce((a, b) => a + b, 0);
   const coverage = annualUnits ? Math.min(100, Math.round((annualGen / annualUnits) * 100)) : 0;
   const maxV = Math.max(1, ...genMonthly, ...p.monthlyUnits.map((u) => Number(u) || 0));
+  const PSH = [5.64, 6.65, 7.26, 7.18, 6.16, 6.59, 6.25, 6.22, 6.41, 7.09, 6.02, 5.94];
+  const MN = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+  const bar3d = (() => {
+    const X0 = 40, B = 190, H = 160, W = 30, G = 20, D = 9;
+    const grid = [0, 2, 4, 6, 8].map((v) => { const y = B - (v / 8) * H; return `<line x1="${X0}" y1="${y}" x2="${X0 + 12 * (W + G) + 10}" y2="${y}" stroke="#e5e9ef"/><text x="${X0 - 8}" y="${y + 3}" font-size="8" text-anchor="end" fill="#666">${v}</text>`; }).join("");
+    const floor = `<polygon points="${X0},${B} ${X0 + 12 * (W + G)},${B} ${X0 + 12 * (W + G) + D},${B - D} ${X0 + D},${B - D}" fill="#eef3f8"/>`;
+    const bars = PSH.map((v, i) => {
+      const x = X0 + 8 + i * (W + G), h = (v / 8) * H, y = B - h;
+      return `<polygon points="${x + W},${y} ${x + W + D},${y - D} ${x + W + D},${B - D} ${x + W},${B}" fill="#0B3A6B"/><polygon points="${x},${y} ${x + D},${y - D} ${x + W + D},${y - D} ${x + W},${y}" fill="#5A9BD8"/><rect x="${x}" y="${y}" width="${W}" height="${h}" fill="url(#b3)"/><text x="${x + W / 2 + 4}" y="${y - D - 4}" font-size="8.5" font-weight="700" text-anchor="middle" fill="#222">${v.toFixed(2)}</text><text x="${x + W / 2}" y="${B + 14}" font-size="8" text-anchor="middle" fill="#555">${MN[i]}</text>`;
+    }).join("");
+    return `<svg viewBox="0 0 660 215" width="100%"><defs><linearGradient id="b3" x1="0" x2="1"><stop offset="0" stop-color="#2E8BD6"/><stop offset="1" stop-color="#0F5BA8"/></linearGradient></defs><text x="4" y="10" font-size="8" fill="#666">Peak sun hours / day</text>${grid}${floor}${bars}</svg>`;
+  })();
+  const sunCurve = (() => {
+    const X0 = 50, B = 190, H = 160, S = 50;
+    const vals = [0, 15, 34, 52, 68, 78, 82, 78, 68, 52, 34, 15, 2];
+    const pts = vals.map((v, i) => [X0 + i * S, B - (v / 100) * H]);
+    const path = pts.map((q, i) => (i ? "L" : "M") + q[0] + "," + q[1]).join(" ");
+    const grid = [0, 20, 40, 60, 80, 100].map((v) => { const y = B - (v / 100) * H; return `<line x1="${X0}" y1="${y}" x2="${X0 + 12 * S}" y2="${y}" stroke="#eee"/><text x="${X0 - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#666">${v}%</text>`; }).join("");
+    const hrs = ["6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM"];
+    return `<svg viewBox="0 0 680 215" width="100%"><defs><linearGradient id="sc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#F2B33D"/></linearGradient></defs><text x="4" y="10" font-size="8" fill="#666">Relative irradiance level</text>${grid}<path d="${pts.map((q, i) => (i ? "L" : "M") + (q[0] + 8) + "," + (q[1] - 8)).join(" ")} L${X0 + 12 * S + 8},${B - 8} L${X0 + 8},${B - 8} Z" fill="#E9A92C" opacity=".55"/><path d="${path} L${X0 + 12 * S},${B} L${X0},${B} Z" fill="url(#sc)"/><path d="${path}" fill="none" stroke="#D8901A" stroke-width="2"/>${pts.map((q) => `<circle cx="${q[0]}" cy="${q[1]}" r="2.6" fill="#fff" stroke="#D8901A" stroke-width="1.4"/>`).join("")}<text x="${X0 + 6 * S}" y="${pts[6][1] - 14}" font-size="9" font-weight="700" text-anchor="middle" fill="#8a5a00">Peak ≈ 82%</text>${hrs.map((h, i) => `<text x="${X0 + i * S}" y="${B + 14}" font-size="8" text-anchor="middle" fill="#555">${h}</text>`).join("")}</svg>`;
+  })();
   const barChart = `<svg viewBox="0 0 640 220" width="100%" height="200"><defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E9BDA"/><stop offset="1" stop-color="#0B3A5B"/></linearGradient><linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD66B"/><stop offset="1" stop-color="#D8901A"/></linearGradient></defs>${MONTHS.map((m, i) => {
     const x = 20 + i * 51; const u = Number(p.monthlyUnits[i]) || 0; const hu = (u / maxV) * 170; const hg = (genMonthly[i] / maxV) * 170;
     return `<rect x="${x + 4}" y="${185 - hu}" width="18" height="${hu}" rx="2" fill="url(#gb)"/><rect x="${x}" y="${189 - hu}" width="4" height="${hu}" fill="#08304D" opacity=".5"/><rect x="${x + 24}" y="${185 - hg}" width="18" height="${hg}" rx="2" fill="url(#gg)"/><rect x="${x + 42}" y="${189 - hg}" width="4" height="${hg}" fill="#9A6510" opacity=".45"/><text x="${x + 23}" y="205" font-size="11" text-anchor="middle" fill="#5F6F7C">${m}</text>`;
@@ -306,6 +327,23 @@ export function printProposal(
   </table>
   <h3 class="sec">SYSTEM IMPLEMENTATION PLAN</h3>
   <ol class="steps"><li>Site survey, shade analysis & roof load check</li><li>Installation of ${esc(p.structureType)} structure for ${p.panelQty} panels</li><li>Mounting of ${p.panelQty} × ${p.panelWatt} W ${esc(p.panelBrand)} panels (${kw} kWp)</li><li>${esc(p.inverterBrand)} ${p.inverterKw} kW ${typeLabel} inverter, DC/AC protection & wiring</li>${p.battery ? `<li>Battery bank installation & configuration</li>` : ""}${p.earthing ? `<li>Earthing & lightning arrestor</li>` : ""}${p.netBilling ? `<li>Net billing application & green meter with ${esc(p.disco)}</li>` : ""}<li>Testing, commissioning & handover with 1 year free maintenance</li></ol>
+</div>
+
+<div class="page">
+  <div class="phead">
+    ${company.logoUrl ? `<img src="${esc(company.logoUrl)}" alt="">` : `<b>${esc(company.name)}</b>`}
+    <span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span>
+  </div>
+  <h2 class="ptitle"><em>3</em> SOLAR RESOURCE AT THE SITE</h2>
+  <p style="font-size:11px">The chart below shows the average daily solar irradiation (peak sun hours, kWh/m²/day) at the installation site on a surface fixed at a 28°–30° tilt.</p>
+  <h3 class="sec">Solar Irradiance Chart for the Site</h3>
+  ${bar3d}
+  <p style="text-align:center;font-style:italic;font-size:9.5px;color:#555;margin:1mm 0 3mm">Figure 1: Solar irradiance (peak sun hours per day) for ${esc(p.city || "Bhakkar")}, Pakistan.</p>
+  <p style="font-size:11px">Irradiation in this area is ample and distributed evenly throughout the year. The annual average is approximately 6.45 peak sun hours (PSH) per day.</p>
+  <h3 class="sec">Daily Solar Irradiance Level – Average</h3>
+  ${sunCurve}
+  <p style="text-align:center;font-style:italic;font-size:9.5px;color:#555;margin:1mm 0 3mm">Figure 2: Average daily solar radiation pattern for ${esc(p.city || "Bhakkar")}, Pakistan.</p>
+  <p style="font-size:11px">The proposed solar PV system has been designed around this irradiance pattern.</p>
 </div>
 
 <div class="page">
