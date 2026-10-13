@@ -148,10 +148,22 @@ export function printProposal(
   .cover3d h1{font-size:30px;font-weight:800;margin:6mm 0 3mm;text-shadow:0 3px 12px rgba(0,0,0,.5)}
   .cover3d h1 span{color:var(--gold)}
   .cover3d h2{font-size:18px;text-shadow:0 2px 8px rgba(0,0,0,.5)}
-  .cover3d .cbox{position:absolute;left:12mm;right:12mm;bottom:12mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
-  .cover3d .cbox div{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-top:3px solid var(--gold);border-radius:8px;padding:4mm;backdrop-filter:blur(4px)}
-  .cover3d .cbox small{display:block;font-size:9px;letter-spacing:.18em;color:var(--gold);font-weight:700}
-  .cover3d .cbox b{display:block;font-size:14px;margin:1mm 0}.cover3d .cbox span{font-size:10px;opacity:.85}
+  .cover3d .cbox{position:absolute;left:10mm;right:10mm;bottom:10mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
+  .cover3d .cbox div{background:rgba(11,58,91,.55);border:1px solid rgba(255,255,255,.3);border-top:4px solid var(--gold);border-radius:8px;padding:5.5mm 5mm;backdrop-filter:blur(4px)}
+  .cover3d .cbox small{display:block;font-size:11px;letter-spacing:.18em;color:var(--gold);font-weight:700}
+  .cover3d .cbox b{display:block;font-size:18px;margin:1.5mm 0}.cover3d .cbox span{font-size:12px;opacity:.9}
+  .cover3d .toprow{display:flex;justify-content:space-between;align-items:flex-start}
+  .cover3d .brand{display:flex;align-items:center;gap:4mm}.cover3d .brand .logo{margin-bottom:0}
+  .cover3d .rbs{font-size:24px;font-style:italic;font-weight:700;color:#fff;border-left:2px solid var(--gold);padding-left:4mm;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .cover3d .badges{display:flex;gap:2.5mm}.cover3d .badges i{width:15mm;height:15mm;border-radius:50%;background:#fff;color:#0b5a2b;font-style:normal;font-weight:800;font-size:8px;display:flex;align-items:center;justify-content:center;text-align:center;border:2px solid var(--gold);line-height:1.1}
+  .cover3d .tfp{font-size:30px;font-weight:800;text-align:center;margin:14mm 0 3mm;text-shadow:0 3px 12px rgba(0,0,0,.6)}
+  .cover3d .ct>.tag{text-align:center}
+  .cover3d .projbox{margin-top:30mm;background:rgba(11,30,50,.7);border-left:5px solid var(--gold);border-radius:8px;padding:6mm 7mm;width:70%}
+  .cover3d .projbox .pj{font-size:22px;font-weight:700}.cover3d .projbox .pj span{color:var(--gold)}
+  .cover3d .projbox .cl{font-size:15px;margin-top:2mm;opacity:.95}
+  .cover3d .contact{margin-top:8mm;display:grid;grid-template-columns:1fr 1fr 1.4fr;background:rgba(11,30,50,.7);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:4mm}
+  .cover3d .contact div{display:flex;gap:3mm;align-items:center;padding:0 3mm;border-left:1px solid rgba(255,255,255,.2)}.cover3d .contact div:first-child{border-left:0}
+  .cover3d .contact em{font-style:normal;font-size:18px}.cover3d .contact p{font-size:11px;margin:0}.cover3d .contact small{display:block;color:#ffd84d;font-weight:700;font-size:10px}
   .chart{border:1px solid var(--line);border-radius:8px;padding:3mm;background:linear-gradient(180deg,#fff,var(--soft))}
   .legend{display:flex;gap:6mm;font-size:10.5px;color:var(--muted);margin-top:2mm}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
   .sys3d{width:100%;height:70mm;object-fit:contain;display:block;border-radius:8px}
@@ -169,10 +181,21 @@ export function printProposal(
     <img class="bg" src="${abs("/portfolio/cover-3d.jpg")}" alt="">
     <div class="shade"></div>
     <div class="ct">
-      ${company.logoUrl ? `<img class="logo" src="${esc(company.logoUrl)}" alt="">` : ""}
+      <div class="toprow">
+        <div class="brand">${company.logoUrl ? `<img class="logo" src="${esc(company.logoUrl)}" alt="">` : ""}<span class="rbs">Run by Sun</span></div>
+        <div class="badges"><i>SECP</i><i>GOVT OF<br>PAKISTAN</i><i>AEDB</i></div>
+      </div>
+      <div class="tfp">TECHNICAL &amp; FINANCIAL PROPOSAL</div>
       <div class="tag">CLEAN ENERGY • GENUINE PRODUCTS • PROFESSIONAL SERVICE</div>
-      <h1>${esc(company.name).toUpperCase()}<br><span>SOLAR POWER PROPOSAL</span></h1>
-      <h2>${kw} kW ${typeLabel} Solar System</h2>
+      <div class="projbox">
+        <div class="pj"><span>Project:</span> ${kw}kW ${typeLabel} Solar System</div>
+        <div class="cl">Client: <b>${esc(p.customerName)}</b> &nbsp;|&nbsp; Date: <b>${p.date ? formatDate(p.date) : "-"}</b></div>
+      </div>
+      <div class="contact">
+        <div><em>✉</em><p><small>Email Us</small>${esc(company.email || "info@knssolar.com")}</p></div>
+        <div><em>🌐</em><p><small>Website</small>www.knssolar.com</p></div>
+        <div><em>📍</em><p><small>Location</small>${esc(company.address || "")}</p></div>
+      </div>
     </div>
     <div class="cbox">
       <div><small>PREPARED FOR</small><b>${esc(p.customerName)}</b><span>${esc(p.companyName || p.city)}</span></div>
