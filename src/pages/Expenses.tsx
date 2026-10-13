@@ -35,7 +35,7 @@ const categoryColors: Record<string, string> = {
   "Sales Discount": "bg-warning/10 text-warning",
 };
 
-const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Bank Transfer", nominalAccount: "", projectName: "" });
+const emptyExpense = (): Partial<Expense> => ({ date: new Date().toISOString().split("T")[0], category: "Other", description: "", amount: 0, paymentMethod: "Cash", nominalAccount: "", projectName: "" });
 
 export default function Expenses() {
   const { formatCurrency, formatDate } = useSettings();
