@@ -26,7 +26,8 @@ export function printProposal(
   p: Proposal,
   company: { name: string; address: string; phone: string; email: string; logoUrl: string },
   formatDate: (d: string | Date) => string,
-  projects: { title: string; customer: string; date: string; detail: string }[] = []
+  projects: { title: string; customer: string; date: string; detail: string }[] = [],
+  tariff: TariffRecord = DEFAULT_TARIFF
 ) {
   const abs = (u: string) => (u.startsWith("http") ? u : `${window.location.origin}${u}`);
   const LOGO = abs("/portfolio/ks-logo.webp");
