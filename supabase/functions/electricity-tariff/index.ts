@@ -101,11 +101,10 @@ Deno.serve(async (req) => {
   try {
     const url = Deno.env.get("SUPABASE_URL")!;
     const auth = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
-    const { data: u } = await userClient.auth.getUser();
-    if (!u?.user) return json({ error: "Not signed in" }, 401);
-
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const token = auth.replace(/^Bearer\s+/i, "");
+    const { data: u } = token ? await admin.auth.getUser(token) : { data: { user: null } };
+    if (!u?.user) return json({ error: "Not signed in" }, 401);
     const body = await req.json().catch(() => ({}));
     const { data: row } = await admin.from("electricity_tariffs").select("*").eq("id", ROW_ID).maybeSingle();
 
