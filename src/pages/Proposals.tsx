@@ -18,6 +18,8 @@ import { usePagination } from "@/hooks/usePagination";
 import { toast } from "sonner";
 import { printProposal } from "@/lib/proposalPrint";
 import { useSalesOrdersCloud } from "@/hooks/useAppData";
+import { useElectricityTariff } from "@/hooks/useElectricityTariff";
+import { CATEGORY_LABEL, resolveCategory, type TariffChoice } from "@/lib/electricityTariff";
 
 export interface ProposalItem {
   brand: string;
@@ -62,6 +64,8 @@ export interface Proposal {
   netBilling: boolean;
   earthing: boolean;
   disco: string;
+  /** Electricity connection type used for payback; "auto" = detected from customer details */
+  tariffCategory?: TariffChoice;
   battery: ProposalBattery | null;
   monthlyUnits: number[];
   items: ProposalItem[];
