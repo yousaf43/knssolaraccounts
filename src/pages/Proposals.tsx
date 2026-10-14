@@ -179,6 +179,13 @@ export default function Proposals() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  const detected = resolveCategory(form.tariffCategory, {
+    customerName: form.customerName,
+    companyName: form.companyName,
+    address: form.address,
+    systemKw: ((form.panelQty || 0) * (form.panelWatt || 0)) / 1000,
+    monthlyUnits: form.monthlyUnits,
+  });
   const systemKw = useMemo(
     () => +(((form.panelQty || 0) * (form.panelWatt || 0)) / 1000).toFixed(2),
     [form.panelQty, form.panelWatt]
