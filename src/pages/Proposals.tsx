@@ -18,6 +18,8 @@ import { usePagination } from "@/hooks/usePagination";
 import { toast } from "sonner";
 import { printProposal } from "@/lib/proposalPrint";
 import { useSalesOrdersCloud } from "@/hooks/useAppData";
+import { useElectricityTariff } from "@/hooks/useElectricityTariff";
+import { CATEGORY_LABEL, resolveCategory, type TariffChoice } from "@/lib/electricityTariff";
 
 export interface ProposalItem {
   brand: string;
@@ -62,6 +64,8 @@ export interface Proposal {
   netBilling: boolean;
   earthing: boolean;
   disco: string;
+  /** Electricity connection type used for payback; "auto" = detected from customer details */
+  tariffCategory?: TariffChoice;
   battery: ProposalBattery | null;
   monthlyUnits: number[];
   items: ProposalItem[];
@@ -102,6 +106,7 @@ const emptyProposal = (): Omit<Proposal, "id" | "proposalNo"> => ({
   netBilling: false,
   earthing: false,
   disco: "",
+  tariffCategory: "auto",
   battery: null,
   monthlyUnits: Array(12).fill(0),
   items: [],
@@ -143,6 +148,13 @@ export default function Proposals() {
   const { user, company } = useAuth();
   const { settings, formatCurrency, formatDate } = useSettings();
   const { data: salesOrdersAll } = useSalesOrdersCloud();
+  const { tariff, checking, refresh: refreshTariff } = useElectricityTariff();
+  const checkRates = async () => {
+    const res = await refreshTariff(true);
+    if (res.changed) toast.success("Electricity rates updated to the latest tariff");
+    else if (res.ok) toast.success("Rates are already up to date");
+    else toast.error("Couldn't check new rates right now — using the saved rates");
+  };
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -167,6 +179,13 @@ export default function Proposals() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  const detected = resolveCategory(form.tariffCategory, {
+    customerName: form.customerName,
+    companyName: form.companyName,
+    address: form.address,
+    systemKw: ((form.panelQty || 0) * (form.panelWatt || 0)) / 1000,
+    monthlyUnits: form.monthlyUnits,
+  });
   const systemKw = useMemo(
     () => +(((form.panelQty || 0) * (form.panelWatt || 0)) / 1000).toFixed(2),
     [form.panelQty, form.panelWatt]
@@ -327,7 +346,7 @@ export default function Proposals() {
         customer: o.customer,
         date: o.date,
         detail: (o.items || []).slice(0, 3).map((i) => i.description).filter(Boolean).join(" • "),
-      })));
+      })), tariff);
   };
 
   const hasBattery = form.systemType !== "on-grid" || form.battery !== null;
@@ -562,6 +581,31 @@ export default function Proposals() {
               <p className="text-sm text-muted-foreground mt-2">
                 Annual usage: <b className="text-foreground">{form.monthlyUnits.reduce((a, b) => a + (b || 0), 0).toLocaleString()} units</b>
               </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-[220px_1fr] items-end">
+                <div>
+                  <Label>Electricity connection type</Label>
+                  <Select value={form.tariffCategory || "auto"} onValueChange={(v) => set("tariffCategory", v as TariffChoice)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto detect</SelectItem>
+                      {(Object.keys(CATEGORY_LABEL) as (keyof typeof CATEGORY_LABEL)[]).map((k) => (
+                        <SelectItem key={k} value={k}>{CATEGORY_LABEL[k]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>
+                    Payback uses <b className="text-foreground">{CATEGORY_LABEL[detected.category]}</b> rates ({detected.reason}).
+                  </p>
+                  <p>
+                    Rates: {tariff.source}{tariff.effectiveLabel ? ` — ${tariff.effectiveLabel}` : ""}, last changed {formatDate(tariff.updatedAt)}.{" "}
+                    <button type="button" className="text-primary underline disabled:opacity-50" disabled={checking} onClick={checkRates}>
+                      {checking ? "Checking…" : "Check for new rates"}
+                    </button>
+                  </p>
+                </div>
+              </div>
             </section>
 
             {/* Quotation items */}

@@ -1,4 +1,5 @@
 import type { Proposal } from "@/pages/Proposals";
+import { CATEGORY_LABEL, DEFAULT_TARIFF, computeSavings, resolveCategory, type TariffRecord } from "@/lib/electricityTariff";
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -25,7 +26,8 @@ export function printProposal(
   p: Proposal,
   company: { name: string; address: string; phone: string; email: string; logoUrl: string },
   formatDate: (d: string | Date) => string,
-  projects: { title: string; customer: string; date: string; detail: string }[] = []
+  projects: { title: string; customer: string; date: string; detail: string }[] = [],
+  tariff: TariffRecord = DEFAULT_TARIFF
 ) {
   const abs = (u: string) => (u.startsWith("http") ? u : `${window.location.origin}${u}`);
   const LOGO = abs("/portfolio/ks-logo.webp");
@@ -395,10 +397,11 @@ export function printProposal(
 </div>
 
 ${(() => {
-  const TARIFF = 60; // PKR per unit (estimate)
+  const { category, reason } = resolveCategory(p.tariffCategory, p);
+  const sv = computeSavings(p.monthlyUnits, genMonthly, category, tariff.rates, p.netBilling);
   const usable = annualUnits ? Math.min(annualGen, annualUnits) : annualGen;
-  const yearSave = Math.round(usable * TARIFF);
-  const monthSave = Math.round(yearSave / 12);
+  const yearSave = sv.yearSave;
+  const monthSave = sv.monthSave;
   const cost = Math.max(0, Math.round(p.total));
   const paybackYears = yearSave > 0 ? cost / yearSave : 0;
   const pbY = Math.floor(paybackYears), pbM = Math.round((paybackYears - pbY) * 12);
@@ -423,7 +426,7 @@ ${(() => {
   <svg viewBox="0 0 ${W} ${H}" width="100%">${grid}<line x1="${X0}" y1="${sy(0)}" x2="${W - 15}" y2="${sy(0)}" stroke="#333"/>${bars}${pbX}</svg>
   <h4>Savings from month to years</h4>
   <table class="it"><tr><th>Period</th><th style="width:30%">Total saving (PKR)</th><th style="width:30%">Net benefit after cost (PKR)</th></tr>${rows}</table>
-  <p style="font-size:9.5px;color:#555;margin-top:3mm">Estimate based on ${f(usable)} units/year of solar generation used on site at about PKR ${TARIFF} per unit. Actual savings depend on tariff, usage and weather.</p>
+  <p style="font-size:9.5px;color:#555;margin-top:3mm">Calculated on the <b>${CATEGORY_LABEL[category]}</b> electricity tariff (${esc(reason)}) — ${esc(tariff.source)}${tariff.effectiveLabel ? `, ${esc(tariff.effectiveLabel)}` : ""}: average bill rate about PKR ${sv.avgRate.toFixed(1)} per unit including FPA ${tariff.rates.fpa}/unit, electricity duty ${tariff.rates.electricityDuty}% and GST ${tariff.rates.gst}%${p.netBilling ? `; exported units credited at PKR ${tariff.rates.exportRate}/unit` : ""}. Solar use on site about ${f(usable)} units/year. Actual savings depend on future tariff changes, usage and weather.</p>
 </div>`;
 })()}
 
