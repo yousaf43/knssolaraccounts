@@ -381,20 +381,43 @@ export function printProposal(
   .qt .pd p{font-size:11px;margin:1mm 0}
   .qt .sg{display:flex;justify-content:space-between;margin-top:14mm}.qt .sg div{width:42%;border-top:1.5px solid #0E3A5B;padding-top:2mm;font-weight:700;color:#0E3A5B;font-size:11.5px}
 </style>
-<div class="page qt">
-  <div class="phead">
-    ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
-    <span>Solar Power Proposal &nbsp;|&nbsp; ${typeLabel} System</span>
-  </div>
-  <h2 class="ptitle"><em>5</em> FINANCIAL OUTCOME</h2>
-  <p style="font-size:11.5px">Priced scope for the <b>${kw} kWp</b> ${typeLabel.toLowerCase()} solar PV system${p.battery ? " with battery storage" : ""}. The following lines, quantities and amounts match the quotation.</p>
-  <table class="it">
-    <tr><th style="width:5%">#</th><th>Item and description</th><th style="width:7%">Qty</th><th style="width:8%">Unit</th><th style="width:15%">Unit price (PKR)</th><th style="width:17%">Amount (PKR)</th></tr>
-    ${p.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td class="d"><b style="color:#0E3A5B">${esc(it.brand)}</b><br>${esc(it.description)}</td><td style="text-align:center">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td class="num">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td></tr>`).join("")}
-    <tr class="tot"><td colspan="4">TOTAL AMOUNT IN PKR</td><td colspan="2" class="g">PKR ${Math.round(p.total).toLocaleString("en-PK")} /-</td></tr>
-  </table>
-  <p style="font-size:11px;margin-top:5mm">Prices and exclusions are governed by the quotation terms in the quotation section.</p>
-</div>
+${(() => {
+  const BLUE = "#0868A0", GOLD = "#F8B830";
+  const use = MN.map((_, i) => Math.round(Number(p.monthlyUnits[i]) || 0));
+  const gen = genMonthly.map((g) => Math.round(g));
+  const niceMax = (v: number, steps: number) => { const raw = Math.max(1, v) / steps; const mag = Math.pow(10, Math.floor(Math.log10(raw))); const n = [1, 2, 2.5, 3, 5, 10].find((k) => k * mag >= raw) || 10; return n * mag * steps; };
+  const fk = (n: number) => Math.round(n).toLocaleString("en-US");
+  // Monthly chart
+  const mMax = niceMax(Math.max(...use, ...gen) * 1.1, 5);
+  const X0 = 60, B = 230, H = 200, GW = 48, BW = 17;
+  const sy = (v: number) => B - (v / mMax) * H;
+  const mGrid = Array.from({ length: 6 }, (_, k) => { const v = (mMax / 5) * k, y = sy(v); return `<line x1="${X0}" y1="${y}" x2="${X0 + 12 * GW}" y2="${y}" stroke="#E6E9EE"/><text x="${X0 - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#555">${fk(v)}</text>`; }).join("");
+  const mBars = MN.map((m, i) => {
+    const x = X0 + i * GW + 6;
+    const bar = (v: number, bx: number, c: string) => `<rect x="${bx}" y="${sy(v)}" width="${BW}" height="${B - sy(v)}" fill="${c}"/><text transform="translate(${bx + BW / 2 + 2.5},${sy(v) - 3}) rotate(-90)" font-size="6.5" font-weight="700" fill="#333">${fk(v)}</text>`;
+    return bar(use[i], x, BLUE) + bar(gen[i], x + BW + 1, GOLD) + `<text x="${x + BW}" y="${B + 13}" font-size="8" text-anchor="middle" fill="#444">${m}</text>`;
+  }).join("");
+  const monthly = `<svg viewBox="0 0 660 260" width="100%"><rect x="${X0 + 20}" y="2" width="8" height="8" fill="${BLUE}"/><text x="${X0 + 32}" y="9.5" font-size="8" fill="#333">Grid consumption (kWh)</text><rect x="${X0 + 150}" y="2" width="8" height="8" fill="${GOLD}"/><text x="${X0 + 162}" y="9.5" font-size="8" fill="#333">Solar generation (kWh)</text><text transform="translate(16,${B - H / 2}) rotate(-90)" font-size="8" text-anchor="middle" fill="#555">kWh / month</text>${mGrid}<line x1="${X0}" y1="${B}" x2="${X0 + 12 * GW}" y2="${B}" stroke="#999"/>${mBars}</svg>`;
+  // Annual chart
+  const aUse = use.reduce((a, b) => a + b, 0), aGen = gen.reduce((a, b) => a + b, 0);
+  const aMax = niceMax(Math.max(aUse, aGen) * 1.15, 5);
+  const AX = 90, AB = 210, AH = 185, AW = 380;
+  const ay = (v: number) => AB - (v / aMax) * AH;
+  const aGrid = Array.from({ length: 6 }, (_, k) => { const v = (aMax / 5) * k, y = ay(v); return `<line x1="${AX}" y1="${y}" x2="${AX + AW}" y2="${y}" stroke="#E6E9EE"/><text x="${AX - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#555">${fk(v)}</text>`; }).join("");
+  const aBar = (v: number, cx: number, c: string, l: string) => `<rect x="${cx - 32}" y="${ay(v)}" width="64" height="${AB - ay(v)}" fill="${c}"/><text x="${cx}" y="${ay(v) - 4}" font-size="9" font-weight="700" text-anchor="middle" fill="#222">${fk(v)} kWh</text><text x="${cx}" y="${AB + 14}" font-size="8" text-anchor="middle" fill="#444">${l}</text>`;
+  const annual = `<svg viewBox="0 0 560 230" width="78%" style="display:block;margin:0 auto"><text transform="translate(40,${AB - AH / 2}) rotate(-90)" font-size="8" text-anchor="middle" fill="#555">kWh / year</text>${aGrid}<line x1="${AX}" y1="${AB}" x2="${AX + AW}" y2="${AB}" stroke="#999"/>${aBar(aUse, AX + AW * 0.27, BLUE, "Annual grid consumption")}${aBar(aGen, AX + AW * 0.73, GOLD, "Annual solar generation")}</svg>`;
+  const h = (t: string) => `<h3 style="color:#0B5A8C;font-size:17px;font-weight:800;margin:5mm 0 2mm">${t}</h3>`;
+  const cap = (t: string) => `<p style="text-align:center;font-style:italic;color:#666;font-size:10px;margin:1mm 0 4mm">${t}</p>`;
+  return `<div class="page">
+  <div class="phead">${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}<span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span></div>
+  ${h("Monthly Generation vs. Grid Consumption (kWh)")}
+  ${monthly}
+  ${cap(`Figure 4: Monthly grid consumption vs. expected ${kw} kWp solar generation.`)}
+  ${h("Annual Consumption vs. Solar Generation")}
+  ${annual}
+  ${cap("Figure 5: Annual grid consumption vs. annual solar generation (kWh).")}
+</div>`;
+})()}
 
 ${(() => {
   const { category, reason } = resolveCategory(p.tariffCategory, p);
