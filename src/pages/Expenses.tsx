@@ -18,7 +18,7 @@ import { useTrash } from "@/hooks/useTrash";
 import type { Account } from "@/data/defaultAccounts";
 
 
-const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Fuel and Transportation", "Bills and Bilties", "Material Delivery and Travel", "Maintenance and other Replacement", "Miscellaneous", "Material Purchase", "Other"];
+const categories = ["Software", "Office", "Marketing", "Utilities", "Travel", "Payroll", "Insurance", "Rent", "Fuel and Transportation", "Bills and Bilties", "Material Delivery and Travel", "Maintenance and other Replacement", "Miscellaneous", "Material Purchase", "Other"];
 const paymentMethods = ["Credit Card", "Bank Transfer", "Auto-debit", "Cash", "Check"];
 // Nominal accounts mirror the expense categories
 const nominalAccounts = categories;
