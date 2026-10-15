@@ -101,7 +101,7 @@ export function printProposal(
     else if (/install|commission/.test(t)) d = ["Complete mechanical & electrical installation by trained engineers", "DC/AC cabling, breakers, SPD, earthing and system configuration", "Testing, commissioning, app setup & customer handover"];
     else if (/cable|wire/.test(t)) d = ["Copper DC solar cable & AC wiring as per system design", "UV-resistant insulation, proper sizing to minimise losses"];
     else if (/earth|lightning|arrest/.test(t)) d = ["Copper earthing rod with chemical backfill", "Protects equipment & people from faults and lightning surges"];
-    else if (/net|meter/.test(t)) d = [`Net-metering application, documentation & green meter with ${esc(p.disco) || "DISCO"}`, "Export surplus units to the grid for bill credit"];
+    else if (/net|meter/.test(t)) d = [`Net-metering application, documentation & green meter with ${p.disco || "DISCO"}`, "Export surplus units to the grid for bill credit"];
     return d.length ? `<ul style="margin:1mm 0 0;padding-left:4mm;font-size:9.5px;color:#444;line-height:1.45">${d.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
   };
 
