@@ -333,8 +333,14 @@ export default function Invoices() {
     const normalizeDocument = (value?: string) => (value || "").trim().toLowerCase();
     const invoiceNumber = normalizeDocument(invoice.number);
     const documentNumber = normalizeDocument(invoice.documentNumber);
+    const previousInvoice = invoices.find((i) => i.id === invoice.id);
+    // Only block duplicates when the number is new or was actually changed —
+    // editing an invoice whose number already exists must stay possible.
+    const numberChanged = !previousInvoice || normalizeDocument(previousInvoice.number) !== invoiceNumber;
 
-    const duplicateInvoiceNumber = invoices.find((i) => normalizeDocument(i.number) === invoiceNumber && i.id !== invoice.id);
+    const duplicateInvoiceNumber = numberChanged
+      ? invoices.find((i) => normalizeDocument(i.number) === invoiceNumber && i.id !== invoice.id)
+      : undefined;
     if (duplicateInvoiceNumber) {
       toast.error(`Invoice number "${invoice.number}" already exists. Please use a different number.`);
       return;
