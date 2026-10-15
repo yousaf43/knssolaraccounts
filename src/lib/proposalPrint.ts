@@ -91,6 +91,20 @@ export function printProposal(
     )
     .join("");
 
+  const itemDetail = (it: { brand: string; description: string }) => {
+    const t = `${it.brand} ${it.description}`.toLowerCase();
+    let d: string[] = [];
+    if (/panel|module|pv/.test(t)) d = [`Tier-1 ${p.panelBrand || it.brand} monocrystalline N-type / bifacial module, ${p.panelWatt} W each`, `Total array capacity ${kw} kWp, high efficiency (~22%) with low light-induced degradation`, `Warranty: ${p.panelWarranty || "as per manufacturer"} (manufacturer)`];
+    else if (/batter|lithium|lifepo/.test(t)) d = [p.battery ? `${p.battery.units} × ${p.battery.kwhEach} kWh ${p.battery.type} — total ${(p.battery.units * p.battery.kwhEach).toFixed(2).replace(/\.?0+$/, "")} kWh storage` : "Lithium (LiFePO4) battery storage", "Built-in BMS, 6000+ cycles, deep discharge support, wall / floor mounted", `Warranty: ${p.battery?.warranty || "as per manufacturer"}`];
+    else if (/inverter/.test(t)) d = [`${p.inverterKw || ""} kW ${typeLabel} inverter with built-in MPPT solar charge controller`, `Pure sine wave output, Wi-Fi monitoring app${p.battery ? ", battery & grid priority modes" : ""}${p.netBilling ? ", net-metering compatible" : ""}`, `Warranty: ${p.inverterWarranty || "as per manufacturer"}`];
+    else if (/structure|mount|c-type|stand/.test(t)) d = ["Hot-dip galvanised / L2 C-channel raised structure, rust-proof", "Designed for 25°–30° tilt, wind-load resistant with anchor fasteners", "Includes nuts, bolts, clamps and rail fittings"];
+    else if (/install|commission/.test(t)) d = ["Complete mechanical & electrical installation by trained engineers", "DC/AC cabling, breakers, SPD, earthing and system configuration", "Testing, commissioning, app setup & customer handover"];
+    else if (/cable|wire/.test(t)) d = ["Copper DC solar cable & AC wiring as per system design", "UV-resistant insulation, proper sizing to minimise losses"];
+    else if (/earth|lightning|arrest/.test(t)) d = ["Copper earthing rod with chemical backfill", "Protects equipment & people from faults and lightning surges"];
+    else if (/net|meter/.test(t)) d = [`Net-metering application, documentation & green meter with ${p.disco || "DISCO"}`, "Export surplus units to the grid for bill credit"];
+    return d.length ? `<ul style="margin:1mm 0 0;padding-left:4mm;font-size:9.5px;color:#444;line-height:1.45">${d.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+  };
+
   const termsList = p.terms
     .split("\n")
     .map((t) => t.trim())
@@ -480,7 +494,7 @@ ${(() => {
   <div class="subj">SUBJECT: &nbsp;Quotation for ${kw} kW ${typeLabel} Solar System.</div>
   <table class="it">
     <tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:8%">Qty</th><th style="width:12%">Unit Price</th><th style="width:13%">Amount</th></tr>
-    ${p.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d">${esc(it.description)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td><td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td></tr>`).join("")}
+    ${p.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d"><b style="color:#0E3A5B">${esc(it.description)}</b>${itemDetail(it)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td><td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td></tr>`).join("")}
     <tr class="tot"><td colspan="4">TOTAL AMOUNT IN PKR</td><td colspan="2" class="g">${Math.round(p.total).toLocaleString("en-PK")} /-</td></tr>
   </table>
   <h4>Terms and Conditions</h4>
