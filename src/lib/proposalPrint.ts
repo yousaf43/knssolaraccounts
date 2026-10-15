@@ -180,9 +180,16 @@ export function printProposal(
   .cover3d .brand{display:flex;align-items:center;gap:4mm}.cover3d .brand .logo{margin-bottom:0}
   .cover3d .rbs{font-size:24px;font-style:italic;font-weight:700;color:#fff;border-left:2px solid var(--gold);padding-left:4mm;text-shadow:0 2px 8px rgba(0,0,0,.5)}
   .cover3d .badges{display:flex;gap:2.5mm}.cover3d .badges i{width:15mm;height:15mm;border-radius:50%;background:#fff;color:#0b5a2b;font-style:normal;font-weight:800;font-size:8px;display:flex;align-items:center;justify-content:center;text-align:center;border:2px solid var(--gold);line-height:1.1}
+  .cover3d .badges{gap:3mm}.cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1.2mm}
+  .cover3d .badges .bd span{width:19mm;height:19mm;border-radius:50%;background:#fff;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+  .cover3d .badges .bd img{width:15mm;height:15mm;object-fit:contain}
+  .cover3d .badges .bd small{font-size:7.5px;font-weight:800;letter-spacing:.05em;color:#fff;background:rgba(11,30,50,.75);padding:.6mm 1.8mm;border-radius:2mm;text-shadow:none}
+  .cover3d .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:10mm}
+  .cover3d .feat div{background:rgba(11,30,50,.65);border:1px solid rgba(255,255,255,.25);border-bottom:3px solid var(--gold);border-radius:8px;padding:4mm 3mm;text-align:center}
+  .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13px;color:#ffd84d;margin-top:1mm}.cover3d .feat span{font-size:9.5px;opacity:.9}
   .cover3d .tfp{font-size:30px;font-weight:800;text-align:center;margin:14mm 0 3mm;text-shadow:0 3px 12px rgba(0,0,0,.6)}
   .cover3d .ct>.tag{text-align:center}
-  .cover3d .projbox{margin-top:30mm;background:rgba(11,30,50,.7);border-left:5px solid var(--gold);border-radius:8px;padding:6mm 7mm;width:70%}
+  .cover3d .projbox{margin-top:8mm;background:rgba(11,30,50,.7);border-left:5px solid var(--gold);border-radius:8px;padding:6mm 7mm;width:70%}
   .cover3d .projbox .pj{font-size:22px;font-weight:700}.cover3d .projbox .pj span{color:var(--gold)}
   .cover3d .projbox .cl{font-size:15px;margin-top:2mm;opacity:.95}
   .cover3d .contact{margin-top:8mm;display:grid;grid-template-columns:1fr 1fr 1.4fr;background:rgba(11,30,50,.7);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:4mm}
@@ -207,10 +214,16 @@ export function printProposal(
     <div class="ct">
       <div class="toprow">
         <div class="brand">${LOGO ? `<img class="logo" src="${esc(LOGO)}" alt="">` : ""}<span class="rbs">Run by Sun</span></div>
-        <div class="badges"><i>SECP</i><i>GOVT OF<br>PAKISTAN</i><i>AEDB</i></div>
+        <div class="badges">${[["secp","SECP Registered"],["aedb","AEDB Certified"],["pec","PEC Registered"]].map(([k,l]) => `<div class="bd"><span><img src="${abs(`/portfolio/logo-${k}.png`)}" alt="${l}"></span><small>${l}</small></div>`).join("")}</div>
       </div>
       <div class="tfp">TECHNICAL &amp; FINANCIAL PROPOSAL</div>
       <div class="tag">CLEAN ENERGY • GENUINE PRODUCTS • PROFESSIONAL SERVICE</div>
+      <div class="feat">
+        <div><em>☀</em><b>Since 2013</b><span>Trusted solar experience</span></div>
+        <div><em>🛡</em><b>Tier-1 Products</b><span>Genuine panels &amp; inverters</span></div>
+        <div><em>⚡</em><b>Net Metering</b><span>Complete approval support</span></div>
+        <div><em>🔧</em><b>After-Sales</b><span>Service &amp; maintenance</span></div>
+      </div>
       <div class="projbox">
         <div class="pj"><span>Project:</span> ${kw}kW ${typeLabel} Solar System</div>
         <div class="cl">Client: <b>${esc(p.customerName)}</b> &nbsp;|&nbsp; Date: <b>${p.date ? formatDate(p.date) : "-"}</b></div>
