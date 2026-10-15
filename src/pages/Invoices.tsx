@@ -85,6 +85,18 @@ function parseCSV(text: string): Record<string, string>[] {
   });
 }
 
+// Next document number from the highest existing suffix (never reuses a number,
+// even after deletions — invoices.length + 1 caused duplicate numbers).
+const nextDocNumber = (prefix: string, numbers: (string | undefined)[]) => {
+  let max = 0;
+  const re = new RegExp(`^${prefix}-?(\\d+)$`, "i");
+  for (const n of numbers) {
+    const m = re.exec((n || "").trim());
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return `${prefix}-${String(max + 1).padStart(3, "0")}`;
+};
+
 export default function Invoices() {
   const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
