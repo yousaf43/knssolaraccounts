@@ -346,10 +346,11 @@ export default function Invoices() {
       return;
     }
 
-    if (documentNumber) {
+    const docNumberChanged = !previousInvoice || normalizeDocument(previousInvoice.documentNumber) !== documentNumber;
+    if (documentNumber && docNumberChanged) {
       const duplicateDocNumber = invoices.find((i) => normalizeDocument(i.documentNumber) === documentNumber && i.id !== invoice.id);
       if (duplicateDocNumber) {
-        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not created.`);
+        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not saved.`);
         return;
       }
 
@@ -361,12 +362,12 @@ export default function Invoices() {
         .limit(1);
 
       if (duplicateCheckError) {
-        toast.error("Could not verify document number. Invoice was not created.");
+        toast.error("Could not verify document number. Invoice was not saved.");
         return;
       }
 
       if (existingDocRows && existingDocRows.length > 0) {
-        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not created.`);
+        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not saved.`);
         return;
       }
     }
