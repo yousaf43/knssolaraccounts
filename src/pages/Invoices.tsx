@@ -85,6 +85,18 @@ function parseCSV(text: string): Record<string, string>[] {
   });
 }
 
+// Next document number from the highest existing suffix (never reuses a number,
+// even after deletions — invoices.length + 1 caused duplicate numbers).
+const nextDocNumber = (prefix: string, numbers: (string | undefined)[]) => {
+  let max = 0;
+  const re = new RegExp(`^${prefix}-?(\\d+)$`, "i");
+  for (const n of numbers) {
+    const m = re.exec((n || "").trim());
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return `${prefix}-${String(max + 1).padStart(3, "0")}`;
+};
+
 export default function Invoices() {
   const { formatCurrency, formatDate } = useSettings();
   const { log } = useActivityLog();
@@ -333,17 +345,24 @@ export default function Invoices() {
     const normalizeDocument = (value?: string) => (value || "").trim().toLowerCase();
     const invoiceNumber = normalizeDocument(invoice.number);
     const documentNumber = normalizeDocument(invoice.documentNumber);
+    const previousInvoice = invoices.find((i) => i.id === invoice.id);
+    // Only block duplicates when the number is new or was actually changed —
+    // editing an invoice whose number already exists must stay possible.
+    const numberChanged = !previousInvoice || normalizeDocument(previousInvoice.number) !== invoiceNumber;
 
-    const duplicateInvoiceNumber = invoices.find((i) => normalizeDocument(i.number) === invoiceNumber && i.id !== invoice.id);
+    const duplicateInvoiceNumber = numberChanged
+      ? invoices.find((i) => normalizeDocument(i.number) === invoiceNumber && i.id !== invoice.id)
+      : undefined;
     if (duplicateInvoiceNumber) {
       toast.error(`Invoice number "${invoice.number}" already exists. Please use a different number.`);
       return;
     }
 
-    if (documentNumber) {
+    const docNumberChanged = !previousInvoice || normalizeDocument(previousInvoice.documentNumber) !== documentNumber;
+    if (documentNumber && docNumberChanged) {
       const duplicateDocNumber = invoices.find((i) => normalizeDocument(i.documentNumber) === documentNumber && i.id !== invoice.id);
       if (duplicateDocNumber) {
-        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not created.`);
+        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not saved.`);
         return;
       }
 
@@ -355,12 +374,12 @@ export default function Invoices() {
         .limit(1);
 
       if (duplicateCheckError) {
-        toast.error("Could not verify document number. Invoice was not created.");
+        toast.error("Could not verify document number. Invoice was not saved.");
         return;
       }
 
       if (existingDocRows && existingDocRows.length > 0) {
-        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not created.`);
+        toast.error(`Document number "${invoice.documentNumber}" already exists. Invoice was not saved.`);
         return;
       }
     }
@@ -397,7 +416,7 @@ export default function Invoices() {
       if (advanceAmount && advanceAmount > 0) {
         const advReceipt: Receipt = {
           id: crypto.randomUUID(),
-          number: `RCP-${String(receipts.length + 1).padStart(3, "0")}`,
+          number: nextDocNumber("RCP", receipts.map(r => r.number)),
           customer: invoice.customer,
           date: invoice.date,
           invoiceNumber: invoice.number,
@@ -450,7 +469,7 @@ export default function Invoices() {
     // Create return credit note
     const returnInvoice: Invoice = {
       id: crypto.randomUUID(),
-      number: `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`,
+      number: nextDocNumber("RET", invoices.filter(i => i.isReturn).map(i => i.number)),
       customer: inv.customer,
       date: new Date().toISOString().split("T")[0],
       dueDate: inv.dueDate,
@@ -492,7 +511,7 @@ export default function Invoices() {
     notes: string;
   }) => {
     const { originalInvoice, returnType, returnItems: retItems, exchangeItems: exchItems, refundAmount, refundMethod, notes: retNotes } = data;
-    const retNumber = `RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`;
+    const retNumber = nextDocNumber("RET", invoices.filter(i => i.isReturn).map(i => i.number));
 
     // 1. Restore stock for returned items (bundles expand into their components)
     for (const [itemId, qty] of expandStockQty(retItems, inventory, (l) => (l as typeof retItems[number]).returnQty)) {
@@ -604,7 +623,7 @@ export default function Invoices() {
   const handleApproveSO = async (so: SalesOrder) => {
     const newInvoice: Invoice = {
       id: crypto.randomUUID(),
-      number: `INV-${String(invoices.length + 1).padStart(3, "0")}`,
+      number: nextDocNumber("INV", invoices.map(i => i.number)),
       projectName: so.projectName,
       customer: so.customer,
       date: new Date().toISOString().split("T")[0],
@@ -625,7 +644,7 @@ export default function Invoices() {
     if (so.advancePayment && so.advancePayment > 0) {
       const newReceipt: Receipt = {
         id: crypto.randomUUID(),
-        number: `RCP-${String(receipts.length + 1).padStart(3, "0")}`,
+        number: nextDocNumber("RCP", receipts.map(r => r.number)),
         customer: so.customer, date: so.date, invoiceNumber: newInvoice.number,
         amount: so.advancePayment, paymentMethod: so.advancePaymentMethod || "cash",
         reference: so.advancePaymentRef, notes: `Advance payment against ${so.number}`,
@@ -736,7 +755,7 @@ export default function Invoices() {
   const handleConvertQuotationToSO = async (q: Quotation) => {
     const newSO: SalesOrder = {
       id: crypto.randomUUID(),
-      number: `SO-${String(salesOrders.length + 1).padStart(3, "0")}`,
+      number: nextDocNumber("SO", salesOrders.map(o => o.number)),
       projectName: q.projectName,
       customer: q.customer,
       date: new Date().toISOString().split("T")[0],
@@ -928,22 +947,22 @@ export default function Invoices() {
     return <SalesOrderPreview order={previewSO.order} onClose={goList} showPrices={previewSO.showPrices} customers={customers} inventory={inventory} />;
   }
   if (view === "return-form") {
-    return <ReturnInvoiceForm invoices={invoices.filter(i => !i.isReturn)} inventory={inventory} onSaveReturn={handleProcessReturn} onCancel={goList} nextReturnNumber={`RET-${String(invoices.filter(i => i.isReturn).length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+    return <ReturnInvoiceForm invoices={invoices.filter(i => !i.isReturn)} inventory={inventory} onSaveReturn={handleProcessReturn} onCancel={goList} nextReturnNumber={nextDocNumber("RET", invoices.filter(i => i.isReturn).map(i => i.number))} accounts={cloudAccounts as any} />;
   }
   if (view === "form-receipt-for-invoice" && receivePaymentInvoice) {
-    return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={null} nextNumber={`RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} prefillInvoice={receivePaymentInvoice} />;
+    return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={null} nextNumber={nextDocNumber("RCP", receipts.map(r => r.number))} accounts={cloudAccounts as any} prefillInvoice={receivePaymentInvoice} />;
   }
   if (view === "quotation-form") {
-    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : `QTN-${String(quotations.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} draftKind="quotation" initialDraft={draftDataFor("quotation")} />;
+    return <InvoiceForm onSave={(inv) => handleSaveQuotation(inv as unknown as Quotation)} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editQuotation as unknown as Invoice | null} onAddCustomer={handleAddCustomer} nextNumber={editQuotation ? editQuotation.number : nextDocNumber("QTN", quotations.map(q => q.number))} accounts={cloudAccounts as any} draftKind="quotation" initialDraft={draftDataFor("quotation")} />;
   }
   if (view === "form") {
     if (activeTab === "sales-orders" || editOrder) {
-      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : `SO-${String(salesOrders.length + 1).padStart(3, "0")}`} initialDraft={draftDataFor("sales-order")} />;
+      return <SalesOrderForm onSave={handleSaveSO} onCancel={goList} customers={customers} inventory={mainInventory} editOrder={editOrder} onAddCustomer={handleAddCustomer} nextNumber={editOrder ? editOrder.number : nextDocNumber("SO", salesOrders.map(o => o.number))} initialDraft={draftDataFor("sales-order")} />;
     }
     if (activeTab === "receipts" || editReceipt) {
-      return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : `RCP-${String(receipts.length + 1).padStart(3, "0")}`} accounts={cloudAccounts as any} />;
+      return <ReceiptForm onSave={handleSaveReceipt} onSaveBulk={handleSaveBulkReceipts} onCancel={goList} customers={customers} invoices={invoices} receipts={receipts} editReceipt={editReceipt} nextNumber={editReceipt ? editReceipt.number : nextDocNumber("RCP", receipts.map(r => r.number))} accounts={cloudAccounts as any} />;
     }
-    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : `INV-${String(invoices.length + 1).padStart(3, "0")}`} receipts={receipts} accounts={cloudAccounts as any} initialLedger={(() => { if (!editInvoice) return null; const e = findInvoiceLedgerEntry(editInvoice.number); return e ? { account: e.bank, amount: e.amount } : null; })()} draftKind="invoice" initialDraft={draftDataFor("invoice")} />;
+    return <InvoiceForm onSave={handleSaveInvoice} onCancel={goList} customers={customers} inventory={mainInventory} editInvoice={editInvoice} onAddCustomer={handleAddCustomer} nextNumber={editInvoice ? editInvoice.number : nextDocNumber("INV", invoices.map(i => i.number))} receipts={receipts} accounts={cloudAccounts as any} initialLedger={(() => { if (!editInvoice) return null; const e = findInvoiceLedgerEntry(editInvoice.number); return e ? { account: e.bank, amount: e.amount } : null; })()} draftKind="invoice" initialDraft={draftDataFor("invoice")} />;
   }
 
   // --- Export CSV ---
