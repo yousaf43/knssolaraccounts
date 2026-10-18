@@ -137,8 +137,14 @@ export function printProposal(
   :root{--blue:#0868A0;--gold:#F8B830;--navy:#0B3A5B;--ink:#1E2B36;--muted:#5F6F7C;--line:#D7E0E7;--soft:#EAF3F9}
   *{box-sizing:border-box;margin:0}
   body{font-family:"Segoe UI",Calibri,system-ui,Arial,sans-serif;color:var(--ink);line-height:1.45;font-size:12.5px}
-  .page{width:190mm;margin:0 auto;padding:10mm 0;page-break-after:always}
-  .page:last-child{page-break-after:auto}
+  .page{width:190mm;max-width:100%;margin:0 auto;padding:6mm 0;display:flow-root;overflow-wrap:anywhere}
+  .page+.page{break-before:page;page-break-before:always}
+  .page.cover-page{padding:0}
+  thead{display:table-header-group}tfoot{display:table-row-group}
+  tr,.proj,.feat,.quote,.stat,.sg,.pd{break-inside:avoid;page-break-inside:avoid}
+  h2,h3,h4,.phead,.qh{break-after:avoid;page-break-after:avoid}
+  svg{display:block;break-inside:avoid}
+  img{max-width:100%}
   .cover{background:linear-gradient(160deg,var(--navy),var(--blue));color:#fff;border-radius:6px;padding:16mm 14mm;min-height:250mm;position:relative}
   .cover .tag{letter-spacing:.22em;font-size:10px;color:var(--gold);font-weight:700}
   .cover h1{font-size:30px;margin:10mm 0 2mm;font-weight:800}
@@ -223,10 +229,10 @@ export function printProposal(
   table.ov{border-collapse:separate;border-spacing:0 1.2mm}table.ov th,table.ov td{border:0;padding:3mm 4mm;font-size:12.5px;vertical-align:middle}table.ov th{width:36%;background:var(--soft);color:var(--blue);font-weight:700}table.ov td{border-bottom:1px solid var(--line);padding-left:5mm}
   .kband{display:grid;grid-template-columns:repeat(4,1fr);background:var(--blue);color:#fff;border-bottom:3px solid var(--gold);margin:8mm 0 7mm}.kband div{text-align:center;padding:5mm 2mm;border-left:2px solid #fff}.kband div:first-child{border-left:0}.kband b{display:block;font-size:19px;font-weight:700}.kband span{font-size:9.5px;letter-spacing:.18em;opacity:.92}
   .bgh{font-size:15px;color:var(--blue);margin-bottom:2mm}.bgp{font-size:12.5px;color:#333;margin-bottom:3mm;line-height:1.65}
-  @media print{@page{size:A4;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  @media print{@page{size:A4;margin:8mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{width:190mm;margin:0 auto}.cover3d{height:270mm}.tm .st{margin-top:5mm}.tm .ft{margin-top:5mm}}
 </style></head><body>
 
-<div class="page">
+<div class="page cover-page">
   <div class="cover3d">
     <img class="bg" src="${abs("/portfolio/cover-3d.jpg")}" alt="">
     <div class="shade"></div>
@@ -311,8 +317,8 @@ export function printProposal(
   <div class="quote" style="margin-top:0"><b>Jamil Hussain</b> — "Jamil Flour Mill is now powered by a 1.2 MW solar energy system installed by K&S Solar Energy. Maximum efficiency, reduced electricity costs and sustainable energy for uninterrupted operations."</div>
   <div class="quote"><b>Sheikh Habibullah</b> — "Atta Chaki is now powered by a 21 kW On-Grid Net Metering System, ensuring reduced electricity costs and maximum energy efficiency."</div>
   <div class="quote"><b>Dr. Safdar Bukhari</b> — "The hospital now runs on an On-Grid Solar System installed by K&S Solar Energy — lower electricity costs and uninterrupted power. Their expert service made the transition smooth!"</div>
-  ${projects.length ? `<h3 class="sec">RECENTLY COMPLETED</h3><div class="grid2">${projectCards}</div>` : ""}
 </div>
+${projects.length ? `<div class="page"><h3 class="sec" style="margin-top:0">RECENTLY COMPLETED PROJECTS</h3><div class="grid2">${projectCards}</div></div>` : ""}
 
 <div class="page">
   <div class="phead">
@@ -498,11 +504,15 @@ ${(() => {
   </table>
   <div class="subj">SUBJECT: &nbsp;Quotation for ${kw} kW ${typeLabel} Solar System.</div>
   <table class="it">
-    <tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:8%">Qty</th><th style="width:12%">Unit Price</th><th style="width:13%">Amount</th></tr>
+    <thead><tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:8%">Qty</th><th style="width:12%">Unit Price</th><th style="width:13%">Amount</th></tr></thead><tbody>
     ${p.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d"><b style="color:#0E3A5B">${esc(it.description)}</b>${itemDetail(it)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td><td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td></tr>`).join("")}
-    <tr class="tot"><td colspan="4">TOTAL AMOUNT IN PKR</td><td colspan="2" class="g">${Math.round(p.total).toLocaleString("en-PK")} /-</td></tr>
+    <tr class="tot"><td colspan="4">TOTAL AMOUNT IN PKR</td><td colspan="2" class="g">${Math.round(p.total).toLocaleString("en-PK")} /-</td></tr></tbody>
   </table>
-  <h4>Terms and Conditions</h4>
+</div>
+
+<div class="page qt">
+  <div class="phead"><img src="${esc(LOGO)}" alt="K&amp;S Solar Energy"><span>${esc(p.proposalNo)} &nbsp;|&nbsp; ${esc(p.customerName)}</span></div>
+  <h2 class="ptitle">TERMS, PAYMENT &amp; DELIVERY</h2>
   <ul class="tc">${termsList || [
     `<li style="color:#C0262D;font-weight:700">Long-distance wire and internal wiring are not included.</li>`,
     "Civil work is not included.",
@@ -595,5 +605,8 @@ ${(() => {
   w.document.write(html);
   w.document.close();
   const imgs = Array.from(w.document.images);
-  Promise.all(imgs.map((im) => (im.complete ? Promise.resolve() : new Promise((r) => { im.onload = im.onerror = () => r(null); })))).then(() => setTimeout(() => w.print(), 200));
+  Promise.all([
+    w.document.fonts.ready,
+    ...imgs.map((im) => (im.complete ? Promise.resolve() : new Promise((r) => { im.onload = im.onerror = () => r(null); }))),
+  ]).then(() => w.requestAnimationFrame(() => w.requestAnimationFrame(() => w.print())));
 }
