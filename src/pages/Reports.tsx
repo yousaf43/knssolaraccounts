@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { buildDiscountExpenses } from "@/lib/salesDiscounts";
+import { buildPurchaseAverageCosts } from "@/lib/purchaseAverageCost";
 import { countsAsSale } from "@/lib/salesStatus";
 import { buildFifoLayers, fifoConsumeCost, fifoRemainingAvgCost, layersForItem, type FifoLayers, type FifoLayer } from "@/lib/fifoCost";
 import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
@@ -2134,6 +2135,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     [inventory]
   );
 
+  const getPurchaseAverageCost = useMemo(
+    () => buildPurchaseAverageCosts(purchaseOrders, bills, inventory),
+    [purchaseOrders, bills, inventory]
+  );
+
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
   const isPnL = ["121", "123", "125", "127", "130"].includes(report.code);
   const showInvoicePnL = report.code === "130" || (isPnL && plView === "invoice");
@@ -2296,8 +2302,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
-                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Sale Price</th>}
-                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Cost</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Purchase Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
                 </thead>
@@ -2305,7 +2310,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   {inventoryTableData.map((item, idx) => {
                     // Avg Cost is derived from purchase order history (weighted avg of PO rates).
                     // Inventory's own Cost Price stays user-controlled.
-                    const avgCost = getAvgCost(item);
+                    const avgCost = getPurchaseAverageCost(item);
                     const stockValue = item.qty * avgCost;
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
@@ -2316,7 +2321,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2"><HighlightText text={item.category} query={stockSearch} /></td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
-                        {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.salePrice)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgCost)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(stockValue)}</td>}
                       </tr>
@@ -2328,8 +2332,8 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <tr className="border-t-2 font-bold bg-muted/40">
                       <td className="px-3 py-2" colSpan={5}>Total Products: {inventoryTableData.length}</td>
                       <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
-                      <td className="px-3 py-2" colSpan={3}>Total Stock Valuation</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * getAvgCost(i), 0))}</td>
+                      <td className="px-3 py-2" colSpan={2}>Total Stock Valuation</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * getPurchaseAverageCost(i), 0))}</td>
                     </tr>
                   </tfoot>
                 )}
