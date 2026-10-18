@@ -3,3 +3,5 @@
 - [x] Remove duplicate top spacing and make page/menu animations reliably visible
 - [x] Complete HR salary-slip printing controls
 - [x] Make Report 121 print bold and repair By Invoice print totals alignment
+- [ ] Use average purchase price in Report 148 Stock Valuation
+- [ ] Repair proposal PDF blank pages and verify topic-wise pagination
