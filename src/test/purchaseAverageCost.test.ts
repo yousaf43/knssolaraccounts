@@ -3,7 +3,7 @@ import { buildPurchaseAverageCosts } from "@/lib/purchaseAverageCost";
 import type { InventoryItem, PurchaseOrder, Bill } from "@/data/mockData";
 
 const item: InventoryItem = { id: "i1", name: "Panel", sku: "P1", qty: 5, costPrice: 80, salePrice: 900, price: 900, reorderLevel: 0, category: "", date: "", unit: "pcs", weight: 0, stockAssetAccount: "", saleDiscount: 0, purchaseDiscount: 0 };
-const order = (id: string, qty: number, rate: number, status: PurchaseOrder["status"] = "received", itemId = "i1"): PurchaseOrder => ({ id, number: id, supplier: "", date: "2026-01-01", deliveryDate: "", status, amount: qty * rate, items: [{ id, description: "Panel", qty, rate, amount: qty * rate, inventoryItemId: itemId }] });
+const order = (id: string, qty: number, rate: number, status: PurchaseOrder["status"] = "received", itemId = "i1"): PurchaseOrder => ({ id, number: id, supplier: "", date: "2026-01-01", deliveryDate: "", status, amount: qty * rate, items: [{ description: "Panel", qty, rate, amount: qty * rate, inventoryItemId: itemId }] });
 describe("Stock Valuation purchase average", () => {
   it("uses quantity-weighted purchase price, not sale price or newest FIFO rate", () => {
     const avg = buildPurchaseAverageCosts([order("a", 10, 100), order("b", 30, 200)], [], [item])(item);
