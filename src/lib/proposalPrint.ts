@@ -485,8 +485,9 @@ ${(() => {
   <div style="display:flex;gap:3mm;margin:3mm 0 5mm">
     ${[["System Cost", `PKR ${f(cost)}`], ["Monthly Saving", `PKR ${f(monthSave)}`], ["Yearly Saving", `PKR ${f(yearSave)}`], ["Payback Period", yearSave > 0 ? `${pbY} yr ${pbM} mo` : "—"]].map(([k, v]) => `<div style="flex:1;background:#0E3A5B;color:#fff;border-radius:3mm;padding:3mm;text-align:center"><div style="font-size:9.5px;opacity:.8">${k}</div><div style="font-size:14px;font-weight:800;color:#F2B33D;margin-top:1mm">${v}</div></div>`).join("")}
   </div>
-  <h4>Cumulative net benefit (25 years)</h4>
-  <svg viewBox="0 0 ${W} ${H}" width="100%">${grid}<line x1="${X0}" y1="${sy(0)}" x2="${W - 15}" y2="${sy(0)}" stroke="#333"/>${bars}${pbX}</svg>
+  <h4>Cumulative savings (25 years)</h4>
+  <svg viewBox="0 0 ${W} ${H}" width="100%">${grid}<line x1="${X0}" y1="${Y0 + PH}" x2="${W - 15}" y2="${Y0 + PH}" stroke="#333"/>${bars}${costLine}${pbX}</svg>
+  <p style="font-size:9.5px;color:#555;margin:1mm 0 0"><span style="color:#2E9BDA;font-weight:700">Blue bars</span> = savings building up &nbsp;•&nbsp; <span style="color:#2E9E5B;font-weight:700">Green bars</span> = cost recovered, pure profit &nbsp;•&nbsp; <span style="color:#B3261E;font-weight:700">Red line</span> = system cost</p>
   <h4>Savings from month to years</h4>
   <table class="it"><tr><th>Period</th><th style="width:30%">Total saving (PKR)</th><th style="width:30%">Net benefit after cost (PKR)</th></tr>${rows}</table>
   <p style="font-size:9.5px;color:#555;margin-top:3mm">Calculated on the <b>${CATEGORY_LABEL[category]}</b> electricity tariff (${esc(reason)}) — ${esc(tariff.source)}${tariff.effectiveLabel ? `, ${esc(tariff.effectiveLabel)}` : ""}: average bill rate about PKR ${sv.avgRate.toFixed(1)} per unit including FPA ${tariff.rates.fpa}/unit, electricity duty ${tariff.rates.electricityDuty}% and GST ${tariff.rates.gst}%${p.netBilling ? `; exported units credited at PKR ${tariff.rates.exportRate}/unit` : ""}. Solar use on site about ${f(usable)} units/year. Actual savings depend on future tariff changes, usage and weather.</p>
