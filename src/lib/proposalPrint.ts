@@ -203,12 +203,13 @@ export function printProposal(
   .cover3d .cbox b{display:block;font-size:18px;margin:1.5mm 0}.cover3d .cbox span{font-size:12px;opacity:.9}
   .cover3d .toprow{display:flex;justify-content:space-between;align-items:flex-start}
   .cover3d .brand{display:flex;align-items:center;gap:4mm}.cover3d .brand .logo{margin-bottom:0}
-  .cover3d .rbs{font-size:24px;font-style:italic;font-weight:700;color:#fff;border-left:2px solid var(--gold);padding-left:4mm;text-shadow:0 2px 8px rgba(0,0,0,.5)}
-  .cover3d .badges{display:flex;gap:2.5mm}.cover3d .badges i{width:15mm;height:15mm;border-radius:50%;background:#fff;color:#0b5a2b;font-style:normal;font-weight:800;font-size:8px;display:flex;align-items:center;justify-content:center;text-align:center;border:2px solid var(--gold);line-height:1.1}
-  .cover3d .badges{gap:3mm}.cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1.2mm}
-  .cover3d .badges .bd span{width:19mm;height:19mm;border-radius:50%;background:#fff;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.35)}
-  .cover3d .badges .bd img{width:16mm;height:16mm;object-fit:contain}
-  .cover3d .badges .bd small{font-size:7.5px;font-weight:800;letter-spacing:.05em;color:#fff;background:rgba(11,30,50,.75);padding:.6mm 1.8mm;border-radius:2mm;text-shadow:none}
+  .cover3d .rbs{font-size:26px;font-style:italic;font-weight:800;color:#5EC9F8;border-left:2px solid var(--gold);padding-left:4mm;text-shadow:0 0 14px rgba(94,201,248,.65),0 2px 8px rgba(0,0,0,.6);letter-spacing:.02em}
+  .cover3d .badges{display:flex;gap:4mm;align-items:flex-start;position:relative;padding-top:2mm}
+  .cover3d .badges::before{content:"";position:absolute;top:-4mm;left:-6mm;right:-8mm;height:10mm;border:2.5px solid #2E9BDA;border-bottom:0;border-radius:0 0 50% 50%/0 0 100% 100%;opacity:.85}
+  .cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1mm}
+  .cover3d .badges .bd span{width:16mm;height:19mm;background:#fff;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);box-shadow:0 3px 10px rgba(0,0,0,.35);padding-bottom:3mm}
+  .cover3d .badges .bd img{width:12mm;height:12mm;object-fit:contain}
+  .cover3d .badges .bd small{font-size:7.5px;font-weight:800;letter-spacing:.05em;color:#5EC9F8;text-shadow:0 1px 4px rgba(0,0,0,.6)}
   .cover3d .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:10mm}
   .cover3d .feat div{background:rgba(11,30,50,.65);border:1px solid rgba(255,255,255,.25);border-bottom:3px solid var(--gold);border-radius:8px;padding:4mm 3mm;text-align:center}
   .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13px;color:#ffd84d;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#fff}
