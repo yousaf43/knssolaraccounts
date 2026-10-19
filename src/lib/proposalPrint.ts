@@ -470,13 +470,14 @@ ${(() => {
   const f = (n: number) => Math.round(n).toLocaleString("en-PK");
   const periods: [string, number][] = [["1 Month", 1], ["6 Months", 6], ["1 Year", 12], ["2 Years", 24], ["3 Years", 36], ["5 Years", 60], ["10 Years", 120], ["15 Years", 180], ["20 Years", 240], ["25 Years", 300]];
   const rows = periods.map(([l, m]) => { const s = monthSave * m; const net = s - cost; return `<tr><td>${l}</td><td class="num">${f(s)}</td><td class="num" style="color:${net >= 0 ? "#0a7a3b" : "#b42318"};font-weight:700">${net >= 0 ? "+" : ""}${f(net)}</td></tr>`; }).join("");
-  // cumulative chart years 0..25
+  // cumulative chart years 0..25 — bars rise from the baseline; dashed line = system cost
   const W = 620, H = 210, X0 = 60, Y0 = 20, PW = W - X0 - 15, PH = H - Y0 - 30;
-  const pts = Array.from({ length: 26 }, (_, y) => yearSave * y - cost);
-  const mx = Math.max(1, ...pts), mn = Math.min(0, ...pts);
-  const sx = (y: number) => X0 + (y / 25) * PW, sy = (v: number) => Y0 + ((mx - v) / (mx - mn)) * PH;
-  const bars = pts.map((v, y) => { const x = sx(y) - 8, y0 = sy(0), yv = sy(v); return `<rect x="${x}" y="${Math.min(y0, yv)}" width="16" height="${Math.max(1, Math.abs(yv - y0))}" fill="${v >= 0 ? "#2E9E5B" : "#D9534F"}" opacity=".85"/>${y % 5 === 0 ? `<text x="${sx(y)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="#555">Yr ${y}</text>` : ""}`; }).join("");
-  const grid = [0, .25, .5, .75, 1].map((t) => { const v = mn + (mx - mn) * t; const y = sy(v); return `<line x1="${X0}" y1="${y}" x2="${W - 15}" y2="${y}" stroke="#e5e9ef"/><text x="${X0 - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#666">${(v / 1e6).toFixed(1)}M</text>`; }).join("");
+  const pts = Array.from({ length: 26 }, (_, y) => yearSave * y);
+  const mx = Math.max(1, ...pts, cost * 1.05);
+  const sx = (y: number) => X0 + (y / 25) * PW, sy = (v: number) => Y0 + PH - (v / mx) * PH;
+  const bars = pts.map((v, y) => { const x = sx(y) - 8, yv = sy(v), recovered = yearSave * y >= cost; return `<rect x="${x}" y="${yv}" width="16" height="${Math.max(1, Y0 + PH - yv)}" fill="${recovered ? "#2E9E5B" : "#2E9BDA"}" opacity=".9"/>${y % 5 === 0 ? `<text x="${sx(y)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="#555">Yr ${y}</text>` : ""}`; }).join("");
+  const grid = [0, .25, .5, .75, 1].map((t) => { const v = mx * t; const y = sy(v); return `<line x1="${X0}" y1="${y}" x2="${W - 15}" y2="${y}" stroke="#e5e9ef"/><text x="${X0 - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#666">${(v / 1e6).toFixed(1)}M</text>`; }).join("");
+  const costLine = cost > 0 ? `<line x1="${X0}" y1="${sy(cost)}" x2="${W - 15}" y2="${sy(cost)}" stroke="#D9534F" stroke-width="1.8" stroke-dasharray="6 4"/><text x="${W - 18}" y="${sy(cost) - 4}" font-size="9" font-weight="700" text-anchor="end" fill="#B3261E">System cost PKR ${f(cost)}</text>` : "";
   const pbX = paybackYears > 0 && paybackYears <= 25 ? `<line x1="${sx(paybackYears)}" y1="${Y0}" x2="${sx(paybackYears)}" y2="${Y0 + PH}" stroke="#F2B33D" stroke-width="2" stroke-dasharray="5 3"/><text x="${sx(paybackYears) + 4}" y="${Y0 + 10}" font-size="10" font-weight="700" fill="#B07A00">Payback ${paybackYears.toFixed(1)} yrs</text>` : "";
   return `<div class="page qt">
   <div class="phead">${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}<span>Solar Power Proposal &nbsp;|&nbsp; ${typeLabel} System</span></div>
