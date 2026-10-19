@@ -32,6 +32,13 @@ describe("fifoCost", () => {
     expect(fifoRemainingAvgCost(layersForItem(layers, item), 15)).toBeCloseTo(1700 / 15);
   });
 
+  it("stock valuation prices only the units on hand, not the full purchase history", () => {
+    // Bought 10 @ 100 then 10 @ 200; 8 sold (oldest first) → 12 on hand:
+    // 10 @ 200 + 2 @ 100 = 2200 / 12 ≈ 183.33 (not the 150 weighted purchase avg)
+    const layers = buildFifoLayers([po("2026-01-01", 10, 100), po("2026-02-01", 10, 200)], [], [item]);
+    expect(fifoRemainingAvgCost(layersForItem(layers, item), 12)).toBeCloseTo(2200 / 12);
+  });
+
   it("ignores pending and cancelled purchase orders", () => {
     const layers = buildFifoLayers(
       [po("2026-01-01", 10, 100, "pending"), po("2026-01-02", 10, 100, "cancelled"), po("2026-01-03", 4, 150)],
