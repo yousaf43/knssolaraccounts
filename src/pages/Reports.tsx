@@ -2302,15 +2302,15 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
-                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Purchase Price</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Cost (FIFO)</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {inventoryTableData.map((item, idx) => {
-                    // Avg Cost is derived from purchase order history (weighted avg of PO rates).
-                    // Inventory's own Cost Price stays user-controlled.
-                    const avgCost = getPurchaseAverageCost(item);
+                    // FIFO valuation: average cost of the stock actually on hand
+                    // (newest remaining purchase layers), with fallbacks.
+                    const avgCost = getAvgCost(item);
                     const stockValue = item.qty * avgCost;
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
@@ -2333,7 +2333,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <td className="px-3 py-2" colSpan={5}>Total Products: {inventoryTableData.length}</td>
                       <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
                       <td className="px-3 py-2" colSpan={2}>Total Stock Valuation</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * getPurchaseAverageCost(i), 0))}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * getAvgCost(i), 0))}</td>
                     </tr>
                   </tfoot>
                 )}
