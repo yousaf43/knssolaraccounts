@@ -601,6 +601,70 @@ ${(() => {
   </div>
 </div>
 
+<div class="page ct-page">
+<style>
+  .ct-page{position:relative;overflow:hidden;background:linear-gradient(160deg,#0B1E32 0%,#0E3A5B 60%,#0F5BA8 100%);color:#fff;border-radius:6px;display:flex;flex-direction:column;min-height:250mm}
+  .ct-page .glow{position:absolute;width:120mm;height:120mm;border-radius:50%;background:radial-gradient(circle,rgba(46,155,218,.35),transparent 70%)}
+  .ct-page .g1{top:-40mm;right:-30mm}.ct-page .g2{bottom:-50mm;left:-30mm;background:radial-gradient(circle,rgba(242,179,61,.22),transparent 70%)}
+  .ct-page .inner{position:relative;padding:16mm 14mm;display:flex;flex-direction:column;flex:1}
+  .ct-page .tp{display:flex;justify-content:space-between;align-items:center}
+  .ct-page .tp img{height:16mm}
+  .ct-page .tp .rbs{font-size:20px;font-style:italic;font-weight:800;color:#5EC9F8;text-shadow:0 0 12px rgba(94,201,248,.6)}
+  .ct-page h2{font-size:30px;font-weight:800;margin:14mm 0 2mm;letter-spacing:.5px}
+  .ct-page h2 span{color:#F2B33D}
+  .ct-page .sub{font-size:12.5px;color:#cfe3f2;margin-bottom:10mm}
+  .ct-page .cards{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+  .ct-page .card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-top:3px solid #F2B33D;border-radius:8px;padding:5mm}
+  .ct-page .card small{display:block;font-size:9.5px;letter-spacing:.18em;color:#5EC9F8;font-weight:800;margin-bottom:1.5mm}
+  .ct-page .card b{display:block;font-size:14px}
+  .ct-page .card span{display:block;font-size:11px;color:#cfe3f2;margin-top:1mm;line-height:1.5}
+  .ct-page .soc{margin-top:8mm}
+  .ct-page .soc small{display:block;font-size:9.5px;letter-spacing:.18em;color:#5EC9F8;font-weight:800;margin-bottom:3mm}
+  .ct-page .soc .row{display:flex;gap:3mm;flex-wrap:wrap}
+  .ct-page .soc a{display:inline-flex;align-items:center;gap:2.5mm;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#fff;text-decoration:none;font-size:11.5px;font-weight:700;padding:2.8mm 5mm;border-radius:20mm}
+  .ct-page .soc a svg{flex:0 0 auto}
+  .ct-page .map{margin-top:8mm;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5mm;display:flex;gap:4mm;align-items:center}
+  .ct-page .map .pin{font-size:26px}
+  .ct-page .map b{display:block;font-size:13px}
+  .ct-page .map span{font-size:11px;color:#cfe3f2;line-height:1.55}
+  .ct-page .foot{margin-top:auto;padding-top:8mm;text-align:center;border-top:1px solid rgba(255,255,255,.15)}
+  .ct-page .foot .o{color:#F2B33D;font-weight:800;font-size:14px;letter-spacing:1px}
+  .ct-page .foot p{font-size:10px;color:#9fb9cc;margin-top:1.5mm}
+</style>
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="inner">
+    <div class="tp">
+      ${LOGO ? `<img src="${esc(LOGO)}" alt="K&amp;S Solar Energy">` : `<b>${esc(company.name)}</b>`}
+      <span class="rbs">Run by Sun</span>
+    </div>
+    <h2>LET'S STAY <span>CONNECTED</span></h2>
+    <p class="sub">Visit us, call us or follow us online — our team is always ready to help you switch to clean, affordable solar energy.</p>
+    <div class="cards">
+      <div class="card"><small>HEAD OFFICE</small><b>K&amp;S Solar Energy Pvt. Ltd.</b><span>4-Basement, Ramzan Plaza, College Road,<br>Bhakkar, Punjab, Pakistan</span></div>
+      <div class="card"><small>CALL / WHATSAPP</small><b>+92-328-0454939</b><span>Mon – Sat, 9:00 AM – 6:00 PM<br>Quick response on WhatsApp</span></div>
+      <div class="card"><small>EMAIL</small><b>info@knssolar.com.pk</b><span>Send us your electricity bill for a<br>free savings estimate</span></div>
+      <div class="card"><small>WEBSITE</small><b>www.knssolar.com.pk</b><span>Projects, products &amp; our latest<br>solar installations</span></div>
+    </div>
+    <div class="soc">
+      <small>FOLLOW US ON SOCIAL MEDIA</small>
+      <div class="row">
+        <a href="https://www.facebook.com/knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5H16V5c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9V11H7.5v3H10v7h3.5z"/></svg>Facebook — K&amp;S Solar Energy</a>
+        <a href="https://www.instagram.com/knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M12 4.2c2.6 0 2.9 0 3.9.1 2.7.1 3.9 1.4 4 4 .1 1 .1 1.3.1 3.9s0 2.9-.1 3.9c-.1 2.6-1.3 3.9-4 4-1 .1-1.3.1-3.9.1s-2.9 0-3.9-.1c-2.7-.1-3.9-1.4-4-4-.1-1-.1-1.3-.1-3.9s0-2.9.1-3.9c.1-2.6 1.3-3.9 4-4 1-.1 1.3-.1 3.9-.1M12 2.5c-2.6 0-3 0-4 .1C4.7 2.7 2.7 4.7 2.6 8c-.1 1-.1 1.4-.1 4s0 3 .1 4c.1 3.3 2.1 5.3 5.4 5.4 1 .1 1.4.1 4 .1s3 0 4-.1c3.3-.1 5.3-2.1 5.4-5.4.1-1 .1-1.4.1-4s0-3-.1-4c-.1-3.3-2.1-5.3-5.4-5.4-1-.1-1.4-.1-4-.1zm0 4.7a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6zm0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zm5-8.1a1.1 1.1 0 1 0 0-2.3 1.1 1.1 0 0 0 0 2.3z"/></svg>Instagram — @knssolarenergy</a>
+        <a href="https://wa.me/923280454939" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3z"/></svg>WhatsApp — 0328-0454939</a>
+        <a href="https://www.youtube.com/@knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>YouTube — K&amp;S Solar Energy</a>
+      </div>
+    </div>
+    <div class="map">
+      <span class="pin">📍</span>
+      <div><b>Find us in Bhakkar</b><span>Ramzan Plaza, College Road — near the main commercial market. Free site survey within Bhakkar city; out-of-city surveys on appointment.</span></div>
+    </div>
+    <div class="foot">
+      <div class="o">RUN BY SUN ☀ POWERED BY TRUST</div>
+      <p>K&amp;S Solar Energy Pvt. Ltd. &nbsp;|&nbsp; SECP Registered &nbsp;•&nbsp; AEDB Certified &nbsp;•&nbsp; PEC Registered &nbsp;|&nbsp; Proposal ${esc(p.proposalNo)}</p>
+    </div>
+  </div>
+</div>
+
 </body></html>`;
 
   const w = window.open("", "_blank");
