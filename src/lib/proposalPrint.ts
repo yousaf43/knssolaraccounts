@@ -203,12 +203,13 @@ export function printProposal(
   .cover3d .cbox b{display:block;font-size:18px;margin:1.5mm 0}.cover3d .cbox span{font-size:12px;opacity:.9}
   .cover3d .toprow{display:flex;justify-content:space-between;align-items:flex-start}
   .cover3d .brand{display:flex;align-items:center;gap:4mm}.cover3d .brand .logo{margin-bottom:0}
-  .cover3d .rbs{font-size:24px;font-style:italic;font-weight:700;color:#fff;border-left:2px solid var(--gold);padding-left:4mm;text-shadow:0 2px 8px rgba(0,0,0,.5)}
-  .cover3d .badges{display:flex;gap:2.5mm}.cover3d .badges i{width:15mm;height:15mm;border-radius:50%;background:#fff;color:#0b5a2b;font-style:normal;font-weight:800;font-size:8px;display:flex;align-items:center;justify-content:center;text-align:center;border:2px solid var(--gold);line-height:1.1}
-  .cover3d .badges{gap:3mm}.cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1.2mm}
-  .cover3d .badges .bd span{width:19mm;height:19mm;border-radius:50%;background:#fff;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.35)}
-  .cover3d .badges .bd img{width:16mm;height:16mm;object-fit:contain}
-  .cover3d .badges .bd small{font-size:7.5px;font-weight:800;letter-spacing:.05em;color:#fff;background:rgba(11,30,50,.75);padding:.6mm 1.8mm;border-radius:2mm;text-shadow:none}
+  .cover3d .rbs{font-size:26px;font-style:italic;font-weight:800;color:#5EC9F8;border-left:2px solid var(--gold);padding-left:4mm;text-shadow:0 0 14px rgba(94,201,248,.65),0 2px 8px rgba(0,0,0,.6);letter-spacing:.02em}
+  .cover3d .badges{display:flex;gap:4mm;align-items:flex-start;position:relative;padding-top:2mm}
+  .cover3d .badges::before{content:"";position:absolute;top:-4mm;left:-6mm;right:-8mm;height:10mm;border:2.5px solid #2E9BDA;border-bottom:0;border-radius:0 0 50% 50%/0 0 100% 100%;opacity:.85}
+  .cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1mm}
+  .cover3d .badges .bd span{width:16mm;height:19mm;background:#fff;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);box-shadow:0 3px 10px rgba(0,0,0,.35);padding-bottom:3mm}
+  .cover3d .badges .bd img{width:12mm;height:12mm;object-fit:contain}
+  .cover3d .badges .bd small{font-size:7.5px;font-weight:800;letter-spacing:.05em;color:#5EC9F8;text-shadow:0 1px 4px rgba(0,0,0,.6)}
   .cover3d .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:10mm}
   .cover3d .feat div{background:rgba(11,30,50,.65);border:1px solid rgba(255,255,255,.25);border-bottom:3px solid var(--gold);border-radius:8px;padding:4mm 3mm;text-align:center}
   .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13px;color:#ffd84d;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#fff}
@@ -469,13 +470,14 @@ ${(() => {
   const f = (n: number) => Math.round(n).toLocaleString("en-PK");
   const periods: [string, number][] = [["1 Month", 1], ["6 Months", 6], ["1 Year", 12], ["2 Years", 24], ["3 Years", 36], ["5 Years", 60], ["10 Years", 120], ["15 Years", 180], ["20 Years", 240], ["25 Years", 300]];
   const rows = periods.map(([l, m]) => { const s = monthSave * m; const net = s - cost; return `<tr><td>${l}</td><td class="num">${f(s)}</td><td class="num" style="color:${net >= 0 ? "#0a7a3b" : "#b42318"};font-weight:700">${net >= 0 ? "+" : ""}${f(net)}</td></tr>`; }).join("");
-  // cumulative chart years 0..25
+  // cumulative chart years 0..25 — bars rise from the baseline; dashed line = system cost
   const W = 620, H = 210, X0 = 60, Y0 = 20, PW = W - X0 - 15, PH = H - Y0 - 30;
-  const pts = Array.from({ length: 26 }, (_, y) => yearSave * y - cost);
-  const mx = Math.max(1, ...pts), mn = Math.min(0, ...pts);
-  const sx = (y: number) => X0 + (y / 25) * PW, sy = (v: number) => Y0 + ((mx - v) / (mx - mn)) * PH;
-  const bars = pts.map((v, y) => { const x = sx(y) - 8, y0 = sy(0), yv = sy(v); return `<rect x="${x}" y="${Math.min(y0, yv)}" width="16" height="${Math.max(1, Math.abs(yv - y0))}" fill="${v >= 0 ? "#2E9E5B" : "#D9534F"}" opacity=".85"/>${y % 5 === 0 ? `<text x="${sx(y)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="#555">Yr ${y}</text>` : ""}`; }).join("");
-  const grid = [0, .25, .5, .75, 1].map((t) => { const v = mn + (mx - mn) * t; const y = sy(v); return `<line x1="${X0}" y1="${y}" x2="${W - 15}" y2="${y}" stroke="#e5e9ef"/><text x="${X0 - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#666">${(v / 1e6).toFixed(1)}M</text>`; }).join("");
+  const pts = Array.from({ length: 26 }, (_, y) => yearSave * y);
+  const mx = Math.max(1, ...pts, cost * 1.05);
+  const sx = (y: number) => X0 + (y / 25) * PW, sy = (v: number) => Y0 + PH - (v / mx) * PH;
+  const bars = pts.map((v, y) => { const x = sx(y) - 8, yv = sy(v), recovered = yearSave * y >= cost; return `<rect x="${x}" y="${yv}" width="16" height="${Math.max(1, Y0 + PH - yv)}" fill="${recovered ? "#2E9E5B" : "#2E9BDA"}" opacity=".9"/>${y % 5 === 0 ? `<text x="${sx(y)}" y="${H - 10}" font-size="9" text-anchor="middle" fill="#555">Yr ${y}</text>` : ""}`; }).join("");
+  const grid = [0, .25, .5, .75, 1].map((t) => { const v = mx * t; const y = sy(v); return `<line x1="${X0}" y1="${y}" x2="${W - 15}" y2="${y}" stroke="#e5e9ef"/><text x="${X0 - 6}" y="${y + 3}" font-size="8" text-anchor="end" fill="#666">${(v / 1e6).toFixed(1)}M</text>`; }).join("");
+  const costLine = cost > 0 ? `<line x1="${X0}" y1="${sy(cost)}" x2="${W - 15}" y2="${sy(cost)}" stroke="#D9534F" stroke-width="1.8" stroke-dasharray="6 4"/><text x="${W - 18}" y="${sy(cost) - 4}" font-size="9" font-weight="700" text-anchor="end" fill="#B3261E">System cost PKR ${f(cost)}</text>` : "";
   const pbX = paybackYears > 0 && paybackYears <= 25 ? `<line x1="${sx(paybackYears)}" y1="${Y0}" x2="${sx(paybackYears)}" y2="${Y0 + PH}" stroke="#F2B33D" stroke-width="2" stroke-dasharray="5 3"/><text x="${sx(paybackYears) + 4}" y="${Y0 + 10}" font-size="10" font-weight="700" fill="#B07A00">Payback ${paybackYears.toFixed(1)} yrs</text>` : "";
   return `<div class="page qt">
   <div class="phead">${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}<span>Solar Power Proposal &nbsp;|&nbsp; ${typeLabel} System</span></div>
@@ -483,8 +485,9 @@ ${(() => {
   <div style="display:flex;gap:3mm;margin:3mm 0 5mm">
     ${[["System Cost", `PKR ${f(cost)}`], ["Monthly Saving", `PKR ${f(monthSave)}`], ["Yearly Saving", `PKR ${f(yearSave)}`], ["Payback Period", yearSave > 0 ? `${pbY} yr ${pbM} mo` : "—"]].map(([k, v]) => `<div style="flex:1;background:#0E3A5B;color:#fff;border-radius:3mm;padding:3mm;text-align:center"><div style="font-size:9.5px;opacity:.8">${k}</div><div style="font-size:14px;font-weight:800;color:#F2B33D;margin-top:1mm">${v}</div></div>`).join("")}
   </div>
-  <h4>Cumulative net benefit (25 years)</h4>
-  <svg viewBox="0 0 ${W} ${H}" width="100%">${grid}<line x1="${X0}" y1="${sy(0)}" x2="${W - 15}" y2="${sy(0)}" stroke="#333"/>${bars}${pbX}</svg>
+  <h4>Cumulative savings (25 years)</h4>
+  <svg viewBox="0 0 ${W} ${H}" width="100%">${grid}<line x1="${X0}" y1="${Y0 + PH}" x2="${W - 15}" y2="${Y0 + PH}" stroke="#333"/>${bars}${costLine}${pbX}</svg>
+  <p style="font-size:9.5px;color:#555;margin:1mm 0 0"><span style="color:#2E9BDA;font-weight:700">Blue bars</span> = savings building up &nbsp;•&nbsp; <span style="color:#2E9E5B;font-weight:700">Green bars</span> = cost recovered, pure profit &nbsp;•&nbsp; <span style="color:#B3261E;font-weight:700">Red line</span> = system cost</p>
   <h4>Savings from month to years</h4>
   <table class="it"><tr><th>Period</th><th style="width:30%">Total saving (PKR)</th><th style="width:30%">Net benefit after cost (PKR)</th></tr>${rows}</table>
   <p style="font-size:9.5px;color:#555;margin-top:3mm">Calculated on the <b>${CATEGORY_LABEL[category]}</b> electricity tariff (${esc(reason)}) — ${esc(tariff.source)}${tariff.effectiveLabel ? `, ${esc(tariff.effectiveLabel)}` : ""}: average bill rate about PKR ${sv.avgRate.toFixed(1)} per unit including FPA ${tariff.rates.fpa}/unit, electricity duty ${tariff.rates.electricityDuty}% and GST ${tariff.rates.gst}%${p.netBilling ? `; exported units credited at PKR ${tariff.rates.exportRate}/unit` : ""}. Solar use on site about ${f(usable)} units/year. Actual savings depend on future tariff changes, usage and weather.</p>
@@ -595,6 +598,70 @@ ${(() => {
     <div class="o">ONE TEAM &nbsp;•&nbsp; ONE VISION &nbsp;•&nbsp; CLEANER ENERGY</div>
     <p>K&amp;S Solar Energy Pvt. Ltd. &nbsp;|&nbsp; 4-Basement Ramzan Plaza, College Road, Bhakkar, Punjab, Pakistan</p>
     <p class="c">+92-328-0454939 &nbsp;•&nbsp; info@knssolar.com.pk &nbsp;•&nbsp; knssolar.com.pk</p>
+  </div>
+</div>
+
+<div class="page ct-page">
+<style>
+  .ct-page{position:relative;overflow:hidden;background:linear-gradient(160deg,#0B1E32 0%,#0E3A5B 60%,#0F5BA8 100%);color:#fff;border-radius:6px;display:flex;flex-direction:column;min-height:250mm}
+  .ct-page .glow{position:absolute;width:120mm;height:120mm;border-radius:50%;background:radial-gradient(circle,rgba(46,155,218,.35),transparent 70%)}
+  .ct-page .g1{top:-40mm;right:-30mm}.ct-page .g2{bottom:-50mm;left:-30mm;background:radial-gradient(circle,rgba(242,179,61,.22),transparent 70%)}
+  .ct-page .inner{position:relative;padding:16mm 14mm;display:flex;flex-direction:column;flex:1}
+  .ct-page .tp{display:flex;justify-content:space-between;align-items:center}
+  .ct-page .tp img{height:16mm}
+  .ct-page .tp .rbs{font-size:20px;font-style:italic;font-weight:800;color:#5EC9F8;text-shadow:0 0 12px rgba(94,201,248,.6)}
+  .ct-page h2{font-size:30px;font-weight:800;margin:14mm 0 2mm;letter-spacing:.5px}
+  .ct-page h2 span{color:#F2B33D}
+  .ct-page .sub{font-size:12.5px;color:#cfe3f2;margin-bottom:10mm}
+  .ct-page .cards{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+  .ct-page .card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-top:3px solid #F2B33D;border-radius:8px;padding:5mm}
+  .ct-page .card small{display:block;font-size:9.5px;letter-spacing:.18em;color:#5EC9F8;font-weight:800;margin-bottom:1.5mm}
+  .ct-page .card b{display:block;font-size:14px}
+  .ct-page .card span{display:block;font-size:11px;color:#cfe3f2;margin-top:1mm;line-height:1.5}
+  .ct-page .soc{margin-top:8mm}
+  .ct-page .soc small{display:block;font-size:9.5px;letter-spacing:.18em;color:#5EC9F8;font-weight:800;margin-bottom:3mm}
+  .ct-page .soc .row{display:flex;gap:3mm;flex-wrap:wrap}
+  .ct-page .soc a{display:inline-flex;align-items:center;gap:2.5mm;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#fff;text-decoration:none;font-size:11.5px;font-weight:700;padding:2.8mm 5mm;border-radius:20mm}
+  .ct-page .soc a svg{flex:0 0 auto}
+  .ct-page .map{margin-top:8mm;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5mm;display:flex;gap:4mm;align-items:center}
+  .ct-page .map .pin{font-size:26px}
+  .ct-page .map b{display:block;font-size:13px}
+  .ct-page .map span{font-size:11px;color:#cfe3f2;line-height:1.55}
+  .ct-page .foot{margin-top:auto;padding-top:8mm;text-align:center;border-top:1px solid rgba(255,255,255,.15)}
+  .ct-page .foot .o{color:#F2B33D;font-weight:800;font-size:14px;letter-spacing:1px}
+  .ct-page .foot p{font-size:10px;color:#9fb9cc;margin-top:1.5mm}
+</style>
+  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="inner">
+    <div class="tp">
+      ${LOGO ? `<img src="${esc(LOGO)}" alt="K&amp;S Solar Energy">` : `<b>${esc(company.name)}</b>`}
+      <span class="rbs">Run by Sun</span>
+    </div>
+    <h2>LET'S STAY <span>CONNECTED</span></h2>
+    <p class="sub">Visit us, call us or follow us online — our team is always ready to help you switch to clean, affordable solar energy.</p>
+    <div class="cards">
+      <div class="card"><small>HEAD OFFICE</small><b>K&amp;S Solar Energy Pvt. Ltd.</b><span>4-Basement, Ramzan Plaza, College Road,<br>Bhakkar, Punjab, Pakistan</span></div>
+      <div class="card"><small>CALL / WHATSAPP</small><b>+92-328-0454939</b><span>Mon – Sat, 9:00 AM – 6:00 PM<br>Quick response on WhatsApp</span></div>
+      <div class="card"><small>EMAIL</small><b>info@knssolar.com.pk</b><span>Send us your electricity bill for a<br>free savings estimate</span></div>
+      <div class="card"><small>WEBSITE</small><b>www.knssolar.com.pk</b><span>Projects, products &amp; our latest<br>solar installations</span></div>
+    </div>
+    <div class="soc">
+      <small>FOLLOW US ON SOCIAL MEDIA</small>
+      <div class="row">
+        <a href="https://www.facebook.com/knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5H16V5c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9V11H7.5v3H10v7h3.5z"/></svg>Facebook — K&amp;S Solar Energy</a>
+        <a href="https://www.instagram.com/knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M12 4.2c2.6 0 2.9 0 3.9.1 2.7.1 3.9 1.4 4 4 .1 1 .1 1.3.1 3.9s0 2.9-.1 3.9c-.1 2.6-1.3 3.9-4 4-1 .1-1.3.1-3.9.1s-2.9 0-3.9-.1c-2.7-.1-3.9-1.4-4-4-.1-1-.1-1.3-.1-3.9s0-2.9.1-3.9c.1-2.6 1.3-3.9 4-4 1-.1 1.3-.1 3.9-.1M12 2.5c-2.6 0-3 0-4 .1C4.7 2.7 2.7 4.7 2.6 8c-.1 1-.1 1.4-.1 4s0 3 .1 4c.1 3.3 2.1 5.3 5.4 5.4 1 .1 1.4.1 4 .1s3 0 4-.1c3.3-.1 5.3-2.1 5.4-5.4.1-1 .1-1.4.1-4s0-3-.1-4c-.1-3.3-2.1-5.3-5.4-5.4-1-.1-1.4-.1-4-.1zm0 4.7a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6zm0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zm5-8.1a1.1 1.1 0 1 0 0-2.3 1.1 1.1 0 0 0 0 2.3z"/></svg>Instagram — @knssolarenergy</a>
+        <a href="https://wa.me/923280454939" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3z"/></svg>WhatsApp — 0328-0454939</a>
+        <a href="https://www.youtube.com/@knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>YouTube — K&amp;S Solar Energy</a>
+      </div>
+    </div>
+    <div class="map">
+      <span class="pin">📍</span>
+      <div><b>Find us in Bhakkar</b><span>Ramzan Plaza, College Road — near the main commercial market. Free site survey within Bhakkar city; out-of-city surveys on appointment.</span></div>
+    </div>
+    <div class="foot">
+      <div class="o">RUN BY SUN ☀ POWERED BY TRUST</div>
+      <p>K&amp;S Solar Energy Pvt. Ltd. &nbsp;|&nbsp; SECP Registered &nbsp;•&nbsp; AEDB Certified &nbsp;•&nbsp; PEC Registered &nbsp;|&nbsp; Proposal ${esc(p.proposalNo)}</p>
+    </div>
   </div>
 </div>
 
