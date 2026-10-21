@@ -59,6 +59,8 @@ export interface Proposal {
   inverterKw: number;
   inverterBrand: string;
   inverterWarranty: string;
+  /** When false the system is panels-only (e.g. customer already has an inverter) */
+  includeInverter: boolean;
   structureQty: number;
   structureType: string;
   netBilling: boolean;
@@ -101,6 +103,7 @@ const emptyProposal = (): Omit<Proposal, "id" | "proposalNo"> => ({
   inverterKw: 0,
   inverterBrand: "",
   inverterWarranty: "3 years replacement",
+  includeInverter: true,
   structureQty: 0,
   structureType: "L2 C-type",
   netBilling: false,
@@ -256,7 +259,7 @@ export default function Proposals() {
           unitPrice: 0,
           amount: 0,
         });
-      if (f.inverterKw > 0)
+      if (f.includeInverter !== false && f.inverterKw > 0)
         items.push({
           brand: f.inverterBrand,
           description: `${f.inverterKw} kW ${f.systemType} inverter`,
@@ -349,7 +352,8 @@ export default function Proposals() {
       })), tariff);
   };
 
-  const hasBattery = form.systemType !== "on-grid" || form.battery !== null;
+  // Battery step is always available: on-grid systems can also add backup batteries.
+  const hasBattery = true;
 
   return (
     <div className="space-y-6">
@@ -493,9 +497,19 @@ export default function Proposals() {
                 <div><Label>Panel watt</Label><Input type="number" min={0} value={form.panelWatt || ""} onChange={(e) => set("panelWatt", +e.target.value)} /></div>
                 <div className="col-span-2"><Label>Panel brand</Label><Input value={form.panelBrand} onChange={(e) => set("panelBrand", e.target.value)} /></div>
                 <div className="col-span-2"><Label>Panel warranty</Label><Input value={form.panelWarranty} onChange={(e) => set("panelWarranty", e.target.value)} /></div>
-                <div><Label>Inverter size (kW)</Label><Input type="number" step="0.1" min={0} value={form.inverterKw || ""} onChange={(e) => set("inverterKw", +e.target.value)} /></div>
-                <div><Label>Inverter brand</Label><Input value={form.inverterBrand} onChange={(e) => set("inverterBrand", e.target.value)} /></div>
-                <div className="col-span-2"><Label>Inverter warranty</Label><Input value={form.inverterWarranty} onChange={(e) => set("inverterWarranty", e.target.value)} /></div>
+                <div className="col-span-2 md:col-span-4 flex items-center gap-2 pb-1">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={form.includeInverter !== false} onChange={(e) => set("includeInverter", e.target.checked)} />
+                    Inverter included in this system
+                  </label>
+                </div>
+                {form.includeInverter !== false && (
+                  <>
+                    <div><Label>Inverter size (kW)</Label><Input type="number" step="0.1" min={0} value={form.inverterKw || ""} onChange={(e) => set("inverterKw", +e.target.value)} /></div>
+                    <div><Label>Inverter brand</Label><Input value={form.inverterBrand} onChange={(e) => set("inverterBrand", e.target.value)} /></div>
+                    <div className="col-span-2"><Label>Inverter warranty</Label><Input value={form.inverterWarranty} onChange={(e) => set("inverterWarranty", e.target.value)} /></div>
+                  </>
+                )}
                 <div><Label>Structure qty</Label><Input type="number" min={0} value={form.structureQty || ""} onChange={(e) => set("structureQty", +e.target.value)} /></div>
                 <div><Label>Structure type</Label><Input value={form.structureType} onChange={(e) => set("structureType", e.target.value)} /></div>
                 <div className="col-span-2 flex items-end gap-4 pb-1">

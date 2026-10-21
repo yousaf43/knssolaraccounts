@@ -28,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { buildDiscountExpenses } from "@/lib/salesDiscounts";
-import { buildPurchaseAverageCosts } from "@/lib/purchaseAverageCost";
 import { countsAsSale } from "@/lib/salesStatus";
 import { buildFifoLayers, fifoConsumeCost, fifoRemainingAvgCost, layersForItem, type FifoLayers, type FifoLayer } from "@/lib/fifoCost";
 import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
@@ -2133,11 +2132,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
     [inventory]
-  );
-
-  const getPurchaseAverageCost = useMemo(
-    () => buildPurchaseAverageCosts(purchaseOrders, bills, inventory),
-    [purchaseOrders, bills, inventory]
   );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
