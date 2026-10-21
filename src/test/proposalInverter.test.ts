@@ -25,7 +25,7 @@ describe("proposal inverter/battery step", () => {
   it("panels-only proposal hides the inverter from the printed PDF", () => {
     const html = capture({ ...base, includeInverter: false });
     expect(html).not.toContain("INVERTER CAPACITY");
-    expect(html).not.toContain("Itel");
+    expect(html).not.toContain("Inverter</td>");
   });
   it("inverter+battery proposal shows both", () => {
     const html = capture({ ...base, battery: { type: "Lithium (LiFePO4)", brand: "Itel", model: "X", units: 2, kwhEach: 5.12, warranty: "5y" } });
