@@ -14,7 +14,7 @@ const base: any = {
 
 function capture(p: any): string {
   let html = "";
-  const fakeDoc = { write: (s: string) => { html += s; }, close: () => {}, fonts: { ready: Promise.resolve() } };
+  const fakeDoc = { write: (s: string) => { html += s; }, close: () => {}, fonts: { ready: Promise.resolve() }, images: [] as any[], querySelectorAll: () => [] as any[] };
   vi.spyOn(window, "open").mockReturnValue({ document: fakeDoc, requestAnimationFrame: (cb: any) => cb(), print: () => {} } as any);
   printProposal(p, { name: "K&S", address: "", phone: "", email: "", logoUrl: "" }, (d) => String(d));
   vi.restoreAllMocks();
