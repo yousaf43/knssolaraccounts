@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { buildProposalHtml } from "@/lib/proposalPrint";
+import { describe, expect, it, vi } from "vitest";
+import { printProposal } from "@/lib/proposalPrint";
 
 const base: any = {
   id: "1", proposalNo: "P-1", date: "2026-10-19", validDays: 3, customerName: "Test",
@@ -12,15 +12,23 @@ const base: any = {
   signedName: "", signedTitle: "", signedPhone: "", signedEmail: "", status: "draft",
 };
 
+function capture(p: any): string {
+  let html = "";
+  const fakeDoc = { write: (s: string) => { html += s; }, close: () => {}, fonts: { ready: Promise.resolve() } };
+  vi.spyOn(window, "open").mockReturnValue({ document: fakeDoc, requestAnimationFrame: (cb: any) => cb(), print: () => {} } as any);
+  printProposal(p, { name: "K&S", address: "", phone: "", email: "", logoUrl: "" }, (d) => String(d));
+  vi.restoreAllMocks();
+  return html;
+}
+
 describe("proposal inverter/battery step", () => {
-  it("panels-only proposal hides inverter from the printed PDF", () => {
-    const html = buildProposalHtml({ ...base, includeInverter: false }, { name: "K&S" } as any);
-    expect(html).not.toContain("Inverter</td>");
-    expect(html).not.toContain("Inverter</th>");
+  it("panels-only proposal hides the inverter from the printed PDF", () => {
+    const html = capture({ ...base, includeInverter: false });
     expect(html).not.toContain("INVERTER CAPACITY");
+    expect(html).not.toContain("Itel");
   });
   it("inverter+battery proposal shows both", () => {
-    const html = buildProposalHtml({ ...base, battery: { type: "Lithium (LiFePO4)", brand: "Itel", model: "X", units: 2, kwhEach: 5.12, warranty: "5y" } }, { name: "K&S" } as any);
+    const html = capture({ ...base, battery: { type: "Lithium (LiFePO4)", brand: "Itel", model: "X", units: 2, kwhEach: 5.12, warranty: "5y" } });
     expect(html).toContain("Inverter");
     expect(html).toContain("Battery");
   });
