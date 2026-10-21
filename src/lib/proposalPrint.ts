@@ -132,6 +132,9 @@ export function printProposal(
         <td>${esc(p.battery.warranty)}</td></tr>`
     : "";
 
+  // Inverter can be excluded (panels-only proposals, e.g. customer already owns one).
+  const hasInv = p.includeInverter !== false && (p.inverterKw || 0) > 0;
+
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Proposal ${esc(p.proposalNo)}</title>
 <style>
   :root{--blue:#0868A0;--gold:#F8B830;--navy:#0B3A5B;--ink:#1E2B36;--muted:#5F6F7C;--line:#D7E0E7;--soft:#EAF3F9}
