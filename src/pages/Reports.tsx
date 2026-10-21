@@ -2135,11 +2135,6 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     [inventory]
   );
 
-  const getPurchaseAverageCost = useMemo(
-    () => buildPurchaseAverageCosts(purchaseOrders, bills, inventory),
-    [purchaseOrders, bills, inventory]
-  );
-
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
   const isPnL = ["121", "123", "125", "127", "130"].includes(report.code);
   const showInvoicePnL = report.code === "130" || (isPnL && plView === "invoice");
