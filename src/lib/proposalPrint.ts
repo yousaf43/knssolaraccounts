@@ -674,7 +674,7 @@ ${(() => {
   if (!w) return;
   w.document.write(html);
   w.document.close();
-  const imgs = Array.from(w.document.images);
+  const imgs = Array.from(w.document.images || []);
   Promise.all([
     w.document.fonts.ready,
     ...imgs.map((im) => (im.complete ? Promise.resolve() : new Promise((r) => { im.onload = im.onerror = () => r(null); }))),
