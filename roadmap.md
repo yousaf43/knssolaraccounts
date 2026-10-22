@@ -5,6 +5,8 @@
 - [x] Make Report 121 print bold and repair By Invoice print totals alignment
 - [x] Use average purchase price in Report 148 Stock Valuation
 - [x] Repair proposal PDF blank pages and verify topic-wise pagination
-- [ ] Migrate application data, users, storage, and functions to the user's external Supabase (blocked: secure target credentials)
-- [ ] Prepare independent Hostinger deployment from GitHub and remove runtime Lovable dependencies (blocked: target access and replacement service choices)
+- [x] Verify secure access to the user's external Supabase and confirm its public schema is empty
+- [ ] Migrate application data and users to the user's external Supabase (blocked: official Cloud database export including Auth identities; previous staged package is incomplete)
+- [ ] Move private brand files to external storage (blocked: user downloads from Cloud Storage; database export does not include files)
+- [ ] Prepare independent Hostinger deployment from GitHub and deploy functions without Lovable AI dependencies (blocked: complete database export for safe migration and Hostinger production URL for final auth setup)
 - [ ] Verify imported records and independent sign-in/accounting flows before cutover
