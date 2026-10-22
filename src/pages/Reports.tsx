@@ -30,6 +30,7 @@ import { getInvoicePaymentSummary } from "@/utils/invoicePayments";
 import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { countsAsSale } from "@/lib/salesStatus";
 import { buildFifoLayers, fifoConsumeCost, fifoRemainingAvgCost, layersForItem, type FifoLayers, type FifoLayer } from "@/lib/fifoCost";
+import { buildStockValuation, stockProductKey } from "@/lib/stockValuation";
 import { saleAmount, oldBalanceAmount } from "@/lib/oldBalance";
 import { amountToWords, formatCompactAmount } from "@/lib/amountWords";
 import { toast } from "sonner";
@@ -2053,10 +2054,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         // Deduplicate: merge rows that represent the same product.
         const groups = new Map<string, InventoryItem[]>();
         for (const it of data) {
-          const key =
-            (it.uniqueCode && it.uniqueCode.trim()) ||
-            (it.sku && it.sku.trim() ? `${it.sku.trim()}|${(it.model || "").trim()}` : "") ||
-            (it.name ? `${it.name.trim().toLowerCase()}|${(it.model || "").trim()}` : it.id);
+          const key = stockProductKey(it);
           const list = groups.get(key) || [];
           list.push(it);
           groups.set(key, list);
@@ -2132,6 +2130,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
   const stockCategories = useMemo(
     () => Array.from(new Set(inventory.map(i => i.category).filter(Boolean))).sort(),
     [inventory]
+  );
+
+  const getStockValuation = useMemo(
+    () => buildStockValuation(purchaseOrders, bills, inventory),
+    [purchaseOrders, bills, inventory]
   );
 
   const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
@@ -2295,7 +2298,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">Category</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Qty</th>
-                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Cost Price</th>}
+                    {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Purchase Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Cost (FIFO)</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
                   </tr>
@@ -2304,8 +2307,9 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                   {inventoryTableData.map((item, idx) => {
                     // FIFO valuation: average cost of the stock actually on hand
                     // (newest remaining purchase layers), with fallbacks.
-                    const avgCost = getAvgCost(item);
-                    const stockValue = item.qty * avgCost;
+                    const valuation = getStockValuation(item);
+                    const avgCost = valuation.remainingAverage;
+                    const stockValue = valuation.stockValue;
                     return (
                       <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30">
                         <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
@@ -2314,7 +2318,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         <td className="px-3 py-2 text-muted-foreground">{item.model ? <HighlightText text={item.model} query={stockSearch} /> : "—"}</td>
                         <td className="px-3 py-2"><HighlightText text={item.category} query={stockSearch} /></td>
                         <td className={`px-3 py-2 text-right font-semibold ${item.qty <= item.reorderLevel ? "text-destructive" : ""}`}>{item.qty}</td>
-                        {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(item.costPrice)}</td>}
+                        {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(valuation.purchaseAverage)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgCost)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(stockValue)}</td>}
                       </tr>
@@ -2327,7 +2331,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <td className="px-3 py-2" colSpan={5}>Total Products: {inventoryTableData.length}</td>
                       <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
                       <td className="px-3 py-2" colSpan={2}>Total Stock Valuation</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * getAvgCost(i), 0))}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + getStockValuation(i).stockValue, 0))}</td>
                     </tr>
                   </tfoot>
                 )}
