@@ -3,6 +3,7 @@ import { Fingerprint, Upload, RefreshCw, Plus, Copy, Link2 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -385,8 +386,8 @@ export default function BiometricAttendance({ onImported }: { onImported?: () =>
       </Card>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input type="date" className="w-44" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <Input type="date" className="w-44" value={to} onChange={(e) => setTo(e.target.value)} />
+        <DateInput className="w-44" value={from} onChange={(v) => setFrom(v)} />
+        <DateInput className="w-44" value={to} onChange={(v) => setTo(v)} />
         <Button variant="outline" onClick={() => { void loadPunches(); }} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Refresh
         </Button>

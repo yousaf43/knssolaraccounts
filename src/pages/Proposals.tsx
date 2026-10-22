@@ -6,6 +6,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -485,7 +486,7 @@ export default function Proposals() {
                 <div className="col-span-2"><Label>Address</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} /></div>
                 <div><Label>Contact number</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
                 <div><Label>CNIC (optional)</Label><Input value={form.cnic} onChange={(e) => set("cnic", e.target.value)} /></div>
-                <div><Label>Proposal date</Label><Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} /></div>
+                <div><Label>Proposal date</Label><DateInput value={form.date} onChange={(v) => set("date", v)} /></div>
               </div>
             </section>
 

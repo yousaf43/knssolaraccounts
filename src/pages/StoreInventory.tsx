@@ -541,7 +541,7 @@ export default function StoreInventory() {
                       <td className="px-3 py-2 font-medium">{so.number}</td>
                       <td className="px-3 py-2">{so.customer}</td>
                       <td className="px-3 py-2 text-muted-foreground">{formatDate(so.date)}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{formatDate(so.deliveryDate)}</td>
                       <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
                       <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-xs">{so.status}</Badge></td>
                       <td className="px-3 py-2 text-center">
@@ -601,7 +601,7 @@ export default function StoreInventory() {
                       <td className="px-3 py-2 font-medium">{so.number}</td>
                       <td className="px-3 py-2">{so.customer}</td>
                       <td className="px-3 py-2 text-muted-foreground">{formatDate(so.date)}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{so.deliveryDate}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{formatDate(so.deliveryDate)}</td>
                       <td className="px-3 py-2 text-right font-semibold">{totalQty}</td>
                       <td className="px-3 py-2 text-center"><Badge className="bg-green-500/10 text-green-600 border-0 text-xs">Completed</Badge></td>
                       <td className="px-3 py-2 text-center">

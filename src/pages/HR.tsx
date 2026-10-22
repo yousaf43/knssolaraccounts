@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Plus, Pencil, Users, Clock, ScrollText, Wallet, Search, Fingerprint, Printer, SlidersHorizontal, FileBarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -413,7 +414,7 @@ export default function HR() {
         {/* ---------------- Attendance ---------------- */}
         <TabsContent value="attendance" className="mt-4 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Input type="date" className="w-44" value={attDate} onChange={(e) => setAttDate(e.target.value)} />
+            <DateInput className="w-44" value={attDate} onChange={(v) => setAttDate(v)} />
             <Select value={attEmployee} onValueChange={setAttEmployee}>
               <SelectTrigger className="w-56"><SelectValue placeholder="All employees" /></SelectTrigger>
               <SelectContent>
@@ -472,8 +473,8 @@ export default function HR() {
         {/* ---------------- Attendance Report ---------------- */}
         <TabsContent value="report" className="mt-4 space-y-3">
           <div className="flex flex-wrap items-end gap-2">
-            <div><Label className="text-xs">From</Label><Input type="date" className="w-44" value={repFrom} onChange={(e) => setRepFrom(e.target.value)} /></div>
-            <div><Label className="text-xs">To</Label><Input type="date" className="w-44" value={repTo} onChange={(e) => setRepTo(e.target.value)} /></div>
+            <div><Label className="text-xs">From</Label><DateInput className="w-44" value={repFrom} onChange={(v) => setRepFrom(v)} /></div>
+            <div><Label className="text-xs">To</Label><DateInput className="w-44" value={repTo} onChange={(v) => setRepTo(v)} /></div>
             <div>
               <Label className="text-xs">Employee</Label>
               <Select value={repEmployee} onValueChange={setRepEmployee}>
@@ -627,7 +628,7 @@ export default function HR() {
             <div><Label>Department</Label><Input value={empForm.department} onChange={(e) => setEmpForm({ ...empForm, department: e.target.value })} /></div>
             <div><Label>Phone</Label><Input value={empForm.phone} onChange={(e) => setEmpForm({ ...empForm, phone: e.target.value })} /></div>
             <div><Label>CNIC</Label><Input value={empForm.cnic} onChange={(e) => setEmpForm({ ...empForm, cnic: e.target.value })} /></div>
-            <div><Label>Join Date</Label><Input type="date" value={empForm.joinDate} onChange={(e) => setEmpForm({ ...empForm, joinDate: e.target.value })} /></div>
+            <div><Label>Join Date</Label><DateInput value={empForm.joinDate} onChange={(v) => setEmpForm({ ...empForm, joinDate: v })} /></div>
             <div><Label>Monthly Salary</Label><Input type="number" value={empForm.salary} onChange={(e) => setEmpForm({ ...empForm, salary: Number(e.target.value) || 0 })} /></div>
             <div>
               <Label>Status</Label>
@@ -655,7 +656,7 @@ export default function HR() {
                 <SelectContent>{employees.data.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Date *</Label><Input type="date" value={attForm.date} onChange={(e) => setAttForm({ ...attForm, date: e.target.value })} /></div>
+            <div><Label>Date *</Label><DateInput value={attForm.date} onChange={(v) => setAttForm({ ...attForm, date: v })} /></div>
             <div>
               <Label>Status</Label>
               <Select value={attForm.status} onValueChange={(v) => setAttForm({ ...attForm, status: v as AttendanceRecord["status"] })}>
@@ -719,7 +720,7 @@ export default function HR() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Effective Date</Label><Input type="date" value={ruleForm.effectiveDate} onChange={(e) => setRuleForm({ ...ruleForm, effectiveDate: e.target.value })} /></div>
+              <div><Label>Effective Date</Label><DateInput value={ruleForm.effectiveDate} onChange={(v) => setRuleForm({ ...ruleForm, effectiveDate: v })} /></div>
             </div>
             <div><Label>Description</Label><Textarea rows={4} value={ruleForm.description} onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })} /></div>
             <div><Label>Order</Label><Input type="number" value={ruleForm.sortOrder} onChange={(e) => setRuleForm({ ...ruleForm, sortOrder: Number(e.target.value) || 0 })} /></div>
@@ -759,7 +760,7 @@ export default function HR() {
                 <SelectContent><SelectItem value="pending">Pending</SelectItem><SelectItem value="paid">Paid</SelectItem></SelectContent>
               </Select>
             </div>
-            <div><Label>Paid Date</Label><Input type="date" value={payForm.paidDate} onChange={(e) => setPayForm({ ...payForm, paidDate: e.target.value })} /></div>
+            <div><Label>Paid Date</Label><DateInput value={payForm.paidDate} onChange={(v) => setPayForm({ ...payForm, paidDate: v })} /></div>
             <div><Label>Payment Method</Label><Input value={payForm.paymentMethod} onChange={(e) => setPayForm({ ...payForm, paymentMethod: e.target.value })} /></div>
             <div className="sm:col-span-2"><Label>Notes</Label><Textarea rows={2} value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })} /></div>
             <div className="sm:col-span-2 rounded-lg bg-muted/50 p-3 text-sm">Net Pay: <span className="text-base font-semibold">{formatCurrency(netOf(payForm))}</span></div>

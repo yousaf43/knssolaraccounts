@@ -6,6 +6,7 @@ import { useExpensesCloud, useAccountsCloud, useInvoicesCloud, useLedgerEntriesC
 import { buildDiscountExpenses } from "@/lib/salesDiscounts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, X, Wallet, TrendingDown, PiggyBank, Percent } from "lucide-react";
@@ -233,7 +234,7 @@ export default function Expenses() {
             <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-4 h-4" /></Button>
           </div>
           <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div><Label>Date *</Label><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="mt-1" required /></div>
+            <div><Label>Date *</Label><DateInput value={form.date} onChange={(v) => setForm({ ...form, date: v })} className="mt-1" required /></div>
             <div>
               <Label>Category</Label>
               <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
@@ -283,11 +284,11 @@ export default function Expenses() {
       <div className="bg-card rounded-lg border p-3 flex flex-wrap items-end gap-3">
         <div>
           <Label className="text-xs text-muted-foreground">From Date</Label>
-          <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="h-8 text-xs w-36 mt-1" />
+          <DateInput value={filterFrom} onChange={(v) => setFilterFrom(v)} className="h-8 text-xs w-36 mt-1" />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">To Date</Label>
-          <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="h-8 text-xs w-36 mt-1" />
+          <DateInput value={filterTo} onChange={(v) => setFilterTo(v)} className="h-8 text-xs w-36 mt-1" />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Category</Label>

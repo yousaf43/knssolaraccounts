@@ -1,6 +1,7 @@
 import { scopedKey } from "@/lib/storageScope";
 import React, { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -278,8 +279,8 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
           onChange={(e) => setSearch(e.target.value)}
           className="h-9 w-56"
         />
-        <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-40" />
-        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-40" />
+        <DateInput value={from} onChange={(v) => setFrom(v)} className="h-9 w-40" />
+        <DateInput value={to} onChange={(v) => setTo(v)} className="h-9 w-40" />
         <Select value={account} onValueChange={setAccount}>
           <SelectTrigger className="h-9 w-48"><SelectValue placeholder="Account" /></SelectTrigger>
           <SelectContent>

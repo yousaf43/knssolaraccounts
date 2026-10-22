@@ -8,6 +8,7 @@ import { usePurchaseOrdersCloud, useBillsCloud, usePurchasePaymentsCloud, useSup
 import { ProductCombobox } from "@/components/ProductCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -161,9 +162,9 @@ export default function Purchases() {
   const handleExport = () => {
     let csv = "";
     if (tab === "purchase-orders") {
-      csv = "Number,Supplier,Date,Delivery Date,Amount,Status\n" + filteredPO.map(p => `${p.number},${p.supplier},${p.date},${p.deliveryDate},${p.amount},${p.status}`).join("\n");
+      csv = "Number,Supplier,Date,Delivery Date,Amount,Status\n" + filteredPO.map(p => `${p.number},${p.supplier},${p.date},${formatDate(p.deliveryDate)},${p.amount},${p.status}`).join("\n");
     } else if (tab === "bills") {
-      csv = "Number,Supplier,Date,Due Date,Amount,Status\n" + filteredBills.map(b => `${b.number},${b.supplier},${b.date},${b.dueDate},${b.amount},${b.status}`).join("\n");
+      csv = "Number,Supplier,Date,Due Date,Amount,Status\n" + filteredBills.map(b => `${b.number},${b.supplier},${b.date},${formatDate(b.dueDate)},${b.amount},${b.status}`).join("\n");
     } else if (tab === "payments") {
       csv = "Number,Supplier,Date,Bill,Amount,Method\n" + filteredPayments.map(p => `${p.number},${p.supplier},${p.date},${p.billNumber},${p.amount},${p.paymentMethod}`).join("\n");
     } else if (tab === "purchases-all") {
@@ -487,11 +488,11 @@ export default function Purchases() {
         <>
           <div>
             <Label className="text-xs text-muted-foreground">From</Label>
-            <Input type="date" value={customDateFrom} onChange={e => setCustomDateFrom(e.target.value)} className="w-36 h-8 text-xs" />
+            <DateInput value={customDateFrom} onChange={(v) => setCustomDateFrom(v)} className="w-36 h-8 text-xs" />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">To</Label>
-            <Input type="date" value={customDateTo} onChange={e => setCustomDateTo(e.target.value)} className="w-36 h-8 text-xs" />
+            <DateInput value={customDateTo} onChange={(v) => setCustomDateTo(v)} className="w-36 h-8 text-xs" />
           </div>
         </>
       )}
@@ -623,8 +624,8 @@ export default function Purchases() {
                       </div>
                     )}
                   </div>
-                  <div><Label>Date</Label><Input type="date" value={poForm.date} onChange={e => setPOForm({ ...poForm, date: e.target.value })} className="mt-1" /></div>
-                  <div><Label>Delivery Date</Label><Input type="date" value={poForm.deliveryDate} onChange={e => setPOForm({ ...poForm, deliveryDate: e.target.value })} className="mt-1" /></div>
+                  <div><Label>Date</Label><DateInput value={poForm.date} onChange={(v) => setPOForm({ ...poForm, date: v })} className="mt-1" /></div>
+                  <div><Label>Delivery Date</Label><DateInput value={poForm.deliveryDate} onChange={(v) => setPOForm({ ...poForm, deliveryDate: v })} className="mt-1" /></div>
                   <div>
                     <Label>Status</Label>
                     <Select value={poForm.status} onValueChange={v => setPOForm({ ...poForm, status: v as PurchaseOrder["status"] })}>
@@ -726,7 +727,7 @@ export default function Purchases() {
                     <td className="px-4 py-3 font-medium">{p.number}</td>
                     <td className="px-4 py-3">{formatDate(p.date)}</td>
                     <td className="px-4 py-3">{p.supplier}</td>
-                    <td className="px-4 py-3">{p.deliveryDate}</td>
+                    <td className="px-4 py-3">{formatDate(p.deliveryDate)}</td>
                     <td className="px-4 py-3 text-right">{(p.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0)}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[p.status]}`}>{p.status}</span></td>
@@ -766,8 +767,8 @@ export default function Purchases() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Bill Date</Label><Input type="date" value={billForm.date} onChange={e => setBillForm({ ...billForm, date: e.target.value })} className="mt-1" /></div>
-                  <div><Label>Due Date</Label><Input type="date" value={billForm.dueDate} onChange={e => setBillForm({ ...billForm, dueDate: e.target.value })} className="mt-1" /></div>
+                  <div><Label>Bill Date</Label><DateInput value={billForm.date} onChange={(v) => setBillForm({ ...billForm, date: v })} className="mt-1" /></div>
+                  <div><Label>Due Date</Label><DateInput value={billForm.dueDate} onChange={(v) => setBillForm({ ...billForm, dueDate: v })} className="mt-1" /></div>
                   <div>
                     <Label>Status</Label>
                     <Select value={billForm.status} onValueChange={v => setBillForm({ ...billForm, status: v as Bill["status"] })}>
@@ -814,7 +815,7 @@ export default function Purchases() {
                     <td className="px-4 py-3 font-medium">{b.number}</td>
                     <td className="px-4 py-3">{formatDate(b.date)}</td>
                     <td className="px-4 py-3">{b.supplier}</td>
-                    <td className="px-4 py-3">{b.dueDate}</td>
+                    <td className="px-4 py-3">{formatDate(b.dueDate)}</td>
                     <td className="px-4 py-3 text-right">{formatCurrency(b.amount)}</td>
                     <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[b.status]}`}>{b.status}</span></td>
                     <td className="px-4 py-3 text-center"><ConfirmDeleteDialog onConfirm={() => handleDeleteBill(b.id)} title="Delete Bill?" description={`Delete bill ${b.number}?`} /></td>
@@ -846,7 +847,7 @@ export default function Purchases() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div><Label>Date</Label><Input type="date" value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} className="mt-1" /></div>
+                  <div><Label>Date</Label><DateInput value={paymentForm.date} onChange={(v) => setPaymentForm({ ...paymentForm, date: v })} className="mt-1" /></div>
                   <div>
                     <Label>Bill Number</Label>
                     <Select value={paymentForm.billNumber} onValueChange={v => setPaymentForm({ ...paymentForm, billNumber: v })}>
