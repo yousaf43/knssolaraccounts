@@ -193,16 +193,16 @@ export function printProposal(
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
   .cover3d{position:relative;height:270mm;border-radius:8px;overflow:hidden;color:#fff}
   .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,0) 32%,rgba(6,25,48,.12) 68%,rgba(6,25,48,.42) 100%)}
+  .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 30%,rgba(6,25,48,0) 55%,rgba(6,25,48,.28) 100%)}
   .cover3d .ct{position:relative;padding:11mm 12mm 0}
   .cover3d .logo{height:21mm;filter:drop-shadow(0 0 1.2mm rgba(255,255,255,.95)) drop-shadow(0 0 .4mm #fff)}
   .cover3d .cbox{position:absolute;left:12mm;right:12mm;bottom:10mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
   .cover3d .cbox div{background:linear-gradient(180deg,rgba(14,58,91,.94),rgba(11,46,91,.94));border-top:4px solid #F2B33D;border-radius:8px;padding:5mm;box-shadow:0 6px 18px rgba(6,25,48,.4)}
-  .cover3d .cbox small{display:block;font-size:10.5px;letter-spacing:.16em;color:#F2B33D;font-weight:800}
+  .cover3d .cbox small{display:block;font-size:11px;letter-spacing:.16em;color:#F2B33D;font-weight:900}
   .cover3d .cbox b{display:block;font-size:17px;margin:1.5mm 0}.cover3d .cbox span{font-size:11.5px;color:#dcebf7}
   .cover3d .toprow{display:flex;justify-content:space-between;align-items:flex-start}
   .cover3d .brand{display:flex;align-items:center;gap:4mm}.cover3d .brand .logo{margin-bottom:0}
-  .cover3d .rbs{font-size:29px;font-style:italic;font-weight:800;color:#0F5BA8;border-left:3px solid #F2B33D;padding-left:4mm;text-shadow:0 1px 0 #fff,0 2px 10px rgba(255,255,255,.85);letter-spacing:.02em}
+  .cover3d .rbs{font-family:'Segoe Script','Brush Script MT','Comic Sans MS',cursive;font-size:30px;font-style:italic;font-weight:700;color:#0F5BA8;border-left:3px solid #F2B33D;padding-left:4mm;text-shadow:0 1px 0 #fff,0 2px 10px rgba(255,255,255,.85);letter-spacing:.02em}
   .cover3d .badges{display:flex;gap:4mm;align-items:flex-start;background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border-radius:6px;padding:3mm 4mm 2.5mm;box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1mm}
   .cover3d .badges .bd span{width:15mm;height:18mm;background:#fff;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);padding-bottom:2.5mm}
@@ -211,16 +211,16 @@ export function printProposal(
   .cover3d .featwrap{background:rgba(255,255,255,.93);border-radius:10px;padding:3.5mm;margin-top:7mm;box-shadow:0 6px 20px rgba(6,25,48,.25)}
   .cover3d .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}
   .cover3d .feat div{background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border-bottom:3px solid #F2B33D;border-radius:8px;padding:4.5mm 3mm;text-align:center}
-  .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13px;color:#F2B33D;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#dcebf7}
-  .cover3d .tfp{font-size:31px;font-weight:800;text-align:center;margin:11mm 0 2.5mm;color:#0B2E5B;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+  .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13.5px;font-style:italic;color:#F2B33D;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#dcebf7}
+  .cover3d .tfp{font-size:33px;font-weight:900;letter-spacing:.03em;text-align:center;margin:11mm 0 2.5mm;color:#0B2E5B;text-shadow:0 1px 0 rgba(255,255,255,.75)}
   .cover3d .tag{text-align:center;letter-spacing:.18em;font-size:10.5px;color:#0F5BA8;font-weight:800}
   .cover3d .tag::before,.cover3d .tag::after{content:"";display:inline-block;width:13mm;height:2px;background:#F2B33D;vertical-align:middle;margin:0 4mm}
-  .cover3d .projbox{margin-top:7mm;background:linear-gradient(180deg,rgba(14,58,91,.93),rgba(11,46,91,.93));border-left:5px solid #F2B33D;border-radius:8px;padding:6mm 7mm;width:72%;box-shadow:0 6px 18px rgba(6,25,48,.35)}
+  .cover3d .projbox{margin-top:7mm;background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border-left:5px solid #F2B33D;border-radius:8px;padding:6mm 7mm;width:72%;box-shadow:0 6px 18px rgba(6,25,48,.35)}
   .cover3d .projbox .pj{font-size:22px;font-weight:700}.cover3d .projbox .pj span{color:#F2B33D}
   .cover3d .projbox .cl{font-size:14.5px;margin-top:2.5mm;color:#eaf4fc;border-top:1px solid rgba(255,255,255,.25);padding-top:2.5mm}
-  .cover3d .contact{margin-top:7mm;display:grid;grid-template-columns:1fr 1fr 1.4fr;background:linear-gradient(180deg,rgba(14,58,91,.93),rgba(11,46,91,.93));border-radius:8px;padding:4mm;box-shadow:0 6px 18px rgba(6,25,48,.35)}
+  .cover3d .contact{margin-top:7mm;display:grid;grid-template-columns:1fr 1fr 1.4fr;background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border:1px solid #F2B33D;border-radius:8px;padding:4mm;box-shadow:0 6px 18px rgba(6,25,48,.35)}
   .cover3d .contact div{display:flex;gap:3mm;align-items:center;padding:0 3mm;border-left:2px solid #F2B33D}.cover3d .contact div:first-child{border-left:0}
-  .cover3d .contact em{font-style:normal;font-size:18px}.cover3d .contact p{font-size:11px;margin:0}.cover3d .contact small{display:block;color:#F2B33D;font-weight:700;font-size:10px}
+  .cover3d .contact em{font-style:normal;font-size:18px;color:#F2B33D}.cover3d .contact p{font-size:11px;margin:0}.cover3d .contact small{display:block;color:#F2B33D;font-weight:800;font-style:italic;font-size:10.5px}
   .chart{border:1px solid var(--line);border-radius:8px;padding:3mm;background:linear-gradient(180deg,#fff,var(--soft))}
   .legend{display:flex;gap:6mm;font-size:10.5px;color:var(--muted);margin-top:2mm}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
   .sys3d{width:100%;height:70mm;object-fit:contain;display:block;border-radius:8px}
@@ -235,7 +235,7 @@ export function printProposal(
 
 <div class="page cover-page">
   <div class="cover3d">
-    <img class="bg" src="${abs("/portfolio/cover-3d.jpg")}" alt="">
+    <img class="bg" src="${abs("/portfolio/cover-sunset.jpg")}" alt="">
     <div class="shade"></div>
     <div class="ct">
       <div class="toprow">
@@ -263,7 +263,7 @@ export function printProposal(
     <div class="cbox">
       <div><small>PREPARED FOR</small><b>${esc(p.customerName)}</b><span>${esc(p.companyName || p.city)}</span></div>
       <div><small>SYSTEM</small><b>${kw} kWp ${typeLabel}</b><span>${p.netBilling ? "With Net Billing" : "Solar Solution"}</span></div>
-      <div><small>REF / DATE</small><b>${esc(p.proposalNo)}</b><span>${p.date ? formatDate(p.date) : "-"}${validUntil ? " • Valid till " + formatDate(validUntil) : ""}</span></div>
+      <div><small>REF # DATE</small><b>${esc(p.proposalNo)}</b><span>${p.date ? formatDate(p.date) : "-"}${validUntil ? " • Valid till " + formatDate(validUntil) : ""}</span></div>
     </div>
   </div>
 </div>
@@ -620,6 +620,7 @@ ${(() => {
   .ct-page .sub{text-align:center;font-size:13px;color:#0B2E5B;font-weight:600;margin:7mm auto 9mm;max-width:150mm;line-height:1.6}
   .ct-page .cards{display:grid;grid-template-columns:1fr 1fr;gap:6mm 5mm}
   .ct-page .card{position:relative;background:#fff;border:1.5px solid #d7e6f5;border-radius:10px;padding:7mm 5mm 5mm;box-shadow:0 3px 10px rgba(11,46,91,.08)}
+  a.card{display:block;text-decoration:none;color:inherit;cursor:pointer}
   .ct-page .card .pill{position:absolute;top:-4.5mm;left:5mm;display:inline-flex;align-items:center;background:linear-gradient(90deg,#0F5BA8,#0B2E5B);color:#fff;border-radius:20mm;padding:1.5mm 5mm 1.5mm 1.5mm;font-size:10px;font-weight:800;letter-spacing:.08em;box-shadow:0 2px 6px rgba(11,46,91,.3)}
   .ct-page .card .pill i{width:8mm;height:8mm;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin-right:2.5mm}
   .ct-page .card>b{display:block;font-size:16px;color:#0B2E5B;margin:1.5mm 0 2mm}
@@ -640,7 +641,7 @@ ${(() => {
   .ct-page .foot p{font-size:9.5px;color:#0B2E5B;font-weight:600;letter-spacing:.03em}
 </style>
   <div class="corner"></div>
-  <div class="wave"><img src="${abs("/portfolio/cover-3d.jpg")}" alt=""></div>
+  <div class="wave"><img src="${abs("/portfolio/cover-sunset.jpg")}" alt=""></div>
   <div class="inner">
     <div class="tp">
       <div class="brand">${LOGO ? `<img src="${esc(LOGO)}" alt="K&amp;S Solar Energy">` : `<b>${esc(company.name)}</b>`}<span class="rbs">Run by Sun</span></div>
@@ -648,10 +649,10 @@ ${(() => {
     </div>
     <p class="sub">Visit us, call us or follow us online — our team is always ready to help you switch to clean, affordable solar energy.</p>
     <div class="cards">
-      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></i>HEAD OFFICE</span><b>K&amp;S Solar Energy Pvt. Ltd.</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>4-Basement, Ramzan Plaza, College Road, Bhakkar, Punjab, Pakistan</span></div>
-      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3z"/></svg></i>CALL / WHATSAPP</span><b>+92-328-0454939</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6l4.2 2.5-.8 1.3L11 13.5V7h2v5.6z"/></svg>Mon – Sat, 9:00 AM – 6:00 PM</span><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M4 3h16a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H8l-5 4V4a1 1 0 0 1 1-1z"/></svg>Quick response on WhatsApp</span></div>
-      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm9 7.4L4.2 7h15.6L12 12.4z"/></svg></i>EMAIL</span><b>info@knssolar.com.pk</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>Send us your electricity bill for a free savings estimate</span></div>
-      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm7.9 9h-3a15.6 15.6 0 0 0-1.2-4.6A8 8 0 0 1 19.9 11zM12 4.1c.8 1 1.9 3.1 2.2 6.9H9.8c.3-3.8 1.4-5.9 2.2-6.9zM8.3 6.4A15.6 15.6 0 0 0 7.1 11h-3a8 8 0 0 1 4.2-4.6zM4.1 13h3c.1 1.9.5 3.4 1.2 4.6A8 8 0 0 1 4.1 13zM12 19.9c-.8-1-1.9-3.1-2.2-6.9h4.4c-.3 3.8-1.4 5.9-2.2 6.9zm3.7-2.3c.7-1.2 1.1-2.7 1.2-4.6h3a8 8 0 0 1-4.2 4.6z"/></svg></i>WEBSITE</span><b>www.knssolar.com.pk</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M10.6 13.4a1 1 0 0 0 1.4 1.4l4.2-4.2a3 3 0 0 0-4.2-4.2l-2.1 2.1 1.4 1.4 2.1-2.1a1 1 0 0 1 1.4 1.4l-4.2 4.2zm2.8-2.8a1 1 0 0 0-1.4-1.4l-4.2 4.2a3 3 0 0 0 4.2 4.2l2.1-2.1-1.4-1.4-2.1 2.1a1 1 0 0 1-1.4-1.4l4.2-4.2z"/></svg>Projects, products &amp; our latest solar installations</span></div>
+      <a class="card" href="https://www.google.com/maps/search/?api=1&amp;query=Ramzan+Plaza+College+Road+Bhakkar" target="_blank"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></i>HEAD OFFICE</span><b>K&amp;S Solar Energy Pvt. Ltd.</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>4-Basement, Ramzan Plaza, College Road, Bhakkar, Punjab, Pakistan</span></a>
+      <a class="card" href="https://wa.me/923280454939" target="_blank"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3z"/></svg></i>CALL / WHATSAPP</span><b>+92-328-0454939</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6l4.2 2.5-.8 1.3L11 13.5V7h2v5.6z"/></svg>Mon – Sat, 9:00 AM – 6:00 PM</span><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M4 3h16a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H8l-5 4V4a1 1 0 0 1 1-1z"/></svg>Quick response on WhatsApp</span></a>
+      <a class="card" href="mailto:info@knssolar.com.pk"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm9 7.4L4.2 7h15.6L12 12.4z"/></svg></i>EMAIL</span><b>info@knssolar.com.pk</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>Send us your electricity bill for a free savings estimate</span></a>
+      <a class="card" href="https://www.knssolar.com.pk" target="_blank"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm7.9 9h-3a15.6 15.6 0 0 0-1.2-4.6A8 8 0 0 1 19.9 11zM12 4.1c.8 1 1.9 3.1 2.2 6.9H9.8c.3-3.8 1.4-5.9 2.2-6.9zM8.3 6.4A15.6 15.6 0 0 0 7.1 11h-3a8 8 0 0 1 4.2-4.6zM4.1 13h3c.1 1.9.5 3.4 1.2 4.6A8 8 0 0 1 4.1 13zM12 19.9c-.8-1-1.9-3.1-2.2-6.9h4.4c-.3 3.8-1.4 5.9-2.2 6.9zm3.7-2.3c.7-1.2 1.1-2.7 1.2-4.6h3a8 8 0 0 1-4.2 4.6z"/></svg></i>WEBSITE</span><b>www.knssolar.com.pk</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M10.6 13.4a1 1 0 0 0 1.4 1.4l4.2-4.2a3 3 0 0 0-4.2-4.2l-2.1 2.1 1.4 1.4 2.1-2.1a1 1 0 0 1 1.4 1.4l-4.2 4.2zm2.8-2.8a1 1 0 0 0-1.4-1.4l-4.2 4.2a3 3 0 0 0 4.2 4.2l2.1-2.1-1.4-1.4-2.1 2.1a1 1 0 0 1-1.4-1.4l4.2-4.2z"/></svg>Projects, products &amp; our latest solar installations</span></a>
     </div>
     <div class="soc">
       <h4>FOLLOW US ON SOCIAL MEDIA</h4>
