@@ -10,7 +10,10 @@ const base: any = {
   inverterKw: 50, inverterBrand: "Itel", inverterWarranty: "3y", includeInverter: true,
   structureQty: 40, structureType: "L2", netBilling: true, earthing: true, disco: "MEPCO",
   tariffCategory: "auto", battery: null, monthlyUnits: new Array(12).fill(5000),
-  items: [{ name: "Solar Panel 625W", qty: 80, price: 26000 }, { name: "Inverter 50kW", qty: 1, price: 850000 }],
+  items: [
+    { brand: "JA Solar", description: "Solar Panel 625W", qty: 80, unit: "pcs", unitPrice: 26000, amount: 2080000 },
+    { brand: "Itel", description: "Inverter 50kW On-Grid", qty: 1, unit: "unit", unitPrice: 850000, amount: 850000 },
+  ],
   total: 5000000, paymentMethod: "Cash", delivery: "2 weeks", terms: "", salesExec: "",
   signedName: "", signedTitle: "", signedPhone: "", signedEmail: "", status: "draft",
 };
