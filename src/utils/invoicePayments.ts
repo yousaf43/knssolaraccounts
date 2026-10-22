@@ -2,14 +2,29 @@ import type { Invoice, Receipt } from "@/data/mockData";
 
 const normalizeValue = (value?: string | null) => (value ?? "").trim().toLowerCase();
 
+// Customer names can differ slightly between documents (renamed customer,
+// added city), so treat them as compatible when one contains the other.
+// Completely different names mean the invoice number is duplicated across
+// customers and the receipt must NOT be counted against this invoice.
+function customersCompatible(a?: string | null, b?: string | null) {
+  const na = normalizeValue(a);
+  const nb = normalizeValue(b);
+  if (!na || !nb) return true; // missing name on either side — fall back to number only
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
 export function receiptMatchesInvoice(
   receipt: Pick<Receipt, "invoiceNumber" | "customer">,
   invoice: Pick<Invoice, "number" | "customer">
 ) {
-  // Invoice numbers are unique per company, so the number alone links a receipt.
-  // Customer names can differ slightly (e.g. renamed customer, added city).
+  // Invoice numbers can be duplicated across customers, so match on the
+  // number AND a compatible customer name.
   const num = normalizeValue(invoice.number);
-  return num !== "" && normalizeValue(receipt.invoiceNumber) === num;
+  return (
+    num !== "" &&
+    normalizeValue(receipt.invoiceNumber) === num &&
+    customersCompatible(receipt.customer, invoice.customer)
+  );
 }
 
 export function getInvoiceReceipts(
