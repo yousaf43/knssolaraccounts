@@ -19,6 +19,6 @@ it("capture proposal html", () => {
   let html = "";
   const fakeDoc = { write: (s: string) => { html += s; }, close: () => {}, fonts: { ready: Promise.resolve() }, images: [], querySelectorAll: () => [] };
   vi.spyOn(window, "open").mockReturnValue({ document: fakeDoc, requestAnimationFrame: (cb: any) => cb(), print: () => {} } as any);
-  printProposal(p, { name: "K&S Solar Energy Pvt. Ltd.", address: "", phone: "", email: "", logoUrl: "" }, (d) => String(d));
+  printProposal(p, { name: "K&S Solar Energy Pvt. Ltd.", address: "", phone: "", email: "", logoUrl: "" }, (d) => { const t = new Date(d); return `${String(t.getDate()).padStart(2,"0")}-${String(t.getMonth()+1).padStart(2,"0")}-${t.getFullYear()}`; });
   writeFileSync("/tmp/proposal.html", html);
 });
