@@ -244,15 +244,15 @@ export function printProposal(
       </div>
       <div class="tfp">TECHNICAL &amp; FINANCIAL PROPOSAL</div>
       <div class="tag">CLEAN ENERGY • GENUINE PRODUCTS • PROFESSIONAL SERVICE</div>
-      <div class="feat">
-        <div><em>☀</em><b>Since 2013</b><span>Trusted solar experience</span></div>
-        <div><em>🛡</em><b>Tier-1 Products</b><span>Genuine panels &amp; inverters</span></div>
+      <div class="featwrap"><div class="feat">
+        <div><em>☀️</em><b>Since 2013</b><span>Trusted solar experience</span></div>
+        <div><em>🛡️</em><b>Tier-1 Products</b><span>Genuine panels &amp; inverters</span></div>
         <div><em>⚡</em><b>Net Metering</b><span>Complete approval support</span></div>
         <div><em>🔧</em><b>After-Sales</b><span>Service &amp; maintenance</span></div>
-      </div>
+      </div></div>
       <div class="projbox">
         <div class="pj"><span>Project:</span> ${kw}kW ${typeLabel} Solar System</div>
-        <div class="cl">Client: <b>${esc(p.customerName)}</b> &nbsp;|&nbsp; Date: <b>${p.date ? formatDate(p.date) : "-"}</b></div>
+        <div class="cl">👤 Client: <b>${esc(p.customerName)}</b> &nbsp;&nbsp; 📅 Date: <b>${p.date ? formatDate(p.date) : "-"}</b></div>
       </div>
       <div class="contact">
         <div><em>✉</em><p><small>Email Us</small>${esc(company.email || "info@knssolar.com")}</p></div>
