@@ -3,6 +3,7 @@ import { Landmark, ArrowUpRight, ArrowDownRight, Plus, ArrowLeftRight, CheckCirc
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StickyPageHeader } from "@/components/StickyPageHeader";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -359,7 +360,7 @@ export default function Accounts() {
                 </div>
                 <div>
                   <label className="text-xs font-medium">Date</label>
-                  <Input type="date" value={pettyCashForm.date} onChange={e => setPettyCashForm({ ...pettyCashForm, date: e.target.value })} className="mt-1" />
+                  <DateInput value={pettyCashForm.date} onChange={(v) => setPettyCashForm({ ...pettyCashForm, date: v })} className="mt-1" />
                 </div>
                 <div>
                   <label className="text-xs font-medium">Amount</label>
@@ -471,7 +472,7 @@ export default function Accounts() {
 
             {showLedgerForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Input type="date" value={ledgerForm.date} onChange={e => setLedgerForm({ ...ledgerForm, date: e.target.value })} placeholder="Date" />
+                <DateInput value={ledgerForm.date} onChange={(v) => setLedgerForm({ ...ledgerForm, date: v })} placeholder="Date" />
                 <Select value={ledgerForm.bank} onValueChange={v => setLedgerForm({ ...ledgerForm, bank: v })}>
                   <SelectTrigger><SelectValue placeholder="Select Bank" /></SelectTrigger>
                   <SelectContent>
@@ -606,7 +607,7 @@ export default function Accounts() {
             </div>
             {showPayForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Input type="date" value={payForm.date} onChange={e => setPayForm({ ...payForm, date: e.target.value })} placeholder="Date" />
+                <DateInput value={payForm.date} onChange={(v) => setPayForm({ ...payForm, date: v })} placeholder="Date" />
                 <Input value={payForm.account} onChange={e => setPayForm({ ...payForm, account: e.target.value })} placeholder="Bank / Account Name" list="account-list" />
                 <datalist id="account-list">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
                 <Input value={payForm.payee} onChange={e => setPayForm({ ...payForm, payee: e.target.value })} placeholder="Payee" />
@@ -658,7 +659,7 @@ export default function Accounts() {
             </div>
             {showRecForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Input type="date" value={recForm.date} onChange={e => setRecForm({ ...recForm, date: e.target.value })} placeholder="Date" />
+                <DateInput value={recForm.date} onChange={(v) => setRecForm({ ...recForm, date: v })} placeholder="Date" />
                 <Input value={recForm.account} onChange={e => setRecForm({ ...recForm, account: e.target.value })} placeholder="Bank / Account Name" list="account-list-rec" />
                 <datalist id="account-list-rec">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
                 <Input value={recForm.receivedFrom} onChange={e => setRecForm({ ...recForm, receivedFrom: e.target.value })} placeholder="Received From" />
@@ -711,7 +712,7 @@ export default function Accounts() {
             </div>
             {showTrfForm && (
               <div className="bg-card border rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Input type="date" value={trfForm.date} onChange={e => setTrfForm({ ...trfForm, date: e.target.value })} placeholder="Date" />
+                <DateInput value={trfForm.date} onChange={(v) => setTrfForm({ ...trfForm, date: v })} placeholder="Date" />
                 <Input value={trfForm.fromAccount} onChange={e => setTrfForm({ ...trfForm, fromAccount: e.target.value })} placeholder="From Bank / Account" list="account-list-from" />
                 <datalist id="account-list-from">{accounts.map(a => <option key={a.id} value={a.name} />)}</datalist>
                 <Input value={trfForm.toAccount} onChange={e => setTrfForm({ ...trfForm, toAccount: e.target.value })} placeholder="To Bank / Account" list="account-list-to" />

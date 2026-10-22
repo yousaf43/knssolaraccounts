@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Plus, Eye, Trash2, Edit, Download, ShoppingCart, FileText, Receipt as ReceiptIcon, List, Upload, Maximize2, X, FileDown, CheckCircle, CreditCard, ChevronDown, ChevronUp, Printer, ClipboardList, ArrowRight, RotateCcw, ArrowLeftRight, CheckCircle2, Filter, BookOpen } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -1095,11 +1096,11 @@ export default function Invoices() {
         <>
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">From</span>
-            <Input type="date" className="w-[140px] h-8 text-sm" value={customDateFrom} onChange={(e) => setCustomDateFrom(e.target.value)} />
+            <DateInput className="w-[140px] h-8 text-sm" value={customDateFrom} onChange={(v) => setCustomDateFrom(v)} />
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">To</span>
-            <Input type="date" className="w-[140px] h-8 text-sm" value={customDateTo} onChange={(e) => setCustomDateTo(e.target.value)} />
+            <DateInput className="w-[140px] h-8 text-sm" value={customDateTo} onChange={(v) => setCustomDateTo(v)} />
           </div>
         </>
       )}

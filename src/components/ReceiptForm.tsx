@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -279,7 +280,7 @@ export function ReceiptForm({
         </div>
         <div>
           <Label>Receipt Date *</Label>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" required />
+          <DateInput value={date} onChange={(v) => setDate(v)} className="mt-1" required />
         </div>
 
         {!bulkMode && (

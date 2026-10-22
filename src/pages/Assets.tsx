@@ -3,6 +3,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -155,7 +156,7 @@ export default function Assets() {
             </div>
             <div>
               <Label>Purchase Date</Label>
-              <Input type="date" value={form.purchaseDate} onChange={e => setForm({ ...form, purchaseDate: e.target.value })} className="mt-1" />
+              <DateInput value={form.purchaseDate} onChange={(v) => setForm({ ...form, purchaseDate: v })} className="mt-1" />
             </div>
             <div>
               <Label>Purchased From</Label>

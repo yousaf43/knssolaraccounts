@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, FileSpreadsheet, FileText, Plus, Trash2, Upload, CheckCircle2, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { matchesQuery } from "@/lib/search";
@@ -273,8 +274,8 @@ export function BankReconciliationReport({ accounts, ledger, onBack }: { account
             </PopoverContent>
           </Popover>
         </div>
-        <div><label className="text-xs text-muted-foreground">Start Date</label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-        <div><label className="text-xs text-muted-foreground">End Date</label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+        <div><label className="text-xs text-muted-foreground">Start Date</label><DateInput value={from} onChange={(v) => setFrom(v)} /></div>
+        <div><label className="text-xs text-muted-foreground">End Date</label><DateInput value={to} onChange={(v) => setTo(v)} /></div>
         <div><label className="text-xs text-muted-foreground">Closing balance as per bank statement (PKR)</label><Input inputMode="decimal" placeholder="e.g. 1250000" value={closing} onChange={(e) => setClosing(e.target.value)} /></div>
         <div><label className="text-xs text-muted-foreground">Prepared by</label><Input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} /></div>
         <div><label className="text-xs text-muted-foreground">Reviewed by</label><Input value={reviewedBy} onChange={(e) => setReviewedBy(e.target.value)} /></div>
@@ -306,7 +307,7 @@ export function BankReconciliationReport({ accounts, ledger, onBack }: { account
             </div>
             <p className="text-xs text-muted-foreground">CSV columns: Date, Description, Reference, Debit, Credit (or a single signed Amount). Save Excel sheets as CSV before uploading. Positive = deposit, negative = withdrawal/charge.</p>
             <div className="grid gap-2 md:grid-cols-[140px_1fr_140px_150px_auto]">
-              <Input type="date" value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} />
+              <DateInput value={draft.date} onChange={(v) => setDraft({ ...draft, date: v })} />
               <Input placeholder="Description" value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
               <Input placeholder="Cheque / Ref" value={draft.reference} onChange={(e) => setDraft({ ...draft, reference: e.target.value })} />
               <Input placeholder="Amount (+/−)" inputMode="decimal" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} onKeyDown={(e) => e.key === "Enter" && addLine()} />
