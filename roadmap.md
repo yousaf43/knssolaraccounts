@@ -5,3 +5,6 @@
 - [x] Make Report 121 print bold and repair By Invoice print totals alignment
 - [x] Use average purchase price in Report 148 Stock Valuation
 - [x] Repair proposal PDF blank pages and verify topic-wise pagination
+- [ ] Migrate application data, users, storage, and functions to the user's external Supabase (blocked: secure target credentials)
+- [ ] Prepare independent Hostinger deployment from GitHub and remove runtime Lovable dependencies (blocked: target access and replacement service choices)
+- [ ] Verify imported records and independent sign-in/accounting flows before cutover
