@@ -193,7 +193,7 @@ export function printProposal(
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
   .cover3d{position:relative;height:270mm;border-radius:8px;overflow:hidden;color:#fff}
   .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,0) 32%,rgba(6,25,48,.12) 68%,rgba(6,25,48,.42) 100%)}
+  .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 30%,rgba(6,25,48,0) 55%,rgba(6,25,48,.28) 100%)}
   .cover3d .ct{position:relative;padding:11mm 12mm 0}
   .cover3d .logo{height:21mm;filter:drop-shadow(0 0 1.2mm rgba(255,255,255,.95)) drop-shadow(0 0 .4mm #fff)}
   .cover3d .cbox{position:absolute;left:12mm;right:12mm;bottom:10mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
@@ -235,7 +235,7 @@ export function printProposal(
 
 <div class="page cover-page">
   <div class="cover3d">
-    <img class="bg" src="${abs("/portfolio/cover-3d.jpg")}" alt="">
+    <img class="bg" src="${abs("/portfolio/cover-sunset.jpg")}" alt="">
     <div class="shade"></div>
     <div class="ct">
       <div class="toprow">
