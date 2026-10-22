@@ -15,3 +15,5 @@
 - [ ] Verify fixes on Hostinger (blocked: updated GitHub version must be redeployed; live /invoices still returns 404)
 - [ ] Resolve remaining security warnings beyond compatible updates (blocked: 30 alerts remain, including dependencies needing framework/test-tool upgrades)
 - [x] Apply Report 148 handwritten purchase-average and remaining FIFO-stock example; 15 costing tests pass and signed-in report columns/amounts verified
+- [x] Replace all 42 native date inputs with dd-mm-yyyy DateInput (typed entry + calendar picker); fix raw date cells in Purchases/Store Inventory/Completed Sites; typecheck and build pass
+- [x] Verify proposal cover and last page render against user references (14 pages, images load, dd-MM-yyyy dates)
