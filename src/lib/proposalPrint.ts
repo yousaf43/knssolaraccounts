@@ -603,66 +603,71 @@ ${(() => {
 
 <div class="page ct-page">
 <style>
-  .ct-page{position:relative;overflow:hidden;background:linear-gradient(160deg,#0B1E32 0%,#0E3A5B 60%,#0F5BA8 100%);color:#fff;border-radius:6px;display:flex;flex-direction:column;min-height:250mm}
-  .ct-page .glow{position:absolute;width:120mm;height:120mm;border-radius:50%;background:radial-gradient(circle,rgba(46,155,218,.35),transparent 70%)}
-  .ct-page .g1{top:-40mm;right:-30mm}.ct-page .g2{bottom:-50mm;left:-30mm;background:radial-gradient(circle,rgba(242,179,61,.22),transparent 70%)}
-  .ct-page .inner{position:relative;padding:16mm 14mm;display:flex;flex-direction:column;flex:1}
-  .ct-page .tp{display:flex;justify-content:space-between;align-items:center}
-  .ct-page .tp img{height:16mm}
-  .ct-page .tp .rbs{font-size:20px;font-style:italic;font-weight:800;color:#5EC9F8;text-shadow:0 0 12px rgba(94,201,248,.6)}
-  .ct-page h2{font-size:30px;font-weight:800;margin:14mm 0 2mm;letter-spacing:.5px}
-  .ct-page h2 span{color:#F2B33D}
-  .ct-page .sub{font-size:12.5px;color:#cfe3f2;margin-bottom:10mm}
-  .ct-page .cards{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
-  .ct-page .card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-top:3px solid #F2B33D;border-radius:8px;padding:5mm}
-  .ct-page .card small{display:block;font-size:9.5px;letter-spacing:.18em;color:#5EC9F8;font-weight:800;margin-bottom:1.5mm}
-  .ct-page .card b{display:block;font-size:14px}
-  .ct-page .card span{display:block;font-size:11px;color:#cfe3f2;margin-top:1mm;line-height:1.5}
-  .ct-page .soc{margin-top:8mm}
-  .ct-page .soc small{display:block;font-size:9.5px;letter-spacing:.18em;color:#5EC9F8;font-weight:800;margin-bottom:3mm}
-  .ct-page .soc .row{display:flex;gap:3mm;flex-wrap:wrap}
-  .ct-page .soc a{display:inline-flex;align-items:center;gap:2.5mm;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#fff;text-decoration:none;font-size:11.5px;font-weight:700;padding:2.8mm 5mm;border-radius:20mm}
-  .ct-page .soc a svg{flex:0 0 auto}
-  .ct-page .map{margin-top:8mm;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5mm;display:flex;gap:4mm;align-items:center}
-  .ct-page .map .pin{font-size:26px}
-  .ct-page .map b{display:block;font-size:13px}
-  .ct-page .map span{font-size:11px;color:#cfe3f2;line-height:1.55}
-  .ct-page .foot{margin-top:auto;padding-top:8mm;text-align:center;border-top:1px solid rgba(255,255,255,.15)}
-  .ct-page .foot .o{color:#F2B33D;font-weight:800;font-size:14px;letter-spacing:1px}
-  .ct-page .foot p{font-size:10px;color:#9fb9cc;margin-top:1.5mm}
+  .ct-page{position:relative;overflow:hidden;background:#fff;color:#0B2E5B;border-radius:6px;display:flex;flex-direction:column;min-height:270mm}
+  .ct-page .corner{position:absolute;top:0;left:0;width:55mm;height:36mm;background:linear-gradient(135deg,#0B2E5B,#0F5BA8);clip-path:polygon(0 0,100% 0,0 100%)}
+  .ct-page .wave{position:absolute;left:0;right:0;bottom:0;height:40mm;overflow:hidden}
+  .ct-page .wave img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 82%}
+  .ct-page .wave::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,91,168,.5),rgba(11,46,91,.88));z-index:1}
+  .ct-page .wave::after{content:"";position:absolute;top:-9mm;left:-10%;width:120%;height:14mm;background:#fff;border-radius:0 0 50% 50%/0 0 100% 100%;z-index:2}
+  .ct-page .inner{position:relative;z-index:3;padding:13mm 14mm 0;display:flex;flex-direction:column;flex:1}
+  .ct-page .tp{display:flex;justify-content:space-between;align-items:flex-start}
+  .ct-page .brand{display:flex;align-items:center;gap:3mm}
+  .ct-page .brand img{height:19mm}
+  .ct-page .brand .rbs{font-size:21px;font-style:italic;font-weight:800;color:#0F5BA8;border-left:2.5px solid #F2B33D;padding-left:3mm}
+  .ct-page .ttl{text-align:right}
+  .ct-page .ttl .ls{font-size:25px;font-style:italic;font-weight:800;color:#0F5BA8}
+  .ct-page .ttl .cn{font-size:33px;font-weight:900;color:#0B2E5B;letter-spacing:.5px;line-height:1.05}
+  .ct-page .sub{text-align:center;font-size:13px;color:#0B2E5B;font-weight:600;margin:7mm auto 9mm;max-width:150mm;line-height:1.6}
+  .ct-page .cards{display:grid;grid-template-columns:1fr 1fr;gap:6mm 5mm}
+  .ct-page .card{position:relative;background:#fff;border:1.5px solid #d7e6f5;border-radius:10px;padding:7mm 5mm 5mm;box-shadow:0 3px 10px rgba(11,46,91,.08)}
+  .ct-page .card .pill{position:absolute;top:-4.5mm;left:5mm;display:inline-flex;align-items:center;background:linear-gradient(90deg,#0F5BA8,#0B2E5B);color:#fff;border-radius:20mm;padding:1.5mm 5mm 1.5mm 1.5mm;font-size:10px;font-weight:800;letter-spacing:.08em;box-shadow:0 2px 6px rgba(11,46,91,.3)}
+  .ct-page .card .pill i{width:8mm;height:8mm;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin-right:2.5mm}
+  .ct-page .card>b{display:block;font-size:16px;color:#0B2E5B;margin:1.5mm 0 2mm}
+  .ct-page .card .ln{display:flex;align-items:center;gap:2mm;font-size:11px;color:#3b5a7a;margin-top:1.4mm}
+  .ct-page .soc{margin-top:10mm}
+  .ct-page .soc h4{font-size:15px;font-weight:900;color:#0B2E5B;display:flex;align-items:center;gap:4mm;margin:0 0 4mm}
+  .ct-page .soc h4::after{content:"";flex:1;height:1.5px;background:#c9dcec}
+  .ct-page .soc .row{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}
+  .ct-page .soc a{display:flex;align-items:center;gap:2.5mm;background:#fff;border:1.5px solid #d7e6f5;border-radius:20mm;padding:2.5mm 3mm;text-decoration:none;box-shadow:0 2px 6px rgba(11,46,91,.08)}
+  .ct-page .soc a i{width:9mm;height:9mm;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .ct-page .soc a b{display:block;font-size:11px;color:#0B2E5B}
+  .ct-page .soc a span{display:block;font-size:9px;color:#5b7b9b}
+  .ct-page .map{margin-top:10mm;background:#eaf4fd;border:1.5px solid #cfe4f7;border-radius:10px;padding:5mm 6mm;display:flex;gap:4mm;align-items:center}
+  .ct-page .map .pin{flex:0 0 auto}
+  .ct-page .map b{display:block;font-size:15px;color:#0B2E5B}
+  .ct-page .map span{font-size:11px;color:#3b5a7a;line-height:1.55}
+  .ct-page .foot{position:absolute;left:0;right:0;bottom:43mm;z-index:4;text-align:center}
+  .ct-page .foot p{font-size:9.5px;color:#0B2E5B;font-weight:600;letter-spacing:.03em}
 </style>
-  <div class="glow g1"></div><div class="glow g2"></div>
+  <div class="corner"></div>
+  <div class="wave"><img src="${abs("/portfolio/cover-3d.jpg")}" alt=""></div>
   <div class="inner">
     <div class="tp">
-      ${LOGO ? `<img src="${esc(LOGO)}" alt="K&amp;S Solar Energy">` : `<b>${esc(company.name)}</b>`}
-      <span class="rbs">Run by Sun</span>
+      <div class="brand">${LOGO ? `<img src="${esc(LOGO)}" alt="K&amp;S Solar Energy">` : `<b>${esc(company.name)}</b>`}<span class="rbs">Run by Sun</span></div>
+      <div class="ttl"><div class="ls">Let&#8217;s Stay</div><div class="cn">CONNECTED</div></div>
     </div>
-    <h2>LET'S STAY <span>CONNECTED</span></h2>
     <p class="sub">Visit us, call us or follow us online — our team is always ready to help you switch to clean, affordable solar energy.</p>
     <div class="cards">
-      <div class="card"><small>HEAD OFFICE</small><b>K&amp;S Solar Energy Pvt. Ltd.</b><span>4-Basement, Ramzan Plaza, College Road,<br>Bhakkar, Punjab, Pakistan</span></div>
-      <div class="card"><small>CALL / WHATSAPP</small><b>+92-328-0454939</b><span>Mon – Sat, 9:00 AM – 6:00 PM<br>Quick response on WhatsApp</span></div>
-      <div class="card"><small>EMAIL</small><b>info@knssolar.com.pk</b><span>Send us your electricity bill for a<br>free savings estimate</span></div>
-      <div class="card"><small>WEBSITE</small><b>www.knssolar.com.pk</b><span>Projects, products &amp; our latest<br>solar installations</span></div>
+      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></i>HEAD OFFICE</span><b>K&amp;S Solar Energy Pvt. Ltd.</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>4-Basement, Ramzan Plaza, College Road, Bhakkar, Punjab, Pakistan</span></div>
+      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3z"/></svg></i>CALL / WHATSAPP</span><b>+92-328-0454939</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 10.6l4.2 2.5-.8 1.3L11 13.5V7h2v5.6z"/></svg>Mon – Sat, 9:00 AM – 6:00 PM</span><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M4 3h16a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H8l-5 4V4a1 1 0 0 1 1-1z"/></svg>Quick response on WhatsApp</span></div>
+      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm9 7.4L4.2 7h15.6L12 12.4z"/></svg></i>EMAIL</span><b>info@knssolar.com.pk</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>Send us your electricity bill for a free savings estimate</span></div>
+      <div class="card"><span class="pill"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm7.9 9h-3a15.6 15.6 0 0 0-1.2-4.6A8 8 0 0 1 19.9 11zM12 4.1c.8 1 1.9 3.1 2.2 6.9H9.8c.3-3.8 1.4-5.9 2.2-6.9zM8.3 6.4A15.6 15.6 0 0 0 7.1 11h-3a8 8 0 0 1 4.2-4.6zM4.1 13h3c.1 1.9.5 3.4 1.2 4.6A8 8 0 0 1 4.1 13zM12 19.9c-.8-1-1.9-3.1-2.2-6.9h4.4c-.3 3.8-1.4 5.9-2.2 6.9zm3.7-2.3c.7-1.2 1.1-2.7 1.2-4.6h3a8 8 0 0 1-4.2 4.6z"/></svg></i>WEBSITE</span><b>www.knssolar.com.pk</b><span class="ln"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0F5BA8"><path d="M10.6 13.4a1 1 0 0 0 1.4 1.4l4.2-4.2a3 3 0 0 0-4.2-4.2l-2.1 2.1 1.4 1.4 2.1-2.1a1 1 0 0 1 1.4 1.4l-4.2 4.2zm2.8-2.8a1 1 0 0 0-1.4-1.4l-4.2 4.2a3 3 0 0 0 4.2 4.2l2.1-2.1-1.4-1.4-2.1 2.1a1 1 0 0 1-1.4-1.4l4.2-4.2z"/></svg>Projects, products &amp; our latest solar installations</span></div>
     </div>
     <div class="soc">
-      <small>FOLLOW US ON SOCIAL MEDIA</small>
+      <h4>FOLLOW US ON SOCIAL MEDIA</h4>
       <div class="row">
-        <a href="https://www.facebook.com/knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5H16V5c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9V11H7.5v3H10v7h3.5z"/></svg>Facebook — K&amp;S Solar Energy</a>
-        <a href="https://www.instagram.com/knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M12 4.2c2.6 0 2.9 0 3.9.1 2.7.1 3.9 1.4 4 4 .1 1 .1 1.3.1 3.9s0 2.9-.1 3.9c-.1 2.6-1.3 3.9-4 4-1 .1-1.3.1-3.9.1s-2.9 0-3.9-.1c-2.7-.1-3.9-1.4-4-4-.1-1-.1-1.3-.1-3.9s0-2.9.1-3.9c.1-2.6 1.3-3.9 4-4 1-.1 1.3-.1 3.9-.1M12 2.5c-2.6 0-3 0-4 .1C4.7 2.7 2.7 4.7 2.6 8c-.1 1-.1 1.4-.1 4s0 3 .1 4c.1 3.3 2.1 5.3 5.4 5.4 1 .1 1.4.1 4 .1s3 0 4-.1c3.3-.1 5.3-2.1 5.4-5.4.1-1 .1-1.4.1-4s0-3-.1-4c-.1-3.3-2.1-5.3-5.4-5.4-1-.1-1.4-.1-4-.1zm0 4.7a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6zm0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zm5-8.1a1.1 1.1 0 1 0 0-2.3 1.1 1.1 0 0 0 0 2.3z"/></svg>Instagram — @knssolarenergy</a>
-        <a href="https://wa.me/923280454939" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3z"/></svg>WhatsApp — 0328-0454939</a>
-        <a href="https://www.youtube.com/@knssolarenergy" target="_blank"><svg width="15" height="15" viewBox="0 0 24 24" fill="#5EC9F8"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg>YouTube — K&amp;S Solar Energy</a>
+        <a href="https://www.facebook.com/knssolarenergy" target="_blank"><i style="background:#1877F2"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5H16V5c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9V11H7.5v3H10v7h3.5z"/></svg></i><div><b>Facebook</b><span>K&amp;S Solar Energy</span></div></a>
+        <a href="https://www.instagram.com/knssolarenergy" target="_blank"><i style="background:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 4.2c2.6 0 2.9 0 3.9.1 2.7.1 3.9 1.4 4 4 .1 1 .1 1.3.1 3.9s0 2.9-.1 3.9c-.1 2.6-1.3 3.9-4 4-1 .1-1.3.1-3.9.1s-2.9 0-3.9-.1c-2.7-.1-3.9-1.4-4-4-.1-1-.1-1.3-.1-3.9s0-2.9.1-3.9c.1-2.6 1.3-3.9 4-4 1-.1 1.3-.1 3.9-.1M12 2.5c-2.6 0-3 0-4 .1C4.7 2.7 2.7 4.7 2.6 8c-.1 1-.1 1.4-.1 4s0 3 .1 4c.1 3.3 2.1 5.3 5.4 5.4 1 .1 1.4.1 4 .1s3 0 4-.1c3.3-.1 5.3-2.1 5.4-5.4.1-1 .1-1.4.1-4s0-3-.1-4c-.1-3.3-2.1-5.3-5.4-5.4-1-.1-1.4-.1-4-.1zm0 4.7a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6zm0 7.9a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zm5-8.1a1.1 1.1 0 1 0 0-2.3 1.1 1.1 0 0 0 0 2.3z"/></svg></i><div><b>Instagram</b><span>@knssolarenergy</span></div></a>
+        <a href="https://wa.me/923280454939" target="_blank"><i style="background:#25D366"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.5-.3z"/></svg></i><div><b>WhatsApp</b><span>0328-0454939</span></div></a>
+        <a href="https://www.youtube.com/@knssolarenergy" target="_blank"><i style="background:#FF0000"><svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M21.6 7.2a2.5 2.5 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 0 0 2.4 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .4 4.8 2.5 2.5 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 0 0 1.8-1.8A26 26 0 0 0 22 12a26 26 0 0 0-.4-4.8zM10 15V9l5.2 3z"/></svg></i><div><b>YouTube</b><span>K&amp;S Solar Energy</span></div></a>
       </div>
     </div>
     <div class="map">
-      <span class="pin">📍</span>
+      <span class="pin"><svg width="30" height="30" viewBox="0 0 24 24" fill="#E11D2E"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></span>
       <div><b>Find us in Bhakkar</b><span>Ramzan Plaza, College Road — near the main commercial market. Free site survey within Bhakkar city; out-of-city surveys on appointment.</span></div>
     </div>
-    <div class="foot">
-      <div class="o">RUN BY SUN ☀ POWERED BY TRUST</div>
-      <p>K&amp;S Solar Energy Pvt. Ltd. &nbsp;|&nbsp; SECP Registered &nbsp;•&nbsp; AEDB Certified &nbsp;•&nbsp; PEC Registered &nbsp;|&nbsp; Proposal ${esc(p.proposalNo)}</p>
-    </div>
   </div>
+  <div class="foot"><p>K&amp;S Solar Energy Pvt. Ltd. &nbsp;|&nbsp; SECP Registered &nbsp;|&nbsp; AEDB Certified &nbsp;|&nbsp; PEC Registered &nbsp;|&nbsp; Proposal ${esc(p.proposalNo)}</p></div>
 </div>
 
 </body></html>`;
