@@ -30,6 +30,7 @@ import { getDraft, type DraftKind } from "@/lib/drafts";
 import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
 import { expandStockQty } from "@/lib/stockLines";
 import { CustomerLedgerTab } from "@/components/CustomerLedgerTab";
+import { saveWithRollback } from "@/lib/saveWithRollback";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -343,6 +344,8 @@ export default function Invoices() {
   };
 
   const handleSaveInvoice = async (invoice: Invoice, advanceAmount?: number, advanceMethod?: string, advanceRef?: string, ledgerOpt?: { account: string; amount: number } | null) => {
+    let invoiceSaved = false;
+    try {
     const normalizeDocument = (value?: string) => (value || "").trim().toLowerCase();
     const invoiceNumber = normalizeDocument(invoice.number);
     const documentNumber = normalizeDocument(invoice.documentNumber);
@@ -370,7 +373,7 @@ export default function Invoices() {
       const { data: existingDocRows, error: duplicateCheckError } = await supabase
         .from("invoices" as never)
         .select("id, document_number")
-        .ilike("document_number", invoice.documentNumber!.trim())
+        .ilike("document_number", invoice.documentNumber?.trim() || "")
         .neq("id", invoice.id)
         .limit(1);
 
@@ -397,16 +400,21 @@ export default function Invoices() {
     const newQty = isDeductedStatus(invoice.status) ? qtyByItem(invoice) : new Map<string, number>();
 
     const affected = new Set<string>([...oldQty.keys(), ...newQty.keys()]);
+    const stockChanges: { apply: () => Promise<void>; undo: () => Promise<void> }[] = [];
     for (const itemId of affected) {
       // Positive delta = give stock back, negative = take stock out
       const delta = (oldQty.get(itemId) || 0) - (newQty.get(itemId) || 0);
       if (delta === 0) continue;
       const invItem = inventory.find((i) => i.id === itemId);
       if (!invItem || !isStockTrackedItem(invItem)) continue;
-      await upsertInventory({ ...invItem, qty: invItem.qty + delta });
+      stockChanges.push({
+        apply: () => upsertInventory({ ...invItem, qty: invItem.qty + delta }),
+        undo: () => upsertInventory(invItem),
+      });
     }
 
-    await upsertInvoice(invoice);
+    await saveWithRollback(stockChanges, () => upsertInvoice(invoice));
+    invoiceSaved = true;
     if (previous && isDeductedStatus(previous.status) && !isDeductedStatus(invoice.status)) {
       toast.info(`Stock restored for ${invoice.number}`);
     }
@@ -436,6 +444,12 @@ export default function Invoices() {
     goList();
     await log(editInvoice ? "edit" : "create", "invoice", invoice.id, invoice.number, `Customer: ${invoice.customer}, Amount: ${invoice.amount}`);
     toast.success(editInvoice ? "Invoice updated" : "Invoice created");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : (error as { message?: string })?.message;
+      toast.error(invoiceSaved
+        ? `Invoice saved, but a related payment or ledger update failed: ${message || "Please check before retrying."}`
+        : message || "Invoice could not be saved. Please try again.");
+    }
   };
   const handleDeleteInvoice = async (id: string) => {
     const inv = invoices.find(i => i.id === id);
