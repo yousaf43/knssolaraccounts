@@ -11,3 +11,4 @@
 - [ ] Move private brand files to external storage (blocked: user downloads from Cloud Storage; database export does not include files)
 - [ ] Prepare independent Hostinger deployment from GitHub and deploy functions without Lovable AI dependencies (blocked: external restore workflow and Hostinger production URL for final auth setup)
 - [ ] Verify imported records and independent sign-in/accounting flows before cutover
+- [ ] Add Hostinger refresh fallback and investigate reported website errors
