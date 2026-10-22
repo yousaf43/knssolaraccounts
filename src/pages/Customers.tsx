@@ -50,9 +50,10 @@ export default function Customers() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name?.trim()) return;
+    try {
     if (editing) {
       const oldName = editing.name;
-      const newName = form.name!.trim();
+      const newName = form.name.trim();
       await upsertCustomer({ ...editing, ...form } as Customer);
       // Cascade name change across all documents
       if (oldName !== newName) {
@@ -78,6 +79,10 @@ export default function Customers() {
       toast.success("Customer added");
     }
     setShowForm(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : (error as { message?: string })?.message;
+      toast.error(message || "Customer could not be saved. Please try again.");
+    }
   };
 
   const handleDelete = async (id: string) => {
