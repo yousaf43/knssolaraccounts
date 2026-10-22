@@ -10,7 +10,7 @@ const p: any = {
   inverterKw: 50, inverterBrand: "Itel", inverterWarranty: "3y", includeInverter: true,
   structureQty: 40, structureType: "L2", netBilling: false, earthing: false, disco: "",
   tariffCategory: "auto", battery: null, monthlyUnits: new Array(12).fill(1200),
-  items: [{ name: "Solar Panel 625W", qty: 80, price: 16000 }], total: 1280000,
+  items: [], total: 0,
   paymentMethod: "", delivery: "", terms: "", salesExec: "",
   signedName: "", signedTitle: "", signedPhone: "", signedEmail: "", status: "draft",
 };
