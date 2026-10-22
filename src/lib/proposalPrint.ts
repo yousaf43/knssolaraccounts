@@ -193,37 +193,34 @@ export function printProposal(
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
   .cover3d{position:relative;height:270mm;border-radius:8px;overflow:hidden;color:#fff}
   .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,58,91,.85) 0%,rgba(11,58,91,.25) 45%,rgba(11,58,91,.9) 100%)}
-  .cover3d .ct{position:relative;padding:14mm}
-  .cover3d .logo{height:20mm;margin-bottom:6mm;filter:drop-shadow(0 0 1.2mm rgba(255,255,255,.95)) drop-shadow(0 0 .4mm #fff)}
-  .cover3d .tag{letter-spacing:.22em;font-size:10px;color:var(--gold);font-weight:700}
-  .cover3d h1{font-size:30px;font-weight:800;margin:6mm 0 3mm;text-shadow:0 3px 12px rgba(0,0,0,.5)}
-  .cover3d h1 span{color:var(--gold)}
-  .cover3d h2{font-size:18px;text-shadow:0 2px 8px rgba(0,0,0,.5)}
-  .cover3d .cbox{position:absolute;left:10mm;right:10mm;bottom:10mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
-  .cover3d .cbox div{background:rgba(11,58,91,.55);border:1px solid rgba(255,255,255,.3);border-top:4px solid var(--gold);border-radius:8px;padding:5.5mm 5mm;backdrop-filter:blur(4px)}
-  .cover3d .cbox small{display:block;font-size:11px;letter-spacing:.18em;color:var(--gold);font-weight:700}
-  .cover3d .cbox b{display:block;font-size:18px;margin:1.5mm 0}.cover3d .cbox span{font-size:12px;opacity:.9}
+  .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,0) 32%,rgba(6,25,48,.12) 68%,rgba(6,25,48,.42) 100%)}
+  .cover3d .ct{position:relative;padding:11mm 12mm 0}
+  .cover3d .logo{height:21mm;filter:drop-shadow(0 0 1.2mm rgba(255,255,255,.95)) drop-shadow(0 0 .4mm #fff)}
+  .cover3d .cbox{position:absolute;left:12mm;right:12mm;bottom:10mm;display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
+  .cover3d .cbox div{background:linear-gradient(180deg,rgba(14,58,91,.94),rgba(11,46,91,.94));border-top:4px solid #F2B33D;border-radius:8px;padding:5mm;box-shadow:0 6px 18px rgba(6,25,48,.4)}
+  .cover3d .cbox small{display:block;font-size:10.5px;letter-spacing:.16em;color:#F2B33D;font-weight:800}
+  .cover3d .cbox b{display:block;font-size:17px;margin:1.5mm 0}.cover3d .cbox span{font-size:11.5px;color:#dcebf7}
   .cover3d .toprow{display:flex;justify-content:space-between;align-items:flex-start}
   .cover3d .brand{display:flex;align-items:center;gap:4mm}.cover3d .brand .logo{margin-bottom:0}
-  .cover3d .rbs{font-size:26px;font-style:italic;font-weight:800;color:#5EC9F8;border-left:2px solid var(--gold);padding-left:4mm;text-shadow:0 0 14px rgba(94,201,248,.65),0 2px 8px rgba(0,0,0,.6);letter-spacing:.02em}
-  .cover3d .badges{display:flex;gap:4mm;align-items:flex-start;position:relative;padding-top:2mm}
-  .cover3d .badges::before{content:"";position:absolute;top:-4mm;left:-6mm;right:-8mm;height:10mm;border:2.5px solid #2E9BDA;border-bottom:0;border-radius:0 0 50% 50%/0 0 100% 100%;opacity:.85}
+  .cover3d .rbs{font-size:29px;font-style:italic;font-weight:800;color:#0F5BA8;border-left:3px solid #F2B33D;padding-left:4mm;text-shadow:0 1px 0 #fff,0 2px 10px rgba(255,255,255,.85);letter-spacing:.02em}
+  .cover3d .badges{display:flex;gap:4mm;align-items:flex-start;background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border-radius:6px;padding:3mm 4mm 2.5mm;box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1mm}
-  .cover3d .badges .bd span{width:16mm;height:19mm;background:#fff;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);box-shadow:0 3px 10px rgba(0,0,0,.35);padding-bottom:3mm}
-  .cover3d .badges .bd img{width:12mm;height:12mm;object-fit:contain}
-  .cover3d .badges .bd small{font-size:7.5px;font-weight:800;letter-spacing:.05em;color:#5EC9F8;text-shadow:0 1px 4px rgba(0,0,0,.6)}
-  .cover3d .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:10mm}
-  .cover3d .feat div{background:rgba(11,30,50,.65);border:1px solid rgba(255,255,255,.25);border-bottom:3px solid var(--gold);border-radius:8px;padding:4mm 3mm;text-align:center}
-  .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13px;color:#ffd84d;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#fff}
-  .cover3d .tfp{font-size:30px;font-weight:800;text-align:center;margin:14mm 0 3mm;text-shadow:0 3px 12px rgba(0,0,0,.6)}
-  .cover3d .ct>.tag{text-align:center}
-  .cover3d .projbox{margin-top:8mm;background:rgba(11,30,50,.7);border-left:5px solid var(--gold);border-radius:8px;padding:6mm 7mm;width:70%}
-  .cover3d .projbox .pj{font-size:22px;font-weight:700}.cover3d .projbox .pj span{color:var(--gold)}
-  .cover3d .projbox .cl{font-size:15px;margin-top:2mm;opacity:.95}
-  .cover3d .contact{margin-top:8mm;display:grid;grid-template-columns:1fr 1fr 1.4fr;background:rgba(11,30,50,.7);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:4mm}
-  .cover3d .contact div{display:flex;gap:3mm;align-items:center;padding:0 3mm;border-left:1px solid rgba(255,255,255,.2)}.cover3d .contact div:first-child{border-left:0}
-  .cover3d .contact em{font-style:normal;font-size:18px}.cover3d .contact p{font-size:11px;margin:0}.cover3d .contact small{display:block;color:#ffd84d;font-weight:700;font-size:10px}
+  .cover3d .badges .bd span{width:15mm;height:18mm;background:#fff;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);padding-bottom:2.5mm}
+  .cover3d .badges .bd img{width:11mm;height:11mm;object-fit:contain}
+  .cover3d .badges .bd small{font-size:7.5px;font-weight:800;letter-spacing:.04em;color:#fff}
+  .cover3d .featwrap{background:rgba(255,255,255,.93);border-radius:10px;padding:3.5mm;margin-top:7mm;box-shadow:0 6px 20px rgba(6,25,48,.25)}
+  .cover3d .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}
+  .cover3d .feat div{background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border-bottom:3px solid #F2B33D;border-radius:8px;padding:4.5mm 3mm;text-align:center}
+  .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13px;color:#F2B33D;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#dcebf7}
+  .cover3d .tfp{font-size:31px;font-weight:800;text-align:center;margin:11mm 0 2.5mm;color:#0B2E5B;text-shadow:0 1px 0 rgba(255,255,255,.75)}
+  .cover3d .tag{text-align:center;letter-spacing:.18em;font-size:10.5px;color:#0F5BA8;font-weight:800}
+  .cover3d .tag::before,.cover3d .tag::after{content:"";display:inline-block;width:13mm;height:2px;background:#F2B33D;vertical-align:middle;margin:0 4mm}
+  .cover3d .projbox{margin-top:7mm;background:linear-gradient(180deg,rgba(14,58,91,.93),rgba(11,46,91,.93));border-left:5px solid #F2B33D;border-radius:8px;padding:6mm 7mm;width:72%;box-shadow:0 6px 18px rgba(6,25,48,.35)}
+  .cover3d .projbox .pj{font-size:22px;font-weight:700}.cover3d .projbox .pj span{color:#F2B33D}
+  .cover3d .projbox .cl{font-size:14.5px;margin-top:2.5mm;color:#eaf4fc;border-top:1px solid rgba(255,255,255,.25);padding-top:2.5mm}
+  .cover3d .contact{margin-top:7mm;display:grid;grid-template-columns:1fr 1fr 1.4fr;background:linear-gradient(180deg,rgba(14,58,91,.93),rgba(11,46,91,.93));border-radius:8px;padding:4mm;box-shadow:0 6px 18px rgba(6,25,48,.35)}
+  .cover3d .contact div{display:flex;gap:3mm;align-items:center;padding:0 3mm;border-left:2px solid #F2B33D}.cover3d .contact div:first-child{border-left:0}
+  .cover3d .contact em{font-style:normal;font-size:18px}.cover3d .contact p{font-size:11px;margin:0}.cover3d .contact small{display:block;color:#F2B33D;font-weight:700;font-size:10px}
   .chart{border:1px solid var(--line);border-radius:8px;padding:3mm;background:linear-gradient(180deg,#fff,var(--soft))}
   .legend{display:flex;gap:6mm;font-size:10.5px;color:var(--muted);margin-top:2mm}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
   .sys3d{width:100%;height:70mm;object-fit:contain;display:block;border-radius:8px}
