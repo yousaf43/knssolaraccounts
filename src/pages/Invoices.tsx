@@ -1634,6 +1634,61 @@ export default function Invoices() {
         </TabsContent>
       </Tabs>
 
+      {/* Receipt Details Dialog */}
+      <AlertDialog open={!!viewReceipt} onOpenChange={(open) => { if (!open) setViewReceipt(null); }}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ReceiptIcon className="w-5 h-5 text-primary" /> Receipt {viewReceipt?.number}
+              {viewReceipt?._isBulk && <Badge className="bg-primary/10 text-primary border-0 text-[10px]">Bulk × {viewReceipt._allocations?.length}</Badge>}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div><span className="text-muted-foreground block text-xs">Customer</span><span className="font-medium">{viewReceipt?.customer}</span></div>
+                  <div><span className="text-muted-foreground block text-xs">Date</span><span className="font-medium">{viewReceipt ? formatDate(viewReceipt.date) : ""}</span></div>
+                  <div><span className="text-muted-foreground block text-xs">Payment Method</span><span className="font-medium">{viewReceipt?.paymentMethod || "—"}</span></div>
+                  <div><span className="text-muted-foreground block text-xs">Reference</span><span className="font-medium">{viewReceipt?.reference || "—"}</span></div>
+                </div>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 text-xs">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium text-muted-foreground">Invoice</th>
+                        <th className="text-right px-3 py-2 font-medium text-muted-foreground">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(viewReceipt?._isBulk ? viewReceipt._allocations || [] : viewReceipt ? [viewReceipt] : []).map((a) => (
+                        <tr key={a.id} className="border-t">
+                          <td className="px-3 py-2 font-medium">{a.invoiceNumber || "—"}</td>
+                          <td className="px-3 py-2 text-right text-success font-semibold">{formatCurrency(Number(a.amount) || 0)}</td>
+                        </tr>
+                      ))}
+                      <tr className="border-t bg-muted/30">
+                        <td className="px-3 py-2 font-semibold">Total Received</td>
+                        <td className="px-3 py-2 text-right font-bold">{formatCurrency(viewReceipt?.amount || 0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                {viewReceipt?.notes && (
+                  <div><span className="text-muted-foreground block text-xs">Notes</span><p className="text-xs whitespace-pre-wrap">{viewReceipt.notes}</p></div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            {viewReceipt && !viewReceipt._isBulk && (
+              <AlertDialogAction onClick={() => { setEditReceipt(viewReceipt); setViewReceipt(null); setView("form"); }}>
+                Edit Receipt
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Confirmation Dialog for SO → Invoice */}
       <AlertDialog open={!!confirmApproveSO} onOpenChange={(open) => { if (!open) setConfirmApproveSO(null); }}>
         <AlertDialogContent>
