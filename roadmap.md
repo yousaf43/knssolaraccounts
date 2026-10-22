@@ -14,3 +14,4 @@
 - [x] Add Hostinger refresh fallback and investigate reported website errors; add customer/invoice failure messages and stock rollback; 30 tests pass
 - [ ] Verify fixes on Hostinger (blocked: updated GitHub version must be redeployed; live /invoices still returns 404)
 - [ ] Resolve remaining security warnings beyond compatible updates (blocked: 30 alerts remain, including dependencies needing framework/test-tool upgrades)
+- [x] Apply Report 148 handwritten purchase-average and remaining FIFO-stock example; 15 costing tests pass and signed-in report columns/amounts verified
