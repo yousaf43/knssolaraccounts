@@ -179,6 +179,7 @@ export default function Invoices() {
 
 
   const [editReceipt, setEditReceipt] = useState<Receipt | null>(null);
+  const [viewReceipt, setViewReceipt] = useState<(Receipt & { _isBulk?: boolean; _allocations?: Receipt[] }) | null>(null);
   const [editQuotation, setEditQuotation] = useState<Quotation | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [previewSO, setPreviewSO] = useState<{ order: SalesOrder; showPrices: boolean } | null>(null);
@@ -1568,6 +1569,7 @@ export default function Invoices() {
                       <td className="px-4 py-3 text-center"><Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0">{r.paymentMethod}</Badge></td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          <button className="p-1.5 rounded hover:bg-muted transition-colors" title="View Details" onClick={() => setViewReceipt(r)}><Eye className="w-4 h-4 text-muted-foreground" /></button>
                           {!r._isBulk && <button className="p-1.5 rounded hover:bg-muted transition-colors" title="Edit" onClick={() => { setEditReceipt(r); setView("form"); }}><Edit className="w-4 h-4 text-muted-foreground" /></button>}
                           <ConfirmDeleteDialog onConfirm={async () => { for (const a of (r._allocations || [r])) { await handleDeleteReceipt(a.id); } }} title="Delete Receipt?" description={r._isBulk ? `Delete bulk receipt ${r.number} (${r._allocations.length} allocations)?` : `Delete receipt ${r.number}?`} />
                         </div>
