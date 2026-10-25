@@ -192,6 +192,39 @@ async function remap(device: Record<string, unknown>) {
 }
 
 
+/** Copy the day's punches + attendance rows to the user's own database (Hostinger site). Never blocks the device. */
+async function mirrorToExternal(companyId: string, serial: string, dates: string[]) {
+  const url = Deno.env.get("EXTERNAL_DATABASE_CONNECTION_URL");
+  if (!url || !companyId || dates.length === 0) return;
+  let sql: any;
+  try {
+    const { default: postgres } = await import("npm:postgres@3.4.4");
+    sql = postgres(url, { max: 1, prepare: false, connect_timeout: 10 });
+    const { data: punches } = await admin.from("attendance_punches")
+      .select("id,company_id,device_user_id,employee_id,employee_name,punch_time,punch_date,punch_type,source,raw,created_at")
+      .eq("company_id", companyId).in("punch_date", dates);
+    const { data: att } = await admin.from("attendance")
+      .select("id,user_id,company_id,employee_id,employee_name,date,check_in,check_out,status,hours,notes,created_at,updated_at")
+      .eq("company_id", companyId).in("date", dates);
+    const [dev] = await sql`select id from attendance_devices where serial = ${serial} limit 1`;
+    for (const p of punches ?? []) {
+      await sql`insert into attendance_punches (id,company_id,device_id,device_user_id,employee_id,employee_name,punch_time,punch_date,punch_type,source,raw,created_at)
+        values (${p.id},${p.company_id},${dev?.id ?? null},${p.device_user_id},
+          (select id from employees where id = ${p.employee_id}),${p.employee_name},${p.punch_time},${p.punch_date},${p.punch_type},${p.source},${p.raw},${p.created_at})
+        on conflict do nothing`;
+    }
+    for (const a of att ?? []) {
+      await sql`insert into attendance (id,user_id,company_id,employee_id,employee_name,date,check_in,check_out,status,hours,notes,created_at,updated_at)
+        values (${a.id},${a.user_id},${a.company_id},(select id from employees where id = ${a.employee_id}),${a.employee_name},${a.date},${a.check_in},${a.check_out},${a.status},${a.hours},${a.notes},${a.created_at},${a.updated_at})
+        on conflict (id) do update set check_in=excluded.check_in, check_out=excluded.check_out, status=excluded.status, hours=excluded.hours, updated_at=excluded.updated_at`;
+    }
+  } catch (e) {
+    console.error("mirrorToExternal failed", e);
+  } finally {
+    await sql?.end({ timeout: 2 }).catch(() => {});
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -249,6 +282,8 @@ Deno.serve(async (req) => {
             return { deviceUserId, time, type: parts[3] || "", raw: line };
           });
         const res = await ingest(device, punches, "device");
+        const dates = [...new Set(punches.map((p) => parsePunchTime(p.time)?.date).filter(Boolean) as string[])];
+        await mirrorToExternal(device.company_id as string, serial ?? (device.serial as string), dates);
         return txt(`OK: ${res.inserted}`);
       }
       return txt("OK");
