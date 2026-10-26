@@ -13,7 +13,7 @@ vi.mock("@/contexts/SettingsContext", () => ({
   }),
 }));
 afterEach(cleanup);
-const document = { id: "test", number: "TEST-1", customer: "Test", date: "2026-10-26", dueDate: "2026-10-26", items: [], amount: 0, status: "pending" };
+const document = { id: "test", number: "TEST-1", customer: "Test", date: "2026-10-26", dueDate: "2026-10-26", deliveryDate: "2026-10-26", items: [], amount: 0, status: "pending" };
 
 describe("A4 print defaults", () => {
   it.each(["invoice", "quotation", "sales-order"])("starts %s at A4 despite saved thermal settings and permits explicit thermal selection", kind => {
