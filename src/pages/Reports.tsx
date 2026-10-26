@@ -1318,7 +1318,7 @@ function computeInvoicePnlRows(
 
 function ProfitLossByInvoice({
   invoices, inventory, getAvgCost, fifoLayers, customers, fromDate, toDate, dateRange, companyName,
-  salesTaxRate, matchCustomerTokens, search, customer, profitFilter, updateInvoice,
+  salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
   customers: Customer[];
@@ -1527,7 +1527,7 @@ function ProfitLossByInvoice({
 
 function ProfitLossByProject({
   invoices, inventory, getAvgCost, fifoLayers, customers, fromDate, toDate, dateRange, companyName,
-  salesTaxRate, matchCustomerTokens, search, customer, profitFilter, updateInvoice,
+  salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
   customers: Customer[];
@@ -1668,7 +1668,7 @@ function ProfitLossByProject({
 
 // --- Site / Installation Voucher Statement ---
 function SiteVoucherStatement({
-  invoices, inventory, getAvgCost, fifoLayers, customers, fromDate, toDate, companyName, salesTaxRate, matchCustomerTokens, search, customer, updateInvoice,
+  invoices, inventory, getAvgCost, fifoLayers, customers, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
 }: {
   invoices: Invoice[];
   customers: Customer[];
