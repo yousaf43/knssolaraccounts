@@ -247,6 +247,14 @@ export default function Invoices() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
+  useEffect(() => {
+    const query = searchParams.get("search");
+    if (query === null) return;
+    setSearchQuery(query);
+    const tab = searchParams.get("tab");
+    if (tab && ["invoices", "sales-orders", "quotations", "receipts", "all"].includes(tab)) setActiveTab(tab);
+    setView("list");
+  }, [searchParams]);
   const [filterCustomer, setFilterCustomer] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterDateRange, setFilterDateRange] = useState("all");

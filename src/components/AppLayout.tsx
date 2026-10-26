@@ -1,5 +1,6 @@
 import { canAccessMenu } from "@/lib/menuAccess";
 import { AppSidebar } from "@/components/AppSidebar";
+import { GlobalCustomerSearch } from "@/components/GlobalCustomerSearch";
 import { NexiaAssistant } from "@/components/NexiaAssistant";
 import { RecentTabs } from "@/components/RecentTabs";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -153,14 +154,7 @@ export function AppLayout() {
               </Sheet>
             )}
 
-            <div className="group hidden sm:flex items-center gap-2 flex-1 max-w-md rounded-lg border border-border/80 bg-background/70 px-3 py-1.5 shadow-sm transition-all duration-300 focus-within:border-primary/50 focus-within:bg-background focus-within:shadow-[0_0_0_3px_hsl(var(--ring)/0.12)]">
-              <Search className="w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-              <input
-                type="text"
-                placeholder="Search anything..."
-                className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground"
-              />
-            </div>
+            <GlobalCustomerSearch />
             <div className="ml-auto flex items-center gap-1 sm:gap-4">
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications">

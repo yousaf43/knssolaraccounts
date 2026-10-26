@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getInitialInvoices, getInitialReceipts, type Customer, type Invoice, type Receipt } from "@/data/mockData";
 import { useCustomersCloud, useInvoicesCloud, useReceiptsCloud, useSalesOrdersCloud, useQuotationsCloud } from "@/hooks/useAppData";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,11 @@ export default function Customers() {
   const [form, setForm] = useState<Partial<Customer>>(emptyCustomer());
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const query = searchParams.get("search");
+    if (query !== null) setSearchQuery(query);
+  }, [searchParams]);
 
   const openAdd = () => { setEditing(null); setForm(emptyCustomer()); setShowForm(true); };
   const openEdit = (c: Customer) => { setEditing(c); setForm(c); setShowForm(true); };
