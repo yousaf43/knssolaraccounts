@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useSettings } from "@/contexts/SettingsContext";
-import { useSolarWashingCloud } from "@/hooks/useAppData";
+import { useSolarWashingCloud, useCustomersCloud } from "@/hooks/useAppData";
 import type { SolarWashing } from "@/hooks/useAppData";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { toast } from "@/hooks/use-toast";
-import { matchesQuery } from "@/lib/search";
+import { createCustomerSearch, tokenize } from "@/lib/search";
 
 const emptyRecord: SolarWashing = {
   id: "", date: new Date().toISOString().slice(0, 10), customer: "", amount: 0, notes: "",
@@ -23,6 +23,8 @@ const emptyRecord: SolarWashing = {
 export default function SolarWashingPage() {
   const { formatCurrency, formatDate } = useSettings();
   const { data: records, upsert, remove } = useSolarWashingCloud();
+  const { data: customers } = useCustomersCloud();
+  const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const { log } = useActivityLog();
 
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
@@ -36,10 +38,10 @@ export default function SolarWashingPage() {
   const filtered = useMemo(() => {
     let list = [...records].sort((a, b) => b.date.localeCompare(a.date));
     if (typeFilter !== "all") list = list.filter(r => r.type === typeFilter);
-    if (search) list = list.filter(r => matchesQuery(search, r.customer, r.phone, r.address, r.issue, r.notes));
+    if (search) list = list.filter(r => matchCustomerTokens(tokenize(search), r.customer, r.phone, r.address, r.issue, r.notes));
     if (monthFilter) list = list.filter(r => r.date.startsWith(monthFilter));
     return list;
-  }, [records, search, monthFilter, typeFilter]);
+  }, [records, search, monthFilter, typeFilter, matchCustomerTokens]);
 
   const monthlySummary = useMemo(() => {
     const map: Record<string, { count: number; total: number }> = {};

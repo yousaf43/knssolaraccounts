@@ -44,3 +44,29 @@ export function matchesTokens(tokens: string[], ...fields: unknown[]): boolean {
 export function matchesQuery(query: string | null | undefined, ...fields: unknown[]): boolean {
   return matchesTokens(tokenize(query), ...fields);
 }
+
+export type SearchCustomer = {
+  name: string;
+  company?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  cnic?: string | null;
+};
+
+/** Expand only exact customer names/legacy company labels, never similar names. */
+export function createCustomerSearch(customers: readonly SearchCustomer[]) {
+  const index = new Map<string, unknown[]>();
+  for (const customer of customers) {
+    const fields = [customer.name, customer.company, customer.phone, customer.email, customer.address, customer.cnic];
+    const aliases = [customer.name];
+    if (customer.company) aliases.push(`${customer.name} [${customer.company}]`, `${customer.name} (${customer.company})`);
+    for (const alias of aliases) {
+      const key = normalize(alias);
+      if (key) index.set(key, [...(index.get(key) || []), ...fields]);
+    }
+  }
+  return (tokens: string[], ...fields: unknown[]) => matchesTokens(
+    tokens, ...fields, ...fields.flatMap(field => index.get(normalize(field)) || []),
+  );
+}

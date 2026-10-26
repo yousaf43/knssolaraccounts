@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { tokenize, matchesTokens } from "@/lib/search";
+import { tokenize, matchesTokens, createCustomerSearch } from "@/lib/search";
 import { HighlightText } from "@/components/HighlightText";
 import { useSettings } from "@/contexts/SettingsContext";
 import {
@@ -1317,10 +1317,11 @@ function computeInvoicePnlRows(
 }
 
 function ProfitLossByInvoice({
-  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, dateRange, companyName,
+  invoices, inventory, getAvgCost, fifoLayers, customers, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
+  customers: Customer[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
   fifoLayers?: FifoLayers;
@@ -1335,6 +1336,7 @@ function ProfitLossByInvoice({
   updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, formatDate } = useSettings();
+  const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const formatWholeCurrency = (amount: number) => formatCurrency(Math.round(amount));
   const [expenseDrafts, setExpenseDrafts] = useState<Record<string, string>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -1357,12 +1359,12 @@ function ProfitLossByInvoice({
   const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers)
     .filter(row => {
       const tokens = tokenize(search);
-      if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
-      if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
+      if (!matchCustomerTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
+      if (customer && !matchCustomerTokens(tokenize(customer), row.customer)) return false;
       if (profitFilter === "profit" && row.profit < 0) return false;
       if (profitFilter === "loss" && row.profit >= 0) return false;
       return true;
-    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer, profitFilter]);
+    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, matchCustomerTokens, search, customer, profitFilter]);
 
   const totals = rows.reduce((sum, row) => ({
     sales: sum.sales + row.sales,
@@ -1524,10 +1526,11 @@ function ProfitLossByInvoice({
 }
 
 function ProfitLossByProject({
-  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, dateRange, companyName,
+  invoices, inventory, getAvgCost, fifoLayers, customers, fromDate, toDate, dateRange, companyName,
   salesTaxRate, search, customer, profitFilter, updateInvoice,
 }: {
   invoices: Invoice[];
+  customers: Customer[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
   fifoLayers?: FifoLayers;
@@ -1542,6 +1545,7 @@ function ProfitLossByProject({
   updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, formatDate } = useSettings();
+  const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [expenseDrafts, setExpenseDrafts] = useState<Record<string, string>>({});
   const [sort, setSort] = useState<"profit-desc" | "profit-asc" | "name">("profit-desc");
@@ -1566,8 +1570,8 @@ function ProfitLossByProject({
       const profit = project.sales - project.cost - project.expenseTotal;
       return { ...project, profit, margin: project.sales ? (profit / Math.abs(project.sales)) * 100 : 0 };
     }).filter(project => {
-      if (tokens.length && !matchesTokens(tokens, project.project, ...project.customers)) return false;
-      if (customer && !project.customers.some(name => matchesTokens(tokenize(customer), name))) return false;
+      if (tokens.length && !matchCustomerTokens(tokens, project.project, ...project.customers)) return false;
+      if (customer && !project.customers.some(name => matchCustomerTokens(tokenize(customer), name))) return false;
       if (profitFilter === "profit" && project.profit < 0) return false;
       if (profitFilter === "loss" && project.profit >= 0) return false;
       return true;
@@ -1576,7 +1580,7 @@ function ProfitLossByProject({
     else if (sort === "profit-asc") filtered.sort((a, b) => a.profit - b.profit);
     else filtered.sort((a, b) => a.project.localeCompare(b.project));
     return filtered;
-  }, [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer, profitFilter, sort]);
+  }, [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, matchCustomerTokens, search, customer, profitFilter, sort]);
 
   const totals = rows.reduce((sum, row) => ({
     count: sum.count + row.count, sales: sum.sales + row.sales, discount: sum.discount + row.discount,
@@ -1664,9 +1668,10 @@ function ProfitLossByProject({
 
 // --- Site / Installation Voucher Statement ---
 function SiteVoucherStatement({
-  invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
+  invoices, inventory, getAvgCost, fifoLayers, customers, fromDate, toDate, companyName, salesTaxRate, search, customer, updateInvoice,
 }: {
   invoices: Invoice[];
+  customers: Customer[];
   inventory: InventoryItem[];
   getAvgCost: (item: InventoryItem) => number;
   fifoLayers?: FifoLayers;
@@ -1679,6 +1684,7 @@ function SiteVoucherStatement({
   updateInvoice: (invoice: Invoice) => Promise<unknown>;
 }) {
   const { formatCurrency, formatDate } = useSettings();
+  const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [meta, setMeta] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -1686,10 +1692,10 @@ function SiteVoucherStatement({
   const rows = useMemo(() => computeInvoicePnlRows(invoices, inventory, getAvgCost, fromDate, toDate, salesTaxRate, fifoLayers)
     .filter(row => {
       const tokens = tokenize(search);
-      if (!matchesTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
-      if (customer && !matchesTokens(tokenize(customer), row.customer)) return false;
+      if (!matchCustomerTokens(tokens, row.number, row.documentNumber, row.customer, row.projectName)) return false;
+      if (customer && !matchCustomerTokens(tokenize(customer), row.customer)) return false;
       return true;
-    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, search, customer]);
+    }), [invoices, inventory, getAvgCost, fifoLayers, fromDate, toDate, salesTaxRate, matchCustomerTokens, search, customer]);
 
   const activeId = selectedId && rows.some(r => r.id === selectedId) ? selectedId : (rows[0]?.id || "");
   const row = rows.find(r => r.id === activeId);
@@ -1984,6 +1990,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 }) {
   const { formatCurrency, settings, formatDate } = useSettings();
   const companyName = settings?.companyName || "K & S Solar";
+  const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(undefined);
   const [productSearch, setProductSearch] = useState("");
@@ -2356,6 +2363,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           )}
           {report.code === "130" && pl130View === "voucher" ? (
             <SiteVoucherStatement
+              customers={customers}
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
@@ -2371,6 +2379,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
           ) : report.code === "130" && pl130View === "project" ? (
 
             <ProfitLossByProject
+              customers={customers}
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
@@ -2387,6 +2396,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             />
           ) : showInvoicePnL ? (
             <ProfitLossByInvoice
+              customers={customers}
               invoices={invoices}
               inventory={inventory}
               getAvgCost={getAvgCost}
@@ -2814,7 +2824,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         const rows = (solarWashing || [])
           .filter(r => inRange(r.date, fromDate, toDate))
           .filter(r => swType === "all" || r.type === swType)
-          .filter(r => matchesTokens(tokens, r.customer, r.phone, r.address, r.issue, r.notes))
+          .filter(r => matchCustomerTokens(tokens, r.customer, r.phone, r.address, r.issue, r.notes))
           .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
         const totalAmount = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
         const totalPanels = rows.reduce((s, r) => s + (Number(r.panels) || 0), 0);
@@ -2935,7 +2945,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         const visible = rows
           .filter(r => discountOnly !== "with" || r.totalDiscount > 0)
           .filter(r => discountCustomer === "all" || normName(r.customer) === normName(discountCustomer))
-          .filter(r => matchesTokens(tokens, r.customer, r.number, r.documentNumber, r.date))
+          .filter(r => matchCustomerTokens(tokens, r.customer, r.number, r.documentNumber, r.date))
           .sort((a, b) => a.customer.localeCompare(b.customer) || (a.date || "").localeCompare(b.date || ""));
 
         const totals = visible.reduce((acc, r) => ({
@@ -3067,7 +3077,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                 const d = new Date(inv.date);
                 if (!inRange(inv.date, fromDate, toDate)) return false;
               }
-              if (!matchesTokens(invTokens, inv.number, inv.customer, (inv as any).documentNumber, inv.status)) return false;
+              if (!matchCustomerTokens(invTokens, inv.number, inv.customer, (inv as any).documentNumber, inv.status)) return false;
               return true;
             });
             const today = new Date();
@@ -3212,7 +3222,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             const custTokens = tokenize(customerSearch);
             const visibleCust = custTokens.length
-              ? custData.filter((c: any) => matchesTokens(custTokens, c.name, c.company, c.phone, c.email))
+              ? custData.filter((c: any) => matchCustomerTokens(custTokens, c.name, c.company, c.phone, c.email, c.address))
               : custData;
 
             return (
@@ -3480,7 +3490,16 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
 
             // Product search filter
             const searchFiltered = catFiltered
-              .filter((p: any) => matchesTokens(prodTokens, p.name, p.sku, p.category, p.productType))
+              .map(product => {
+                const details = product.details.filter(detail => matchCustomerTokens(
+                  prodTokens, product.name, product.category, product.productType,
+                  detail.customer, detail.invoiceNumber, detail.documentNumber,
+                ));
+                return { ...product, details, count: details.length,
+                  qty: details.reduce((sum, detail) => sum + detail.qty, 0),
+                  revenue: details.reduce((sum, detail) => sum + detail.amount, 0) };
+              })
+              .filter(product => product.details.length > 0)
               .sort((a, b) => b.revenue - a.revenue);
 
             // Report 236: group by category
@@ -4124,7 +4143,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
             const rTokens = tokenize(receiptSearch);
           const filteredReceipts = receipts.filter(r =>
             inRange(r.date, fromDate, toDate) &&
-            matchesTokens(rTokens, r.number, r.customer, r.invoiceNumber, r.paymentMethod)
+            matchCustomerTokens(rTokens, r.number, r.customer, r.invoiceNumber, r.paymentMethod)
           );
             return (
             <div className="bg-card rounded-lg border p-6">
