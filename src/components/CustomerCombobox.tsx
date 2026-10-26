@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import type { Customer } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 import { HighlightText } from "@/components/HighlightText";
+import { matchesQuery } from "@/lib/search";
 
 type Props = {
   customers: Customer[];
@@ -20,15 +21,7 @@ export function CustomerCombobox({ customers, selectedName, onSelect, placeholde
   const selected = selectedName ? customers.find((c) => c.name === selectedName) : null;
 
   const filtered = search
-    ? customers.filter((c) => {
-        const q = search.toLowerCase();
-        return (
-          c.name.toLowerCase().includes(q) ||
-          (c.company || "").toLowerCase().includes(q) ||
-          (c.phone || "").toLowerCase().includes(q) ||
-          (c.email || "").toLowerCase().includes(q)
-        );
-      })
+     ? customers.filter((c) => matchesQuery(search, c.name, c.company, c.phone, c.email, c.address))
     : customers;
 
   useEffect(() => {

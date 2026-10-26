@@ -12,6 +12,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useTrash } from "@/hooks/useTrash";
 import { HighlightText } from "@/components/HighlightText";
+import { matchesQuery } from "@/lib/search";
 
 const emptyCustomer = (): Partial<Customer> => ({ name: "", email: "", phone: "", company: "", address: "", totalBilled: 0, outstanding: 0 });
 
@@ -132,11 +133,7 @@ export default function Customers() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {customers.filter((c) => {
-          if (!searchQuery.trim()) return true;
-          const q = searchQuery.toLowerCase();
-          return c.name.toLowerCase().includes(q) || (c.company || "").toLowerCase().includes(q) || (c.phone || "").toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.address || "").toLowerCase().includes(q);
-        }).map((c) => {
+        {customers.filter((c) => matchesQuery(searchQuery, c.name, c.company, c.phone, c.email, c.address)).map((c) => {
           const { totalBilled, totalPaid, outstanding, custInvoices, custReceipts } = getCustomerTotals(c.name);
           const isExpanded = expandedCustomer === c.id;
           return (

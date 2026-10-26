@@ -32,6 +32,7 @@ import { isStockTrackedItem, oldBalanceAmount } from "@/lib/oldBalance";
 import { expandStockQty } from "@/lib/stockLines";
 import { CustomerLedgerTab } from "@/components/CustomerLedgerTab";
 import { saveWithRollback } from "@/lib/saveWithRollback";
+import { createCustomerSearch, tokenize } from "@/lib/search";
 
 type LedgerEntry = { id: string; date: string; bank: string; type: "incoming" | "outgoing"; amount: number; description: string; reference: string };
 
@@ -880,11 +881,8 @@ export default function Invoices() {
   ].filter((s): s is string => !!s && s.trim() !== ""))).sort();
 
   // --- Search helper ---
-  const matchSearch = (text: string) => {
-    if (!searchQuery.trim()) return true;
-    return text.toLowerCase().includes(searchQuery.toLowerCase());
-  };
-  const matchSearchFields = (...fields: string[]) => fields.some(f => matchSearch(f));
+  const customerSearch = useMemo(() => createCustomerSearch(customers), [customers]);
+  const matchSearchFields = (...fields: string[]) => customerSearch(tokenize(searchQuery), ...fields);
 
   // --- Filtered data ---
   const filteredInvoices = invoices.filter((i) => !i.isReturn && matchCustomer(i.customer) && isInDateRange(i.date) && matchStatus(i.status) && matchSearchFields(i.number, i.customer, i.notes || "", i.projectName || "", i.documentNumber || ""));
