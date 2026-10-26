@@ -1,4 +1,4 @@
-- [ ] Add customer CNIC search across customer selectors, sales documents and reports; default all print previews to A4
+- [x] Add customer CNIC search across global search, customer selectors, sales documents and reports; default print previews to A4 (44 tests pass; signed-in invoice/global/sales-report search verified)
 - [x] Upgrade the full website to a futuristic K&S theme with attractive page and menu transitions
 - [x] Refresh recent tabs and replay lively page-opening animations on every navigation
 - [x] Remove duplicate top spacing and make page/menu animations reliably visible
