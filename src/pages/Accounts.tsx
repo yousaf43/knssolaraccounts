@@ -32,6 +32,7 @@ function printReceipt(r: OtherReceipt, formatCurrency: (n: number) => string, fo
   const content = `
     <html><head><title>Receipt ${r.reference}</title>
     <style>
+      @page { size: A4 portrait; margin: 12mm; }
       body { font-family: Arial, sans-serif; padding: 40px; color: #222; }
       .header { text-align: center; border-bottom: 2px solid #1a56db; padding-bottom: 12px; margin-bottom: 20px; }
       h1 { color: #1a56db; font-size: 20px; margin: 0; }

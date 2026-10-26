@@ -11,6 +11,8 @@ import { TablePagination } from "@/components/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { useSettings } from "@/contexts/SettingsContext";
 import type { Invoice, Receipt } from "@/data/mockData";
+import { useCustomersCloud } from "@/hooks/useAppData";
+import { createCustomerSearch, tokenize } from "@/lib/search";
 
 export type LedgerEntry = {
   id: string; date: string; bank: string;
@@ -46,6 +48,8 @@ const LEDGER_CUSTOMERS_KEY = () => scopedKey("ledgerCustomers");
 
 export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }: Props) {
   const { formatCurrency, formatDate } = useSettings();
+  const { data: customers } = useCustomersCloud();
+  const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -177,7 +181,7 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
   }, [invoices, receipts, invoiceLedgerByNumber, from, to, ledgerCustomers]);
 
   const summary = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const tokens = tokenize(search);
     const out = Array.from(byCustomer.entries()).map(([customer, rows]) => {
       const filtered = account === "all" ? rows : rows.filter((r) => r.account === account || r.debit > 0);
       const invoiced = filtered.reduce((s, r) => s + r.debit, 0);
@@ -185,10 +189,10 @@ export function CustomerLedgerTab({ invoices, receipts, ledger, accounts = [] }:
       return { customer, invoiced, received, balance: invoiced - received, count: filtered.length };
     });
     return out
-      .filter((r) => (q ? r.customer.toLowerCase().includes(q) : true))
+      .filter((r) => matchCustomerTokens(tokens, r.customer))
       .filter((r) => r.count > 0)
       .sort((a, b) => b.balance - a.balance);
-  }, [byCustomer, search, account]);
+  }, [byCustomer, search, account, matchCustomerTokens]);
 
   const totals = useMemo(() => ({
     invoiced: summary.reduce((s, r) => s + r.invoiced, 0),

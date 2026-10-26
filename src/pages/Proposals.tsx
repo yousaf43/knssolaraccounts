@@ -18,7 +18,8 @@ import { TablePagination } from "@/components/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { toast } from "sonner";
 import { printProposal } from "@/lib/proposalPrint";
-import { useSalesOrdersCloud } from "@/hooks/useAppData";
+import { useSalesOrdersCloud, useCustomersCloud } from "@/hooks/useAppData";
+import { createCustomerSearch, tokenize } from "@/lib/search";
 import { useElectricityTariff } from "@/hooks/useElectricityTariff";
 import { CATEGORY_LABEL, resolveCategory, type TariffChoice } from "@/lib/electricityTariff";
 
@@ -152,6 +153,8 @@ export default function Proposals() {
   const { user, company } = useAuth();
   const { settings, formatCurrency, formatDate } = useSettings();
   const { data: salesOrdersAll } = useSalesOrdersCloud();
+  const { data: customers } = useCustomersCloud();
+  const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const { tariff, checking, refresh: refreshTariff } = useElectricityTariff();
   const checkRates = async () => {
     const res = await refreshTariff(true);
@@ -199,14 +202,7 @@ export default function Proposals() {
     [form.items]
   );
 
-  const filtered = rows.filter((r) => {
-    const q = search.toLowerCase();
-    return (
-      !q ||
-      r.proposal_no.toLowerCase().includes(q) ||
-      r.customer_name.toLowerCase().includes(q)
-    );
-  });
+  const filtered = rows.filter((r) => matchCustomerTokens(tokenize(search), r.proposal_no, r.customer_name));
   const { paginatedItems, currentPage, totalPages, totalItems, goToPage, resetPage } = usePagination(filtered, 25);
 
   const nextNo = () => {
