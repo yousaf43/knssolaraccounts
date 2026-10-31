@@ -411,7 +411,7 @@ ${projects.length ? `<div class="page"><h3 class="sec" style="margin-top:0">RECE
   .qt table.it td{font-size:10px;padding:2mm 1.5mm;vertical-align:middle;border-bottom:1px solid #e3e8ef}
   .qt table.it td.d{color:#333;line-height:1.45}
   .qt .tot td{background:#0E3A5B;color:#fff;font-weight:800;font-size:12.5px;padding:3mm}
-  .qt .tot td.g{background:#F2B33D;color:#0E3A5B;text-align:right;font-size:15px}
+  .qt .tot td.g{background:#F2B33D;color:#0E3A5B;text-align:right;font-size:15px;white-space:nowrap}
   .qt .qh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5mm}
   .qt .qh img{height:12mm}.qt .qh h1{margin:0;font-size:30px;letter-spacing:3px;color:#0E3A5B;border-bottom:3px solid #F2B33D;padding-bottom:1mm;text-align:right}
   .qt .qh small{display:block;text-align:right;color:#1E5F8C;font-weight:700;font-size:11px;margin-top:1mm}
@@ -509,7 +509,7 @@ ${(() => {
   </table>
   <div class="subj">SUBJECT: &nbsp;Quotation for ${kw} kW ${typeLabel} Solar System.</div>
   <table class="it">
-    <thead><tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:8%">Qty</th>${p.hideItemPrices ? "" : '<th style="width:12%">Unit Price</th><th style="width:13%">Amount</th>'}</tr></thead><tbody>
+    <thead><tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:${p.hideItemPrices ? 18 : 8}%">Qty</th>${p.hideItemPrices ? "" : '<th style="width:12%">Unit Price</th><th style="width:13%">Amount</th>'}</tr></thead><tbody>
     ${pricing.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d"><b style="color:#0E3A5B">${esc(it.description)}</b>${itemDetail(it)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td>${it.unitPrice === undefined || it.amount === undefined ? "" : `<td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td>`}</tr>`).join("")}
     <tr class="tot"><td colspan="${p.hideItemPrices ? 3 : 4}">TOTAL AMOUNT IN PKR</td><td colspan="${p.hideItemPrices ? 1 : 2}" class="g">${Math.round(pricing.total).toLocaleString("en-PK")} /-</td></tr></tbody>
   </table>
