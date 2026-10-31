@@ -1,3 +1,4 @@
+- [ ] Add proposal duplication, optional lump-sum quotation printing and upright professional cover fonts; verify saved copies and print output
 - [x] Add customer CNIC search across global search, customer selectors, sales documents and reports; default print previews to A4 (44 tests pass; signed-in invoice/global/sales-report search verified)
 - [x] Upgrade the full website to a futuristic K&S theme with attractive page and menu transitions
 - [x] Refresh recent tabs and replay lively page-opening animations on every navigation
