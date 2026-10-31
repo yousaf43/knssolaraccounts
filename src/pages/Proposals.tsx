@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileBadge, Plus, Printer, Pencil, Trash2, Search } from "lucide-react";
+import { FileBadge, Plus, Printer, Pencil, Trash2, Search, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +19,7 @@ import { TablePagination } from "@/components/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { toast } from "sonner";
 import { printProposal } from "@/lib/proposalPrint";
+import { copyProposal, nextProposalNumber } from "@/lib/proposalOptions";
 import { useSalesOrdersCloud, useCustomersCloud } from "@/hooks/useAppData";
 import { createCustomerSearch, tokenize } from "@/lib/search";
 import { useElectricityTariff } from "@/hooks/useElectricityTariff";
@@ -73,6 +75,7 @@ export interface Proposal {
   battery: ProposalBattery | null;
   monthlyUnits: number[];
   items: ProposalItem[];
+  hideItemPrices?: boolean;
   total: number;
   paymentMethod: string;
   delivery: string;
@@ -115,6 +118,7 @@ const emptyProposal = (): Omit<Proposal, "id" | "proposalNo"> => ({
   battery: null,
   monthlyUnits: Array(12).fill(0),
   items: [],
+  hideItemPrices: false,
   total: 0,
   paymentMethod: "70% advance payment and 30% after delivery.",
   delivery: "Within 1 week after PO.",
@@ -167,6 +171,7 @@ export default function Proposals() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Proposal | null>(null);
+  const [duplicating, setDuplicating] = useState(false);
   const [form, setForm] = useState<Omit<Proposal, "id" | "proposalNo">>(emptyProposal());
 
   const load = async () => {
@@ -206,8 +211,34 @@ export default function Proposals() {
   const { paginatedItems, currentPage, totalPages, totalItems, goToPage, resetPage } = usePagination(filtered, 25);
 
   const nextNo = () => {
-    const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    return `KS-${stamp}-${String(rows.length + 1).padStart(2, "0")}`;
+    return nextProposalNumber(rows.map((r) => r.proposal_no), new Date().toISOString().slice(0, 10));
+  };
+
+  const duplicate = async (r: Row) => {
+    if (!user || duplicating) return;
+    setDuplicating(true);
+    try {
+      const copy = copyProposal(rowToProposal(r), nextNo(), new Date().toISOString().slice(0, 10));
+      const { proposalNo, ...data } = copy;
+      const { error } = await supabase.from("proposals").insert([{
+        user_id: user.id,
+        company_id: company?.id ?? null,
+        proposal_no: proposalNo,
+        customer_name: copy.customerName,
+        system_type: copy.systemType,
+        system_kw: copy.systemKw,
+        total: copy.total,
+        status: copy.status,
+        data: JSON.parse(JSON.stringify(data)),
+      }]);
+      if (error) throw error;
+      toast.success(`Proposal duplicated as ${proposalNo}`);
+      await load();
+    } catch {
+      toast.error("Failed to duplicate proposal");
+    } finally {
+      setDuplicating(false);
+    }
   };
 
   const openNew = () => {
@@ -424,6 +455,9 @@ export default function Proposals() {
                         <Button size="sm" variant="ghost" onClick={() => openEdit(r)} title="Edit">
                           <Pencil className="w-4 h-4" />
                         </Button>
+                        <Button size="sm" variant="ghost" onClick={() => void duplicate(r)} disabled={duplicating} title="Duplicate proposal" aria-label={`Duplicate proposal ${r.proposal_no}`}>
+                          <Copy className="w-4 h-4" />
+                        </Button>
                         <ConfirmDeleteDialog
                           title={`Delete proposal "${r.proposal_no}"?`}
                           description="This proposal will be permanently deleted."
@@ -627,6 +661,10 @@ export default function Proposals() {
                   <Button type="button" variant="outline" size="sm" onClick={fillItemsFromSystem}>Fill items from system details</Button>
                   <Button type="button" variant="outline" size="sm" onClick={addItem}>+ Add item</Button>
                 </div>
+              </div>
+              <div className="flex items-center gap-2 mb-3">
+                <Checkbox id="proposal-lump-sum" checked={form.hideItemPrices === true} onCheckedChange={(checked) => set("hideItemPrices", checked === true)} />
+                <Label htmlFor="proposal-lump-sum">Lump-sum quotation (hide product prices in PDF)</Label>
               </div>
               {form.items.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No items yet. Fill system details above, then press "Fill items from system details".</p>
