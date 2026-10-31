@@ -1,4 +1,5 @@
 import type { Proposal } from "@/pages/Proposals";
+import { quotationPricing } from "@/lib/proposalOptions";
 import { CATEGORY_LABEL, DEFAULT_TARIFF, computeSavings, resolveCategory, type TariffRecord } from "@/lib/electricityTariff";
 
 const esc = (s: string) =>
@@ -29,6 +30,7 @@ export function printProposal(
   projects: { title: string; customer: string; date: string; detail: string }[] = [],
   tariff: TariffRecord = DEFAULT_TARIFF
 ) {
+  const pricing = quotationPricing(p);
   const abs = (u: string) => (u.startsWith("http") ? u : `${window.location.origin}${u}`);
   const LOGO = abs("/portfolio/ks-logo.webp");
   const featuredCards = FEATURED.map(
@@ -191,7 +193,7 @@ export function printProposal(
   .proj.fp b,.proj.fp span,.proj.fp p{padding:0 4mm}.proj.fp p.size{color:var(--blue);font-weight:800;font-size:13px}.proj.fp i{top:auto;bottom:3mm;background:#fff}
   .quote{background:var(--soft);border-left:4px solid var(--gold);padding:4mm 5mm;margin-top:4mm;font-style:italic;color:var(--navy)}
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
-  .cover3d{position:relative;height:270mm;border-radius:8px;overflow:hidden;color:#fff}
+  .cover3d{position:relative;height:270mm;border-radius:8px;overflow:hidden;color:#fff;font-family:Arial,Helvetica,sans-serif;font-style:normal}
   .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 30%,rgba(6,25,48,0) 55%,rgba(6,25,48,.28) 100%)}
   .cover3d .ct{position:relative;padding:11mm 12mm 0}
@@ -202,7 +204,7 @@ export function printProposal(
   .cover3d .cbox b{display:block;font-size:17px;margin:1.5mm 0}.cover3d .cbox span{font-size:11.5px;color:#dcebf7}
   .cover3d .toprow{display:flex;justify-content:space-between;align-items:flex-start}
   .cover3d .brand{display:flex;align-items:center;gap:4mm}.cover3d .brand .logo{margin-bottom:0}
-  .cover3d .rbs{font-family:'Segoe Script','Brush Script MT','Comic Sans MS',cursive;font-size:30px;font-style:italic;font-weight:700;color:#0F5BA8;border-left:3px solid #F2B33D;padding-left:4mm;text-shadow:0 1px 0 #fff,0 2px 10px rgba(255,255,255,.85);letter-spacing:.02em}
+  .cover3d .rbs{font-family:inherit;font-size:27px;font-style:normal;font-weight:700;color:#0F5BA8;border-left:3px solid #F2B33D;padding-left:4mm;text-shadow:0 1px 0 #fff,0 2px 10px rgba(255,255,255,.85);letter-spacing:0}
   .cover3d .badges{display:flex;gap:4mm;align-items:flex-start;background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border-radius:6px;padding:3mm 4mm 2.5mm;box-shadow:0 4px 14px rgba(0,0,0,.3)}
   .cover3d .badges .bd{display:flex;flex-direction:column;align-items:center;gap:1mm}
   .cover3d .badges .bd span{width:15mm;height:18mm;background:#fff;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);padding-bottom:2.5mm}
@@ -211,7 +213,7 @@ export function printProposal(
   .cover3d .featwrap{background:rgba(255,255,255,.93);border-radius:10px;padding:3.5mm;margin-top:7mm;box-shadow:0 6px 20px rgba(6,25,48,.25)}
   .cover3d .feat{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}
   .cover3d .feat div{background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border-bottom:3px solid #F2B33D;border-radius:8px;padding:4.5mm 3mm;text-align:center}
-  .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13.5px;font-style:italic;color:#F2B33D;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#dcebf7}
+  .cover3d .feat em{display:block;font-style:normal;font-size:20px}.cover3d .feat b{display:block;font-size:13.5px;font-style:normal;color:#F2B33D;margin-top:1mm}.cover3d .feat span{font-size:9.5px;color:#dcebf7}
   .cover3d .tfp{font-size:33px;font-weight:900;letter-spacing:.03em;text-align:center;margin:11mm 0 2.5mm;color:#0B2E5B;text-shadow:0 1px 0 rgba(255,255,255,.75)}
   .cover3d .tag{text-align:center;letter-spacing:.18em;font-size:10.5px;color:#0F5BA8;font-weight:800}
   .cover3d .tag::before,.cover3d .tag::after{content:"";display:inline-block;width:13mm;height:2px;background:#F2B33D;vertical-align:middle;margin:0 4mm}
@@ -220,7 +222,7 @@ export function printProposal(
   .cover3d .projbox .cl{font-size:14.5px;margin-top:2.5mm;color:#eaf4fc;border-top:1px solid rgba(255,255,255,.25);padding-top:2.5mm}
   .cover3d .contact{margin-top:7mm;display:grid;grid-template-columns:1fr 1fr 1.4fr;background:linear-gradient(180deg,#0E3A5B,#0B2E5B);border:1px solid #F2B33D;border-radius:8px;padding:4mm;box-shadow:0 6px 18px rgba(6,25,48,.35)}
   .cover3d .contact div{display:flex;gap:3mm;align-items:center;padding:0 3mm;border-left:2px solid #F2B33D}.cover3d .contact div:first-child{border-left:0}
-  .cover3d .contact em{font-style:normal;font-size:18px;color:#F2B33D}.cover3d .contact p{font-size:11px;margin:0}.cover3d .contact small{display:block;color:#F2B33D;font-weight:800;font-style:italic;font-size:10.5px}
+  .cover3d .contact em{font-style:normal;font-size:18px;color:#F2B33D}.cover3d .contact p{font-size:11px;margin:0}.cover3d .contact small{display:block;color:#F2B33D;font-weight:800;font-style:normal;font-size:10.5px}
   .chart{border:1px solid var(--line);border-radius:8px;padding:3mm;background:linear-gradient(180deg,#fff,var(--soft))}
   .legend{display:flex;gap:6mm;font-size:10.5px;color:var(--muted);margin-top:2mm}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
   .sys3d{width:100%;height:70mm;object-fit:contain;display:block;border-radius:8px}
@@ -409,7 +411,7 @@ ${projects.length ? `<div class="page"><h3 class="sec" style="margin-top:0">RECE
   .qt table.it td{font-size:10px;padding:2mm 1.5mm;vertical-align:middle;border-bottom:1px solid #e3e8ef}
   .qt table.it td.d{color:#333;line-height:1.45}
   .qt .tot td{background:#0E3A5B;color:#fff;font-weight:800;font-size:12.5px;padding:3mm}
-  .qt .tot td.g{background:#F2B33D;color:#0E3A5B;text-align:right;font-size:15px}
+  .qt .tot td.g{background:#F2B33D;color:#0E3A5B;text-align:right;font-size:15px;white-space:nowrap}
   .qt .qh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5mm}
   .qt .qh img{height:12mm}.qt .qh h1{margin:0;font-size:30px;letter-spacing:3px;color:#0E3A5B;border-bottom:3px solid #F2B33D;padding-bottom:1mm;text-align:right}
   .qt .qh small{display:block;text-align:right;color:#1E5F8C;font-weight:700;font-size:11px;margin-top:1mm}
@@ -507,9 +509,9 @@ ${(() => {
   </table>
   <div class="subj">SUBJECT: &nbsp;Quotation for ${kw} kW ${typeLabel} Solar System.</div>
   <table class="it">
-    <thead><tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:8%">Qty</th><th style="width:12%">Unit Price</th><th style="width:13%">Amount</th></tr></thead><tbody>
-    ${p.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d"><b style="color:#0E3A5B">${esc(it.description)}</b>${itemDetail(it)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td><td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td></tr>`).join("")}
-    <tr class="tot"><td colspan="4">TOTAL AMOUNT IN PKR</td><td colspan="2" class="g">${Math.round(p.total).toLocaleString("en-PK")} /-</td></tr></tbody>
+    <thead><tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:${p.hideItemPrices ? 18 : 8}%">Qty</th>${p.hideItemPrices ? "" : '<th style="width:12%">Unit Price</th><th style="width:13%">Amount</th>'}</tr></thead><tbody>
+    ${pricing.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d"><b style="color:#0E3A5B">${esc(it.description)}</b>${itemDetail(it)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td>${it.unitPrice === undefined || it.amount === undefined ? "" : `<td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td>`}</tr>`).join("")}
+    <tr class="tot"><td colspan="${p.hideItemPrices ? 3 : 4}">TOTAL AMOUNT IN PKR</td><td colspan="${p.hideItemPrices ? 1 : 2}" class="g">${Math.round(pricing.total).toLocaleString("en-PK")} /-</td></tr></tbody>
   </table>
 </div>
 
