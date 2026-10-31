@@ -1,3 +1,4 @@
+- [ ] Replace generic proposal item specifications with automatic exact-product internet lookup, source-backed saved details and print verification
 - [x] Add proposal duplication, optional lump-sum quotation printing and upright professional cover fonts; 6 tests pass, signed-in copy/save/reload/print verified and temporary copy removed
 - [x] Add customer CNIC search across global search, customer selectors, sales documents and reports; default print previews to A4 (44 tests pass; signed-in invoice/global/sales-report search verified)
 - [x] Upgrade the full website to a futuristic K&S theme with attractive page and menu transitions
