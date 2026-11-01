@@ -20,12 +20,16 @@ import { usePagination } from "@/hooks/usePagination";
 import { toast } from "sonner";
 import { printProposal } from "@/lib/proposalPrint";
 import { copyProposal, nextProposalNumber } from "@/lib/proposalOptions";
+import { productIdentityKey, type ProductResearch } from "@/lib/productSpecs";
+import { ProposalProductDetails } from "@/components/ProposalProductDetails";
 import { useSalesOrdersCloud, useCustomersCloud } from "@/hooks/useAppData";
 import { createCustomerSearch, tokenize } from "@/lib/search";
 import { useElectricityTariff } from "@/hooks/useElectricityTariff";
 import { CATEGORY_LABEL, resolveCategory, type TariffChoice } from "@/lib/electricityTariff";
 
 export interface ProposalItem {
+  model?: string;
+  research?: ProductResearch;
   brand: string;
   description: string;
   qty: number;
@@ -263,6 +267,7 @@ export default function Proposals() {
       const items = f.items.map((it, idx) => {
         if (idx !== i) return it;
         const next = { ...it, ...patch };
+        if (productIdentityKey(next) !== productIdentityKey(it)) next.research = undefined;
         next.amount = (next.qty || 0) * (next.unitPrice || 0);
         return next;
       });
@@ -688,7 +693,7 @@ export default function Proposals() {
                         <TableRow key={i}>
                           <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                           <TableCell><Input value={it.brand} onChange={(e) => setItem(i, { brand: e.target.value })} /></TableCell>
-                          <TableCell><Input value={it.description} onChange={(e) => setItem(i, { description: e.target.value })} /></TableCell>
+                          <TableCell><Input value={it.description} onChange={(e) => setItem(i, { description: e.target.value })} /><ProposalProductDetails item={it} onModelChange={(model) => setItem(i, { model })} onResearch={(key, research) => setForm((f) => ({ ...f, items: f.items.map((entry) => productIdentityKey(entry) === key ? { ...entry, research } : entry) }))} /></TableCell>
                           <TableCell><Input type="number" min={0} value={it.qty || ""} onChange={(e) => setItem(i, { qty: +e.target.value })} /></TableCell>
                           <TableCell><Input value={it.unit} onChange={(e) => setItem(i, { unit: e.target.value })} /></TableCell>
                           <TableCell><Input type="number" min={0} value={it.unitPrice || ""} onChange={(e) => setItem(i, { unitPrice: +e.target.value })} /></TableCell>
