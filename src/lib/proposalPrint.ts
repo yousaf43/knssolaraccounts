@@ -1,5 +1,6 @@
 import type { Proposal } from "@/pages/Proposals";
 import { quotationPricing } from "@/lib/proposalOptions";
+import { printableProductFacts } from "@/lib/productSpecs";
 import { CATEGORY_LABEL, DEFAULT_TARIFF, computeSavings, resolveCategory, type TariffRecord } from "@/lib/electricityTariff";
 
 const esc = (s: string) =>
@@ -93,23 +94,9 @@ export function printProposal(
     )
     .join("");
 
-  const itemDetail = (it: { brand: string; description: string; qty?: number }) => {
-    const t = `${it.brand} ${it.description}`.toLowerCase();
-    const bkwh = p.battery ? p.battery.units * p.battery.kwhEach : 0;
-    const n2 = (x: number) => x.toFixed(2).replace(/\.?0+$/, "");
-    let d: string[] = [];
-    if (/panel|module|pv/.test(t)) d = [`${p.panelWatt} W High-Efficiency Modules (Total ${p.panelQty} pcs, ${kw} kW Array)`, "Certified: IEC / CE / ISO / TÜV | Low Temperature Coefficient (-0.30%/°C)", `25-Year Linear Power Warranty${p.panelWarranty ? ` (${p.panelWarranty})` : ""}`];
-    else if (/batter|lithium|lifepo/.test(t)) d = [`${n2(bkwh || 5.12)} kWh Nominal (${n2((bkwh || 5.12) * 0.9)} kWh Usable @ 90% DoD)`, "6,000+ Deep Cycles Life | Built-in Smart BMS", `${p.battery?.warranty || "5-Year Standard"} Warranty`.replace(/Warranty Warranty/i, "Warranty")];
-    else if (/inverter/.test(t)) d = p.systemType === "on-grid"
-      ? [`${p.inverterKw} kW On-Grid Solar Inverter (Pure Sine Wave)`, "Dual MPPT Controller | Grid-Tie with Anti-Islanding Protection", "Smart Android / iOS App Wi-Fi Monitoring"]
-      : [`${p.inverterKw} kW Solar + Battery + Grid ${typeLabel} Inverter (Pure Sine Wave)`, "Dual MPPT Controller | Automatic UPS Transfer (<10ms)", "Smart Android / iOS App Wi-Fi Monitoring"];
-    else if (/structure|mount|c-type|frame|stand/.test(t)) d = ["Galvanized 14-gauge custom structure (Holds 2 panels each)", `Auto-calculated: ${p.panelQty} panels require exactly ${Math.ceil((p.panelQty || 0) / 2)} frames`, "Heavy-duty anchor / Rawl bolts with weather coating"];
-    else if (/net|meter/.test(t)) d = [`Complete ${p.disco || "DISCO"} sanction, load verification & inspection`, "NEPRA licensing facilitation & green bi-directional meter"];
-    else if (/earth|lightning|arrest/.test(t)) d = ["Dedicated chemical grounding bore for Inverter & PV Array", "Pure copper lightning spike & heavy-gauge earthing conductor"];
-    else if (/cable|wire|wiring|\bdb\b|breaker|protection/.test(t)) d = ["4mm² / 6mm² pure copper single-core DC solar cables", "IP65 Distribution Box: DC/AC Breakers, SPDs & Disconnector Switch", "Extra cabling charged on actual site measurement"];
-    else if (/install|commission/.test(t)) d = ["Mechanical structure mounting & PV panel array alignment", "Complete AC/DC wiring, inverter integration, testing & load balancing"];
-    else if (/accessor|transport|deliver/.test(t)) d = ["PVC conduits, UV-resistant cable ties, SS hardware & consumables", "Safe transit, loading/unloading & on-site delivery"];
-    return d.length ? `<div style="margin-top:1mm;font-size:9.5px;color:#444;line-height:1.5">${d.map((x) => `• ${esc(x)}`).join("<br>")}</div>` : "";
+  const itemDetail = (it: Proposal["items"][number]) => {
+    const facts = printableProductFacts(it);
+    return facts.length ? `<div style="margin-top:1mm;font-size:9.5px;color:var(--muted);line-height:1.5">${facts.map((f) => `• ${esc(f.text)} <a href="${esc(f.sourceUrl)}" target="_blank" rel="noreferrer">[source]</a>`).join("<br>")}</div>` : "";
   };
 
   const termsList = p.terms
