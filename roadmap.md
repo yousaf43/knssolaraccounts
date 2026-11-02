@@ -1,4 +1,6 @@
-- [ ] Replace generic proposal item specifications with automatic exact-product internet lookup, source-backed saved details and print verification
+- [x] Remove invented generic proposal specifications; add automatic identity-bound product lookup and sourced JSON details (9 tests pass; Parallel search and model-mismatch research verified)
+- [ ] Verify automatic lookup/save/print end-to-end (blocked: managed database inaccessible when minting a signed-in test session)
+- [ ] Enable product-specs lookup on Hostinger's external backend (blocked: external deployment and connector credential availability not verified; frontend redeploy also required)
 - [x] Add proposal duplication, optional lump-sum quotation printing and upright professional cover fonts; 6 tests pass, signed-in copy/save/reload/print verified and temporary copy removed
 - [x] Add customer CNIC search across global search, customer selectors, sales documents and reports; default print previews to A4 (44 tests pass; signed-in invoice/global/sales-report search verified)
 - [x] Upgrade the full website to a futuristic K&S theme with attractive page and menu transitions
