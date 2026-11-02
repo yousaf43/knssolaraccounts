@@ -28,7 +28,11 @@ export function encodeWav(chunks: readonly Float32Array[], sampleRate: number): 
   return new Blob([bytes], { type: "audio/wav" });
 }
 
-export async function recordWav(): Promise<{ stop: () => Promise<File> }> {
+export function recordingShouldFinish(elapsedMs: number, silenceMs: number, heardSpeech: boolean): boolean {
+  return elapsedMs >= 60000 || (heardSpeech && silenceMs >= 1800);
+}
+
+export async function recordWav(onSilence?: () => void): Promise<{ stop: () => Promise<File> }> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   let context: AudioContext | undefined;
   try {
@@ -38,7 +42,21 @@ export async function recordWav(): Promise<{ stop: () => Promise<File> }> {
     const source = audioContext.createMediaStreamSource(stream);
     const node = audioContext.createScriptProcessor(4096, 1, 1);
     const chunks: Float32Array[] = [];
-    node.onaudioprocess = (event) => chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+    const started = performance.now();
+    let lastSpeech = started;
+    let heardSpeech = false;
+    let notified = false;
+    node.onaudioprocess = (event) => {
+      const samples = new Float32Array(event.inputBuffer.getChannelData(0));
+      chunks.push(samples);
+      const now = performance.now();
+      const rms = Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);
+      if (rms > 0.015) { heardSpeech = true; lastSpeech = now; }
+      if (!notified && recordingShouldFinish(now - started, now - lastSpeech, heardSpeech)) {
+        notified = true;
+        onSilence?.();
+      }
+    };
     source.connect(node);
     node.connect(audioContext.destination);
     let stopped = false;
