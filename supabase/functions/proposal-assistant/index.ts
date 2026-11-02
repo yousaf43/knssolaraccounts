@@ -48,7 +48,7 @@ Deno.serve(async req => {
     const parsedOut = OutputSchema.safeParse((() => { try { const o = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); if (o && typeof o.updatesJson !== 'string') o.updatesJson = JSON.stringify(o.updatesJson || {}); return o; } catch { return null; } })());
     const output = parsedOut.success ? parsedOut.data : null;
     if (!output) console.error('Unparsed Gemini output', raw.slice(0, 500));
-    if (!output) return json({ error: 'The assistant did not return usable proposal details' }, 502);
+    if (!output) return json({ error: 'The assistant did not return usable proposal details', debug: raw.slice(0, 300) }, 502);
     const patch = validateAssistantPatch(JSON.parse(output.updatesJson));
     const missing = missingProposalDetails({ ...parsed.data.draft, ...patch });
     return json({ reply: output.reply, patch, missing });
