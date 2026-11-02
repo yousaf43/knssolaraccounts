@@ -111,6 +111,44 @@ export type Database = {
           },
         ]
       }
+      ai_provider_credentials: {
+        Row: {
+          blocked_reason: string | null
+          blocked_until: string | null
+          company_id: string
+          enabled: boolean
+          key_ciphertext: string | null
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          blocked_reason?: string | null
+          blocked_until?: string | null
+          company_id: string
+          enabled?: boolean
+          key_ciphertext?: string | null
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          blocked_reason?: string | null
+          blocked_until?: string | null
+          company_id?: string
+          enabled?: boolean
+          key_ciphertext?: string | null
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_provider_credentials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           check_in: string | null
