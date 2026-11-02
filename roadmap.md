@@ -1,7 +1,7 @@
 - [x] Add Gemini conversational voice proposal assistant with missing-detail questions and editable proposal handoff (14 tests pass; deployed conversation asks missing details and returns 18 × PKR 20,000 = PKR 360,000; Gemini speech/transcription verified).
 - [x] Fix proposal voice auto-send, silence stopping and spoken replies (10 tests pass; signed-in text reply, automatic audio playback, apply-details and real speech/transcription return 200; build OK).
 - [ ] Complete live hands-free microphone-to-reply verification (blocked: user's Gemini free-tier daily quota exhausted; microphone stopped automatically and displayed the quota error, not stuck Listening).
-- [ ] Activate proposal voice assistant on Hostinger (blocked: external function deployment/AI credential setup and frontend redeployment required).
+- [ ] Fix Hostinger proposal assistant connection securely by deploying chat and voice to the independent backend; verify CORS, authentication and a real reply.
 - [x] Remove invented generic proposal specifications; add automatic identity-bound product lookup and sourced JSON details (9 tests pass; Parallel search and model-mismatch research verified)
 - [ ] Verify automatic lookup/save/print end-to-end (blocked: managed database inaccessible when minting a signed-in test session)
 - [ ] Enable product-specs lookup on Hostinger's external backend (blocked: external deployment and connector credential availability not verified; frontend redeploy also required)
