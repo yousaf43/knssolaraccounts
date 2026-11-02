@@ -27,6 +27,7 @@ export async function aiVoice(companyId: string, input: { file?: File; text?: st
       if (response.ok && !input.file) response = new Response(JSON.stringify({ audio: b64(new Uint8Array(await response.arrayBuffer())), pcm: false }));
     }
     retryAfter = response.headers.get('Retry-After');
+    if (!response.ok) { await response.body?.cancel(); response = new Response(null, { status: response.status }); }
     return { status: response.status, value: response };
   }, async (provider, status) => { await markAIProviderFailure(companyId, provider, status, retryAfter); });
   if (!result) throw Object.assign(new Error(input.file ? 'No transcription provider is ready; check AI settings' : 'No Urdu speech provider is ready; your written reply is still available'), { status: 503 });
