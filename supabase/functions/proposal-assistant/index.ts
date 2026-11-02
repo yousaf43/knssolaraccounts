@@ -10,6 +10,21 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
 const Input = z.object({ action: z.enum(['chat','speech']), text: z.string().max(3000).optional(), messages: z.array(z.object({ role: z.enum(['user','assistant']), content: z.string().min(1).max(6000) })).max(40).optional(), draft: z.record(z.unknown()).optional() });
 const OutputSchema = z.object({ reply: z.string(), updatesJson: z.string() });
 const HUMAN = `Talk like a warm, friendly real human sales consultant named Nexia from K&S Solar — not a robot. Use short, natural sentences, the way people actually speak on a phone call. Reply in the same language and script the user uses (Roman Urdu if they write Roman Urdu). Acknowledge what they said briefly (e.g. "Ji bilkul", "Acha, theek hai"), then ask only ONE or two missing things at a time. No lists, no markdown, no long explanations, no repeating the whole proposal back. Keep replies under 40 words.`;
+const ALIASES: Record<string, string> = { clientName: 'customerName', name: 'customerName', customer: 'customerName', location: 'city', contact: 'phone', phoneNumber: 'phone', mobile: 'phone', panels: 'panelQty', numberOfPanels: 'panelQty', panelWattage: 'panelWatt', inverterCapacity: 'inverterKw', inverterKW: 'inverterKw' };
+const NUMERIC = ['panelQty','panelWatt','inverterKw','structureQty','validDays'];
+// Model output is untrusted: rename known aliases, coerce numbers, and drop anything the strict validator rejects.
+function sanitizePatch(raw: string) {
+  let value: Record<string, unknown> = {};
+  try { const v = JSON.parse(raw || '{}'); if (v && typeof v === 'object' && !Array.isArray(v)) value = v; } catch { return {}; }
+  const patch: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value)) {
+    const key = ALIASES[k] || k;
+    let val = v;
+    if (NUMERIC.includes(key) && typeof v === 'string') { const n = parseFloat(v); if (Number.isFinite(n)) val = n; }
+    try { Object.assign(patch, validateAssistantPatch({ [key]: val })); } catch { /* skip invalid field */ }
+  }
+  return patch;
+}
 // No background work or automatic retries; every paid call follows an explicit user action.
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -49,7 +64,7 @@ Deno.serve(async req => {
     const output = parsedOut.success ? parsedOut.data : null;
     if (!output) console.error('Unparsed Gemini output', raw.slice(0, 500));
     if (!output) return json({ error: 'The assistant did not return usable proposal details' }, 502);
-    const patch = validateAssistantPatch(JSON.parse(output.updatesJson));
+    const patch = sanitizePatch(output.updatesJson);
     const missing = missingProposalDetails({ ...parsed.data.draft, ...patch });
     return json({ reply: output.reply, patch, missing });
   } catch (e) {
