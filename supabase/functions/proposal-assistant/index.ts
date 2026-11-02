@@ -59,7 +59,7 @@ Deno.serve(async req => {
     const raw = (await gem.json()).choices?.[0]?.message?.content || '';
     const parsedOut = OutputSchema.safeParse((() => { try { const o = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); if (o && typeof o.updatesJson !== 'string') o.updatesJson = JSON.stringify(o.updatesJson || {}); return o; } catch { return null; } })());
     const output = parsedOut.success ? parsedOut.data : null;
-    if (!output) console.error('Unparsed Gemini output', raw.slice(0, 500));
+    if (!output) console.error('AI proposal output validation failed');
     if (!output) return json({ error: 'The assistant did not return usable proposal details' }, 502);
     const patch = sanitizePatch(output.updatesJson);
     const missing = missingProposalDetails({ ...parsed.data.draft, ...patch });

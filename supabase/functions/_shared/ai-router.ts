@@ -10,7 +10,7 @@ function geminiContents(messages: AIMessage[]) {
     return match ? { inlineData: { mimeType: match[1], data: match[2] } } : { text: '' };
   }) }));
 }
-export async function routeAI(companyId: string, messages: AIMessage[], options: { json?: boolean; stream?: boolean; signal?: AbortSignal; groqMessages?: AIMessage[] } = {}) {
+export async function routeAI(companyId: string, messages: AIMessage[], options: { json?: boolean; schema?: Record<string, unknown>; stream?: boolean; signal?: AbortSignal; groqMessages?: AIMessage[] } = {}) {
   const hasFiles = messages.some(m => Array.isArray(m.content));
   const providers = (await readyAIProviders(companyId)).filter(p => !(p.provider === 'groq' && hasFiles));
   let retryAfter: string | null = null;
@@ -27,7 +27,7 @@ export async function routeAI(companyId: string, messages: AIMessage[], options:
         response = new Response(JSON.stringify({ choices: [{ message: { content: text } }] }), { headers: { 'Content-Type': 'application/json' } });
       }
     } else {
-      response = await fetch(endpoints[provider], { method: 'POST', signal: options.signal, headers: { Authorization: `Bearer ${state.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: models[provider], messages: provider === 'groq' ? options.groqMessages || messages : messages, temperature: 0.1, ...(provider === 'gemini' ? { reasoning_effort: 'none' } : {}), ...(options.json ? { response_format: { type: 'json_object' } } : {}), stream: options.stream || false }) });
+      response = await fetch(endpoints[provider], { method: 'POST', signal: options.signal, headers: { Authorization: `Bearer ${state.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: models[provider], messages: provider === 'groq' ? options.groqMessages || messages : messages, temperature: 0.1, ...(provider === 'gemini' ? { reasoning_effort: 'none' } : {}), ...(options.json ? { response_format: options.schema && provider !== 'groq' ? { type: 'json_schema', json_schema: { name: 'assistant_turn', strict: true, schema: options.schema } } : { type: 'json_object' } } : {}), stream: options.stream || false }) });
     }
     retryAfter = response.headers.get('Retry-After');
     if (!response.ok) {
