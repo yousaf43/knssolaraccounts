@@ -11,7 +11,7 @@ export function decodePCM(pending: Uint8Array, incoming: Uint8Array) {
   return { samples, pending: bytes.slice(usable) };
 }
 
-export async function streamSpeech(endpoint: string, text: string, signal?: AbortSignal): Promise<void> {
+export async function streamSpeech(endpoint: string, text: string, signal?: AbortSignal, headers: Record<string, string> = {}): Promise<void> {
   signal?.throwIfAborted();
   const context = new AudioContext({ sampleRate: 24000 });
   const sources = new Set<AudioBufferSourceNode>();
@@ -30,8 +30,8 @@ export async function streamSpeech(endpoint: string, text: string, signal?: Abor
     if (context.state === "suspended") await context.resume();
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify({ action: "speech", text }),
       signal: controller.signal,
     });
     if (!response.ok || !response.body) throw new Error(`TTS failed: ${response.status} ${await response.text()}`);
