@@ -17,7 +17,9 @@ describe('Voice proposal assistant', () => {
   });
   it('preserves only supplied fields in partial updates', () => { expect(validateAssistantPatch({ customerName: 'Ali' })).toEqual({ customerName: 'Ali' }); });
   it('encodes complete WAV with correct size for voice recording', async () => {
-    const bytes = new Uint8Array(await encodeWav([new Float32Array(2400)], 24000).arrayBuffer());
+    const blob = encodeWav([new Float32Array(2400)], 24000);
+    const buffer = await new Promise<ArrayBuffer>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => reader.result instanceof ArrayBuffer ? resolve(reader.result) : reject(new Error('Invalid WAV')); reader.onerror = reject; reader.readAsArrayBuffer(blob); });
+    const bytes = new Uint8Array(buffer);
     expect(bytes.length).toBe(4844); expect(new TextDecoder().decode(bytes.slice(0,4))).toBe('RIFF');
   });
 });

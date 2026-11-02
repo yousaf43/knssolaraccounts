@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, Send, Volume2, Loader2, Sparkles, RotateCcw, VolumeX } from 'lucide-react';
+import { Mic, Square, Send, Volume2, Loader2, Sparkles, RotateCcw } from 'lucide-react';
 import { createParser } from 'eventsource-parser';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -48,19 +48,19 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
   }
   async function send(content: string) {
     if (!content.trim() || busy || speaking) return;
-    setBusy(true); setError(''); setPending(null);
+    setBusy(true); setError('');
     const next: Message[] = [...messages, { role: 'user', content }];
     setMessages(next); setText('');
     const abort = new AbortController(); controller.current = abort;
     try {
       const { endpoint, headers } = await connection();
-      const response = await fetch(endpoint, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat', messages: next.slice(-40), draft }), signal: abort.signal });
+      const response = await fetch(endpoint, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat', messages: next.slice(-40), draft: { ...draft, ...pending } }), signal: abort.signal });
       if (!response.ok) throw await responseError(response);
       const result = await response.json();
       if (typeof result.reply !== 'string') throw new Error('No assistant reply received');
       const patch = validateAssistantPatch(result.patch) as Partial<Draft>;
       if (!mounted.current) return;
-      setPending(patch); setMissing(result.missing || []);
+      setPending(previous => ({ ...previous, ...patch })); setMissing(result.missing || []);
       setMessages([...next, { role: 'assistant', content: result.reply }]);
       // Keep confirmed changes in the conversation draft; apply only after explicit review.
       if (voice) await speak(result.reply);
@@ -104,7 +104,6 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     } catch (e) { if (!abort.signal.aborted && mounted.current) setError(e instanceof Error ? e.message : 'Recording unavailable'); }
     finally { if (mounted.current) setBusy(false); }
   }
-  const conversationDraft = { ...draft, ...pending };
   return <section aria-label="Gemini proposal assistant" className="border-b border-border pb-5 space-y-3">
     <div className="flex items-center justify-between gap-2 flex-wrap">
       <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Gemini Proposal Assistant</h3>
@@ -126,9 +125,9 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     <div className="flex gap-2 items-end">
       <Textarea aria-label="Proposal requirements" placeholder="Your requirements or answer…" value={text} onChange={e => setText(e.target.value)} rows={2} disabled={recording} className="min-w-0" />
       <Button type="button" variant={recording ? 'destructive' : 'outline'} size="icon" aria-label={recording ? 'Finish recording' : 'Record requirements'} title={recording ? 'Finish recording' : 'Record requirements'} disabled={busy || speaking} onClick={() => void microphone()}>{recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</Button>
-      {(busy || speaking) ? <Button type="button" variant="outline" size="icon" aria-label="Stop assistant" title="Stop assistant" onClick={() => controller.current?.abort()}><Square className="h-4 w-4" /></Button> : <Button type="button" size="icon" aria-label="Send requirements" title="Send requirements" disabled={!text.trim() || recording} onClick={() => { if (pending) onApply(pending); void send(text); }}><Send className="h-4 w-4" /></Button>}
+      {(busy || speaking) ? <Button type="button" variant="outline" size="icon" aria-label="Stop assistant" title="Stop assistant" onClick={() => controller.current?.abort()}><Square className="h-4 w-4" /></Button> : <Button type="button" size="icon" aria-label="Send requirements" title="Send requirements" disabled={!text.trim() || recording} onClick={() => void send(text)}><Send className="h-4 w-4" /></Button>}
     </div>
     {(busy || recording || speaking) && <p className="text-xs text-muted-foreground flex gap-2 items-center"><Loader2 className="h-3 w-3 animate-spin" />{recording ? 'Listening…' : speaking ? 'Speaking…' : 'Preparing reply…'}</p>}
-    {!busy && !speaking && messages.some(m => m.role === 'assistant') && <Button type="button" size="sm" variant="ghost" onClick={() => { const last = [...messages].reverse().find(m => m.role === 'assistant'); if (last) void speak(last.content); }}><Volume2 className="h-4 w-4 mr-1" /> Read last reply</Button>}
+    {!busy && !speaking && !recording && messages.some(m => m.role === 'assistant') && <Button type="button" size="sm" variant="ghost" onClick={() => { const last = [...messages].reverse().find(m => m.role === 'assistant'); if (last) void speak(last.content); }}><Volume2 className="h-4 w-4 mr-1" /> Read last reply</Button>}
   </section>;
 }
