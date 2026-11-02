@@ -9,7 +9,11 @@ export function validateAssistantPatch(value: unknown): AssistantDraft {
     if (strings.includes(key) && typeof v === 'string' && v.length <= 5000) patch[key] = v;
     else if (numbers.includes(key) && typeof v === 'number' && Number.isFinite(v) && v >= 0) patch[key] = v;
     else if (booleans.includes(key) && typeof v === 'boolean') patch[key] = v;
-    else if (key === 'systemType' && ['on-grid','off-grid','hybrid'].includes(String(v))) patch[key] = v;
+    else if (key === 'systemType' && typeof v === 'string') {
+      const normalized = v.trim().toLowerCase().replace(/[\s_]+/g, '-');
+      if (!['on-grid','off-grid','hybrid'].includes(normalized)) throw new Error('Invalid system type');
+      patch[key] = normalized;
+    }
     else if (key === 'monthlyUnits' && Array.isArray(v) && v.length === 12 && v.every(n => typeof n === 'number' && Number.isFinite(n) && n >= 0)) patch[key] = v;
     else if (key === 'battery' && v === null) patch[key] = null;
     else if (key === 'battery' && v && typeof v === 'object') {

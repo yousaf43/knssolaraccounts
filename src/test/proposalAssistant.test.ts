@@ -2,6 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { missingProposalDetails, validateAssistantPatch } from '../../supabase/functions/_shared/proposal-draft';
 import { encodeWav } from '@/lib/voice/record-wav';
 describe('Voice proposal assistant', () => {
+  it('normalizes spoken system type to the existing proposal values', () => {
+    expect(validateAssistantPatch({ systemType: 'On-grid' })).toEqual({ systemType: 'on-grid' });
+    expect(validateAssistantPatch({ systemType: 'Off Grid' })).toEqual({ systemType: 'off-grid' });
+    expect(() => validateAssistantPatch({ systemType: 'unknown' })).toThrow();
+  });
   it('asks for missing customer instead of treating equipment as a complete proposal', () => {
     expect(missingProposalDetails({ items: [{ description: 'Solar package', qty: 1, unitPrice: 500000 }] })).toEqual(['Customer name']);
   });
