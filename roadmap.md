@@ -1,3 +1,6 @@
+- [x] Add Gemini conversational voice proposal assistant with missing-detail questions and editable proposal handoff (14 tests pass; deployed conversation asks missing details and returns 18 × PKR 20,000 = PKR 360,000; Gemini speech/transcription verified).
+- [ ] Verify voice conversation, apply/save/reload in signed-in preview (blocked: preview is signed out; requester has no matching account for automatic test sign-in).
+- [ ] Activate proposal voice assistant on Hostinger (blocked: external function deployment/AI credential setup and frontend redeployment required).
 - [x] Remove invented generic proposal specifications; add automatic identity-bound product lookup and sourced JSON details (9 tests pass; Parallel search and model-mismatch research verified)
 - [ ] Verify automatic lookup/save/print end-to-end (blocked: managed database inaccessible when minting a signed-in test session)
 - [ ] Enable product-specs lookup on Hostinger's external backend (blocked: external deployment and connector credential availability not verified; frontend redeploy also required)
