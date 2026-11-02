@@ -13,6 +13,7 @@ function geminiContents(messages: AIMessage[]) {
 export async function routeAI(companyId: string, messages: AIMessage[], options: { json?: boolean; stream?: boolean; signal?: AbortSignal; groqMessages?: AIMessage[] } = {}) {
   const hasFiles = messages.some(m => Array.isArray(m.content));
   const providers = (await readyAIProviders(companyId)).filter(p => !(p.provider === 'groq' && hasFiles));
+  let retryAfter: string | null = null;
   const result = await orderedFallback(providers.map(p => p.provider), async provider => {
     const state = providers.find(p => p.provider === provider);
     if (!state) throw new Error('AI provider is not configured');
@@ -28,10 +29,14 @@ export async function routeAI(companyId: string, messages: AIMessage[], options:
     } else {
       response = await fetch(endpoints[provider], { method: 'POST', signal: options.signal, headers: { Authorization: `Bearer ${state.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: models[provider], messages: provider === 'groq' ? options.groqMessages || messages : messages, temperature: 0.1, ...(provider === 'gemini' ? { reasoning_effort: 'none' } : {}), ...(options.json ? { response_format: { type: 'json_object' } } : {}), stream: options.stream || false }) });
     }
+    retryAfter = response.headers.get('Retry-After');
+    if (!response.ok) {
+      await response.body?.cancel();
+      response = new Response(null, { status: response.status });
+    }
     return { status: response.status, value: response };
   }, async (provider, status) => {
-    // Retry-After is persisted by the provider handler below; no immediate retry of the exhausted provider.
-    await markAIProviderFailure(companyId, provider, status, null);
+    await markAIProviderFailure(companyId, provider, status, retryAfter);
   });
   if (!result) throw Object.assign(new Error(hasFiles ? 'No configured AI provider can read this file; check AI settings' : 'No AI provider is ready; check credits and AI settings'), { status: 503 });
   if (!result.value.ok) {
