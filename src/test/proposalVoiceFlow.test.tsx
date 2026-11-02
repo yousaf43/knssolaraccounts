@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ProposalAssistant } from '@/components/ProposalAssistant';
 import type { Proposal } from '@/pages/Proposals';
@@ -24,7 +24,7 @@ describe('Proposal voice conversation', () => {
     render(<ProposalAssistant draft={{} as Omit<Proposal, 'id' | 'proposalNo'>} onApply={apply} />);
     fireEvent.click(screen.getByRole('button', { name: 'Record requirements' }));
     await waitFor(() => expect(mocks.silence).toBeTypeOf('function'));
-    mocks.silence?.();
+    await act(async () => { mocks.silence?.(); });
     await waitFor(() => expect(mocks.speech).toHaveBeenCalled());
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).messages).toEqual([{ role: 'user', content: 'Ali ke liye 18 Longi panels' }]);
     expect(mocks.speech.mock.calls[0][1]).toBe('Ji, har panel ki price kya hai?');
