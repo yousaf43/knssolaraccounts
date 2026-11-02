@@ -1,63 +1,17 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
+// Legacy endpoint name retained for existing clients; uses shared AI provider settings.
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3';
+import { aiIdentity } from '../_shared/ai-credentials.ts';
+import { aiVoice } from '../_shared/ai-voice.ts';
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+Deno.serve(async req => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   try {
-    const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
-    if (!apiKey) throw new Error("ELEVENLABS_API_KEY not configured");
-
-    const { audio, mimeType } = await req.json();
-    if (!audio) {
-      return new Response(JSON.stringify({ error: "audio (base64) required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // decode base64
-    const binary = atob(audio);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-    const ext = (mimeType || "audio/webm").includes("mp4") ? "mp4"
-      : (mimeType || "").includes("wav") ? "wav"
-      : (mimeType || "").includes("mpeg") ? "mp3"
-      : "webm";
-
-    const form = new FormData();
-    form.append("file", new Blob([bytes], { type: mimeType || "audio/webm" }), `recording.${ext}`);
-    form.append("model_id", "scribe_v1");
-
-    const response = await fetch("https://api.elevenlabs.io/v1/speech-to-text", {
-      method: "POST",
-      headers: { "xi-api-key": apiKey },
-      body: form,
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("STT error:", response.status, err);
-      return new Response(JSON.stringify({ error: `STT failed: ${response.status}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const data = await response.json();
-    return new Response(JSON.stringify({ text: data.text || "" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("elevenlabs-stt error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    const { companyId } = await aiIdentity(req);
+    const input = z.object({ audio: z.string().min(1).max(19000000), mimeType: z.string().regex(/^audio\//).default('audio/webm') }).parse(await req.json());
+    const bytes = Uint8Array.from(atob(input.audio), c => c.charCodeAt(0));
+    const result = await aiVoice(companyId, { file: new File([bytes], 'recording.webm', { type: input.mimeType }) }, req.signal);
+    return json({ text: result.text, provider: result.provider });
+  } catch (e) { const err = e as Error & { status?: number }; return json({ error: err instanceof z.ZodError ? 'Invalid voice request' : err.message }, err instanceof z.ZodError ? 400 : err.status || 500); }
 });

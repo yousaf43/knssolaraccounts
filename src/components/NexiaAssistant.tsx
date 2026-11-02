@@ -99,7 +99,7 @@ export function NexiaAssistant() {
       });
       if (error || !data?.audio) return;
       stopAudio();
-      const audio = new Audio(`data:audio/mpeg;base64,${data.audio}`);
+      const audio = new Audio(`data:${data.mimeType || 'audio/mpeg'};base64,${data.audio}`);
       audioRef.current = audio;
       audio.play().catch(() => {});
     } catch (e) {

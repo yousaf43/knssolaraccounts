@@ -19,6 +19,7 @@ export async function streamSpeech(endpoint: string, text: string, signal?: Abor
   let pending = new Uint8Array(0);
   let completed = false;
   let samplesPlayed = 0;
+  let encodedAudio: string | null = null;
   const controller = new AbortController();
   const abort = () => {
     controller.abort(signal?.reason);
@@ -41,6 +42,10 @@ export async function streamSpeech(endpoint: string, text: string, signal?: Abor
         if (payload.type === "error" || payload.error) throw new Error(`Speech failed: ${event.data}`);
         if (payload.type === "speech.audio.done") {
           completed = true;
+          return;
+        }
+        if (payload.type === "speech.audio.encoded" && payload.audio) {
+          encodedAudio = payload.audio;
           return;
         }
         if (payload.type !== "speech.audio.delta") return;
@@ -80,6 +85,13 @@ export async function streamSpeech(endpoint: string, text: string, signal?: Abor
       parser.reset({ consume: true });
     } finally {
       reader.releaseLock();
+    }
+    if (encodedAudio) {
+      const bytes = Uint8Array.from(atob(encodedAudio), c => c.charCodeAt(0));
+      const buffer = await context.decodeAudioData(bytes.buffer);
+      const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination); sources.add(source);
+      playback = new Promise<void>(resolve => { source.onended = () => { sources.delete(source); resolve(); }; });
+      source.start(); samplesPlayed = buffer.length;
     }
     if (!completed || !samplesPlayed || pending.length) throw new Error("Incomplete speech stream");
     await playback;

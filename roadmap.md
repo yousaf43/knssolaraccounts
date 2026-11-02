@@ -1,3 +1,7 @@
+- [x] Add admin AI API key settings with encrypted company-scoped credentials and Gemini → Groq → OpenRouter quota fallback across assistants; capability-aware voice/files; deployed Cloud and independent functions/schema.
+- [x] Verify AI settings permissions and signed-in Gemini key save/reload; 19 tests passed, build OK; independent function deployment accepted.
+- [ ] Verify live shared-provider proposal chat and voice (blocked: documented Gemini endpoint returned 404 model unavailable; no alternate-model probes performed).
+- [ ] Show AI Settings on Hostinger (blocked: Hostinger frontend must redeploy the updated GitHub version; independent functions and encrypted storage deployed).
 - [x] Add Gemini conversational voice proposal assistant with missing-detail questions and editable proposal handoff (14 tests pass; deployed conversation asks missing details and returns 18 × PKR 20,000 = PKR 360,000; Gemini speech/transcription verified).
 - [x] Fix proposal voice auto-send, silence stopping and spoken replies (10 tests pass; signed-in text reply, automatic audio playback, apply-details and real speech/transcription return 200; build OK).
 - [ ] Complete live hands-free microphone-to-reply verification (blocked: user's Gemini free-tier daily quota exhausted; microphone stopped automatically and displayed the quota error, not stuck Listening).

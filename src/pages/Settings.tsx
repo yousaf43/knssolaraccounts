@@ -18,6 +18,7 @@ import { useCloudBackup } from "@/hooks/useCloudBackup";
 import { useUserSettingsCloud } from "@/hooks/useAppData";
 import { exportAsJson, exportAsCsvZip } from "@/utils/exportData";
 import { downloadSqlDump } from "@/utils/sqlDump";
+import { AIProviderSettings } from "@/components/AIProviderSettings";
 
 
 const currencies = [
@@ -394,7 +395,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="company" className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="flex w-full justify-start overflow-x-auto">
           <TabsTrigger value="company" className="gap-1.5 text-xs"><Building2 className="w-3.5 h-3.5" /> Company</TabsTrigger>
           <TabsTrigger value="currency" className="gap-1.5 text-xs"><Globe className="w-3.5 h-3.5" /> Currency</TabsTrigger>
           <TabsTrigger value="tax" className="gap-1.5 text-xs"><Receipt className="w-3.5 h-3.5" /> Tax</TabsTrigger>
@@ -403,10 +404,14 @@ export default function Settings() {
           <TabsTrigger value="backup" className="gap-1.5 text-xs"><Database className="w-3.5 h-3.5" /> Backup</TabsTrigger>
           <TabsTrigger value="export" className="gap-1.5 text-xs"><FileDown className="w-3.5 h-3.5" /> Export</TabsTrigger>
           {role === "admin" && (
+            <TabsTrigger value="ai" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> AI Assistants</TabsTrigger>
+          )}
+          {role === "admin" && (
             <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={() => loadUsers()}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
           )}
         </TabsList>
 
+        {role === "admin" && <TabsContent value="ai"><AIProviderSettings /></TabsContent>}
         {/* Company */}
         <TabsContent value="company">
           <div className="bg-card border rounded-lg p-6 space-y-6">
