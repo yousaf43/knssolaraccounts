@@ -1,3 +1,4 @@
+- [ ] Add Gemini conversational voice proposal assistant with missing-detail questions and editable proposal handoff; verify voice and signed-in proposal creation.
 - [x] Remove invented generic proposal specifications; add automatic identity-bound product lookup and sourced JSON details (9 tests pass; Parallel search and model-mismatch research verified)
 - [ ] Verify automatic lookup/save/print end-to-end (blocked: managed database inaccessible when minting a signed-in test session)
 - [ ] Enable product-specs lookup on Hostinger's external backend (blocked: external deployment and connector credential availability not verified; frontend redeploy also required)
