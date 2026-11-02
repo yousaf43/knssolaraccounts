@@ -1,3 +1,5 @@
+import { aiIdentity } from '../_shared/ai-credentials.ts';
+import { routeAI } from '../_shared/ai-router.ts';
 // Returns the current Pakistan (NEPRA / DISCO) electricity tariff and refreshes it
 // automatically from a public tariff page when the stored copy is older than 7 days.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
@@ -51,42 +53,10 @@ function htmlToText(html: string) {
     .slice(0, 25000);
 }
 
-async function extractRates(pageText: string, apiKey: string) {
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "fetch" },
-    body: JSON.stringify({
-      model: "openai/gpt-6-astra",
-      stream: true,
-      store: false,
-      reasoning: { effort: "low" },
-      instructions:
-        "Extract Pakistan's current electricity consumer tariff from the page text. Use the GoP applicable (actually billed) rates, not NEPRA determined rates. Do not guess: if a value is missing set found=false.",
-      input: pageText,
-      text: { format: { type: "json_schema", name: "tariff", strict: true, schema } },
-    }),
-  });
-  if (!res.ok || !res.body) throw new Error(`AI ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const reader = res.body.getReader();
-  const dec = new TextDecoder();
-  let buf = "", out = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
-    const lines = buf.split("\n");
-    buf = lines.pop() ?? "";
-    for (const line of lines) {
-      if (!line.startsWith("data:")) continue;
-      const d = line.slice(5).trim();
-      if (!d || d === "[DONE]") continue;
-      try {
-        const ev = JSON.parse(d);
-        if (ev.type === "response.output_text.delta") out += ev.delta;
-      } catch { /* ignore */ }
-    }
-  }
-  return JSON.parse(out);
+async function extractRates(pageText: string, companyId: string) {
+  const { response } = await routeAI(companyId, [{ role: 'system', content: `Extract Pakistan electricity consumer tariff from page text. Use GoP applicable billed rates. Never guess; missing values mean found=false. Return JSON matching this schema: ${JSON.stringify(schema)}` }, { role: 'user', content: pageText }], { json: true });
+  const data = await response.json();
+  return JSON.parse(data.choices?.[0]?.message?.content || '{}');
 }
 
 const ok = (n: unknown, lo: number, hi: number) => typeof n === "number" && n >= lo && n <= hi;
@@ -111,15 +81,14 @@ Deno.serve(async (req) => {
     const fresh = row && Date.now() - new Date(row.checked_at).getTime() < STALE_MS;
     if (fresh && !body.force) return json({ tariff: row, refreshed: false });
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return json({ tariff: row, refreshed: false, error: "AI key missing" });
+    const { companyId } = await aiIdentity(req);
 
     let lastError = "";
     for (const src of SOURCES) {
       try {
         const page = await fetch(src, { headers: { "User-Agent": "Mozilla/5.0 (KnS Solar tariff checker)" } });
         if (!page.ok) { lastError = `${src} ${page.status}`; continue; }
-        const x = await extractRates(htmlToText(await page.text()), apiKey);
+        const x = await extractRates(htmlToText(await page.text()), companyId);
         if (!valid(x)) { lastError = `${src} returned incomplete rates`; continue; }
         const prev = (row?.rates ?? {}) as Record<string, unknown>;
         const rates = {
@@ -139,6 +108,7 @@ Deno.serve(async (req) => {
         await admin.from("electricity_tariffs").upsert(rec);
         return json({ tariff: rec, refreshed: true, changed });
       } catch (e) {
+        if ((e as { status?: number }).status) return json({ tariff: row, refreshed: false, error: (e as Error).message }, (e as { status: number }).status);
         lastError = `${src}: ${e instanceof Error ? e.message : String(e)}`;
       }
     }

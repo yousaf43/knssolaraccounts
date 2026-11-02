@@ -1,76 +1,24 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
+// Legacy endpoint name retained for existing clients; uses shared AI provider settings.
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3';
+import { aiIdentity } from '../_shared/ai-credentials.ts';
+import { aiVoice } from '../_shared/ai-voice.ts';
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+Deno.serve(async req => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   try {
-    const { text, voiceId } = await req.json();
-    if (!text) {
-      return new Response(JSON.stringify({ error: "text required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { companyId } = await aiIdentity(req);
+    const input = z.object({ text: z.string().min(1).max(3000) }).parse(await req.json());
+    const result = await aiVoice(companyId, { text: input.text }, req.signal);
+    if (result.pcm) {
+      const bytes = Uint8Array.from(atob(result.audio), c => c.charCodeAt(0));
+      const wav = new Uint8Array(44 + bytes.length); const view = new DataView(wav.buffer);
+      for (const [offset, value] of [[0, 'RIFF'], [8, 'WAVE'], [12, 'fmt '], [36, 'data']] as [number, string][]) for (let i = 0; i < value.length; i++) wav[offset + i] = value.charCodeAt(i);
+      view.setUint32(4, bytes.length + 36, true); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); view.setUint32(40, bytes.length, true); wav.set(bytes, 44);
+      let binary = ''; for (let i = 0; i < wav.length; i += 32768) binary += String.fromCharCode(...wav.subarray(i, i + 32768));
+      return json({ audio: btoa(binary), mimeType: 'audio/wav', provider: result.provider });
     }
-
-    const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
-    if (!apiKey) throw new Error("ELEVENLABS_API_KEY not configured");
-
-    // Male voice - George (default)
-    const voice = voiceId || "JBFqnCBsd6RMkjVDRZzb";
-
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_128`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.4,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("TTS error:", response.status, err);
-      return new Response(JSON.stringify({ error: `TTS failed: ${response.status}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const buf = await response.arrayBuffer();
-    // Base64 encode for easy JSON transport
-    const bytes = new Uint8Array(buf);
-    let binary = "";
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-    }
-    const base64 = btoa(binary);
-
-    return new Response(JSON.stringify({ audio: base64 }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("elevenlabs-tts error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    return json({ audio: result.audio, mimeType: 'audio/mpeg', provider: result.provider });
+  } catch (e) { const err = e as Error & { status?: number }; return json({ error: err instanceof z.ZodError ? 'Invalid voice request' : err.message }, err instanceof z.ZodError ? 400 : err.status || 500); }
 });
