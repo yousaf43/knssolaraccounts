@@ -29,6 +29,7 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
   const [speaking, setSpeaking] = useState(false);
   const [voice, setVoice] = useState(true);
   const [error, setError] = useState('');
+  const [provider, setProvider] = useState('Nexia');
   const [pending, setPending] = useState<Partial<Draft> | null>(null);
   const [missing, setMissing] = useState<string[]>([]);
   const recorder = useRef<Awaited<ReturnType<typeof recordWav>> | null>(null);
@@ -78,6 +79,7 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
       if (!response.ok) throw await responseError(response);
       const result = await response.json();
       if (typeof result.reply !== 'string') throw new Error('No assistant reply received');
+      setProvider(result.provider === 'groq' ? 'Groq' : result.provider === 'openrouter' ? 'OpenRouter' : 'Gemini');
       const patch = validateAssistantPatch(result.patch) as Partial<Draft>;
       if (!mounted.current) return;
       setPending(previous => ({ ...previous, ...patch })); setMissing(result.missing || []);
@@ -121,13 +123,13 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
   finishRecording.current = () => { if (recorder.current) void microphone(); };
   return <section aria-label="Gemini proposal assistant" className="border-b border-border pb-5 space-y-3">
     <div className="flex items-center justify-between gap-2 flex-wrap">
-      <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Gemini Proposal Assistant</h3>
+      <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Proposal AI Assistant</h3>
       <div className="flex items-center gap-2"><Switch id="proposal-assistant-voice" checked={voice} onCheckedChange={setVoice} /><Label htmlFor="proposal-assistant-voice">Spoken replies</Label>
         <Button type="button" size="icon" variant="ghost" aria-label="Start new conversation" title="Start new conversation" disabled={busy || recording || speaking} onClick={() => { setMessages([]); setPending(null); setMissing([]); setError(''); }}><RotateCcw className="h-4 w-4" /></Button></div>
     </div>
     <div role="log" aria-live="polite" className="max-h-64 overflow-y-auto space-y-3 text-sm">
       {!messages.length && <p className="text-muted-foreground">Assalam-o-Alaikum! Kis customer ke liye proposal banana hai, aur kaunsa solar system chahiye?</p>}
-      {messages.map((message, i) => <div key={i} className={message.role === 'user' ? 'bg-muted p-3 rounded-md' : 'py-1'}><span className="block text-xs font-semibold text-muted-foreground mb-1">{message.role === 'user' ? 'You' : 'Gemini'}</span><p className="whitespace-pre-wrap break-words" dir="auto">{message.content}</p></div>)}
+      {messages.map((message, i) => <div key={i} className={message.role === 'user' ? 'bg-muted p-3 rounded-md' : 'py-1'}><span className="block text-xs font-semibold text-muted-foreground mb-1">{message.role === 'user' ? 'You' : provider}</span><p className="whitespace-pre-wrap break-words" dir="auto">{message.content}</p></div>)}
       <div ref={historyEnd} />
     </div>
     {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
