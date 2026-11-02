@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Mic, Square, Send, Volume2, Loader2, Sparkles, RotateCcw } from 'lucide-react';
-import { createParser } from 'eventsource-parser';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,23 +34,44 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
   const recorder = useRef<Awaited<ReturnType<typeof recordWav>> | null>(null);
   const controller = useRef<AbortController | null>(null);
   const mounted = useRef(true);
+  const audioContext = useRef<AudioContext | null>(null);
+  const inFlight = useRef(false);
+  const finishRecording = useRef<() => void>(() => {});
   const historyEnd = useRef<HTMLDivElement>(null);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; controller.current?.abort(); void recorder.current?.stop().catch(() => {}); }; }, []);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; controller.current?.abort(); void recorder.current?.stop().catch(() => {}); void audioContext.current?.close(); }; }, []);
   useEffect(() => { historyEnd.current?.scrollIntoView({ block: 'nearest' }); }, [messages, busy]);
+
+  function unlockAudio() {
+    if (!voice) return;
+    try {
+      if (!audioContext.current || audioContext.current.state === 'closed') audioContext.current = new AudioContext({ sampleRate: 24000 });
+      void audioContext.current.resume().catch(() => {});
+    } catch { /* A text reply remains available if audio is unsupported. */ }
+  }
+
+  function requestController() {
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => abort.abort(new DOMException('The assistant took too long. Please try again.', 'TimeoutError')), 65000);
+    abort.signal.addEventListener('abort', () => window.clearTimeout(timer), { once: true });
+    controller.current = abort;
+    return { abort, clear: () => window.clearTimeout(timer) };
+  }
 
   async function speak(reply: string) {
     setSpeaking(true);
-    const abort = new AbortController(); controller.current = abort;
-    try { const { endpoint, headers } = await connection(); await streamSpeech(endpoint, reply, abort.signal, headers); }
-    catch (e) { if (!abort.signal.aborted && mounted.current) setError(e instanceof Error ? e.message : 'Voice playback unavailable'); }
-    finally { if (mounted.current) setSpeaking(false); }
+    const { abort, clear } = requestController();
+    try { const { endpoint, headers } = await connection(); await streamSpeech(endpoint, reply, abort.signal, headers, audioContext.current || undefined); }
+    catch (e) { if (mounted.current && (!abort.signal.aborted || abort.signal.reason?.name === 'TimeoutError')) setError(`Spoken reply unavailable: ${e instanceof Error ? e.message : 'Please try reading the reply again'}`); }
+    finally { clear(); if (mounted.current) setSpeaking(false); }
   }
   async function send(content: string) {
-    if (!content.trim() || busy || speaking) return;
+    if (!content.trim() || inFlight.current) return;
+    inFlight.current = true;
+    unlockAudio();
     setBusy(true); setError('');
     const next: Message[] = [...messages, { role: 'user', content }];
     setMessages(next); setText('');
-    const abort = new AbortController(); controller.current = abort;
+    const { abort, clear } = requestController();
     try {
       const { endpoint, headers } = await connection();
       const response = await fetch(endpoint, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat', messages: next.slice(-40), draft: { ...draft, ...pending } }), signal: abort.signal });
@@ -62,48 +82,43 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
       if (!mounted.current) return;
       setPending(previous => ({ ...previous, ...patch })); setMissing(result.missing || []);
       setMessages([...next, { role: 'assistant', content: result.reply }]);
+      clear();
       // Keep confirmed changes in the conversation draft; apply only after explicit review.
       if (voice) await speak(result.reply);
-    } catch (e) { if (!abort.signal.aborted && mounted.current) { setError(e instanceof Error ? e.message : 'Assistant unavailable'); setText(content); } }
-    finally { if (mounted.current) setBusy(false); }
+    } catch (e) { if (mounted.current && (!abort.signal.aborted || abort.signal.reason?.name === 'TimeoutError')) { setError(e instanceof Error ? e.message : 'Assistant unavailable'); setText(content); } }
+    finally { clear(); inFlight.current = false; if (mounted.current) setBusy(false); }
   }
   async function microphone() {
     setError('');
     if (!recording) {
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('Microphone is unavailable in this browser; type your requirements instead');
-        recorder.current = await recordWav();
+        unlockAudio();
+        recorder.current = await recordWav(() => finishRecording.current());
         if (!mounted.current) { await recorder.current.stop(); return; }
         setRecording(true);
       } catch (e) { setError(e instanceof Error ? e.message : 'Microphone permission is required'); }
       return;
     }
-    setRecording(false); setBusy(true);
-    const abort = new AbortController(); controller.current = abort;
+    const current = recorder.current; recorder.current = null;
+    if (!current) return;
+    setRecording(false); setBusy(true); inFlight.current = true;
+    const { abort, clear } = requestController();
+    let transcript = '';
     try {
-      const current = recorder.current; recorder.current = null;
-      if (!current) return;
       const file = await current.stop();
       const { endpoint, headers } = await connection();
       const body = new FormData(); body.append('file', file);
       const response = await fetch(endpoint, { method: 'POST', headers, body, signal: abort.signal });
       if (!response.ok) throw await responseError(response);
-      if (!response.body) throw new Error('No transcript received');
-      let transcript = ''; let done = false;
-      const parser = createParser({ onEvent(event) {
-        const data = JSON.parse(event.data);
-        if (data.error || data.type === 'error') throw new Error(data.error?.message || data.message || 'Recording could not be understood');
-        if (data.type === 'transcript.text.delta') transcript += data.delta || '';
-        if (data.type === 'transcript.text.done') { transcript = data.text || transcript; done = true; }
-      } });
-      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-      while (true) { const next = await reader.read(); if (next.done) break; parser.feed(next.value); }
-      parser.reset({ consume: true });
-      if (!done || !transcript.trim()) throw new Error('No clear speech detected; please record again');
-      if (mounted.current) setText(transcript);
-    } catch (e) { if (!abort.signal.aborted && mounted.current) setError(e instanceof Error ? e.message : 'Recording unavailable'); }
-    finally { if (mounted.current) setBusy(false); }
+      const result = await response.json();
+      transcript = typeof result.text === 'string' ? result.text.trim() : '';
+      if (!transcript) throw new Error('No clear speech detected; please record again');
+    } catch (e) { if (mounted.current && (!abort.signal.aborted || abort.signal.reason?.name === 'TimeoutError')) setError(e instanceof Error ? e.message : 'Recording unavailable'); }
+    finally { clear(); inFlight.current = false; if (mounted.current) setBusy(false); }
+    if (transcript && mounted.current && !abort.signal.aborted) await send(transcript);
   }
+  finishRecording.current = () => { if (recorder.current) void microphone(); };
   return <section aria-label="Gemini proposal assistant" className="border-b border-border pb-5 space-y-3">
     <div className="flex items-center justify-between gap-2 flex-wrap">
       <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Gemini Proposal Assistant</h3>
@@ -128,6 +143,6 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
       {(busy || speaking) ? <Button type="button" variant="outline" size="icon" aria-label="Stop assistant" title="Stop assistant" onClick={() => controller.current?.abort()}><Square className="h-4 w-4" /></Button> : <Button type="button" size="icon" aria-label="Send requirements" title="Send requirements" disabled={!text.trim() || recording} onClick={() => void send(text)}><Send className="h-4 w-4" /></Button>}
     </div>
     {(busy || recording || speaking) && <p className="text-xs text-muted-foreground flex gap-2 items-center"><Loader2 className="h-3 w-3 animate-spin" />{recording ? 'Listening…' : speaking ? 'Speaking…' : 'Preparing reply…'}</p>}
-    {!busy && !speaking && !recording && messages.some(m => m.role === 'assistant') && <Button type="button" size="sm" variant="ghost" onClick={() => { const last = [...messages].reverse().find(m => m.role === 'assistant'); if (last) void speak(last.content); }}><Volume2 className="h-4 w-4 mr-1" /> Read last reply</Button>}
+    {!busy && !speaking && !recording && messages.some(m => m.role === 'assistant') && <Button type="button" size="sm" variant="ghost" onClick={() => { unlockAudio(); const last = [...messages].reverse().find(m => m.role === 'assistant'); if (last) void speak(last.content); }}><Volume2 className="h-4 w-4 mr-1" /> Read last reply</Button>}
   </section>;
 }

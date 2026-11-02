@@ -11,9 +11,9 @@ export function decodePCM(pending: Uint8Array, incoming: Uint8Array) {
   return { samples, pending: bytes.slice(usable) };
 }
 
-export async function streamSpeech(endpoint: string, text: string, signal?: AbortSignal, headers: Record<string, string> = {}): Promise<void> {
+export async function streamSpeech(endpoint: string, text: string, signal?: AbortSignal, headers: Record<string, string> = {}, unlockedContext?: AudioContext): Promise<void> {
   signal?.throwIfAborted();
-  const context = new AudioContext({ sampleRate: 24000 });
+  const context = unlockedContext || new AudioContext({ sampleRate: 24000 });
   const sources = new Set<AudioBufferSourceNode>();
   let playhead = 0;
   let pending = new Uint8Array(0);
@@ -88,6 +88,6 @@ export async function streamSpeech(endpoint: string, text: string, signal?: Abor
     signal?.removeEventListener("abort", abort);
     controller.abort();
     for (const source of sources) source.stop();
-    await context.close();
+    if (!unlockedContext) await context.close();
   }
 }
