@@ -45,8 +45,9 @@ Deno.serve(async req => {
     const gem = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', { method: 'POST', signal: req.signal, headers: { Authorization: `Bearer ${geminiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'gemini-2.5-flash', response_format: { type: 'json_object' }, messages: [{ role: 'system', content: system }, { role: 'system', content: 'Field format constraints: systemType MUST be exactly on-grid, off-grid or hybrid. All keys must use the allowed camelCase spelling. Numeric fields must be JSON numbers, boolean fields JSON booleans. Omit unconfirmed fields entirely. Never add systemKw, total, amount, status or IDs. Create items when quantities and prices have been confirmed. Respond in json only.' }, ...parsed.data.messages] }) });
     if (!gem.ok) { const t = await gem.text(); let m = 'Gemini request failed'; try { const j = JSON.parse(t); m = (Array.isArray(j) ? j[0] : j)?.error?.message || m; } catch { /* keep */ } return json({ error: m }, gem.status); }
     const raw = (await gem.json()).choices?.[0]?.message?.content || '';
-    const parsedOut = OutputSchema.safeParse((() => { try { const o = JSON.parse(raw.replace(/^```(json)?|```$/g, '').trim()); if (o && typeof o.updatesJson !== 'string') o.updatesJson = JSON.stringify(o.updatesJson || {}); return o; } catch { return null; } })());
+    const parsedOut = OutputSchema.safeParse((() => { try { const o = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); if (o && typeof o.updatesJson !== 'string') o.updatesJson = JSON.stringify(o.updatesJson || {}); return o; } catch { return null; } })());
     const output = parsedOut.success ? parsedOut.data : null;
+    if (!output) console.error('Unparsed Gemini output', raw.slice(0, 500));
     if (!output) return json({ error: 'The assistant did not return usable proposal details' }, 502);
     const patch = validateAssistantPatch(JSON.parse(output.updatesJson));
     const missing = missingProposalDetails({ ...parsed.data.draft, ...patch });
