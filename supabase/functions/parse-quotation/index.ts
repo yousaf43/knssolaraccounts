@@ -1,3 +1,5 @@
+import { aiIdentity } from '../_shared/ai-credentials.ts';
+import { routeAI } from '../_shared/ai-router.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -116,8 +118,7 @@ serve(async (req) => {
       return json({ error: "Kam az kam ek quotation file (PDF ya image) bhejein." }, 400);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) return json({ error: "AI configure nahin hai (LOVABLE_API_KEY missing)." }, 500);
+    const { companyId } = await aiIdentity(req);
 
     // ---- Build multimodal blocks ----
     let budget = MAX_ATTACH_B64;
@@ -229,28 +230,7 @@ ${catalog || "(catalog khali hai)"}`;
       ...blocks,
     ];
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userBlocks },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("AI gateway error:", res.status, text);
-      if (res.status === 429) return json({ error: "Bohot zyada requests. Thori dair baad koshish karein." }, 429);
-      if (res.status === 402) return json({ error: "AI credits khatam ho gaye hain." }, 402);
-      return json({ error: "AI se jawab nahin mila. Dobara koshish karein." }, 502);
-    }
+    const { response: res } = await routeAI(companyId, [{ role: 'system', content: systemPrompt }, { role: 'user', content: userBlocks }], { json: true, signal: req.signal });
 
     const aiJson = await res.json();
     const reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
@@ -346,6 +326,6 @@ ${catalog || "(catalog khali hai)"}`;
     });
   } catch (e) {
     console.error("parse-quotation error:", e);
-    return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
+    return json({ error: e instanceof Error ? e.message : "Unknown error" }, (e as { status?: number }).status || 500);
   }
 });

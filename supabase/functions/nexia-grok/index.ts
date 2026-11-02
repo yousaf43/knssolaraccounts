@@ -1,3 +1,5 @@
+import { aiIdentity } from '../_shared/ai-credentials.ts';
+import { routeAI } from '../_shared/ai-router.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -83,18 +85,9 @@ serve(async (req) => {
     }
 
 
-    const authHeader = req.headers.get("Authorization");
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    let userId: string | null = null;
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data } = await supabase.auth.getUser(token);
-      userId = data?.user?.id ?? null;
-    }
+    const { companyId, userId } = await aiIdentity(req);
+    const authHeader = req.headers.get('Authorization') || '';
+    const supabase = createClient(Deno.env.get('SUPABASE_URL') || '', Deno.env.get('SUPABASE_ANON_KEY') || '', { global: { headers: { Authorization: authHeader } } });
 
     let businessContext = "";
     let compactContext = "";
@@ -446,128 +439,12 @@ CREATOR: Yousuf (Yousuf Enterprises), contact +923101734582.
 ${businessContext}${attachmentNote}`;
 
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-
-
-    // Convert our OpenAI-style messages to Google Gemini "contents" format.
-    const toGeminiContents = () =>
-      messages.map((m) => {
-        const parts: Record<string, unknown>[] = [];
-        if (typeof m.content === "string") {
-          parts.push({ text: m.content });
-        } else {
-          for (const b of m.content) {
-            if (b.type === "text") {
-              parts.push({ text: b.text });
-            } else {
-              const url = b.type === "image_url" ? b.image_url.url : b.file.file_data;
-              const match = /^data:([^;]+);base64,(.*)$/s.exec(url);
-              if (match) {
-                parts.push({ inline_data: { mime_type: match[1], data: match[2] } });
-              }
-            }
-          }
-        }
-        if (parts.length === 0) parts.push({ text: "" });
-        return { role: m.role === "assistant" ? "model" : "user", parts };
-      });
-
-    const callGemini = async (model = "gemini-2.5-pro") => {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "x-goog-api-key": GEMINI_API_KEY!,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: toGeminiContents(),
-            // Low temperature = deterministic, accurate answers from the data.
-            generationConfig: { temperature: 0.1, topP: 0.8, maxOutputTokens: 2048 },
-          }),
-        },
-      );
-      if (!res.ok) {
-        const t = await res.text();
-        console.error("Gemini error:", model, res.status, t);
-        return null;
-      }
-      const json = await res.json();
-      const text: string = (json?.candidates?.[0]?.content?.parts || [])
-        .map((p: { text?: string }) => p?.text || "")
-        .join("")
-        .trim();
-      return text || null;
-    };
-
-    const callModel = async () => {
-      if (GEMINI_API_KEY) {
-        // Try newest first, then fall back through cheaper/older models.
-        const geminiModels = [
-          "gemini-3.1-pro-preview",
-          "gemini-2.5-flash",
-          "gemini-flash-latest",
-          "gemini-2.0-flash",
-        ];
-        for (const m of geminiModels) {
-          const geminiText = await callGemini(m);
-          if (geminiText) return { choices: [{ message: { content: geminiText } }] };
-        }
-        // All Gemini models failed — fall back to Groq below.
-      }
-
-
-
-
-      if (attachmentNote) {
-        // Groq (text-only) cannot read PDFs/images — don't silently drop them.
-        throw { status: 503, msg: "File parhne wali AI service abhi available nahin. Thori dair baad koshish karein." };
-      }
-      if (!GROQ_API_KEY) throw { status: 503, msg: "AI service abhi busy hai. Thori dair baad koshish karein." };
-      const groqModels = [
-        "llama-3.3-70b-versatile",
-        "openai/gpt-oss-120b",
-        "llama-3.1-8b-instant",
-      ];
-      let lastStatus = 503;
-      for (const gm of groqModels) {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${GROQ_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: gm,
-            // Groq has a small context window — send a trimmed prompt.
-            messages: [
-              { role: "system", content: (compactContext ? systemPrompt.replace(businessContext, compactContext) : systemPrompt).slice(0, 24000) },
-              ...messages.slice(-6).map((m) => ({
-                role: m.role,
-                content: typeof m.content === "string"
-                  ? m.content
-                  : m.content.map((b) => (b.type === "text" ? b.text : "")).join(" ").trim(),
-              })),
-            ],
-            temperature: 0.1,
-          }),
-        });
-        if (res.ok) return await res.json();
-        lastStatus = res.status;
-        console.error("Groq error:", gm, res.status, await res.text());
-      }
-      throw { status: 503, msg: `AI service abhi available nahin (${lastStatus}). Thori dair baad koshish karein.` };
-    };
-
-
-    const data = await callModel();
+    const { response, provider } = await routeAI(companyId, [{ role: 'system', content: systemPrompt }, ...messages], { signal: req.signal, groqMessages: [{ role: 'system', content: compactContext ? systemPrompt.replace(businessContext, compactContext) : systemPrompt }, ...messages.slice(-6)] });
+    const data = await response.json();
     const reply: string = data?.choices?.[0]?.message?.content?.trim() || "";
     if (!reply) throw { status: 502, msg: "AI ne khali jawab diya. Dobara koshish karein." };
 
-    return new Response(JSON.stringify({ reply }), {
+    return new Response(JSON.stringify({ reply, provider }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
