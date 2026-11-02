@@ -11,6 +11,7 @@ vi.mock('@/lib/voice/stream-speech', () => ({ streamSpeech: mocks.speech }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); mocks.silence = null; });
 describe('Proposal voice conversation', () => {
   it('automatically sends stopped speech to Gemini and speaks its reply without a Send click', async () => {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() });
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn() } });
     mocks.record.mockImplementation(async (onSilence: () => void) => {
       mocks.silence = onSilence;
