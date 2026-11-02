@@ -22,6 +22,7 @@ import { printProposal } from "@/lib/proposalPrint";
 import { copyProposal, nextProposalNumber } from "@/lib/proposalOptions";
 import { productIdentityKey, type ProductResearch } from "@/lib/productSpecs";
 import { ProposalProductDetails } from "@/components/ProposalProductDetails";
+import { ProposalAssistant } from "@/components/ProposalAssistant";
 import { useSalesOrdersCloud, useCustomersCloud } from "@/hooks/useAppData";
 import { createCustomerSearch, tokenize } from "@/lib/search";
 import { useElectricityTariff } from "@/hooks/useElectricityTariff";
@@ -490,6 +491,7 @@ export default function Proposals() {
           </DialogHeader>
 
           <div className="space-y-6">
+            <ProposalAssistant draft={form} onApply={(patch) => setForm((current) => ({ ...current, ...patch }))} />
             {/* System type */}
             <section>
               <h3 className="font-semibold text-sm mb-2">System Type</h3>
