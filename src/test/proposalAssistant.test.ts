@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { missingProposalDetails, validateAssistantPatch } from '../../supabase/functions/_shared/proposal-draft';
-import { encodeWav } from '@/lib/voice/record-wav';
+import { encodeWav, recordingShouldFinish } from '@/lib/voice/record-wav';
 describe('Voice proposal assistant', () => {
+  it('finishes after 1.8 seconds of silence following speech', () => {
+    expect(recordingShouldFinish(4000, 1799, true)).toBe(false);
+    expect(recordingShouldFinish(4000, 1800, true)).toBe(true);
+    expect(recordingShouldFinish(4000, 1800, false)).toBe(false);
+  });
+  it('caps a recording at one minute even without detected speech', () => {
+    expect(recordingShouldFinish(59999, 0, false)).toBe(false);
+    expect(recordingShouldFinish(60000, 0, false)).toBe(true);
+  });
   it('normalizes spoken system type to the existing proposal values', () => {
     expect(validateAssistantPatch({ systemType: 'On-grid' })).toEqual({ systemType: 'on-grid' });
     expect(validateAssistantPatch({ systemType: 'Off Grid' })).toEqual({ systemType: 'off-grid' });
