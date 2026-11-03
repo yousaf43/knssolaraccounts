@@ -29,6 +29,9 @@ import { useElectricityTariff } from "@/hooks/useElectricityTariff";
 import { CATEGORY_LABEL, resolveCategory, type TariffChoice } from "@/lib/electricityTariff";
 
 export interface ProposalItem {
+  inventoryId?: string;
+  estimated?: boolean;
+  priceSource?: 'inventory' | 'manual' | 'missing';
   model?: string;
   research?: ProductResearch;
   brand: string;
@@ -78,6 +81,7 @@ export interface Proposal {
   /** Electricity connection type used for payback; "auto" = detected from customer details */
   tariffCategory?: TariffChoice;
   battery: ProposalBattery | null;
+  billSummary?: import('../../supabase/functions/_shared/proposal-planning').BillSummary;
   monthlyUnits: number[];
   items: ProposalItem[];
   hideItemPrices?: boolean;
