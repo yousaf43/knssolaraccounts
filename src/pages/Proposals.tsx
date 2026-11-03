@@ -345,19 +345,42 @@ export default function Proposals() {
       return { ...f, items: items.map((it) => withInventoryRate(it, true)) };
     });
 
-  const refreshRates = () => {
-    let found = 0;
-    let missing = 0;
-    setForm((f) => ({
-      ...f,
-      items: f.items.map((it) => {
-        const next = withInventoryRate(it, it.priceSource !== "manual");
-        if (next.priceSource === "inventory") found++;
-        if (!(next.unitPrice > 0)) missing++;
-        return next;
-      }),
-    }));
-    setTimeout(() => toast.message(`${found} rate(s) taken from inventory${missing ? ` — ${missing} item(s) still need a rate` : ""}`), 0);
+  const [matchingRates, setMatchingRates] = useState(false);
+  const refreshRates = async () => {
+    const items = form.items.map((it) => withInventoryRate(it, it.priceSource !== "manual"));
+    const pending = items
+      .map((it, index) => ({ index, brand: it.brand, description: it.description, model: it.model }))
+      .filter((l) => items[l.index].priceSource !== "manual" && !(items[l.index].unitPrice > 0) && (l.description || "").trim());
+    setForm((f) => ({ ...f, items }));
+    let aiFound = 0;
+    if (pending.length) {
+      setMatchingRates(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("match-inventory-rates", { body: { lines: pending } });
+        if (error || data?.error) throw new Error(data?.error || error?.message);
+        const matches: { index: number; id: string; salePrice: number }[] = data?.matches || [];
+        aiFound = matches.filter((m) => m.salePrice > 0 && pending.some((p) => p.index === m.index)).length;
+        if (matches.length) {
+          setForm((f) => ({
+            ...f,
+            items: f.items.map((it, i) => {
+              const m = matches.find((x) => x.index === i);
+              if (!m || !(m.salePrice > 0) || it.unitPrice > 0) return it;
+              return { ...it, inventoryId: m.id, unitPrice: m.salePrice, priceSource: "inventory", amount: (it.qty || 0) * m.salePrice };
+            }),
+          }));
+        }
+      } catch (e) {
+        toast.error(`AI matching unavailable: ${(e as Error).message}`);
+      } finally {
+        setMatchingRates(false);
+      }
+    }
+    setTimeout(() => {
+      const found = items.filter((it) => it.priceSource === "inventory").length + aiFound;
+      const missing = items.filter((it) => !(it.unitPrice > 0)).length - aiFound;
+      toast.message(`${found} rate(s) taken from inventory${missing > 0 ? ` — ${missing} item(s) still need a rate` : ""}`);
+    }, 0);
   };
 
   const save = async () => {
