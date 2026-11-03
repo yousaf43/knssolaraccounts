@@ -1,3 +1,4 @@
+import { validateBill } from './proposal-planning.ts';
 export type AssistantDraft = Record<string, unknown>;
 const strings = ['customerName','companyName','address','city','phone','cnic','panelBrand','panelWarranty','inverterBrand','inverterWarranty','structureType','disco','paymentMethod','delivery','terms','salesExec','signedName','signedTitle','signedPhone','signedEmail'];
 const numbers = ['panelQty','panelWatt','inverterKw','structureQty','validDays'];
@@ -14,6 +15,8 @@ export function validateAssistantPatch(value: unknown): AssistantDraft {
       if (!['on-grid','off-grid','hybrid'].includes(normalized)) throw new Error('Invalid system type');
       patch[key] = normalized;
     }
+    else if (key === 'billSummary') patch[key] = validateBill(v);
+    else if (key === 'tariffCategory' && ['domestic','commercial','industrial','agricultural'].includes(String(v))) patch[key] = v;
     else if (key === 'monthlyUnits' && Array.isArray(v) && v.length === 12 && v.every(n => typeof n === 'number' && Number.isFinite(n) && n >= 0)) patch[key] = v;
     else if (key === 'battery' && v === null) patch[key] = null;
     else if (key === 'battery' && v && typeof v === 'object') {
@@ -23,7 +26,7 @@ export function validateAssistantPatch(value: unknown): AssistantDraft {
     } else if (key === 'items' && Array.isArray(v) && v.length <= 100) {
       patch[key] = v.map(it => {
         if (!it || typeof it !== 'object' || !['brand','description','unit'].every(k => typeof it[k] === 'string') || !['qty','unitPrice'].every(k => typeof it[k] === 'number' && Number.isFinite(it[k]) && it[k] >= 0)) throw new Error('Invalid quotation item');
-        return { brand: it.brand, description: it.description, model: typeof it.model === 'string' ? it.model : '', qty: it.qty, unit: it.unit, unitPrice: it.unitPrice, amount: it.qty * it.unitPrice };
+        return { brand: it.brand, description: it.description, model: typeof it.model === 'string' ? it.model : '', qty: it.qty, unit: it.unit, unitPrice: it.unitPrice, amount: it.qty * it.unitPrice, ...(typeof it.inventoryId === 'string' ? { inventoryId: it.inventoryId } : {}), ...(it.estimated === true ? { estimated: true } : {}), ...(['inventory','manual','missing'].includes(it.priceSource) ? { priceSource: it.priceSource } : {}) };
       });
     } else throw new Error(`Unsupported proposal field: ${key}`);
   }

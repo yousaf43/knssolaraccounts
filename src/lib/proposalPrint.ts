@@ -494,10 +494,11 @@ ${(() => {
     <tr><td class="k">Contact #</td><td>${esc(p.phone || "-")}</td><td class="k">Valid for</td><td>${p.validDays} days</td></tr>
     <tr><td class="k">CNIC #</td><td>${esc(p.cnic || "-")}</td><td class="k">Sales Executive</td><td>${esc(p.salesExec || "-")}</td></tr>
   </table>
+  ${p.billSummary ? `<p>Bill-based proposal: ${p.billSummary.monthlyKwh ?? "—"} kWh/month; ${p.billSummary.history.length} months of recorded consumption. Missing months are not measured zero usage. Sizing, backup and savings remain subject to site survey and confirmed loads.</p>` : ""}
   <div class="subj">SUBJECT: &nbsp;Quotation for ${kw} kW ${typeLabel} Solar System.</div>
   <table class="it">
     <thead><tr><th style="width:5%">S No</th><th style="width:15%">Item / Brand</th><th>Description</th><th style="width:${p.hideItemPrices ? 18 : 8}%">Qty</th>${p.hideItemPrices ? "" : '<th style="width:12%">Unit Price</th><th style="width:13%">Amount</th>'}</tr></thead><tbody>
-    ${pricing.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d"><b style="color:#0E3A5B">${esc(it.description)}</b>${itemDetail(it)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td>${it.unitPrice === undefined || it.amount === undefined ? "" : `<td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td>`}</tr>`).join("")}
+    ${pricing.items.map((it, i) => `<tr><td style="text-align:center">${i + 1}</td><td><b>${esc(it.brand)}</b></td><td class="d"><b style="color:#0E3A5B">${esc(it.description)}</b>${it.estimated ? "<div>Estimated — subject to site survey and protection design.</div>" : ""}${it.priceSource === "missing" ? "<div>Price pending confirmation</div>" : ""}${itemDetail(it)}</td><td style="text-align:center">${it.qty} ${esc(it.unit)}</td>${it.unitPrice === undefined || it.amount === undefined ? "" : `<td style="text-align:center">${Math.round(it.unitPrice).toLocaleString("en-PK")}</td><td class="num"><b>${Math.round(it.amount).toLocaleString("en-PK")}</b></td>`}</tr>`).join("")}
     <tr class="tot"><td colspan="${p.hideItemPrices ? 3 : 4}">TOTAL AMOUNT IN PKR</td><td colspan="${p.hideItemPrices ? 1 : 2}" class="g">${Math.round(pricing.total).toLocaleString("en-PK")} /-</td></tr></tbody>
   </table>
 </div>

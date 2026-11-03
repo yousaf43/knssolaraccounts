@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, Send, Volume2, Loader2, Sparkles, RotateCcw } from 'lucide-react';
+import { Mic, Square, Send, Volume2, Loader2, Sparkles, RotateCcw, Paperclip, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { type BillSummary } from '../../supabase/functions/_shared/proposal-planning';
 import { Label } from '@/components/ui/label';
 import { recordWav } from '@/lib/voice/record-wav';
 import { streamSpeech } from '@/lib/voice/stream-speech';
@@ -31,6 +34,13 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
   const [error, setError] = useState('');
   const [provider, setProvider] = useState('Nexia');
   const [pending, setPending] = useState<Partial<Draft> | null>(null);
+  const [systemChoice, setSystemChoice] = useState<Draft['systemType'] | ''>('');
+  const [priceMode, setPriceMode] = useState<'inventory' | 'manual'>('inventory');
+  const [autoAccessories, setAutoAccessories] = useState(true);
+  const [dailyYield, setDailyYield] = useState(4);
+  const [bill, setBill] = useState<BillSummary | null>(draft.billSummary || null);
+  const [billName, setBillName] = useState('');
+  const fileInput = useRef<HTMLInputElement>(null);
   const [missing, setMissing] = useState<string[]>([]);
   const recorder = useRef<Awaited<ReturnType<typeof recordWav>> | null>(null);
   const controller = useRef<AbortController | null>(null);
@@ -75,19 +85,35 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     const { abort, clear } = requestController();
     try {
       const { endpoint, headers } = await connection();
-      const response = await fetch(endpoint, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat', messages: next.slice(-40), draft: { ...draft, ...pending } }), signal: abort.signal });
+      const response = await fetch(endpoint, { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat', messages: next.slice(-40), draft: { ...draft, ...pending }, systemChoice: systemChoice || undefined, priceMode, autoAccessories, dailyYield, bill: bill || undefined }), signal: abort.signal });
       if (!response.ok) throw await responseError(response);
       const result = await response.json();
       if (typeof result.reply !== 'string') throw new Error('No assistant reply received');
       setProvider(result.provider === 'groq' ? 'Groq' : result.provider === 'openrouter' ? 'OpenRouter' : 'Gemini');
       const patch = validateAssistantPatch(result.patch) as Partial<Draft>;
       if (!mounted.current) return;
+      if (patch.systemType) setSystemChoice(patch.systemType);
       setPending(previous => ({ ...previous, ...patch })); setMissing(result.missing || []);
       setMessages([...next, { role: 'assistant', content: result.reply }]);
       clear();
       // Keep confirmed changes in the conversation draft; apply only after explicit review.
       if (voice) await speak(result.reply);
     } catch (e) { if (mounted.current && (!abort.signal.aborted || abort.signal.reason?.name === 'TimeoutError')) { setError(e instanceof Error ? e.message : 'Assistant unavailable'); setText(content); } }
+    finally { clear(); inFlight.current = false; if (mounted.current) setBusy(false); }
+  }
+  async function uploadBill(file: File) {
+    if (inFlight.current) return;
+    if (!['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 8_000_000) { setError('Choose a PDF or image bill under 8 MB'); return; }
+    inFlight.current = true; setBusy(true); setError('');
+    const { abort, clear } = requestController();
+    try {
+      const { endpoint, headers } = await connection();
+      const body = new FormData(); body.append('action', 'bill'); body.append('file', file);
+      const response = await fetch(endpoint, { method: 'POST', headers, body, signal: abort.signal });
+      if (!response.ok) throw await responseError(response);
+      const result = await response.json();
+      if (mounted.current) { setBill(result.bill); setBillName(file.name); }
+    } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : 'Could not read bill'); }
     finally { clear(); inFlight.current = false; if (mounted.current) setBusy(false); }
   }
   async function microphone() {
@@ -125,8 +151,24 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     <div className="flex items-center justify-between gap-2 flex-wrap">
       <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Proposal AI Assistant</h3>
       <div className="flex items-center gap-2"><Switch id="proposal-assistant-voice" checked={voice} onCheckedChange={setVoice} /><Label htmlFor="proposal-assistant-voice">Spoken replies</Label>
-        <Button type="button" size="icon" variant="ghost" aria-label="Start new conversation" title="Start new conversation" disabled={busy || recording || speaking} onClick={() => { setMessages([]); setPending(null); setMissing([]); setError(''); }}><RotateCcw className="h-4 w-4" /></Button></div>
+        <Button type="button" size="icon" variant="ghost" aria-label="Start new conversation" title="Start new conversation" disabled={busy || recording || speaking} onClick={() => { setMessages([]); setPending(null); setMissing([]); setError(''); setSystemChoice(''); setBill(null); setBillName(''); }}><RotateCcw className="h-4 w-4" /></Button></div>
     </div>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div><Label>System choice</Label><Select value={systemChoice} onValueChange={v => setSystemChoice(v as Draft['systemType'])} disabled={busy || recording || speaking}><SelectTrigger aria-label="Assistant system choice"><SelectValue placeholder="Choose system" /></SelectTrigger><SelectContent>{(['on-grid','off-grid','hybrid'] as const).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
+      <div><Label>Quotation prices</Label><Select value={priceMode} onValueChange={v => setPriceMode(v as 'inventory' | 'manual')} disabled={busy}><SelectTrigger aria-label="Quotation price source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="inventory">Inventory selling prices</SelectItem><SelectItem value="manual">Prices I provide</SelectItem></SelectContent></Select></div>
+      <div><Label htmlFor="proposal-yield">Estimated daily yield (kWh/kWp)</Label><Input id="proposal-yield" type="number" min={1} max={7} step={0.1} value={dailyYield} onChange={e => setDailyYield(Math.min(7, Math.max(1, Number(e.target.value) || 1)))} disabled={busy} /></div>
+    </div>
+    <div className="flex flex-wrap items-center gap-3">
+      <Switch id="proposal-accessories" checked={autoAccessories} onCheckedChange={setAutoAccessories} disabled={busy} /><Label htmlFor="proposal-accessories">Estimate breakers & accessories</Label>
+      <input ref={fileInput} type="file" className="hidden" aria-label="Electricity bill" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={e => { const file = e.target.files?.[0]; if (file) void uploadBill(file); e.target.value = ''; }} />
+      <Button type="button" variant="outline" size="sm" disabled={busy || recording || speaking} onClick={() => fileInput.current?.click()}><Paperclip className="h-4 w-4 mr-2" /> Electricity bill</Button>
+    </div>
+    {bill && <div className="border border-border rounded-md p-3 space-y-2 text-sm">
+      <div className="flex items-center justify-between gap-2"><strong className="break-all">{billName || 'Electricity bill'}</strong><Button type="button" variant="ghost" size="icon" aria-label="Remove bill" disabled={busy} onClick={() => { setBill(null); setBillName(''); }}><X className="h-4 w-4" /></Button></div>
+      <p>{bill.customerName || 'Customer not readable'} · {bill.disco || 'DISCO not readable'}</p>
+      <p>Consumption: {bill.monthlyKwh ?? 'Not readable'} kWh · Bill: PKR {bill.billAmount ?? 'Not readable'} · History: {bill.history.length} months</p>
+      <Button type="button" size="sm" disabled={busy || speaking || recording} onClick={() => void send(systemChoice ? `Prepare an estimated ${systemChoice} proposal from the attached bill. Ask for missing details and backup requirements. Use ${priceMode} prices.` : 'Use my electricity bill for a proposal. Ask which system type I want first.')}>Prepare from bill</Button>
+    </div>}
     <div role="log" aria-live="polite" className="max-h-64 overflow-y-auto space-y-3 text-sm">
       {!messages.length && <p className="text-muted-foreground">Assalam-o-Alaikum! Kis customer ke liye proposal banana hai, aur kaunsa solar system chahiye?</p>}
       {messages.map((message, i) => <div key={i} className={message.role === 'user' ? 'bg-muted p-3 rounded-md' : 'py-1'}><span className="block text-xs font-semibold text-muted-foreground mb-1">{message.role === 'user' ? 'You' : provider}</span><p className="whitespace-pre-wrap break-words" dir="auto">{message.content}</p></div>)}
@@ -135,7 +177,7 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
     {pending && Object.keys(pending).length > 0 && <div className="space-y-2 text-sm">
       <p className="font-medium">Confirmed details</p>
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-1">{Object.entries(pending).map(([key, value]) => <div key={key} className="break-words"><dt className="inline text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}: </dt><dd className="inline">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</dd></div>)}</dl>
+      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-1">{Object.entries(pending).map(([key, value]) => <div key={key} className="break-words"><dt className="inline text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}: </dt><dd className="inline">{key === 'items' && Array.isArray(value) ? value.map((item: any) => `${item.description} × ${item.qty} — PKR ${item.unitPrice}${item.estimated ? ' (estimated)' : ''}${item.priceSource === 'missing' ? ' (price required)' : ''}`).join('; ') : typeof value === 'object' ? JSON.stringify(value) : String(value)}</dd></div>)}</dl>
       {missing.length > 0 && <p className="text-muted-foreground">Still needed: {missing.join(', ')}</p>}
       <Button type="button" size="sm" variant="outline" disabled={busy || recording} onClick={() => { onApply(pending); setPending(null); }}>Apply confirmed details</Button>
     </div>}
