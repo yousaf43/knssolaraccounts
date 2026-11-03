@@ -101,6 +101,11 @@ Deno.serve(async req => {
     if (planning && !Array.isArray(patch.items) && !(Array.isArray(combined.items) && combined.items.length)) {
       patch.items = [{ brand: String(combined.panelBrand || ''), description: `${Number(combined.panelWatt) || 625}W solar panel`, model: '', qty: Number(combined.panelQty) || planning.panelQty, unit: 'Nos', unitPrice: 0, amount: 0, estimated: true }];
     }
+    if (planning && combined.includeInverter !== false && Array.isArray(patch.items) && !patch.items.some((i: Record<string, unknown>) => /inverter/i.test(String(i.description)))) {
+      const inverterKw = Number(combined.inverterKw) || Math.ceil(planning.systemKw);
+      if (!Number(combined.inverterKw)) patch.inverterKw = inverterKw;
+      patch.items.push({ brand: String(combined.inverterBrand || ''), description: `${inverterKw} kW ${parsed.data.systemChoice} inverter`, model: '', qty: 1, unit: 'Nos', unitPrice: 0, estimated: true });
+    }
     if (Array.isArray(patch.items)) {
       let items = patch.items as Record<string, unknown>[];
       if (parsed.data.autoAccessories && !combined.hideItemPrices) {
@@ -110,7 +115,10 @@ Deno.serve(async req => {
       patch.items = priceQuotation(items, catalog || [], parsed.data.priceMode);
     }
     const missing = missingProposalDetails({ ...parsed.data.draft, ...patch });
-    return json({ reply: output.reply, patch, missing, provider });
+    const reply = planning && parsed.data.messages.at(-1)?.content.includes('attached bill')
+      ? `Your bill suggests approximately ${planning.systemKw.toFixed(2)} kW, with ${planning.panelQty} panels. Breakers and accessories are estimated; missing prices need confirmation. ${parsed.data.systemChoice === 'on-grid' ? 'What inverter brand/model and electricity phase would you like?' : 'What loads need backup, and for how many hours?'}`
+      : output.reply;
+    return json({ reply, patch, missing, provider });
   } catch (e) {
     if (req.signal.aborted) return json({ error: 'Stopped' }, 499);
     const err = e as { statusCode?: number; responseBody?: string; message?: string };

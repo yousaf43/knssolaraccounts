@@ -27,7 +27,9 @@ export function estimatedAccessories(panelQty: number, includeInverter: boolean)
 }
 export function priceQuotation(items: Record<string, unknown>[], catalog: CatalogItem[], mode: 'inventory' | 'manual') {
   return items.map(item => {
-    const product = mode === 'inventory' ? catalog.find(p => p.id === item.inventoryId) : undefined;
+    const normalize = (v: unknown) => String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const exact = catalog.filter(p => normalize(p.name) === normalize(item.description) && (!item.model || normalize(p.model) === normalize(item.model)));
+    const product = mode === 'inventory' ? (catalog.find(p => p.id === item.inventoryId) || (exact.length === 1 ? exact[0] : undefined)) : undefined;
     // A catalog ID is the price authority, never an AI-supplied amount or cost price.
     const qty = typeof item.qty === 'number' && Number.isFinite(item.qty) && item.qty >= 0 ? item.qty : 0;
     const supplied = typeof item.unitPrice === 'number' && Number.isFinite(item.unitPrice) && item.unitPrice >= 0 ? item.unitPrice : 0;
