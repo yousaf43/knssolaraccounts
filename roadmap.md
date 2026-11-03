@@ -1,4 +1,5 @@
-- [ ] Add bill-assisted voice proposals, explicit system choice, estimated protection/accessories and inventory-backed quotation pricing; verify and deploy both environments.
+- [x] Add bill-assisted voice proposals, explicit system choice, estimated protection/accessories and inventory/manual quotation pricing; 19 tests pass, build OK; deployed Cloud and independent backend (201, preflight 200). Signed-in sample bill extraction (600 kWh, PKR 35,000), sizing (8 panels), accessory review and apply verified.
+- [ ] Reverify final bill-proposal reply and inverter suggestion after quota reset (blocked: configured AI providers exhausted credits/quota on final live check); Hostinger needs frontend redeployment for new upload controls.
 - [x] Add admin AI API key settings with encrypted company-scoped credentials and Gemini → Groq → OpenRouter quota fallback across assistants; capability-aware voice/files; deployed Cloud and independent functions/schema.
 - [x] Verify AI settings permissions and signed-in Gemini key save/reload; 19 tests passed, build OK; independent function deployment accepted.
 - [ ] Verify live shared-provider proposal chat and voice (blocked: documented Gemini endpoint returned 404 model unavailable; no alternate-model probes performed).
