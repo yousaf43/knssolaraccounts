@@ -64,6 +64,11 @@ Deno.serve(async req => {
       return new Response(voiceEvents(result), { headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } });
     }
     if (!parsed.data.messages?.length) return json({ error: 'Please describe your proposal' }, 400);
+    if (!parsed.data.systemChoice) {
+      const explicit = [...parsed.data.messages].reverse().filter(m => m.role === 'user').map(m => m.content.match(/\b(on[ -]?grid|off[ -]?grid|hybrid)\b/i)?.[1]).find(Boolean);
+      if (explicit) parsed.data.systemChoice = explicit.toLowerCase().replace(/^(on|off) ?grid$/, '$1-grid') as 'on-grid' | 'off-grid' | 'hybrid';
+    }
+    if (!parsed.data.systemChoice) return json({ reply: 'Ji, pehle batayein: on-grid, off-grid ya hybrid system chahiye?', patch: {}, missing: ['System type'] });
     const bill = parsed.data.bill ? validateBill(parsed.data.bill) : undefined;
     const { data: catalog, error: catalogError } = await admin.from('inventory').select('id,name,model,unit,sale_price').eq('company_id', companyId).order('name').limit(2000);
     if (catalogError) throw new Error('Inventory prices could not be loaded');
@@ -87,10 +92,19 @@ Deno.serve(async req => {
       if (bill.tariffCategory) patch.tariffCategory = bill.tariffCategory;
       if (planning && bill.history.length) patch.monthlyUnits = planning.monthlyUnits;
     }
+    if (planning && !Number(combined.panelQty) && planning.panelQty > 0) patch.panelQty = planning.panelQty;
+    if (bill) {
+      if (!combined.customerName && bill.customerName) patch.customerName = bill.customerName;
+      if (!combined.address && bill.address) patch.address = bill.address;
+      if (bill.disco) patch.disco = bill.disco;
+    }
+    if (planning && !Array.isArray(patch.items) && !(Array.isArray(combined.items) && combined.items.length)) {
+      patch.items = [{ brand: String(combined.panelBrand || ''), description: `${Number(combined.panelWatt) || 625}W solar panel`, model: '', qty: Number(combined.panelQty) || planning.panelQty, unit: 'Nos', unitPrice: 0, amount: 0, estimated: true }];
+    }
     if (Array.isArray(patch.items)) {
       let items = patch.items as Record<string, unknown>[];
       if (parsed.data.autoAccessories && !combined.hideItemPrices) {
-        const accessories = estimatedAccessories(Number(combined.panelQty), combined.includeInverter !== false);
+        const accessories = estimatedAccessories(Number(patch.panelQty || combined.panelQty), combined.includeInverter !== false);
         items = [...items, ...accessories.filter(a => !items.some(i => String(i.description).toLowerCase().includes(a.description.split(' / ')[0].toLowerCase()) || (a.description.includes('accessories') && /accessor|connector|cable/i.test(String(i.description)))) )];
       }
       patch.items = priceQuotation(items, catalog || [], parsed.data.priceMode);
