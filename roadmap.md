@@ -1,3 +1,4 @@
+- [ ] Add bill-assisted voice proposals, explicit system choice, estimated protection/accessories and inventory-backed quotation pricing; verify and deploy both environments.
 - [x] Add admin AI API key settings with encrypted company-scoped credentials and Gemini → Groq → OpenRouter quota fallback across assistants; capability-aware voice/files; deployed Cloud and independent functions/schema.
 - [x] Verify AI settings permissions and signed-in Gemini key save/reload; 19 tests passed, build OK; independent function deployment accepted.
 - [ ] Verify live shared-provider proposal chat and voice (blocked: documented Gemini endpoint returned 404 model unavailable; no alternate-model probes performed).
