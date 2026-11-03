@@ -359,13 +359,13 @@ export default function Proposals() {
         const { data, error } = await supabase.functions.invoke("match-inventory-rates", { body: { lines: pending } });
         if (error || data?.error) throw new Error(data?.error || error?.message);
         const matches: { index: number; id: string; salePrice: number }[] = data?.matches || [];
+        aiFound = matches.filter((m) => m.salePrice > 0 && pending.some((p) => p.index === m.index)).length;
         if (matches.length) {
           setForm((f) => ({
             ...f,
             items: f.items.map((it, i) => {
               const m = matches.find((x) => x.index === i);
               if (!m || !(m.salePrice > 0) || it.unitPrice > 0) return it;
-              aiFound++;
               return { ...it, inventoryId: m.id, unitPrice: m.salePrice, priceSource: "inventory", amount: (it.qty || 0) * m.salePrice };
             }),
           }));
