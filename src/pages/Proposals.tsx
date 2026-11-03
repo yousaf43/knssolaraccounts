@@ -23,7 +23,8 @@ import { copyProposal, nextProposalNumber } from "@/lib/proposalOptions";
 import { productIdentityKey, type ProductResearch } from "@/lib/productSpecs";
 import { ProposalProductDetails } from "@/components/ProposalProductDetails";
 import { ProposalAssistant } from "@/components/ProposalAssistant";
-import { useSalesOrdersCloud, useCustomersCloud } from "@/hooks/useAppData";
+import { useSalesOrdersCloud, useCustomersCloud, useInventoryCloud } from "@/hooks/useAppData";
+import { matchInventoryRate } from "@/lib/proposalRates";
 import { createCustomerSearch, tokenize } from "@/lib/search";
 import { useElectricityTariff } from "@/hooks/useElectricityTariff";
 import { CATEGORY_LABEL, resolveCategory, type TariffChoice } from "@/lib/electricityTariff";
@@ -166,6 +167,7 @@ export default function Proposals() {
   const { user, company } = useAuth();
   const { settings, formatCurrency, formatDate } = useSettings();
   const { data: salesOrdersAll } = useSalesOrdersCloud();
+  const { data: inventory } = useInventoryCloud();
   const { data: customers } = useCustomersCloud();
   const matchCustomerTokens = useMemo(() => createCustomerSearch(customers), [customers]);
   const { tariff, checking, refresh: refreshTariff } = useElectricityTariff();
@@ -267,12 +269,23 @@ export default function Proposals() {
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const withInventoryRate = (it: ProposalItem, overwrite: boolean): ProposalItem => {
+    if (!overwrite && it.unitPrice > 0) return it;
+    const match = matchInventoryRate(it, inventory);
+    if (match) return { ...it, inventoryId: match.id, unitPrice: match.salePrice, priceSource: "inventory", amount: (it.qty || 0) * match.salePrice };
+    if (it.priceSource === "inventory") return { ...it, inventoryId: undefined, unitPrice: 0, priceSource: "missing", amount: 0 };
+    return it.unitPrice > 0 ? it : { ...it, priceSource: "missing" };
+  };
+
   const setItem = (i: number, patch: Partial<ProposalItem>) =>
     setForm((f) => {
       const items = f.items.map((it, idx) => {
         if (idx !== i) return it;
-        const next = { ...it, ...patch };
-        if (productIdentityKey(next) !== productIdentityKey(it)) next.research = undefined;
+        let next = { ...it, ...patch };
+        if (productIdentityKey(next) !== productIdentityKey(it)) {
+          next.research = undefined;
+          if (next.priceSource !== "manual") next = withInventoryRate(next, true);
+        }
         next.amount = (next.qty || 0) * (next.unitPrice || 0);
         return next;
       });
@@ -329,8 +342,23 @@ export default function Proposals() {
       if (f.earthing)
         items.push({ brand: "", description: "Earthing & lightning arrestor", qty: 1, unit: "Job", unitPrice: 0, amount: 0 });
       items.push({ brand: "", description: "Installation & commissioning", qty: 1, unit: "Job", unitPrice: 0, amount: 0 });
-      return { ...f, items };
+      return { ...f, items: items.map((it) => withInventoryRate(it, true)) };
     });
+
+  const refreshRates = () => {
+    let found = 0;
+    let missing = 0;
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it) => {
+        const next = withInventoryRate(it, it.priceSource !== "manual");
+        if (next.priceSource === "inventory") found++;
+        if (!(next.unitPrice > 0)) missing++;
+        return next;
+      }),
+    }));
+    setTimeout(() => toast.message(`${found} rate(s) taken from inventory${missing ? ` — ${missing} item(s) still need a rate` : ""}`), 0);
+  };
 
   const save = async () => {
     if (!user) return;
@@ -670,6 +698,7 @@ export default function Proposals() {
                 <h3 className="font-semibold text-sm">Quotation</h3>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={fillItemsFromSystem}>Fill items from system details</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={refreshRates}>Get rates from inventory</Button>
                   <Button type="button" variant="outline" size="sm" onClick={addItem}>+ Add item</Button>
                 </div>
               </div>
@@ -702,7 +731,11 @@ export default function Proposals() {
                           <TableCell><Input value={it.description} onChange={(e) => setItem(i, { description: e.target.value })} /><ProposalProductDetails item={it} onModelChange={(model) => setItem(i, { model })} onResearch={(key, research) => setForm((f) => ({ ...f, items: f.items.map((entry) => productIdentityKey(entry) === key ? { ...entry, research } : entry) }))} /></TableCell>
                           <TableCell><Input type="number" min={0} value={it.qty || ""} onChange={(e) => setItem(i, { qty: +e.target.value })} /></TableCell>
                           <TableCell><Input value={it.unit} onChange={(e) => setItem(i, { unit: e.target.value })} /></TableCell>
-                          <TableCell><Input type="number" min={0} value={it.unitPrice || ""} onChange={(e) => setItem(i, { unitPrice: +e.target.value })} /></TableCell>
+                          <TableCell>
+                            <Input type="number" min={0} placeholder="Rate?" value={it.unitPrice || ""} className={!(it.unitPrice > 0) ? "border-destructive bg-destructive/5" : undefined} onChange={(e) => setItem(i, { unitPrice: +e.target.value, priceSource: +e.target.value > 0 ? "manual" : "missing" })} />
+                            {it.priceSource === "inventory" && it.unitPrice > 0 && <p className="mt-1 text-[11px] text-primary">From inventory</p>}
+                            {!(it.unitPrice > 0) && <p className="mt-1 text-[11px] text-destructive">Please enter rate</p>}
+                          </TableCell>
                           <TableCell className="text-right whitespace-nowrap">{formatCurrency(it.amount)}</TableCell>
                           <TableCell>
                             <Button
