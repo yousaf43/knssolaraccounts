@@ -416,6 +416,7 @@ export default function Settings() {
         </TabsList>
 
         {role === "admin" && <TabsContent value="ai"><AIProviderSettings /></TabsContent>}
+        {role === "admin" && <TabsContent value="whatsapp"><ProposalDeliverySettings /></TabsContent>}
         {/* Company */}
         <TabsContent value="company">
           <div className="bg-card border rounded-lg p-6 space-y-6">
