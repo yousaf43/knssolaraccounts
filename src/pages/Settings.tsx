@@ -19,6 +19,7 @@ import { useUserSettingsCloud } from "@/hooks/useAppData";
 import { exportAsJson, exportAsCsvZip } from "@/utils/exportData";
 import { downloadSqlDump } from "@/utils/sqlDump";
 import { AIProviderSettings } from "@/components/AIProviderSettings";
+import { ProposalDeliverySettings } from "@/components/ProposalDeliverySettings";
 
 
 const currencies = [
@@ -407,11 +408,15 @@ export default function Settings() {
             <TabsTrigger value="ai" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> AI Assistants</TabsTrigger>
           )}
           {role === "admin" && (
+            <TabsTrigger value="whatsapp" className="gap-1.5 text-xs"><Shield className="w-3.5 h-3.5" /> WhatsApp</TabsTrigger>
+          )}
+          {role === "admin" && (
             <TabsTrigger value="users" className="gap-1.5 text-xs" onClick={() => loadUsers()}><Users className="w-3.5 h-3.5" /> Users</TabsTrigger>
           )}
         </TabsList>
 
         {role === "admin" && <TabsContent value="ai"><AIProviderSettings /></TabsContent>}
+        {role === "admin" && <TabsContent value="whatsapp"><ProposalDeliverySettings /></TabsContent>}
         {/* Company */}
         <TabsContent value="company">
           <div className="bg-card border rounded-lg p-6 space-y-6">

@@ -19,6 +19,9 @@ import { TablePagination } from "@/components/TablePagination";
 import { usePagination } from "@/hooks/usePagination";
 import { toast } from "sonner";
 import { printProposal } from "@/lib/proposalPrint";
+import { proposalPdf } from "@/lib/proposalPdf";
+import { deliveryRequest } from "@/lib/proposalDelivery";
+import { deliveryReady } from "../../supabase/functions/_shared/proposal-delivery-policy";
 import { copyProposal, nextProposalNumber } from "@/lib/proposalOptions";
 import { productIdentityKey, type ProductResearch } from "@/lib/productSpecs";
 import { ProposalProductDetails } from "@/components/ProposalProductDetails";
@@ -62,6 +65,7 @@ export interface Proposal {
   address: string;
   city: string;
   phone: string;
+  whatsappConsent?: boolean;
   cnic: string;
   systemType: "on-grid" | "off-grid" | "hybrid";
   systemKw: number;
@@ -183,6 +187,7 @@ export default function Proposals() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Proposal | null>(null);
   const [duplicating, setDuplicating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Omit<Proposal, "id" | "proposalNo">>(emptyProposal());
 
   const load = async () => {
@@ -384,11 +389,13 @@ export default function Proposals() {
   };
 
   const save = async () => {
-    if (!user) return;
+    if (!user || saving) return;
     if (!form.customerName.trim()) {
       toast.error("Customer name is required");
       return;
     }
+    setSaving(true);
+    try {
     const payload = {
       user_id: user.id,
       company_id: company?.id ?? null,
@@ -405,14 +412,29 @@ export default function Proposals() {
       if (error) return toast.error("Failed to save proposal");
       toast.success("Proposal updated");
     } else {
-      const { error } = await supabase
+      const { data: saved, error } = await supabase
         .from("proposals")
-        .insert([{ ...payload, proposal_no: nextNo() }]);
+        .insert([{ ...payload, proposal_no: nextNo() }]).select('*').single();
       if (error) return toast.error("Failed to save proposal");
       toast.success("Proposal saved");
+      if (saved && form.whatsappConsent) {
+        const validation = deliveryReady(form);
+        if (validation) toast.warning(`Proposal saved; WhatsApp not sent: ${validation}`);
+        else {
+          try {
+            // Server rechecks the switch before dispatch and uniquely claims the proposal.
+            const pdf = await proposalPdf(rowToProposal(saved as Row), { name: settings.companyName || 'K&S Solar Energy', address: settings.companyAddress || '', phone: settings.companyPhone || '', email: settings.companyEmail || '', logoUrl: settings.logoUrl || '' }, formatDate, [], tariff);
+            const body = new FormData(); body.append('action', 'send'); body.append('proposalId', saved.id); body.append('pdf', pdf, `${saved.proposal_no}.pdf`);
+            const result = await deliveryRequest(body);
+            if (result.status === 'accepted') toast.success('Proposal PDF accepted by WhatsApp');
+            else if (result.status === 'disabled') toast.message('Automatic WhatsApp sending is off');
+          } catch (e) { toast.error(`Proposal saved; WhatsApp not sent: ${e instanceof Error ? e.message : 'Delivery failed'}`); }
+        }
+      }
     }
     setOpen(false);
     void load();
+    } finally { setSaving(false); }
   };
 
   const remove = async (id: string) => {
@@ -579,6 +601,10 @@ export default function Proposals() {
                 <div><Label>Contact number</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
                 <div><Label>CNIC (optional)</Label><Input value={form.cnic} onChange={(e) => set("cnic", e.target.value)} /></div>
                 <div><Label>Proposal date</Label><DateInput value={form.date} onChange={(v) => set("date", v)} /></div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <Checkbox id="proposal-whatsapp-consent" checked={form.whatsappConsent === true} onCheckedChange={v => set('whatsappConsent', v === true)} />
+                <Label htmlFor="proposal-whatsapp-consent">Customer agreed to receive this proposal on WhatsApp</Label>
               </div>
             </section>
 
@@ -805,7 +831,7 @@ export default function Proposals() {
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={() => void save()}>{editing ? "Update Proposal" : "Save Proposal"}</Button>
+              <Button disabled={saving} onClick={() => void save()}>{saving ? "Saving proposal…" : editing ? "Update Proposal" : "Save Proposal"}</Button>
             </div>
           </div>
         </DialogContent>

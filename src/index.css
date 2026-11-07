@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+.proposal-pdf-frame {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 820px;
+  height: 1200px;
+  border: 0;
+  pointer-events: none;
+}
+
 
 
 @layer base {

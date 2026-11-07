@@ -1077,6 +1077,98 @@ export type Database = {
           },
         ]
       }
+      proposal_deliveries: {
+        Row: {
+          company_id: string
+          created_at: string
+          error: string | null
+          id: string
+          message_id: string | null
+          proposal_id: string
+          recipient: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          proposal_id: string
+          recipient: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          message_id?: string | null
+          proposal_id?: string
+          recipient?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_deliveries_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_delivery_settings: {
+        Row: {
+          business_account_id: string
+          company_id: string
+          enabled: boolean
+          phone_number_id: string
+          template_language: string
+          template_name: string
+          token_ciphertext: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_account_id?: string
+          company_id: string
+          enabled?: boolean
+          phone_number_id?: string
+          template_language?: string
+          template_name?: string
+          token_ciphertext?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_account_id?: string
+          company_id?: string
+          enabled?: boolean
+          phone_number_id?: string
+          template_language?: string
+          template_name?: string
+          token_ciphertext?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_delivery_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposals: {
         Row: {
           company_id: string | null

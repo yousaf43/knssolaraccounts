@@ -24,7 +24,7 @@ const FEATURED = [
   { title: "Mr. Jhanzab Niazi's Home", place: "Bhakkar", size: "15 kW On-Grid", img: "/portfolio/project-jhanzab.jpg" },
 ];
 
-export function printProposal(
+export function proposalHtml(
   p: Proposal,
   company: { name: string; address: string; phone: string; email: string; logoUrl: string },
   formatDate: (d: string | Date) => string,
@@ -663,6 +663,11 @@ ${(() => {
 
 </body></html>`;
 
+  return html;
+}
+
+export function printProposal(...args: Parameters<typeof proposalHtml>) {
+  const html = proposalHtml(...args);
   const w = window.open("", "_blank");
   if (!w) return;
   w.document.write(html);

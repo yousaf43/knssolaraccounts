@@ -43,6 +43,13 @@
       "when": 1793609350400,
       "tag": "0005_company_ai_provider_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794050889377,
+      "tag": "0006_proposal_whatsapp_delivery",
+      "breakpoints": true
     }
   ]
 }
