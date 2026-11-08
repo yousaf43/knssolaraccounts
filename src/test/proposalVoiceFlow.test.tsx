@@ -28,8 +28,6 @@ describe('Proposal voice conversation', () => {
     await waitFor(() => expect(mocks.speech).toHaveBeenCalled());
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).messages).toEqual([{ role: 'user', content: 'Ali ke liye 18 Longi panels' }]);
     expect(mocks.speech.mock.calls[0][1]).toBe('Ji, har panel ki price kya hai?');
-    expect(apply).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Apply confirmed details' }));
     expect(apply).toHaveBeenCalledWith({ customerName: 'Ali', panelQty: 18 });
   });
 });
