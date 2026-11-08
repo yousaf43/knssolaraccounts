@@ -1,3 +1,4 @@
+- [ ] Add Sales by CNIC taxation report with customer grouping, invoice detail, date/search filters and A4/CSV exports; verify calculations and signed-in report.
 - [x] Add independent WhatsApp proposal delivery after new saves, encrypted admin Settings switch, consent/price checks and unique delivery claims; deployed both backends, 15 tests pass, signed-in off setting persists and real 2 MB PDF returns disabled without dispatch; desktop/mobile checked.
 - [ ] Activate and verify recipient WhatsApp delivery (blocked: user's Meta access token, phone/account IDs, approved fixed-body document template and Hostinger frontend redeployment are required; no customer message sent).
 - [x] Synchronize the npm lockfile without changing package versions; isolated npm ci installs 633 packages successfully, manifest matches lockfile (eventsource-parser included), preview build OK. Hostinger redeployment remains required.
