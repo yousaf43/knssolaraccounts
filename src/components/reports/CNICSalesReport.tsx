@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 function CustomerSalesDropdown({ name, rows }: { name: string; rows: CNICSaleRow[] }) {
   const { formatCurrency, formatDate } = useSettings();
   return <Popover>
-    <PopoverTrigger asChild><Button variant="link" asChild className="h-auto max-w-full justify-start whitespace-normal p-0 text-left text-xs"><a href="#" onClick={e => e.preventDefault()} aria-label={`Sales for ${name}`}>{name}<ChevronDown className="ml-1 h-3 w-3 shrink-0" /></a></Button></PopoverTrigger>
+    <PopoverTrigger asChild><Button variant="link" asChild className="h-auto max-w-full justify-start whitespace-normal p-0 text-left text-xs"><a role="button" tabIndex={0} aria-label={`Sales for ${name}`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}>{name}<ChevronDown className="ml-1 h-3 w-3 shrink-0" /></a></Button></PopoverTrigger>
     <PopoverContent align="start" className="w-[420px] max-w-[calc(100vw-32px)] p-0">
       <h3 className="border-b px-4 py-3 text-sm font-semibold">{name}</h3>
       <div className="max-h-80 overflow-y-auto divide-y">
