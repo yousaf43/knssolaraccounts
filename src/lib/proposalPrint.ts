@@ -1,4 +1,5 @@
 import type { Proposal } from "@/pages/Proposals";
+import proposalCoverTemplate from "@/assets/proposal-cover-template.png";
 import { quotationPricing } from "@/lib/proposalOptions";
 import { printableProductFacts } from "@/lib/productSpecs";
 import { CATEGORY_LABEL, DEFAULT_TARIFF, computeSavings, resolveCategory, type TariffRecord } from "@/lib/electricityTariff";
@@ -126,7 +127,7 @@ export function proposalHtml(
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Proposal ${esc(p.proposalNo)}</title>
 <style>
-  :root{--blue:#0868A0;--gold:#F8B830;--navy:#0B3A5B;--ink:#1E2B36;--muted:#5F6F7C;--line:#D7E0E7;--soft:#EAF3F9}
+  :root{--blue:#0868A0;--gold:#F8B830;--navy:#0B3A5B;--ink:#1E2B36;--muted:#5F6F7C;--line:#D7E0E7;--soft:#EAF3F9;--cover-top:#075cb2;--cover-bottom:#052959;--cover-white:#fff;--cover-yellow:#ffcf00;--cover-pin:#ff2860;--cover-globe:#00b9ee;--cover-outline:#bfeaff;--cover-card:linear-gradient(155deg,var(--cover-top),var(--cover-bottom) 85%)}
   *{box-sizing:border-box;margin:0}
   body{font-family:"Segoe UI",Calibri,system-ui,Arial,sans-serif;color:var(--ink);line-height:1.45;font-size:12.5px}
   .page{width:190mm;max-width:100%;margin:0 auto;padding:6mm 0;display:flow-root;overflow-wrap:anywhere}
@@ -180,7 +181,24 @@ export function proposalHtml(
   .proj.fp b,.proj.fp span,.proj.fp p{padding:0 4mm}.proj.fp p.size{color:var(--blue);font-weight:800;font-size:13px}.proj.fp i{top:auto;bottom:3mm;background:#fff}
   .quote{background:var(--soft);border-left:4px solid var(--gold);padding:4mm 5mm;margin-top:4mm;font-style:italic;color:var(--navy)}
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
-  .cover3d{position:relative;height:270mm;border-radius:8px;overflow:hidden;color:#fff;font-family:Arial,Helvetica,sans-serif;font-style:normal}
+  .cover3d{position:relative;height:270mm;overflow:hidden;color:var(--cover-white);font-family:"Segoe UI",Arial,Helvetica,sans-serif;font-style:normal;line-height:1.12}
+  .cover3d.reference-cover .bg{object-fit:fill}
+  .reference-cover .project-band{position:absolute;left:8%;top:64.6%;width:84%;height:6.85%;border:1px solid var(--cover-outline);border-radius:3.5mm;background:var(--cover-card);display:flex;align-items:center;justify-content:center;gap:2.5mm;padding:2mm 3mm;font-size:25px;font-weight:800;white-space:nowrap}
+  .reference-cover .project-band strong{color:var(--cover-yellow)}
+  .reference-cover .reference-contact{position:absolute;left:2.2%;right:2.2%;top:72.95%;height:7.3%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm}
+  .reference-cover .reference-contact a{background:var(--cover-card);color:var(--cover-white);border-radius:4.5mm;display:flex;align-items:center;gap:3mm;padding:3mm;text-decoration:none;min-width:0}
+  .reference-cover .reference-contact svg{width:9mm;height:10mm;flex:none;fill:none;stroke:var(--cover-yellow);stroke-width:2.4}
+  .reference-cover .reference-contact .globe{stroke:var(--cover-globe)}
+  .reference-cover .reference-contact .pin{fill:var(--cover-pin);stroke:none}
+  .reference-cover .reference-contact strong{display:block;color:var(--cover-yellow);font-size:14px;font-weight:800;margin-bottom:1mm}
+  .reference-cover .reference-contact span{font-size:12.5px;display:block;overflow-wrap:anywhere}
+  .reference-cover .reference-contact .address{font-size:10.5px}
+  .reference-cover .reference-details{position:absolute;left:2.2%;right:2.2%;top:82.3%;height:9.2%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3.5mm}
+  .reference-cover .reference-details div{background:var(--cover-card);border-radius:4.5mm;padding:3mm 4.5mm;min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .reference-cover .reference-details small{color:var(--cover-yellow);font-size:13px;font-weight:800;display:block}
+  .reference-cover .reference-details b{display:block;font-size:19px;font-weight:800;margin:1mm 0;line-height:1.08}
+  .reference-cover .reference-details span{font-size:14px;display:block;line-height:1.15}
+  .reference-cover .reference-details .reference-date{font-size:11px}
   .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 30%,rgba(6,25,48,0) 55%,rgba(6,25,48,.28) 100%)}
   .cover3d .ct{position:relative;padding:11mm 12mm 0}
@@ -223,36 +241,18 @@ export function proposalHtml(
 </style></head><body>
 
 <div class="page cover-page">
-  <div class="cover3d">
-    <img class="bg" src="${abs("/portfolio/cover-sunset.jpg")}" alt="">
-    <div class="shade"></div>
-    <div class="ct">
-      <div class="toprow">
-        <div class="brand">${LOGO ? `<img class="logo" src="${abs("/portfolio/ks-logo-crop.png")}" alt="K&amp;S Solar Energy">` : ""}<span class="rbs">Run by Sun</span></div>
-        <div class="badges">${[["secp","SECP Registered"],["aedb","AEDB Certified"],["pec","PEC Registered"]].map(([k,l]) => `<div class="bd"><span><img src="${abs(`/portfolio/logo-${k}.png`)}" alt="${l}"></span><small>${l}</small></div>`).join("")}</div>
-      </div>
-      <div class="tfp">TECHNICAL &amp; FINANCIAL PROPOSAL</div>
-      <div class="tag">CLEAN ENERGY • GENUINE PRODUCTS • PROFESSIONAL SERVICE</div>
-      <div class="featwrap"><div class="feat">
-        <div><em>☀️</em><b>Since 2013</b><span>Trusted solar experience</span></div>
-        <div><em>🛡️</em><b>Tier-1 Products</b><span>Genuine panels &amp; inverters</span></div>
-        <div><em>⚡</em><b>Net Metering</b><span>Complete approval support</span></div>
-        <div><em>🔧</em><b>After-Sales</b><span>Service &amp; maintenance</span></div>
-      </div></div>
-      <div class="projbox">
-        <div class="pj"><span>Project:</span> ${kw}kW ${typeLabel} Solar System</div>
-        <div class="cl">👤 Client: <b>${esc(p.customerName)}</b> &nbsp;&nbsp; 📅 Date: <b>${p.date ? formatDate(p.date) : "-"}</b></div>
-      </div>
-      <div class="contact">
-        <div><em>✉</em><p><small>Email Us</small>${esc(company.email || "info@knssolar.com")}</p></div>
-        <div><em>🌐</em><p><small>Website</small>www.knssolar.com</p></div>
-        <div><em>📍</em><p><small>Location</small>4-Basement, Ramzan Plaza, College Road, Bhakkar</p></div>
-      </div>
+  <div class="cover3d reference-cover">
+    <img class="bg" src="${abs(proposalCoverTemplate)}" alt="K&amp;S Solar Energy — Run by Sun — Technical &amp; Financial Proposal">
+    <div class="project-band"><strong>Project:</strong><span>${kw}kW ${typeLabel} Solar System</span></div>
+    <div class="reference-contact">
+      <a href="mailto:${esc(company.email || "info@knssolar.com")}"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="1"/><path d="m3 5 9 8 9-8M3 19l6-6m12 6-6-6"/></svg><div><strong>Email Us</strong><span>${esc(company.email || "info@knssolar.com")}</span></div></a>
+      <a href="https://www.knssolar.com"><svg class="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="4" ry="10"/><path d="M2 12h20M4 6h16M4 18h16"/></svg><div><strong>Website</strong><span>www.knssolar.com</span></div></a>
+      <a href="https://www.google.com/maps/search/?api=1&amp;query=Ramzan+Plaza+College+Road+Bhakkar"><svg class="pin" viewBox="0 0 24 28"><path d="M12 0C5 0 1 5 1 11c0 6 11 17 11 17s11-11 11-17C23 5 19 0 12 0zm0 15a4 4 0 1 1 0-8 4 4 0 0 1 0 8"/></svg><div><strong>Location</strong><span class="address">4-Basement, Ramzan Plaza,<br>College Road, Bhakkar</span></div></a>
     </div>
-    <div class="cbox">
+    <div class="reference-details">
       <div><small>PREPARED FOR</small><b>${esc(p.customerName)}</b><span>${esc(p.companyName || p.city)}</span></div>
       <div><small>SYSTEM</small><b>${kw} kWp ${typeLabel}</b><span>${p.netBilling ? "With Net Billing" : "Solar Solution"}</span></div>
-      <div><small>REF # DATE</small><b>${esc(p.proposalNo)}</b><span>${p.date ? formatDate(p.date) : "-"}${validUntil ? " • Valid till " + formatDate(validUntil) : ""}</span></div>
+      <div><small>REF # DATE</small><b>${esc(p.proposalNo)}</b><span class="reference-date">${p.date ? formatDate(p.date) : "-"}${validUntil ? " - Valid till " + formatDate(validUntil) : ""}</span></div>
     </div>
   </div>
 </div>
