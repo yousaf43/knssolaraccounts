@@ -23,7 +23,8 @@ export function billPlan(bill: BillSummary, panelWatt: number, dailyYield: numbe
 }
 export function estimatedAccessories(panelQty: number, includeInverter: boolean) {
   if (!(panelQty > 0) || !includeInverter) return [];
-  return ['DC breaker / isolator set','AC breaker set','AC/DC surge protection set','Solar cable, connectors & installation accessories'].map(description => ({ brand: '', description, model: '', qty: 1, unit: 'Set', unitPrice: 0, amount: 0, estimated: true, priceSource: 'missing' }));
+  // Grouped by default; separate breaker/DB lines only when the user explicitly asks for them.
+  return ['Electrical accessories (breakers, DB, AC/DC wiring, SPD, earthing)','Mechanical accessories (structure hardware, clamps, fasteners)'].map(description => ({ brand: '', description, model: '', qty: 1, unit: 'Set', unitPrice: 0, amount: 0, estimated: true, priceSource: 'missing' }));
 }
 export function priceQuotation(items: Record<string, unknown>[], catalog: CatalogItem[], mode: 'inventory' | 'manual') {
   return items.map(item => {
