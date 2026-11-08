@@ -76,4 +76,11 @@ describe("Sales by CNIC taxation", () => {
     expect(report.totals.netSales).toBe(-450);
     expect(report.rows[0].products[0].qty).toBe(-1);
   });
+  it("retains catalog component quantities when saved bundle prices omit them", () => {
+    const bundle = { id: "bundle", name: "Package", productType: "bundle", bundleItems: [{ itemId: "panel", qty: 4, price: 100 }, { itemId: "itel", qty: 1, price: 500 }] } as InventoryItem;
+    const sale = invoice("bundle", "Ali", 900, { items: [{ inventoryItemId: "bundle", description: "Package", qty: 1, rate: 900, amount: 900, bundleItemPrices: [{ itemId: "panel", price: 100 }, { itemId: "itel", price: 500 }] }] });
+    const report = buildCNICSalesReport([sale], customers, [...inventory, bundle], { productFilter: "solar-panels" });
+    expect(report.totals.total).toBe(400);
+    expect(report.rows[0].products[0].qty).toBe(4);
+  });
 });

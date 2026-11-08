@@ -37,8 +37,10 @@ function invoiceProductSales(invoice: Invoice, inventory: InventoryItem[]) {
     if (item?.productType === "old-balance") continue;
     const amount = Number.isFinite(line.amount) ? line.amount : line.qty * line.rate;
     const components = line.adhocLines?.length ? line.adhocLines.map(c => ({ id: c.itemId, qty: c.qty, rate: c.rate }))
-      : line.bundleItemPrices?.length ? line.bundleItemPrices.map(c => ({ id: c.itemId, qty: c.qty ?? 1, rate: c.price }))
-        : (item?.bundleItems || []).map(c => ({ id: c.itemId, qty: c.qty, rate: c.price }));
+      : item?.bundleItems?.length ? item.bundleItems.map(c => {
+        const saved = line.bundleItemPrices?.find(part => part.itemId === c.itemId);
+        return { id: c.itemId, qty: saved?.qty ?? c.qty ?? 1, rate: saved?.price ?? c.price };
+      }) : (line.bundleItemPrices || []).map(c => ({ id: c.itemId, qty: c.qty ?? 1, rate: c.price }));
     const weighted = components.map(c => ({ ...c, item: byId.get(c.id), weight: Math.abs(c.qty * (c.rate || 0)) }));
     const weight = weighted.reduce((sum, c) => sum + c.weight, 0);
     if (weight > 0) {
