@@ -661,7 +661,19 @@ ${(() => {
   <div class="foot"><p>K&amp;S Solar Energy Pvt. Ltd. &nbsp;|&nbsp; SECP Registered &nbsp;|&nbsp; AEDB Certified &nbsp;|&nbsp; PEC Registered &nbsp;|&nbsp; Proposal ${esc(p.proposalNo)}</p></div>
 </div>
 
-</body></html>`;
+<script>
+document.fonts.ready.then(function(){
+  document.querySelectorAll('.project-band,.reference-details div,.reference-contact a').forEach(function(box){
+    var nodes=box.querySelectorAll('b,span');
+    for(var pass=0;pass<16;pass++){
+      var overflow=box.scrollHeight>box.clientHeight+1 || box.scrollWidth>box.clientWidth+1;
+      nodes.forEach(function(node){if(node.scrollWidth>node.clientWidth+1)overflow=true;});
+      if(!overflow)break;
+      nodes.forEach(function(node){var size=parseFloat(getComputedStyle(node).fontSize);if(size>8)node.style.fontSize=(size-0.75)+'px';});
+    }
+  });
+});
+</script></body></html>`;
 
   return html;
 }
