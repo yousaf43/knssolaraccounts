@@ -198,7 +198,9 @@ export function proposalHtml(
   .reference-cover .reference-details small{color:var(--cover-yellow);font-size:16px;font-weight:800;display:block}
   .reference-cover .reference-details b{display:block;font-size:24px;font-weight:800;margin:1mm 0;line-height:1.08}
   .reference-cover .reference-details span{font-size:18px;display:block;line-height:1.15}
-  .reference-cover .reference-details .reference-date{font-size:13px}
+  .reference-cover .reference-details .reference-date{font-size:13px;white-space:nowrap}
+  .reference-cover .reference-details div{min-height:0}
+  .reference-cover .reference-details b{white-space:nowrap}
   .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 30%,rgba(6,25,48,0) 55%,rgba(6,25,48,.28) 100%)}
   .cover3d .ct{position:relative;padding:11mm 12mm 0}
