@@ -183,22 +183,22 @@ export function proposalHtml(
   ol.steps{margin:2mm 0 0 5mm}ol.steps li{margin-bottom:1.5mm}
   .cover3d{position:relative;height:270mm;overflow:hidden;color:var(--cover-white);font-family:"Segoe UI",Arial,Helvetica,sans-serif;font-style:normal;line-height:1.12}
   .cover3d.reference-cover .bg{object-fit:fill}
-  .reference-cover .project-band{position:absolute;left:8%;top:64.6%;width:84%;height:6.85%;border:1px solid var(--cover-outline);border-radius:3.5mm;background:var(--cover-card);display:flex;align-items:center;justify-content:center;gap:2.5mm;padding:2mm 3mm;font-size:25px;font-weight:800;white-space:nowrap}
+  .reference-cover .project-band{position:absolute;left:8%;top:64.6%;width:84%;height:6.85%;border:1px solid var(--cover-outline);border-radius:3.5mm;background:var(--cover-card);display:flex;align-items:center;justify-content:center;gap:2.5mm;padding:2mm 3mm;font-size:31px;font-weight:800;white-space:nowrap}
   .reference-cover .project-band strong{color:var(--cover-yellow)}
   .reference-cover .reference-contact{position:absolute;left:2.2%;right:2.2%;top:72.95%;height:7.3%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm}
   .reference-cover .reference-contact a{background:var(--cover-card);color:var(--cover-white);border-radius:4.5mm;display:flex;align-items:center;gap:3mm;padding:3mm;text-decoration:none;min-width:0}
   .reference-cover .reference-contact svg{width:9mm;height:10mm;flex:none;fill:none;stroke:var(--cover-yellow);stroke-width:2.4}
   .reference-cover .reference-contact .globe{stroke:var(--cover-globe)}
   .reference-cover .reference-contact .pin{fill:var(--cover-pin);stroke:none}
-  .reference-cover .reference-contact strong{display:block;color:var(--cover-yellow);font-size:14px;font-weight:800;margin-bottom:1mm}
-  .reference-cover .reference-contact span{font-size:12.5px;display:block;overflow-wrap:anywhere}
-  .reference-cover .reference-contact .address{font-size:10.5px}
+  .reference-cover .reference-contact strong{display:block;color:var(--cover-yellow);font-size:18px;font-weight:800;margin-bottom:1mm}
+  .reference-cover .reference-contact span{font-size:16px;display:block;overflow-wrap:anywhere}
+  .reference-cover .reference-contact .address{font-size:12px}
   .reference-cover .reference-details{position:absolute;left:2.2%;right:2.2%;top:82.3%;height:9.2%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3.5mm}
   .reference-cover .reference-details div{background:var(--cover-card);border-radius:4.5mm;padding:3mm 4.5mm;min-width:0;display:flex;flex-direction:column;justify-content:center}
-  .reference-cover .reference-details small{color:var(--cover-yellow);font-size:13px;font-weight:800;display:block}
-  .reference-cover .reference-details b{display:block;font-size:19px;font-weight:800;margin:1mm 0;line-height:1.08}
-  .reference-cover .reference-details span{font-size:14px;display:block;line-height:1.15}
-  .reference-cover .reference-details .reference-date{font-size:11px}
+  .reference-cover .reference-details small{color:var(--cover-yellow);font-size:16px;font-weight:800;display:block}
+  .reference-cover .reference-details b{display:block;font-size:24px;font-weight:800;margin:1mm 0;line-height:1.08}
+  .reference-cover .reference-details span{font-size:18px;display:block;line-height:1.15}
+  .reference-cover .reference-details .reference-date{font-size:13px}
   .cover3d .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .cover3d .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.06) 30%,rgba(6,25,48,0) 55%,rgba(6,25,48,.28) 100%)}
   .cover3d .ct{position:relative;padding:11mm 12mm 0}
