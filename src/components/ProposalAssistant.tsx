@@ -93,6 +93,8 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
       const patch = validateAssistantPatch(result.patch) as Partial<Draft>;
       if (!mounted.current) return;
       if (patch.systemType) setSystemChoice(patch.systemType);
+      // Fill the visible form immediately; only the Save button persists the proposal.
+      if (Object.keys(patch).length) onApply(patch);
       setPending(previous => ({ ...previous, ...patch })); setMissing(result.missing || []);
       setMessages([...next, { role: 'assistant', content: result.reply }]);
       clear();
@@ -176,10 +178,10 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     </div>
     {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
     {pending && Object.keys(pending).length > 0 && <div className="space-y-2 text-sm">
-      <p className="font-medium">Confirmed details</p>
+      <p className="font-medium">Filled in the form</p>
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-1">{Object.entries(pending).map(([key, value]) => <div key={key} className="break-words"><dt className="inline text-muted-foreground">{key.replace(/([A-Z])/g, ' $1')}: </dt><dd className="inline">{key === 'items' && Array.isArray(value) ? value.map((item: any) => `${item.description} × ${item.qty} — PKR ${item.unitPrice}${item.estimated ? ' (estimated)' : ''}${item.priceSource === 'missing' ? ' (price required)' : ''}`).join('; ') : typeof value === 'object' ? JSON.stringify(value) : String(value)}</dd></div>)}</dl>
       {missing.length > 0 && <p className="text-muted-foreground">Still needed: {missing.join(', ')}</p>}
-      <Button type="button" size="sm" variant="outline" disabled={busy || recording} onClick={() => { onApply(pending); setPending(null); }}>Apply confirmed details</Button>
+
     </div>}
     <div className="flex gap-2 items-end">
       <Textarea aria-label="Proposal requirements" placeholder="Your requirements or answer…" value={text} onChange={e => setText(e.target.value)} rows={2} disabled={recording} className="min-w-0" />

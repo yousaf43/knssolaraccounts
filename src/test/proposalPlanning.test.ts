@@ -13,8 +13,9 @@ describe('Bill-assisted proposal rules', () => {
   });
   it('adds estimated breakers and accessories but no final engineering ratings', () => {
     const items = estimatedAccessories(8, true);
-    expect(items.map(i => i.description)).toContain('AC breaker set');
-    expect(items.map(i => i.description)).toContain('Solar cable, connectors & installation accessories');
+    expect(items).toHaveLength(2);
+    expect(items[0].description).toMatch(/^Electrical accessories/);
+    expect(items[1].description).toMatch(/^Mechanical accessories/);
     expect(items.every(i => i.estimated && i.unitPrice === 0)).toBe(true);
     expect(estimatedAccessories(8, false)).toEqual([]);
   });
