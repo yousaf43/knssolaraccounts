@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect, Fragment } from "react";
 import { BankReconciliationReport } from "@/components/reports/BankReconciliationReport";
+import { CNICSalesReport } from "@/components/reports/CNICSalesReport";
 import { useSortableTables } from "@/hooks/useSortableTables";
 import { Star, ArrowLeft, Download, FileText, CalendarIcon, Filter, ChevronDown, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
@@ -91,6 +92,7 @@ const allReports: Report[] = [
   { code: "100", title: "Sales Tax Report", category: "Taxation", section: "general" },
   { code: "101", title: "Purchase Tax Report", category: "Taxation", section: "general" },
   { code: "102", title: "Tax Summary", category: "Taxation", section: "general" },
+  { code: "103", title: "Sales by CNIC (Taxation)", category: "Taxation", section: "general" },
   // General Reports - Management
   { code: "121", title: "Profit & Loss Account", category: "Management", section: "general" },
   { code: "123", title: "Profit & Loss Account Summary", category: "Management", section: "general" },
@@ -4415,6 +4417,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
       })()}
 
       {/* Tax reports */}
+      {report.code === "103" && <CNICSalesReport invoices={invoices} customers={customers} inventory={inventory} from={fromDate} to={toDate} />}
       {["100", "101", "102"].includes(report.code) && (() => {
         const salesRows = uniqueInvoicesById(invoices.filter(invoice => countsAsSale(invoice) && inRange(invoice.date, fromDate, toDate)));
         const purchaseRows = bills.filter(bill => inRange(bill.date, fromDate, toDate));
