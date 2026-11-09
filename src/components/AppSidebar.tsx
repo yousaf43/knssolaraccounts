@@ -16,7 +16,6 @@ import {
   Trash2,
   FileEdit,
   Droplets,
-  ShieldCheck,
   UserCog,
   Search,
   ShieldCheck,
