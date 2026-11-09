@@ -44,6 +44,7 @@ const allNavItems = [
   { title: "HR", url: "/hr", icon: UserCog, roles: ["admin", "accountant"] },
 
   { title: "Reports", url: "/reports", icon: BarChart3, roles: ["admin", "accountant"] },
+  { title: "Warranties", url: "/warranties", icon: ShieldCheck, roles: ["admin", "accountant", "sales"] },
   { title: "Solar Washing & Complaints", url: "/solar-washing", icon: Droplets, roles: ["admin", "accountant", "sales"] },
   { title: "Drafts", url: "/drafts", icon: FileEdit, roles: ["admin", "accountant", "sales"] },
   { title: "Activity Logs", url: "/activity-logs", icon: History, roles: ["admin", "accountant", "sales"] },

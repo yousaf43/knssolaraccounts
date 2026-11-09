@@ -14,6 +14,7 @@ export const MENU_OPTIONS: { url: string; title: string; roles: MenuRole[] }[] =
   { url: "/assets", title: "Assets", roles: ["admin", "accountant"] },
   { url: "/hr", title: "HR", roles: ["admin", "accountant"] },
   { url: "/reports", title: "Reports", roles: ["admin", "accountant"] },
+  { url: "/warranties", title: "Warranties", roles: ["admin", "accountant", "sales"] },
   { url: "/solar-washing", title: "Solar Washing & Complaints", roles: ["admin", "accountant", "sales"] },
   { url: "/drafts", title: "Drafts", roles: ["admin", "accountant", "sales"] },
   { url: "/activity-logs", title: "Activity Logs", roles: ["admin", "accountant", "sales"] },

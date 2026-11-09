@@ -31,6 +31,7 @@ import ActivityLogs from "@/pages/ActivityLogs";
 import TrashPage from "@/pages/Trash";
 import DraftsPage from "@/pages/Drafts";
 import SolarWashing from "@/pages/SolarWashing";
+import Warranties from "@/pages/Warranties";
 import HR from "@/pages/HR";
 import NotFound from "@/pages/NotFound";
 
@@ -52,6 +53,7 @@ const KEEP_ALIVE_PAGES: KeepAlivePage[] = [
   { path: "/reports", element: <Reports />, adminOnly: true },
   { path: "/activity-logs", element: <ActivityLogs /> },
   { path: "/hr", element: <HR />, adminOnly: true },
+  { path: "/warranties", element: <Warranties /> },
   { path: "/solar-washing", element: <SolarWashing /> },
   { path: "/drafts", element: <DraftsPage /> },
   { path: "/trash", element: <TrashPage /> },
