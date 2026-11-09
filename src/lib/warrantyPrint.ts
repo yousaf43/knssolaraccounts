@@ -57,7 +57,7 @@ export const KIND_DEFAULTS: Record<WarrantyKind, Omit<WarrantyItem, "kind" | "se
 };
 /** All equipment on a certificate: the main item (legacy columns) followed by extra items. */
 export const allItems = (w: WarrantyRecord): WarrantyItem[] => [
-  { kind: "panel", description: w.productDescription, quantity: w.quantity, years: w.workmanshipYears, terms: w.outputWarranty, serials: w.serialNumbers },
+  { kind: "panel" as WarrantyKind, description: w.productDescription, quantity: w.quantity, years: w.workmanshipYears, terms: w.outputWarranty, serials: w.serialNumbers },
   ...(w.extraItems || []),
 ].filter((i, idx) => idx === 0 || i.description || i.serials.length);
 
