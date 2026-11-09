@@ -1921,6 +1921,86 @@ export type Database = {
           },
         ]
       }
+      warranties: {
+        Row: {
+          address: string | null
+          attachment_path: string | null
+          certificate_no: string
+          cnic: string | null
+          company_id: string | null
+          created_at: string
+          customer_name: string
+          father_name: string | null
+          id: string
+          invoice_no: string | null
+          issue_date: string
+          notes: string | null
+          output_warranty: string | null
+          phone: string | null
+          product_description: string
+          quantity: number
+          serial_numbers: string[]
+          start_date: string
+          updated_at: string
+          user_id: string | null
+          workmanship_years: number
+        }
+        Insert: {
+          address?: string | null
+          attachment_path?: string | null
+          certificate_no: string
+          cnic?: string | null
+          company_id?: string | null
+          created_at?: string
+          customer_name: string
+          father_name?: string | null
+          id?: string
+          invoice_no?: string | null
+          issue_date: string
+          notes?: string | null
+          output_warranty?: string | null
+          phone?: string | null
+          product_description?: string
+          quantity?: number
+          serial_numbers?: string[]
+          start_date: string
+          updated_at?: string
+          user_id?: string | null
+          workmanship_years?: number
+        }
+        Update: {
+          address?: string | null
+          attachment_path?: string | null
+          certificate_no?: string
+          cnic?: string | null
+          company_id?: string | null
+          created_at?: string
+          customer_name?: string
+          father_name?: string | null
+          id?: string
+          invoice_no?: string | null
+          issue_date?: string
+          notes?: string | null
+          output_warranty?: string | null
+          phone?: string | null
+          product_description?: string
+          quantity?: number
+          serial_numbers?: string[]
+          start_date?: string
+          updated_at?: string
+          user_id?: string | null
+          workmanship_years?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranties_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workplace_rules: {
         Row: {
           category: string | null
