@@ -1930,6 +1930,7 @@ export type Database = {
           company_id: string | null
           created_at: string
           customer_name: string
+          extra_items: Json
           father_name: string | null
           id: string
           invoice_no: string | null
@@ -1953,6 +1954,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           customer_name: string
+          extra_items?: Json
           father_name?: string | null
           id?: string
           invoice_no?: string | null
@@ -1976,6 +1978,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           customer_name?: string
+          extra_items?: Json
           father_name?: string | null
           id?: string
           invoice_no?: string | null

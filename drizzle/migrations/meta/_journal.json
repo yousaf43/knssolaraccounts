@@ -57,6 +57,13 @@
       "when": 1794223204184,
       "tag": "0007_warranties",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794223707731,
+      "tag": "0008_warranty_extra_items",
+      "breakpoints": true
     }
   ]
 }

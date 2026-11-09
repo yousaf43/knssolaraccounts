@@ -1,0 +1,1 @@
+ALTER TABLE public.warranties ADD COLUMN IF NOT EXISTS extra_items jsonb NOT NULL DEFAULT '[]'::jsonb;
