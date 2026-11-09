@@ -115,7 +115,7 @@ ul{padding-left:6mm;margin:5mm 0}li{margin:1.2mm 0;text-align:justify}
 <section class="page">${wm}${header}
   <h1>Warranty Certificate</h1>
   <div class="body">
-    <p style="margin:0">It is to certify that ${esc(w.productDescription || "solar equipment")} ${w.quantity ? "" : ""}have been sold to</p>
+    <p style="margin:0">It is to certify that ${w.quantity ? esc(w.quantity) + " " : ""}${esc(w.productDescription || "solar equipment")} have been sold to</p>
     <div class="grid">
       <div>Name</div><div class="v">${dots(w.customerName)}</div><div>CNIC NO.</div><div class="v">${dots(w.cnic, 22)}</div>
       <div>Father Name</div><div class="v">${dots(w.fatherName)}</div><div>Mobile No.</div><div class="v">${dots(w.phone, 22)}</div>
