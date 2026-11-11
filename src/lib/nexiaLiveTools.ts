@@ -5,9 +5,9 @@ export const NEXIA_LIVE_PROMPT = `You are NEXIA, the live voice business assista
 Your developer and creator is Yousaf Sir. If anyone asks who made you, say clearly: "Mujhe Yousaf Sir ne develop kiya hai."
 Speak naturally like a friendly Pakistani colleague in Roman Urdu or simple English, matching the user's language. Never use Urdu or Hindi script.
 You are speaking aloud in a live call: answer in one or two short sentences, fast and warm. The user can interrupt you at any time.
-Money is in PKR; say whole rupees. Use Pakistani Urdu words (mojood, rate, rupay), never Hindi words like uplabdh.\nSay figures clearly, e.g. \"Longi 585W ke 42 piece stock mein hain, rate 28,000 rupay.\"
+Money is in PKR; say whole rupees exactly as the tool returned them, in lakh/crore correctly (e.g. 4,94,72,008 = 4 crore 94 lakh 72 hazaar 8 rupay). Never drop or merge digits. Use Pakistani Urdu words (mojood, rate, rupay), never Hindi words like uplabdh.\nSay figures clearly, e.g. \"Longi 585W ke 42 piece stock mein hain, rate 28,000 rupay.\"
 STRICT TRUTH RULE: Never invent stock, prices, balances, sales or names. For any business figure ALWAYS call a tool first and speak only what the tool returned. If a tool returns nothing or an error, say so honestly.
-Tools: search_stock (item stock and sale rate), low_stock, customer_balance, supplier_balance, cash_bank_balances, sales_summary, expense_summary, purchase_summary, attendance (who came and at what time), employee_info, open_page (navigate the software), end_session (when the user says bye, band karo, stop, khuda hafiz).
+Tools: search_stock (item stock and sale rate), low_stock, customer_balance, supplier_balance, cash_bank_balances, sales_summary, expense_summary, purchase_summary, profit_loss (ALWAYS use this for profit/loss; never compute profit yourself from sales minus expenses), assets_summary, attendance (who came and at what time), employee_info, open_page (navigate the software), end_session (when the user says bye, band karo, stop, khuda hafiz).
 If a tool says access is not allowed, tell the user they do not have permission for that section.
 Do not narrate that you are calling a tool; just answer.`;
 
@@ -22,6 +22,8 @@ export const NEXIA_TOOL_DECLARATIONS = [
   { name: "supplier_balance", description: "Look up a supplier's outstanding payable and total paid.", parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] } },
   { name: "attendance", description: "Attendance for a day: which employees came, check-in and check-out times, and who is absent.", parameters: { type: "OBJECT", properties: { day: { type: "STRING", enum: ["today", "yesterday"] } }, required: ["day"] } },
   { name: "employee_info", description: "List employees or find one by name with designation, phone and status.", parameters: { type: "OBJECT", properties: { name: { type: "STRING", description: "Optional name; empty lists all" } } } },
+  { name: "profit_loss", description: "Real profit or loss for a period: net sales minus cost of goods sold (inventory cost) minus expenses. Use for any profit/loss/munafa/nuksan question.", parameters: { type: "OBJECT", properties: { period: { type: "STRING", enum: ["today", "this_month", "last_month", "this_year"] } }, required: ["period"] } },
+  { name: "assets_summary", description: "Company fixed assets (vehicles, machinery, furniture, equipment): count, total value and by category.", parameters: { type: "OBJECT", properties: {} } },
   { name: "open_page", description: "Open a section of the software.", parameters: { type: "OBJECT", properties: { page: { type: "STRING", description: "e.g. dashboard, invoices, proposals, customers, purchases, expenses, inventory, accounts, reports, hr, warranties, solar washing, settings" } }, required: ["page"] } },
   { name: "end_session", description: "End the live voice conversation.", parameters: { type: "OBJECT", properties: {} } },
 ];
@@ -174,6 +176,43 @@ export async function runNexiaTool(name: string, args: Record<string, unknown>, 
       const { data, error } = await q;
       if (error) return { error: error.message };
       return { count: data?.length || 0, employees: data || [] };
+    }
+    case "profit_loss": {
+      if (!allowed("/reports")) return denied;
+      const { from, to } = periodRange(String(args.period || "this_month"));
+      const [{ data: inv, error }, { data: exp }, { data: stock }] = await Promise.all([
+        supabase.from("invoices").select("amount,tax,status,items,operating_expense").gte("date", from).lte("date", to).limit(10000),
+        supabase.from("expenses").select("amount").gte("date", from).lte("date", to).limit(10000),
+        supabase.from("inventory").select("id,name,cost_price,price").limit(10000),
+      ]);
+      if (error) return { error: error.message };
+      const cost = new Map((stock || []).map((i) => [i.id, n(i.cost_price) || n(i.price)]));
+      const byName = new Map((stock || []).map((i) => [String(i.name).toLowerCase().trim(), n(i.cost_price) || n(i.price)]));
+      let sales = 0, cogs = 0, invExp = 0, missingCost = 0;
+      for (const r of inv || []) {
+        if (String(r.status) === "draft") continue;
+        const sign = String(r.status) === "returned" ? -1 : 1;
+        sales += sign * (n(r.amount) - n(r.tax));
+        invExp += n(r.operating_expense);
+        for (const line of (Array.isArray(r.items) ? r.items : []) as Array<Record<string, any>>) {
+          const lq = n(line.qty);
+          const comps = line.adhocLines?.length ? line.adhocLines : line.bundleItemPrices?.length ? line.bundleItemPrices : null;
+          if (comps) { for (const c of comps) cogs += sign * (cost.get(c.itemId) || 0) * (n(c.qty) || 1) * lq; continue; }
+          const c = cost.get(line.inventoryItemId) ?? byName.get(String(line.description || "").toLowerCase().trim());
+          if (c === undefined) missingCost++; else cogs += sign * c * lq;
+        }
+      }
+      const expenses = (exp || []).reduce((s2, e) => s2 + n(e.amount), 0) + invExp;
+      const gross = sales - cogs;
+      return { from, to, net_sales_pkr: Math.round(sales), cost_of_goods_sold_pkr: Math.round(cogs), gross_profit_pkr: Math.round(gross), expenses_pkr: Math.round(expenses), net_profit_pkr: Math.round(gross - expenses), lines_without_cost: missingCost, note: "Estimate using inventory cost prices; exact figure is in Report 121 Profit & Loss." };
+    }
+    case "assets_summary": {
+      if (!allowed("/assets")) return denied;
+      let list: Array<{ name?: string; category?: string; value?: number }> = [];
+      try { list = JSON.parse(localStorage.getItem("cb-company-assets") || "[]"); } catch { list = []; }
+      const cat: Record<string, number> = {};
+      for (const a of list) cat[a.category || "Other"] = (cat[a.category || "Other"] || 0) + n(a.value);
+      return { count: list.length, total_value_pkr: Math.round(list.reduce((s2, a) => s2 + n(a.value), 0)), by_category: Object.entries(cat).map(([c, v]) => ({ category: c, pkr: Math.round(v) })), items: list.slice(0, 10).map((a) => ({ name: a.name, category: a.category, value_pkr: n(a.value) })) };
     }
     case "open_page": {
       const path = resolvePage(String(args.page || ""));
