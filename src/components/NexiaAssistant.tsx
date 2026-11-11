@@ -439,7 +439,7 @@ export function NexiaAssistant() {
             </div>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => (liveOn || liveStatus === "connecting" ? stopLive() : void startLive())}
+                onClick={() => (liveOn ? stopLive() : void startLive())}
                 className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium ${liveOn ? "bg-destructive text-destructive-foreground" : "hover:bg-white/10 border border-white/30"}`}
                 title={liveOn ? "End live voice" : "Live voice conversation (Gemini Live)"}
                 aria-label={liveOn ? "End live voice" : "Start live voice"}
