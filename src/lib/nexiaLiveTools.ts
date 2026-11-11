@@ -7,7 +7,7 @@ Speak naturally like a friendly Pakistani colleague in Roman Urdu or simple Engl
 You are speaking aloud in a live call: answer in one or two short sentences, fast and warm. The user can interrupt you at any time.
 Money is in PKR; say whole rupees. Use Pakistani Urdu words (mojood, rate, rupay), never Hindi words like uplabdh.\nSay figures clearly, e.g. \"Longi 585W ke 42 piece stock mein hain, rate 28,000 rupay.\"
 STRICT TRUTH RULE: Never invent stock, prices, balances, sales or names. For any business figure ALWAYS call a tool first and speak only what the tool returned. If a tool returns nothing or an error, say so honestly.
-Tools: search_stock (item stock and sale rate), low_stock, customer_balance, cash_bank_balances, sales_summary, open_page (navigate the software), end_session (when the user says bye, band karo, stop, khuda hafiz).
+Tools: search_stock (item stock and sale rate), low_stock, customer_balance, supplier_balance, cash_bank_balances, sales_summary, expense_summary, purchase_summary, attendance (who came and at what time), employee_info, open_page (navigate the software), end_session (when the user says bye, band karo, stop, khuda hafiz).
 If a tool says access is not allowed, tell the user they do not have permission for that section.
 Do not narrate that you are calling a tool; just answer.`;
 
@@ -17,6 +17,11 @@ export const NEXIA_TOOL_DECLARATIONS = [
   { name: "customer_balance", description: "Look up a customer's outstanding balance, total billed and recent invoices.", parameters: { type: "OBJECT", properties: { name: { type: "STRING", description: "Customer name" } }, required: ["name"] } },
   { name: "cash_bank_balances", description: "Current balance of every bank, cash on hand and petty cash account.", parameters: { type: "OBJECT", properties: {} } },
   { name: "sales_summary", description: "Total invoiced sales and receipts for a period.", parameters: { type: "OBJECT", properties: { period: { type: "STRING", enum: ["today", "this_month", "last_month", "this_year"] } }, required: ["period"] } },
+  { name: "expense_summary", description: "Total expenses for a period with category-wise breakdown.", parameters: { type: "OBJECT", properties: { period: { type: "STRING", enum: ["today", "this_month", "last_month", "this_year"] } }, required: ["period"] } },
+  { name: "purchase_summary", description: "Total purchase bills and supplier payments for a period.", parameters: { type: "OBJECT", properties: { period: { type: "STRING", enum: ["today", "this_month", "last_month", "this_year"] } }, required: ["period"] } },
+  { name: "supplier_balance", description: "Look up a supplier's outstanding payable and total paid.", parameters: { type: "OBJECT", properties: { name: { type: "STRING" } }, required: ["name"] } },
+  { name: "attendance", description: "Attendance for a day: which employees came, check-in and check-out times, and who is absent.", parameters: { type: "OBJECT", properties: { day: { type: "STRING", enum: ["today", "yesterday"] } }, required: ["day"] } },
+  { name: "employee_info", description: "List employees or find one by name with designation, phone and status.", parameters: { type: "OBJECT", properties: { name: { type: "STRING", description: "Optional name; empty lists all" } } } },
   { name: "open_page", description: "Open a section of the software.", parameters: { type: "OBJECT", properties: { page: { type: "STRING", description: "e.g. dashboard, invoices, proposals, customers, purchases, expenses, inventory, accounts, reports, hr, warranties, solar washing, settings" } }, required: ["page"] } },
   { name: "end_session", description: "End the live voice conversation.", parameters: { type: "OBJECT", properties: {} } },
 ];
@@ -108,6 +113,67 @@ export async function runNexiaTool(name: string, args: Record<string, unknown>, 
       ]);
       if (error) return { error: error.message };
       return { from, to, invoices: inv?.length || 0, sales_pkr: Math.round((inv || []).reduce((s, r) => s + n(r.amount), 0)), received_pkr: Math.round((rec || []).reduce((s, r) => s + n(r.amount), 0)) };
+    }
+    case "expense_summary": {
+      if (!allowed("/expenses")) return denied;
+      const { from, to } = periodRange(String(args.period || "this_month"));
+      const { data, error } = await supabase.from("expenses").select("amount,category").gte("date", from).lte("date", to).limit(10000);
+      if (error) return { error: error.message };
+      const cat: Record<string, number> = {};
+      for (const e of data || []) cat[e.category || "Other"] = (cat[e.category || "Other"] || 0) + n(e.amount);
+      return { from, to, count: data?.length || 0, total_pkr: Math.round(Object.values(cat).reduce((a, b) => a + b, 0)), by_category: Object.entries(cat).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([c, v]) => ({ category: c, pkr: Math.round(v) })) };
+    }
+    case "purchase_summary": {
+      if (!allowed("/purchases")) return denied;
+      const { from, to } = periodRange(String(args.period || "this_month"));
+      const [{ data: bills, error }, { data: pays }] = await Promise.all([
+        supabase.from("bills").select("amount").gte("date", from).lte("date", to).limit(10000),
+        supabase.from("purchase_payments").select("amount").gte("date", from).lte("date", to).limit(10000),
+      ]);
+      if (error) return { error: error.message };
+      return { from, to, bills: bills?.length || 0, purchases_pkr: Math.round((bills || []).reduce((s, r) => s + n(r.amount), 0)), paid_to_suppliers_pkr: Math.round((pays || []).reduce((s, r) => s + n(r.amount), 0)) };
+    }
+    case "supplier_balance": {
+      if (!allowed("/purchases")) return denied;
+      const name = String(args.name || "").trim();
+      if (!name) return { error: "no_name" };
+      const { data, error } = await supabase.from("suppliers").select("name,phone,total_paid,outstanding").ilike("name", like(name)).limit(5);
+      if (error) return { error: error.message };
+      return { matches: (data || []).map((s) => ({ name: s.name, phone: s.phone, outstanding_pkr: n(s.outstanding), total_paid_pkr: n(s.total_paid) })) };
+    }
+    case "attendance": {
+      if (!allowed("/hr")) return denied;
+      const d = new Date();
+      if (args.day === "yesterday") d.setDate(d.getDate() - 1);
+      const day = periodRange("today", d).from;
+      const [{ data: att, error }, { data: punches }, { data: emps }] = await Promise.all([
+        supabase.from("attendance").select("employee_id,employee_name,check_in,check_out,status,hours").eq("date", day).limit(500),
+        supabase.from("attendance_punches").select("employee_id,employee_name,device_user_id,punch_time").eq("punch_date", day).order("punch_time").limit(2000),
+        supabase.from("employees").select("id,name,status").limit(500),
+      ]);
+      if (error) return { error: error.message };
+      const t = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Karachi" });
+      const rows = new Map<string, { name: string; check_in?: string | null; check_out?: string | null; status?: string }>();
+      for (const a of att || []) rows.set(a.employee_id || a.employee_name, { name: a.employee_name, check_in: a.check_in, check_out: a.check_out, status: a.status });
+      for (const p of punches || []) {
+        const key = p.employee_id || p.employee_name || `ID ${p.device_user_id}`;
+        const r = rows.get(key) || { name: p.employee_name || `Unlinked ID ${p.device_user_id}` };
+        if (!att?.some((a) => (a.employee_id || a.employee_name) === key)) { if (!r.check_in) r.check_in = t(p.punch_time); else r.check_out = t(p.punch_time); }
+        rows.set(key, r);
+      }
+      const present = [...rows.values()];
+      const came = new Set([...rows.keys()]);
+      const absent = (emps || []).filter((e) => (e.status || "active").toLowerCase() === "active" && !came.has(e.id) && !came.has(e.name)).map((e) => e.name);
+      return { date: day, present_count: present.length, present, absent };
+    }
+    case "employee_info": {
+      if (!allowed("/hr")) return denied;
+      let q = supabase.from("employees").select("name,designation,department,phone,status,join_date").limit(50);
+      const nm = String(args.name || "").trim();
+      if (nm) q = q.ilike("name", like(nm));
+      const { data, error } = await q;
+      if (error) return { error: error.message };
+      return { count: data?.length || 0, employees: data || [] };
     }
     case "open_page": {
       const path = resolvePage(String(args.page || ""));
