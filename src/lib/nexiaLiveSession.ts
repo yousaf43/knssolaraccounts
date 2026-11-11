@@ -38,7 +38,7 @@ export class NexiaLiveSession {
   private userBuf = ""; private botBuf = "";
   private closed = false;
 
-  constructor(private ev: LiveEvents) {}
+  constructor(private ev: LiveEvents, private config: { prompt?: string; tools?: unknown[] } = {}) {}
 
   /** Must be called from a click so the browser allows mic and audio playback. */
   async start(token: string, model: string) {
@@ -60,8 +60,8 @@ export class NexiaLiveSession {
       ws.onopen = () => ws.send(JSON.stringify({ setup: {
         model,
         generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } } },
-        systemInstruction: { parts: [{ text: NEXIA_LIVE_PROMPT }] },
-        tools: [{ functionDeclarations: NEXIA_TOOL_DECLARATIONS }],
+        systemInstruction: { parts: [{ text: this.config.prompt || NEXIA_LIVE_PROMPT }] },
+        tools: [{ functionDeclarations: this.config.tools || NEXIA_TOOL_DECLARATIONS }],
         inputAudioTranscription: {}, outputAudioTranscription: {},
         contextWindowCompression: { slidingWindow: {} },
         realtimeInputConfig: { automaticActivityDetection: { silenceDurationMs: 700 } },
