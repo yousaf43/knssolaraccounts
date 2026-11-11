@@ -7,7 +7,7 @@ const cors = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
-export const LIVE_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+const LIVE_MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 
 /**
  * Mints a short-lived, single-use Gemini Live token so the browser can stream audio
