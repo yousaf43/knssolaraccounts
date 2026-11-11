@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Square, Send, Volume2, Loader2, Sparkles, RotateCcw, Paperclip, X } from 'lucide-react';
+import { Mic, Square, Send, Volume2, Loader2, Sparkles, RotateCcw, Paperclip, X, Radio, PhoneOff } from 'lucide-react';
+import { NexiaLiveSession, type LiveStatus } from '@/lib/nexiaLiveSession';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +16,11 @@ import type { Proposal } from '@/pages/Proposals';
 
 type Draft = Omit<Proposal, 'id' | 'proposalNo'>;
 type Message = { role: 'user' | 'assistant'; content: string };
+const LIVE_PROMPT = `You are Nexia, a warm human-sounding solar sales consultant at K&S Solar, made by Yousaf Sir, on a live voice call helping staff build a customer proposal. Speak Roman Urdu or English matching the user, short natural sentences. Whenever the user gives ANY proposal detail (customer name, phone, city, system type on-grid/off-grid/hybrid, panels, inverter, battery, backup, accessories, prices, bill use), call update_proposal with a clear English summary of exactly what they said. Never invent details or prices. After the tool returns, say its reply naturally (you may shorten it) and ask the next missing detail. If the user says bye or band karo, call end_call.`;
+const LIVE_TOOLS = [
+  { name: 'update_proposal', description: 'Send the newest proposal requirements to the proposal planner, which fills the form and prices items from inventory. Returns reply and still-missing details.', parameters: { type: 'OBJECT', properties: { requirements: { type: 'STRING', description: 'What the user just said, summarized in English' } }, required: ['requirements'] } },
+  { name: 'end_call', description: 'End the live call.', parameters: { type: 'OBJECT', properties: {} } },
+];
 async function connection() {
   const { data } = await supabase.auth.getSession();
   if (!data.session) throw new Error('Please sign in to use the proposal assistant');
@@ -49,6 +55,36 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
   const inFlight = useRef(false);
   const finishRecording = useRef<() => void>(() => {});
   const historyEnd = useRef<HTMLDivElement>(null);
+  const live = useRef<NexiaLiveSession | null>(null);
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>('idle');
+  const [liveHeard, setLiveHeard] = useState('');
+  const sendRef = useRef(send);
+  useEffect(() => () => live.current?.stop(), []);
+  function stopLive() { live.current?.stop(); live.current = null; }
+  async function startLive() {
+    if (live.current) return;
+    setError(''); controller.current?.abort();
+    const session = new NexiaLiveSession({
+      onStatus: setLiveStatus,
+      onLevel: () => {},
+      onUserText: (t, final) => setLiveHeard(final ? '' : t),
+      onAssistantText: () => {},
+      onToolCall: async (name, args) => {
+        if (name === 'end_call') { window.setTimeout(stopLive, 1500); return { ok: true }; }
+        if (name === 'update_proposal') return sendRef.current(String(args.requirements || ''), { silent: true });
+        return { error: 'Unknown tool' };
+      },
+      onClose: reason => { live.current = null; setLiveHeard(''); if (reason && mounted.current) setError(reason); },
+    }, { prompt: LIVE_PROMPT, tools: LIVE_TOOLS });
+    live.current = session;
+    try {
+      setLiveStatus('connecting');
+      const { data, error: invokeError } = await supabase.functions.invoke('nexia-live-token', { body: {} });
+      if (invokeError) { const body = await (invokeError as any).context?.json?.().catch(() => null); throw new Error(body?.error || invokeError.message); }
+      if (!data?.token) throw new Error(data?.error || 'Could not start live voice');
+      await session.start(data.token, data.model);
+    } catch (e) { live.current = null; session.stop(); setLiveStatus('idle'); setError(e instanceof Error ? e.message : 'Live voice unavailable'); }
+  }
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; controller.current?.abort(); void recorder.current?.stop().catch(() => {}); void audioContext.current?.close(); }; }, []);
   useEffect(() => { historyEnd.current?.scrollIntoView({ block: 'nearest' }); }, [messages, busy]);
 
@@ -75,8 +111,8 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     catch (e) { if (mounted.current && (!abort.signal.aborted || abort.signal.reason?.name === 'TimeoutError')) setError(`Spoken reply unavailable: ${e instanceof Error ? e.message : 'Please try reading the reply again'}`); }
     finally { clear(); if (mounted.current) setSpeaking(false); }
   }
-  async function send(content: string) {
-    if (!content.trim() || inFlight.current) return;
+  async function send(content: string, options: { silent?: boolean } = {}): Promise<{ reply: string; missing: string[] } | { error: string } | undefined> {
+    if (!content.trim() || inFlight.current) return { error: 'Assistant is busy, try again' };
     inFlight.current = true;
     unlockAudio();
     setBusy(true); setError('');
@@ -99,8 +135,9 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
       setMessages([...next, { role: 'assistant', content: result.reply }]);
       clear();
       // Keep confirmed changes in the conversation draft; apply only after explicit review.
-      if (voice) await speak(result.reply);
-    } catch (e) { if (mounted.current && (!abort.signal.aborted || abort.signal.reason?.name === 'TimeoutError')) { setError(e instanceof Error ? e.message : 'Assistant unavailable'); setText(content); } }
+      if (voice && !options.silent) await speak(result.reply);
+      return { reply: result.reply, missing: result.missing || [] };
+    } catch (e) { const message = e instanceof Error ? e.message : 'Assistant unavailable'; if (mounted.current && (!abort.signal.aborted || abort.signal.reason?.name === 'TimeoutError')) { setError(message); if (!options.silent) setText(content); } return { error: message }; }
     finally { clear(); inFlight.current = false; if (mounted.current) setBusy(false); }
   }
   async function uploadBill(file: File) {
@@ -148,11 +185,13 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     finally { clear(); inFlight.current = false; if (mounted.current) setBusy(false); }
     if (transcript && mounted.current && !abort.signal.aborted) await send(transcript);
   }
+  sendRef.current = send;
   finishRecording.current = () => { if (recorder.current) void microphone(); };
   return <section aria-label="Gemini proposal assistant" className="border-b border-border pb-5 space-y-3">
     <div className="flex items-center justify-between gap-2 flex-wrap">
       <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Proposal AI Assistant</h3>
       <div className="flex items-center gap-2"><Switch id="proposal-assistant-voice" checked={voice} onCheckedChange={setVoice} /><Label htmlFor="proposal-assistant-voice">Spoken replies</Label>
+        <Button type="button" size="sm" variant={liveStatus === 'idle' ? 'default' : 'destructive'} disabled={recording || (liveStatus === 'idle' && (busy || speaking))} onClick={() => liveStatus === 'idle' ? void startLive() : stopLive()}>{liveStatus === 'idle' ? <><Radio className="h-4 w-4 mr-1" /> Live</> : <><PhoneOff className="h-4 w-4 mr-1" /> End live</>}</Button>
         <Button type="button" size="icon" variant="ghost" aria-label="Start new conversation" title="Start new conversation" disabled={busy || recording || speaking} onClick={() => { setMessages([]); setPending(null); setMissing([]); setError(''); setSystemChoice(''); setBill(null); setBillName(''); }}><RotateCcw className="h-4 w-4" /></Button></div>
     </div>
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -176,6 +215,7 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
       {messages.map((message, i) => <div key={i} className={message.role === 'user' ? 'bg-muted p-3 rounded-md' : 'py-1'}><span className="block text-xs font-semibold text-muted-foreground mb-1">{message.role === 'user' ? 'You' : provider}</span><p className="whitespace-pre-wrap break-words" dir="auto">{message.content}</p></div>)}
       <div ref={historyEnd} />
     </div>
+    {liveStatus !== 'idle' && <p className="text-sm text-primary flex gap-2 items-center"><Radio className="h-4 w-4 animate-pulse" />{liveStatus === 'connecting' ? 'Connecting live call…' : liveStatus === 'speaking' ? 'Nexia is speaking…' : busy ? 'Updating proposal…' : 'Live — just speak'}{liveHeard && <span className="text-muted-foreground truncate">“{liveHeard}”</span>}</p>}
     {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
     {pending && Object.keys(pending).length > 0 && <div className="space-y-2 text-sm">
       <p className="font-medium">Filled in the form</p>
@@ -185,7 +225,7 @@ export function ProposalAssistant({ draft, onApply }: { draft: Draft; onApply: (
     </div>}
     <div className="flex gap-2 items-end">
       <Textarea aria-label="Proposal requirements" placeholder="Your requirements or answer…" value={text} onChange={e => setText(e.target.value)} rows={2} disabled={recording} className="min-w-0" />
-      <Button type="button" variant={recording ? 'destructive' : 'outline'} size="icon" aria-label={recording ? 'Finish recording' : 'Record requirements'} title={recording ? 'Finish recording' : 'Record requirements'} disabled={busy || speaking} onClick={() => void microphone()}>{recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</Button>
+      <Button type="button" variant={recording ? 'destructive' : 'outline'} size="icon" aria-label={recording ? 'Finish recording' : 'Record requirements'} title={recording ? 'Finish recording' : 'Record requirements'} disabled={busy || speaking || liveStatus !== 'idle'} onClick={() => void microphone()}>{recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</Button>
       {(busy || speaking) ? <Button type="button" variant="outline" size="icon" aria-label="Stop assistant" title="Stop assistant" onClick={() => controller.current?.abort()}><Square className="h-4 w-4" /></Button> : <Button type="button" size="icon" aria-label="Send requirements" title="Send requirements" disabled={!text.trim() || recording} onClick={() => void send(text)}><Send className="h-4 w-4" /></Button>}
     </div>
     {(busy || recording || speaking) && <p className="text-xs text-muted-foreground flex gap-2 items-center"><Loader2 className="h-3 w-3 animate-spin" />{recording ? 'Listening…' : speaking ? 'Speaking…' : 'Preparing reply…'}</p>}
