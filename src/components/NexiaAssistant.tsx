@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2, Paperclip, FileText, Image as ImageIcon, FilePlus2 } from "lucide-react";
+import { MessageCircle, X, Send, Mic, MicOff, Volume2, VolumeX, Loader2, RotateCcw, Trash2, Paperclip, FileText, Image as ImageIcon, FilePlus2, Radio, PhoneOff } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { NexiaLiveSession, type LiveStatus } from "@/lib/nexiaLiveSession";
+import { runNexiaTool } from "@/lib/nexiaLiveTools";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -12,7 +15,7 @@ import { saveDraft } from "@/lib/drafts";
 
 
 type Attachment = { name: string; mimeType: string; data: string; size: number };
-type Msg = { role: "user" | "assistant"; content: string; error?: boolean; files?: string[] };
+type Msg = { role: "user" | "assistant"; content: string; error?: boolean; files?: string[]; pending?: boolean };
 
 const MAX_FILE_BYTES = 12 * 1024 * 1024; // 12 MB per file
 const MAX_FILES = 5;
@@ -57,6 +60,54 @@ export function NexiaAssistant() {
   const [attaching, setAttaching] = useState(false);
   const [creatingDraft, setCreatingDraft] = useState(false);
   const navigate = useNavigate();
+  const { role, menuAccess } = useAuth();
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
+  const [liveLevel, setLiveLevel] = useState(0);
+  const liveRef = useRef<NexiaLiveSession | null>(null);
+  const liveOn = liveStatus !== "idle" && liveStatus !== "error";
+
+  /** Show live transcripts: update the open bubble while speaking, close it when final. */
+  const upsertLive = useCallback((roleName: "user" | "assistant", text: string, final: boolean) => {
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      const next = { role: roleName, content: text.trim(), pending: !final } as Msg;
+      if (last && last.role === roleName && last.pending) return [...prev.slice(0, -1), next];
+      return text.trim() ? [...prev, next] : prev;
+    });
+  }, []);
+
+  const stopLive = useCallback(() => { liveRef.current?.stop(); liveRef.current = null; }, []);
+
+  const startLive = async () => {
+    if (liveRef.current) return;
+    stopAudio();
+    const session = new NexiaLiveSession({
+      onStatus: setLiveStatus,
+      onLevel: setLiveLevel,
+      onUserText: (t, f) => upsertLive("user", t, f),
+      onAssistantText: (t, f) => upsertLive("assistant", t, f),
+      onToolCall: (name, args) => runNexiaTool(name, args, { role, menuAccess, navigate, endSession: () => stopLive() }),
+      onClose: (reason) => { liveRef.current = null; setMessages((p) => p.map((m) => ({ ...m, pending: false }))); if (reason) toast.info(reason); },
+    });
+    liveRef.current = session;
+    try {
+      // Start audio inside the click so the browser allows mic and sound.
+      const tokenPromise = supabase.functions.invoke("nexia-live-token", { body: {} });
+      setLiveStatus("connecting");
+      const { data, error } = await tokenPromise;
+      if (error) throw error;
+      if (!data?.token) throw new Error(data?.error || "Could not start live voice");
+      await session.start(data.token, data.model);
+    } catch (e) {
+      liveRef.current = null;
+      session.stop();
+      setLiveStatus("idle");
+      toast.error(await extractError(e));
+    }
+  };
+
+  useEffect(() => () => liveRef.current?.stop(), []);
+  useEffect(() => { if (!open) stopLive(); }, [open, stopLive]);
 
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -281,6 +332,13 @@ export function NexiaAssistant() {
     const content = text.trim();
     const files = attachments;
     if ((!content && files.length === 0) || loading) return;
+    if (liveRef.current && content && files.length === 0) {
+      if (liveRef.current.sendText(content)) {
+        setMessages((prev) => [...prev, { role: "user", content }]);
+        setInput("");
+        return;
+      }
+    }
     const prompt = content || "Read this file, tell me what it contains, and compare it with the software data.";
     lastUserMsgRef.current = prompt;
     lastAttachmentsRef.current = files;
@@ -381,6 +439,15 @@ export function NexiaAssistant() {
             </div>
             <div className="flex items-center gap-1">
               <button
+                onClick={() => (liveOn ? stopLive() : void startLive())}
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium ${liveOn ? "bg-destructive text-destructive-foreground" : "hover:bg-white/10 border border-white/30"}`}
+                title={liveOn ? "End live voice" : "Live voice conversation (Gemini Live)"}
+                aria-label={liveOn ? "End live voice" : "Start live voice"}
+              >
+                {liveStatus === "connecting" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : liveOn ? <PhoneOff className="w-3.5 h-3.5" /> : <Radio className="w-3.5 h-3.5" />}
+                {liveOn ? "End" : "Live"}
+              </button>
+              <button
                 onClick={clearChat}
                 className="p-1.5 rounded-md hover:bg-white/10"
                 title="Nayi guftagu"
@@ -470,6 +537,20 @@ export function NexiaAssistant() {
               </div>
             )}
           </div>
+
+          {liveStatus !== "idle" && (
+            <div className="border-t px-3 py-2 bg-primary/5 flex items-center gap-3">
+              <span className={`w-2 h-2 rounded-full ${liveStatus === "speaking" ? "bg-primary animate-pulse" : liveStatus === "listening" ? "bg-primary" : "bg-muted-foreground"}`} />
+              <span className="text-xs font-medium text-foreground">
+                {liveStatus === "connecting" ? "Connecting..." : liveStatus === "speaking" ? "Nexia is speaking — talk to interrupt" : "Listening — just speak"}
+              </span>
+              <div className="flex-1 flex items-end gap-0.5 h-4" aria-hidden>
+                {[0.5, 0.8, 1, 0.8, 0.5].map((f, i) => (
+                  <span key={i} className="w-1 rounded-sm bg-primary transition-all duration-75" style={{ height: `${Math.max(15, liveLevel * f * 100)}%` }} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Attachment chips */}
           {attachments.length > 0 && (
