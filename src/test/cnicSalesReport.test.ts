@@ -7,6 +7,17 @@ const invoice = (id: string, name: string, amount: number, extra: Partial<Invoic
 const customers = [customer("1", "Ali", "CNIC: 35202-1234567-1 | Lahore")];
 
 describe("Sales by CNIC taxation", () => {
+  it("includes saved customer phones and distinct document numbers in both views", () => {
+    const result = buildCNICSalesReport([invoice("1", "Ali", 100, { documentNumber: "DOC-101" }), invoice("2", "Ali", 200, { documentNumber: "DOC-102" }), invoice("3", "Ali", 300, { documentNumber: "DOC-101" })], [{ ...customers[0], phone: "03001234567" }], []);
+    expect(result.rows[0].phone).toBe("03001234567");
+    expect(result.rows[0].documentNumber).toBe("DOC-101");
+    expect(result.groups[0].phones).toEqual(["03001234567"]);
+    expect(result.groups[0].documentNumbers).toEqual(["DOC-101", "DOC-102"]);
+  });
+  it("does not assign a phone from conflicting same-name contacts", () => {
+    const result = buildCNICSalesReport([invoice("1", "Ali", 100)], [{ ...customers[0], phone: "03001234567" }, { ...customers[0], id: "2", phone: "03007654321" }], []);
+    expect(result.rows[0].phone).toBe("");
+  });
   it("normalizes stored CNICs and groups sales against the taxpayer", () => {
     expect(customerCNIC({ address: "CNIC: 3520212345671" })).toBe("35202-1234567-1");
     const result = buildCNICSalesReport([invoice("1", "Ali", 100), invoice("2", "Ali", 200)], customers, []);

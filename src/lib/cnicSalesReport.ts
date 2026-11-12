@@ -11,7 +11,7 @@ export function customerCNIC(customer: { address?: string; cnic?: string }) {
 }
 
 export type CNICSaleRow = {
-  id: string; cnic: string; customer: string; number: string; date: string;
+  id: string; cnic: string; customer: string; phone: string; documentNumber: string; number: string; date: string;
   netSales: number; tax: number; total: number;
   products: CNICProductSale[];
 };
@@ -50,7 +50,7 @@ function invoiceProductSales(invoice: Invoice, inventory: InventoryItem[]) {
   return products;
 }
 export type CNICSalesGroup = {
-  key: string; cnic: string; customer: string; count: number;
+  key: string; cnic: string; customer: string; phones: string[]; documentNumbers: string[]; count: number;
   netSales: number; tax: number; total: number;
 };
 
@@ -78,9 +78,11 @@ export function buildCNICSalesReport(invoices: Invoice[], customers: Customer[],
     // Conflicting duplicate names cannot establish a taxpayer identity.
     const cnics = new Set(matches.map(customerCNIC));
     const cnic = cnics.size === 1 ? customerCNIC(matches[0] || {}) : "";
+    const phones = new Set(matches.map(customer => customer.phone?.trim() || ""));
+    const phone = phones.size === 1 ? [...phones][0] : "";
     if (options.cnicFilter === "present" && !cnic) continue;
     if (options.cnicFilter === "missing" && cnic) continue;
-    if (!matchesQuery(options.search, invoice.customer, cnic, invoice.number, invoice.documentNumber)) continue;
+    if (!matchesQuery(options.search, invoice.customer, cnic, phone, invoice.number, invoice.documentNumber)) continue;
     const total = saleAmount(invoice, inventory);
     // Invoice tax stores a percentage, not a rupee amount; totals already include
     // line/document discounts and tax. Reverse the saved rate without taxing twice.
@@ -97,14 +99,16 @@ export function buildCNICSalesReport(invoices: Invoice[], customers: Customer[],
     });
     const filteredNet = options.productFilter && options.productFilter !== "all" ? products.reduce((sum, p) => sum + p.netSales, 0) : netSales;
     const filteredTotal = options.productFilter && options.productFilter !== "all" ? products.reduce((sum, p) => sum + p.total, 0) : total;
-    rows.push({ id: invoice.id, cnic, customer: invoice.customer, number: invoice.number, date: invoice.date, netSales: filteredNet, tax: filteredTotal - filteredNet, total: filteredTotal, products });
+    rows.push({ id: invoice.id, cnic, customer: invoice.customer, phone, documentNumber: invoice.documentNumber?.trim() || "", number: invoice.number, date: invoice.date, netSales: filteredNet, tax: filteredTotal - filteredNet, total: filteredTotal, products });
   }
   rows.sort((a, b) => a.cnic.localeCompare(b.cnic) || a.customer.localeCompare(b.customer) || a.date.localeCompare(b.date));
   const grouped = new Map<string, CNICSalesGroup>();
   for (const row of rows) {
     const key = row.cnic || `missing:${normalize(row.customer)}`;
-    const group = grouped.get(key) || { key, cnic: row.cnic, customer: row.customer, count: 0, netSales: 0, tax: 0, total: 0 };
+    const group = grouped.get(key) || { key, cnic: row.cnic, customer: row.customer, phones: [], documentNumbers: [], count: 0, netSales: 0, tax: 0, total: 0 };
     if (!group.customer.split(" / ").includes(row.customer)) group.customer += ` / ${row.customer}`;
+    if (row.phone && !group.phones.includes(row.phone)) group.phones.push(row.phone);
+    if (row.documentNumber && !group.documentNumbers.includes(row.documentNumber)) group.documentNumbers.push(row.documentNumber);
     group.count++; group.netSales += row.netSales; group.tax += row.tax; group.total += row.total;
     grouped.set(key, group);
   }
