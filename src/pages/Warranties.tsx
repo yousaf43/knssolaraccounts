@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCustomersCloud } from "@/hooks/useAppData";
 import { toast } from "@/hooks/use-toast";
 import { attachmentPages } from "@/lib/attachmentPages";
-import { DEFAULT_OUTPUT_WARRANTY, KIND_DEFAULTS, KIND_LABEL, dmy, parseSerials, printWarranty, getWarrantyPrintOptions, saveWarrantyPrintOptions, type WarrantyItem, type WarrantyKind, type WarrantyRecord } from "@/lib/warrantyPrint";
+import { DEFAULT_OUTPUT_WARRANTY, KIND_DEFAULTS, KIND_LABEL, dmy, parseSerials, printWarranty, openPrintWindow, getWarrantyPrintOptions, saveWarrantyPrintOptions, type WarrantyItem, type WarrantyKind, type WarrantyRecord } from "@/lib/warrantyPrint";
 
 /** Serials typed one at a time (Enter adds), with optional bulk paste. */
 function SerialEntry({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
@@ -120,7 +120,17 @@ export default function WarrantiesPage() {
     return data?.signedUrl;
   };
 
+  const safePages = async (path: string) => {
+    try { return await attachmentPages(await signedUrl(path), path); }
+    catch (e) { console.error(e); toast({ title: "Attached sheet could not be added", description: "The certificate will print without it." }); return []; }
+  };
+  const doPrint = async (w: WarrantyRecord, win: Window | null) => {
+    if (!win) { toast({ title: "Pop-up blocked", description: "Please allow pop-ups for this site and try again.", variant: "destructive" }); return; }
+    printWarranty(w, await safePages(w.attachmentPath), getWarrantyPrintOptions(), win);
+  };
+
   const save = async (andPrint: boolean) => {
+    const printWin = andPrint ? openPrintWindow() : null;
     if (!form.customerName.trim()) { toast({ title: "Customer name is required", variant: "destructive" }); return; }
     setSaving(true);
     try {
@@ -160,8 +170,9 @@ export default function WarrantiesPage() {
       toast({ title: "Warranty saved" });
       setOpen(false);
       await load();
-      if (andPrint) printWarranty(saved, await attachmentPages(await signedUrl(saved.attachmentPath), saved.attachmentPath));
+      if (andPrint) await doPrint(saved, printWin);
     } catch (e) {
+      printWin?.close();
       toast({ title: "Could not save", description: (e as Error).message, variant: "destructive" });
     } finally { setSaving(false); }
   };
@@ -220,7 +231,7 @@ export default function WarrantiesPage() {
                 <td className="p-2">{w.serialNumbers.length + (w.extraItems || []).reduce((n, i) => n + i.serials.length, 0)}{w.attachmentPath && <button onClick={() => viewAttachment(w)} className="ml-2 text-primary" title="View attached sheet"><Paperclip className="inline h-4 w-4" /></button>}</td>
                 <td className="p-2">
                   <div className="flex justify-end gap-1">
-                    <Button size="icon" variant="ghost" title="Print" onClick={async () => printWarranty(w, await attachmentPages(await signedUrl(w.attachmentPath), w.attachmentPath))}><Printer className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" title="Print" onClick={() => doPrint(w, openPrintWindow())}><Printer className="h-4 w-4" /></Button>
                     <Button size="icon" variant="ghost" title="Edit" onClick={() => openEdit(w)}><Pencil className="h-4 w-4" /></Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild><Button size="icon" variant="ghost" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></Button></AlertDialogTrigger>
