@@ -122,7 +122,7 @@ export default function WarrantiesPage() {
 
   const safePages = async (path: string) => {
     try { return await attachmentPages(await signedUrl(path), path); }
-    catch (e) { console.error(e); toast({ title: "Attached sheet could not be added", description: "The certificate will print without it." }); return []; }
+    catch (e) { console.error(e); toast({ title: "Attached sheet could not be added", description: `${(e as Error).message}. The certificate will print without it.`, variant: "destructive" }); return []; }
   };
   const doPrint = async (w: WarrantyRecord, win: Window | null) => {
     if (!win) { toast({ title: "Pop-up blocked", description: "Please allow pop-ups for this site and try again.", variant: "destructive" }); return; }
@@ -301,7 +301,8 @@ export default function WarrantiesPage() {
             <div className="sm:col-span-2">
               <Label>Attach serial sheet photo/PDF (for record)</Label>
               <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-              {form.attachmentPath && !file && <p className="mt-1 text-xs text-muted-foreground">A sheet is already attached. Choose a new file to replace it.</p>}
+              {form.attachmentPath && !file && <p className="mt-1 text-xs text-muted-foreground">A sheet is already attached (<button type="button" className="text-primary underline" onClick={() => viewAttachment(form)}>view</button>). Choose a new file to replace it.</p>}
+              {file && <p className="mt-1 text-xs text-primary">Selected: {file.name} — it will be saved when you click Save.</p>}
             </div>
             <div className="sm:col-span-2"><Label>Notes</Label><Input value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
           </div>

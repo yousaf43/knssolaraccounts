@@ -70,7 +70,6 @@ export function saveWarrantyPrintOptions(o: WarrantyPrintOptions) { localStorage
 
 export function warrantyHtml(w: WarrantyRecord, attachment?: string | string[], opts: WarrantyPrintOptions = {}) {
   const scans = (Array.isArray(attachment) ? attachment : attachment ? [attachment] : []);
-  const attachmentUrl = scans[0];
   const lh = !!opts.letterhead;
   const topMm = Math.max(0, Number(opts.topMm ?? 45)), bottomMm = Math.max(0, Number(opts.bottomMm ?? 35));
   const origin = window.location.origin;
