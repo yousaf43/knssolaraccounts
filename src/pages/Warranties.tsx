@@ -130,8 +130,8 @@ export default function WarrantiesPage() {
   };
 
   const save = async (andPrint: boolean) => {
-    const printWin = andPrint ? openPrintWindow() : null;
     if (!form.customerName.trim()) { toast({ title: "Customer name is required", variant: "destructive" }); return; }
+    const printWin = andPrint ? openPrintWindow() : null;
     setSaving(true);
     try {
       const serials = form.serialNumbers;
