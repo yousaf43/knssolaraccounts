@@ -61,13 +61,22 @@ export const allItems = (w: WarrantyRecord): WarrantyItem[] => [
   ...(w.extraItems || []),
 ].filter((i, idx) => idx === 0 || i.description || i.serials.length);
 
-export function warrantyHtml(w: WarrantyRecord, attachmentUrl?: string) {
+export type WarrantyPrintOptions = { letterhead?: boolean; topMm?: number; bottomMm?: number };
+const LH_KEY = "cb-warranty-letterhead";
+export function getWarrantyPrintOptions(): WarrantyPrintOptions {
+  try { return { letterhead: false, topMm: 45, bottomMm: 35, ...JSON.parse(localStorage.getItem(LH_KEY) || "{}") }; } catch { return { letterhead: false, topMm: 45, bottomMm: 35 }; }
+}
+export function saveWarrantyPrintOptions(o: WarrantyPrintOptions) { localStorage.setItem(LH_KEY, JSON.stringify(o)); }
+
+export function warrantyHtml(w: WarrantyRecord, attachmentUrl?: string, opts: WarrantyPrintOptions = {}) {
+  const lh = !!opts.letterhead;
+  const topMm = Math.max(0, Number(opts.topMm ?? 45)), bottomMm = Math.max(0, Number(opts.bottomMm ?? 35));
   const origin = window.location.origin;
   const logo = `${origin}/portfolio/ks-logo.webp`;
   const items = allItems(w);
   const compact = items.length > 2;
   const dots = (v: string, n = 28) => (v ? esc(v) : ".".repeat(n));
-  const header = `
+  const header = lh ? `<div style="height:${topMm}mm;flex:none"></div>` : `
   <div class="top"></div>
   <div class="head">
     <img class="logo" src="${logo}" alt="K&S Solar Energy">
@@ -76,14 +85,14 @@ export function warrantyHtml(w: WarrantyRecord, attachmentUrl?: string) {
       <div>&#9993; info@knssolar.com.pk</div><div>&#127760; www.knssolar.com.pk</div>
     </div>
   </div>`;
-  const footer = `
+  const footer = lh ? `<div style="height:${bottomMm}mm;flex:none"></div>` : `
   <div class="foot">
     <div>4-Basement Ramzan Plaza, College Road<br>Bhakkar, Punjab Pakistan</div>
     <div>Phase 4A, Ghouri Town, Street # 40<br>Plat No 1080, Islamabad.</div>
     <div>Office 9, 1st Floor, Khalid Business Center<br>Johar Town Lahore</div>
   </div>
   <div class="bar"><span>K&amp;S</span><i>|</i><em>Run by Sun</em></div>`;
-  const wm = `<img class="wm" src="${logo}" alt="">`;
+  const wm = lh ? "" : `<img class="wm" src="${logo}" alt="">`;
 
   const serialTable = (s: string[]) => {
     const cols = 3, per = Math.ceil(s.length / cols) || 1, rows: string[] = [];
@@ -155,6 +164,7 @@ ul{padding-left:5mm;margin:2mm 0}li{margin:.8mm 0;text-align:justify}
 .serials{border-collapse:collapse;font-size:9pt;width:100%}
 .serials th,.serials td{border:.25mm solid #9bb3cf;padding:1mm 2mm}.serials th{background:#e7f0fa}.serials .n{width:8mm;text-align:center;color:#555}
 .scan{display:block;max-width:180mm;max-height:200mm;margin:0 auto;object-fit:contain}
+${lh ? ".page:before{display:none}.page{background:transparent}" : ""}
 </style></head><body>
 <section class="page ${compact ? "compact" : ""}">${wm}${header}
   <div class="titlebox"><h1>Warranty Certificate</h1><div class="rule"></div><div class="certno">CERTIFICATE NO. ${esc(w.certificateNo)}</div></div>
@@ -183,10 +193,10 @@ ul{padding-left:5mm;margin:2mm 0}li{margin:.8mm 0;text-align:justify}
 </body></html>`;
 }
 
-export function printWarranty(w: WarrantyRecord, attachmentUrl?: string) {
+export function printWarranty(w: WarrantyRecord, attachmentUrl?: string, opts: WarrantyPrintOptions = getWarrantyPrintOptions()) {
   const win = window.open("", "_blank");
   if (!win) return false;
-  win.document.write(warrantyHtml(w, attachmentUrl));
+  win.document.write(warrantyHtml(w, attachmentUrl, opts));
   win.document.close();
   return true;
 }
