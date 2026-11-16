@@ -70,7 +70,6 @@ export function saveWarrantyPrintOptions(o: WarrantyPrintOptions) { localStorage
 
 export function warrantyHtml(w: WarrantyRecord, attachment?: string | string[], opts: WarrantyPrintOptions = {}) {
   const scans = (Array.isArray(attachment) ? attachment : attachment ? [attachment] : []);
-  const attachmentUrl = scans[0];
   const lh = !!opts.letterhead;
   const topMm = Math.max(0, Number(opts.topMm ?? 45)), bottomMm = Math.max(0, Number(opts.bottomMm ?? 35));
   const origin = window.location.origin;
@@ -109,14 +108,14 @@ export function warrantyHtml(w: WarrantyRecord, attachment?: string | string[], 
     return `<table class="serials"><thead><tr>${"<th>#</th><th>Serial Number</th>".repeat(cols)}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
   };
   const withSerials = items.filter((i) => i.serials.length);
-  const serialPage = withSerials.length || attachmentUrl ? `
+  const serialPage = withSerials.length ? `
   <section class="page">${wm}${header}
     <h1>Serial Numbers</h1>
     <p class="sub">Certificate <b>${esc(w.certificateNo)}</b> &middot; ${esc(w.customerName)}${w.cnic ? ` &middot; CNIC ${esc(w.cnic)}` : ""}</p>
     ${withSerials.map((i) => `<div class="sgroup"><div class="stitle">${esc(KIND_LABEL[i.kind])} <span>${esc(i.description)} &middot; Qty ${esc(i.quantity || i.serials.length)}</span></div>${serialTable(i.serials)}</div>`).join("")}
-    ${!withSerials.length ? scans.map((u) => `<img class="scan" src="${esc(u)}" alt="Serial sheet" style="max-width:100%;max-height:220mm;display:block;margin:2mm auto">`).join("") : ""}
     <div class="grow"></div>${footer}
   </section>` : "";
+  const scanPages = scans.map((u) => `<section class="page" style="justify-content:center;align-items:center"><img src="${esc(u)}" alt="Serial sheet" style="max-width:200mm;max-height:287mm;object-fit:contain"></section>`).join("");
 
   const equipRows = items.map((i, n) => `<tr><td class="c">${n + 1}</td><td><b>${esc(KIND_LABEL[i.kind])}</b><br><span class="muted">${esc(i.description)}</span></td><td class="c">${esc(i.quantity || i.serials.length || "-")}</td><td class="c">${i.years ? `${esc(i.years)} Year${i.years > 1 ? "s" : ""}` : "-"}</td><td class="c">${i.serials.length || "-"}</td></tr>`).join("");
   const termBlocks = items.map((i) => i.kind === "panel"
@@ -190,7 +189,7 @@ ${lh ? ".page:before{display:none}.page{background:transparent}" : ""}
   </div>
   <div class="sign"><div>Date: ${esc(dmy(w.issueDate))}</div><div class="sline">Authorized Signature</div><div class="stamp">Stamp</div></div>
   <div class="grow"></div>${footer}
-</section>${serialPage}
+</section>${serialPage}${scanPages}
 <script>window.onload=()=>setTimeout(()=>window.print(),600)</script>
 </body></html>`;
 }
