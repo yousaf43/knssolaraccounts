@@ -85,6 +85,7 @@ const allReports: Report[] = [
   { code: "082", title: "Out of Stock", category: "Inventory", section: "general" },
   { code: "083", title: "Low Stock", category: "Inventory", section: "general" },
   { code: "148", title: "Stock Valuation", category: "Inventory", section: "general" },
+  { code: "149", title: "Stock Valuation (Avg vs Inventory Cost)", category: "Inventory", section: "general" },
   { code: "173", title: "Opening Stock", category: "Inventory", section: "general" },
   { code: "180", title: "Stock Adjustment Detail (By Date)", category: "Inventory", section: "general" },
   { code: "366", title: "Inventory Transactions Summary By Product", category: "Inventory", section: "general" },
@@ -2050,7 +2051,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     else if (report.code === "080") data = inventory; // Stock Quantity
     else if (report.code === "082") data = inventory.filter(i => i.qty <= 0); // Out of Stock includes oversold items
     else if (report.code === "083") data = inventory.filter(i => i.qty > 0 && i.qty <= i.reorderLevel); // Low Stock
-    else if (report.code === "148") data = inventory;
+    else if (report.code === "148" || report.code === "149") data = inventory;
 
     if (data) {
       const tokens = tokenize(stockSearch);
@@ -2059,7 +2060,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
         return matchesTokens(tokens, i.name, i.sku, i.model, i.category, i.uniqueCode, i.unit);
       });
 
-      if (report.code === "148") {
+      if (report.code === "148" || report.code === "149") {
         // Deduplicate: merge rows that represent the same product.
         const groups = new Map<string, InventoryItem[]>();
         for (const it of data) {
@@ -2146,7 +2147,7 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
     [purchaseOrders, bills, inventory]
   );
 
-  const showInventoryTable = ["078", "080", "082", "083", "148"].includes(report.code);
+  const showInventoryTable = ["078", "080", "082", "083", "148", "149"].includes(report.code);
   const isPnL = ["121", "123", "125", "127", "130"].includes(report.code);
   const showInvoicePnL = report.code === "130" || (isPnL && plView === "invoice");
 
@@ -2310,6 +2311,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Purchase Price</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Cost (FIFO)</th>}
                     {report.code === "148" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Stock Value</th>}
+                    {report.code === "149" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Avg Cost (FIFO)</th>}
+                    {report.code === "149" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Inventory Cost Price</th>}
+                    {report.code === "149" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Difference</th>}
+                    {report.code === "149" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Value @ Avg</th>}
+                    {report.code === "149" && <th className="text-right px-3 py-2 font-medium text-muted-foreground">Value @ Inventory Cost</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -2330,6 +2336,11 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                         {report.code === "148" && <td className="px-3 py-2 text-right">{formatCurrency(valuation.purchaseAverage)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgCost)}</td>}
                         {report.code === "148" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(stockValue)}</td>}
+                        {report.code === "149" && <td className="px-3 py-2 text-right text-primary font-medium">{formatCurrency(avgCost)}</td>}
+                        {report.code === "149" && <td className="px-3 py-2 text-right">{formatCurrency(Number(item.costPrice) || 0)}</td>}
+                        {report.code === "149" && <td className={`px-3 py-2 text-right ${(Number(item.costPrice) || 0) - avgCost < 0 ? "text-destructive" : ""}`}>{formatCurrency((Number(item.costPrice) || 0) - avgCost)}</td>}
+                        {report.code === "149" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency(stockValue)}</td>}
+                        {report.code === "149" && <td className="px-3 py-2 text-right font-semibold">{formatCurrency((item.qty || 0) * (Number(item.costPrice) || 0))}</td>}
                       </tr>
                     );
                   })}
@@ -2341,6 +2352,17 @@ function ReportDetail({ report, onBack, monthlySales, kpiData, expenseBreakdown,
                       <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
                       <td className="px-3 py-2" colSpan={2}>Total Stock Valuation</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + getStockValuation(i).stockValue, 0))}</td>
+                    </tr>
+                  </tfoot>
+                )}
+                {report.code === "149" && (
+                  <tfoot>
+                    <tr className="border-t-2 font-bold bg-muted/40">
+                      <td className="px-3 py-2" colSpan={5}>Total Products: {inventoryTableData.length}</td>
+                      <td className="px-3 py-2 text-right">{inventoryTableData.reduce((s, i) => s + (i.qty || 0), 0)}</td>
+                      <td className="px-3 py-2" colSpan={3}>Totals</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + getStockValuation(i).stockValue, 0))}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(inventoryTableData.reduce((s, i) => s + (i.qty || 0) * (Number(i.costPrice) || 0), 0))}</td>
                     </tr>
                   </tfoot>
                 )}
@@ -4773,7 +4795,7 @@ export default function Reports() {
   const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState<string[]>([
     "028", "029", "034", "037", "084", "085", "088", "235", "236",
-    "078", "080", "082", "083", "148", "180",
+    "078", "080", "082", "083", "148", "149", "180",
     "121", "123", "125", "127", "130", "129", "135", "258", "307", "381", "383",
     "272",
   ]);

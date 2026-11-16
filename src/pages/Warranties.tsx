@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCustomersCloud } from "@/hooks/useAppData";
 import { toast } from "@/hooks/use-toast";
-import { DEFAULT_OUTPUT_WARRANTY, KIND_DEFAULTS, KIND_LABEL, dmy, parseSerials, printWarranty, type WarrantyItem, type WarrantyKind, type WarrantyRecord } from "@/lib/warrantyPrint";
+import { DEFAULT_OUTPUT_WARRANTY, KIND_DEFAULTS, KIND_LABEL, dmy, parseSerials, printWarranty, getWarrantyPrintOptions, saveWarrantyPrintOptions, type WarrantyItem, type WarrantyKind, type WarrantyRecord } from "@/lib/warrantyPrint";
 
 /** Serials typed one at a time (Enter adds), with optional bulk paste. */
 function SerialEntry({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
@@ -70,6 +70,8 @@ export default function WarrantiesPage() {
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [printOpts, setPrintOpts] = useState(getWarrantyPrintOptions);
+  const updatePrint = (patch: Partial<typeof printOpts>) => setPrintOpts((o) => { const n = { ...o, ...patch }; saveWarrantyPrintOptions(n); return n; });
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from("warranties" as never).select("*").order("created_at", { ascending: false });
@@ -184,6 +186,18 @@ export default function WarrantiesPage() {
           <h1 className="text-2xl font-bold">Warranty Certificates</h1>
         </div>
         <Button onClick={openNew}><Plus className="mr-1 h-4 w-4" />New Warranty</Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-sm">
+        <label className="flex items-center gap-2 font-medium">
+          <input type="checkbox" className="h-4 w-4" checked={!!printOpts.letterhead} onChange={(e) => updatePrint({ letterhead: e.target.checked })} />
+          Print on pre-printed letterhead
+        </label>
+        {printOpts.letterhead && (<>
+          <span className="flex items-center gap-1">Top space (mm) <Input type="number" className="h-8 w-20" value={printOpts.topMm ?? 45} onChange={(e) => updatePrint({ topMm: Number(e.target.value) })} /></span>
+          <span className="flex items-center gap-1">Bottom space (mm) <Input type="number" className="h-8 w-20" value={printOpts.bottomMm ?? 35} onChange={(e) => updatePrint({ bottomMm: Number(e.target.value) })} /></span>
+          <span className="text-muted-foreground">Logo, header and footer are hidden; only warranty text prints.</span>
+        </>)}
       </div>
 
       <Input placeholder="Search by name, CNIC, phone, invoice or serial number..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-md" />
