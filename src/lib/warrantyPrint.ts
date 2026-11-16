@@ -195,10 +195,18 @@ ${lh ? ".page:before{display:none}.page{background:transparent}" : ""}
 </body></html>`;
 }
 
-export function printWarranty(w: WarrantyRecord, attachmentUrl?: string | string[], opts: WarrantyPrintOptions = getWarrantyPrintOptions()) {
-  const win = window.open("", "_blank");
+export function printWarranty(w: WarrantyRecord, attachmentUrl?: string | string[], opts: WarrantyPrintOptions = getWarrantyPrintOptions(), existing?: Window | null) {
+  const win = existing && !existing.closed ? existing : window.open("", "_blank");
   if (!win) return false;
+  win.document.open();
   win.document.write(warrantyHtml(w, attachmentUrl, opts));
   win.document.close();
   return true;
+}
+
+/** Opens the print window synchronously (inside the click) so pop-up blockers allow it. */
+export function openPrintWindow(): Window | null {
+  const win = window.open("", "_blank");
+  if (win) win.document.write('<p style="font-family:Arial;padding:40px;color:#1f6fb8">Preparing warranty...</p>');
+  return win;
 }
