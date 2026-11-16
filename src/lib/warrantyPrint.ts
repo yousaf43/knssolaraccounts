@@ -68,7 +68,9 @@ export function getWarrantyPrintOptions(): WarrantyPrintOptions {
 }
 export function saveWarrantyPrintOptions(o: WarrantyPrintOptions) { localStorage.setItem(LH_KEY, JSON.stringify(o)); }
 
-export function warrantyHtml(w: WarrantyRecord, attachmentUrl?: string, opts: WarrantyPrintOptions = {}) {
+export function warrantyHtml(w: WarrantyRecord, attachment?: string | string[], opts: WarrantyPrintOptions = {}) {
+  const scans = (Array.isArray(attachment) ? attachment : attachment ? [attachment] : []);
+  const attachmentUrl = scans[0];
   const lh = !!opts.letterhead;
   const topMm = Math.max(0, Number(opts.topMm ?? 45)), bottomMm = Math.max(0, Number(opts.bottomMm ?? 35));
   const origin = window.location.origin;
@@ -112,7 +114,7 @@ export function warrantyHtml(w: WarrantyRecord, attachmentUrl?: string, opts: Wa
     <h1>Serial Numbers</h1>
     <p class="sub">Certificate <b>${esc(w.certificateNo)}</b> &middot; ${esc(w.customerName)}${w.cnic ? ` &middot; CNIC ${esc(w.cnic)}` : ""}</p>
     ${withSerials.map((i) => `<div class="sgroup"><div class="stitle">${esc(KIND_LABEL[i.kind])} <span>${esc(i.description)} &middot; Qty ${esc(i.quantity || i.serials.length)}</span></div>${serialTable(i.serials)}</div>`).join("")}
-    ${attachmentUrl && !withSerials.length ? `<img class="scan" src="${esc(attachmentUrl)}" alt="Serial sheet">` : ""}
+    ${!withSerials.length ? scans.map((u) => `<img class="scan" src="${esc(u)}" alt="Serial sheet" style="max-width:100%;max-height:220mm;display:block;margin:2mm auto">`).join("") : ""}
     <div class="grow"></div>${footer}
   </section>` : "";
 
@@ -193,7 +195,7 @@ ${lh ? ".page:before{display:none}.page{background:transparent}" : ""}
 </body></html>`;
 }
 
-export function printWarranty(w: WarrantyRecord, attachmentUrl?: string, opts: WarrantyPrintOptions = getWarrantyPrintOptions()) {
+export function printWarranty(w: WarrantyRecord, attachmentUrl?: string | string[], opts: WarrantyPrintOptions = getWarrantyPrintOptions()) {
   const win = window.open("", "_blank");
   if (!win) return false;
   win.document.write(warrantyHtml(w, attachmentUrl, opts));
