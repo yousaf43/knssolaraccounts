@@ -1,8 +1,9 @@
 import { readyAIProviders, markAIProviderFailure } from './ai-credentials.ts';
 import { orderedFallback, type AIProvider } from './ai-policy.ts';
+import { withGeminiModel, isLegacyGemini } from './gemini-models.ts';
 export type AIMessage = { role: string; content: string | unknown[] };
 const endpoints = { gemini: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', groq: 'https://api.groq.com/openai/v1/chat/completions', openrouter: 'https://openrouter.ai/api/v1/chat/completions' };
-const models = { gemini: 'gemini-2.5-flash', groq: 'llama-3.3-70b-versatile', openrouter: 'google/gemini-2.5-flash' };
+const models = { gemini: 'gemini-flash-latest', groq: 'llama-3.3-70b-versatile', openrouter: 'google/gemini-2.5-flash' };
 function geminiContents(messages: AIMessage[]) {
   return messages.filter(m => m.role !== 'system').map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: typeof m.content === 'string' ? [{ text: m.content }] : m.content.map((block: any) => {
     if (block.type === 'text') return { text: block.text };
@@ -23,7 +24,7 @@ export async function routeAI(companyId: string, messages: AIMessage[], options:
     for (let attemptNo = 0; attemptNo < 3; attemptNo++) {
       if (attemptNo) await new Promise(r => setTimeout(r, attemptNo * 2000 + Math.random() * 500));
     if (provider === 'gemini' && hasFiles) {
-      response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', { method: 'POST', signal: options.signal, headers: { 'x-goog-api-key': state.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ systemInstruction: { parts: messages.filter(m => m.role === 'system').map(m => ({ text: m.content })) }, contents: geminiContents(messages), generationConfig: { temperature: 0.1, ...(options.json ? { responseMimeType: 'application/json' } : {}) } }) });
+      response = await withGeminiModel(model => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', signal: options.signal, headers: { 'x-goog-api-key': state.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ systemInstruction: { parts: messages.filter(m => m.role === 'system').map(m => ({ text: m.content })) }, contents: geminiContents(messages), generationConfig: { temperature: 0.1, ...(options.json ? { responseMimeType: 'application/json' } : {}) } }) }));
       if (response.ok) {
         const body = await response.json();
         if (body.promptFeedback?.blockReason || body.candidates?.[0]?.finishReason === 'SAFETY') return { status: 403, value: new Response(JSON.stringify({ error: 'The provider declined this request' }), { status: 403 }) };
@@ -31,7 +32,8 @@ export async function routeAI(companyId: string, messages: AIMessage[], options:
         response = new Response(JSON.stringify({ choices: [{ message: { content: text } }] }), { headers: { 'Content-Type': 'application/json' } });
       }
     } else {
-      response = await fetch(endpoints[provider], { method: 'POST', signal: options.signal, headers: { Authorization: `Bearer ${state.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: models[provider], messages: provider === 'groq' ? options.groqMessages || messages : messages, temperature: 0.1, ...(provider === 'gemini' ? { reasoning_effort: 'none' } : {}), ...(options.json ? { response_format: options.schema && provider !== 'groq' ? { type: 'json_schema', json_schema: { name: 'assistant_turn', strict: true, schema: options.schema } } : { type: 'json_object' } } : {}), stream: options.stream || false }) });
+      const send = (model: string) => fetch(endpoints[provider], { method: 'POST', signal: options.signal, headers: { Authorization: `Bearer ${state.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, messages: provider === 'groq' ? options.groqMessages || messages : messages, temperature: 0.1, ...(provider === 'gemini' ? { reasoning_effort: isLegacyGemini(model) ? 'none' : 'low' } : {}), ...(options.json ? { response_format: options.schema && provider !== 'groq' ? { type: 'json_schema', json_schema: { name: 'assistant_turn', strict: true, schema: options.schema } } : { type: 'json_object' } } : {}), stream: options.stream || false }) });
+      response = provider === 'gemini' ? await withGeminiModel(send) : await send(models[provider]);
     }
     retryAfter = response.headers.get('Retry-After');
     if (response.ok || response.status < 500) break;
