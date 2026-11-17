@@ -13,11 +13,15 @@ function geminiContents(messages: AIMessage[]) {
 export async function routeAI(companyId: string, messages: AIMessage[], options: { json?: boolean; schema?: Record<string, unknown>; stream?: boolean; signal?: AbortSignal; groqMessages?: AIMessage[] } = {}) {
   const hasFiles = messages.some(m => Array.isArray(m.content));
   const providers = (await readyAIProviders(companyId)).filter(p => !(p.provider === 'groq' && hasFiles));
-  let retryAfter: string | null = null;
+  let retryAfter: string | null = null; let detail = '';
+  const names: Record<string, string> = { gemini: 'Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
   const result = await orderedFallback(providers.map(p => p.provider), async provider => {
     const state = providers.find(p => p.provider === provider);
     if (!state) throw new Error('AI provider is not configured');
-    let response: Response;
+    let response: Response = new Response(null, { status: 503 });
+    // Transient provider overloads (5xx) get a short bounded retry on the same provider.
+    for (let attemptNo = 0; attemptNo < 3; attemptNo++) {
+      if (attemptNo) await new Promise(r => setTimeout(r, attemptNo * 2000 + Math.random() * 500));
     if (provider === 'gemini' && hasFiles) {
       response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', { method: 'POST', signal: options.signal, headers: { 'x-goog-api-key': state.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ systemInstruction: { parts: messages.filter(m => m.role === 'system').map(m => ({ text: m.content })) }, contents: geminiContents(messages), generationConfig: { temperature: 0.1, ...(options.json ? { responseMimeType: 'application/json' } : {}) } }) });
       if (response.ok) {
@@ -30,9 +34,18 @@ export async function routeAI(companyId: string, messages: AIMessage[], options:
       response = await fetch(endpoints[provider], { method: 'POST', signal: options.signal, headers: { Authorization: `Bearer ${state.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: models[provider], messages: provider === 'groq' ? options.groqMessages || messages : messages, temperature: 0.1, ...(provider === 'gemini' ? { reasoning_effort: 'none' } : {}), ...(options.json ? { response_format: options.schema && provider !== 'groq' ? { type: 'json_schema', json_schema: { name: 'assistant_turn', strict: true, schema: options.schema } } : { type: 'json_object' } } : {}), stream: options.stream || false }) });
     }
     retryAfter = response.headers.get('Retry-After');
+    if (response.ok || response.status < 500) break;
+    await response.body?.cancel();
+    }
     if (!response.ok) {
-      await response.body?.cancel();
-      response = new Response(null, { status: response.status });
+      const raw = await response.text().catch(() => '');
+      let message = '';
+      try { const j = JSON.parse(raw); const e = Array.isArray(j) ? j[0]?.error : j?.error; message = String(e?.message || j?.message || ''); } catch { message = raw; }
+      message = message.replace(/AIza[0-9A-Za-z_\-]{20,}|sk-[0-9A-Za-z_\-]{10,}|gsk_[0-9A-Za-z]{10,}/g, '[key]').replace(/\s+/g, ' ').slice(0, 220);
+      detail = message ? `${names[provider]}: ${message}` : '';
+      // Gemini reports an invalid key as 400 API_KEY_INVALID; treat it as a rejected key.
+      const status = response.status === 400 && /API[_ ]KEY[_ ]INVALID|API key not valid/i.test(raw) ? 401 : response.status;
+      response = new Response(null, { status });
     }
     return { status: response.status, value: response };
   }, async (provider, status) => {
@@ -41,7 +54,7 @@ export async function routeAI(companyId: string, messages: AIMessage[], options:
   if (!result) throw Object.assign(new Error(hasFiles ? 'No configured AI provider can read this file; check AI settings' : 'No AI provider is ready; check credits and AI settings'), { status: 503 });
   if (!result.value.ok) {
     await result.value.body?.cancel();
-    throw Object.assign(new Error(result.status === 402 || result.status === 429 ? 'Configured AI providers have exhausted credits or quota; update AI settings' : result.status === 401 ? 'AI API key was rejected; update AI settings' : result.status === 403 ? 'The AI provider declined access or this request' : `AI request failed (${result.status})`), { status: result.status });
+    throw Object.assign(new Error((result.status === 402 || result.status === 429 ? 'Configured AI providers have exhausted credits or quota; update AI settings' : result.status === 401 ? 'AI API key was rejected; update AI settings' : result.status === 403 ? 'The AI provider declined access or this request' : `AI request failed (${result.status})`) + (detail ? ` — ${detail}` : '')), { status: result.status });
   }
   return { response: result.value, provider: result.provider as AIProvider };
 }
