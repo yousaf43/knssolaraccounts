@@ -125,6 +125,7 @@ export function proposalHtml(
   // Inverter can be excluded (panels-only proposals, e.g. customer already owns one).
   const hasInv = p.includeInverter !== false && (p.inverterKw || 0) > 0;
 
+  const PHEAD = `<div class="phead">${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}<span>Technical &amp; Financial Proposal &nbsp;|&nbsp; ${typeLabel} Solar System</span></div>`;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Proposal ${esc(p.proposalNo)}</title>
 <style>
   :root{--blue:#0868A0;--gold:#F8B830;--navy:#0B3A5B;--ink:#1E2B36;--muted:#5F6F7C;--line:#D7E0E7;--soft:#EAF3F9;--cover-top:#075cb2;--cover-bottom:#052959;--cover-white:#fff;--cover-yellow:#ffcf00;--cover-pin:#ff2860;--cover-globe:#00b9ee;--cover-outline:#bfeaff;--cover-card:linear-gradient(155deg,var(--cover-top),var(--cover-bottom) 85%)}
@@ -138,6 +139,17 @@ export function proposalHtml(
   h2,h3,h4,.phead,.qh{break-after:avoid;page-break-after:avoid}
   svg{display:block;break-inside:avoid}
   img{max-width:100%}
+  .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin:4mm 0}
+  .kpi{background:var(--soft);border-left:4px solid var(--gold);border-radius:2mm;padding:3mm 4mm;break-inside:avoid}
+  .kpi b{display:block;font-size:17px;color:var(--navy)}.kpi span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .flow{display:flex;align-items:stretch;gap:2mm;margin:3mm 0;break-inside:avoid}
+  .fb{flex:1;background:linear-gradient(155deg,#0868A0,#0B3A5B);color:#fff;border-radius:2.5mm;padding:3mm;text-align:center}
+  .fb b{display:block;font-size:13px;color:var(--gold)}.fb span{font-size:10.5px}
+  .fb.bb{background:#FDECEC;color:#8a1c1c}.fb.bb b{color:#B3261E;font-size:16px}.fb.bf{background:#E7F6EC;color:#0a5a2b}.fb.bf b{color:#0a7a3b;font-size:16px}
+  .arr{align-self:center;color:var(--gold);font-size:18px;font-weight:800}
+  .why{padding-left:5mm}.why li{margin:1mm 0}
+  .gantt{width:100%;border-collapse:collapse;font-size:10.5px}.gantt th{background:var(--navy);color:#fff;padding:1.5mm}.gantt td{border:1px solid var(--line);padding:1.2mm;height:6mm}
+  .gantt td i{display:block;height:3.5mm;background:linear-gradient(90deg,#F8B830,#E9A92C);border-radius:1mm}
   .cover{background:linear-gradient(160deg,var(--navy),var(--blue));color:#fff;border-radius:6px;padding:16mm 14mm;min-height:250mm;position:relative}
   .cover .tag{letter-spacing:.22em;font-size:10px;color:var(--gold);font-weight:700}
   .cover h1{font-size:30px;margin:10mm 0 2mm;font-weight:800}
@@ -313,6 +325,33 @@ export function proposalHtml(
 </div>
 ${projects.length ? `<div class="page"><h3 class="sec" style="margin-top:0">RECENTLY COMPLETED PROJECTS</h3><div class="grid2">${projectCards}</div></div>` : ""}
 
+${(() => {
+  const { category } = resolveCategory(p.tariffCategory, p);
+  const sv = computeSavings(p.monthlyUnits, genMonthly, category, tariff.rates, p.netBilling);
+  const cost = Math.max(0, Math.round(p.total));
+  const pb = sv.yearSave > 0 ? cost / sv.yearSave : 0;
+  const billBefore = (annualUnits / 12) * sv.avgRate;
+  const billAfter = Math.max(0, billBefore - sv.monthSave);
+  const red = billBefore > 0 ? Math.min(100, Math.round((sv.monthSave / billBefore) * 100)) : 0;
+  const f = (n: number) => Math.round(n).toLocaleString("en-PK");
+  const kpi = [["Proposed system", `${kw} kWp`], ["Annual generation", `${f(annualGen)} kWh`], ["Bill reduction", annualUnits ? `${red}%` : "—"], ["Monthly saving", `PKR ${f(sv.monthSave)}`], ["Total investment", `PKR ${f(cost)}`], ["Est. payback", pb > 0 ? `${pb.toFixed(1)} yrs` : "—"]];
+  const flow: [string, string][] = [["Solar Panels", `${p.panelQty} × ${p.panelWatt} W`]];
+  if (hasInv) flow.push(["Inverter", `${p.inverterKw} kW ${typeLabel}`]);
+  if (p.battery) flow.push(["Battery", `${(p.battery.units * p.battery.kwhEach).toFixed(1)} kWh`]);
+  flow.push(["Loads / Grid", p.netBilling ? "Home + Net metering" : "Home / Business"]);
+  return `<div class="page">
+  ${PHEAD}
+  <h2 class="ptitle"><em>★</em> EXECUTIVE SUMMARY</h2>
+  <p>${esc(company.name || "K&S Solar Energy")} proposes to design, supply, install and commission a <b>${kw} kWp ${typeLabel}</b> solar power system${p.address || p.city ? ` at <b>${esc([p.address, p.city].filter(Boolean).join(", "))}</b>` : ""} for <b>${esc(p.customerName || "the client")}</b>, sized to cut the electricity bill and protect against future tariff increases.</p>
+  <div class="kgrid">${kpi.map(([k, v]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("")}</div>
+  ${annualUnits ? `<h3 class="sec">MONTHLY BILL: BEFORE AND AFTER</h3><div class="flow"><div class="fb bb"><span>Current average bill</span><b>PKR ${f(billBefore)}</b></div><div class="arr">➜</div><div class="fb bf"><span>Estimated bill after solar</span><b>PKR ${f(billAfter)}</b></div></div>` : ""}
+  <h3 class="sec">SYSTEM FLOW</h3>
+  <div class="flow">${flow.map(([a, b], i) => `${i ? '<div class="arr">➜</div>' : ""}<div class="fb"><b>${a}</b><span>${esc(b)}</span></div>`).join("")}</div>
+  <h3 class="sec">WHY CHOOSE K&amp;S SOLAR ENERGY</h3>
+  <ul class="why"><li>Operating since 2013 with megawatt-scale completed projects</li><li>Tier-1 panels and certified inverters with manufacturer warranty</li><li>In-house engineering, installation and net-metering support</li><li>One year free maintenance after commissioning</li></ul>
+</div>`;
+})()}
+
 <div class="page">
   <div class="phead">
     ${LOGO ? `<img src="${esc(LOGO)}" alt="">` : `<b>${esc(company.name)}</b>`}
@@ -483,6 +522,27 @@ ${(() => {
   <h4>Savings from month to years</h4>
   <table class="it"><tr><th>Period</th><th style="width:30%">Total saving (PKR)</th><th style="width:30%">Net benefit after cost (PKR)</th></tr>${rows}</table>
   <p style="font-size:9.5px;color:#555;margin-top:3mm">Calculated on the <b>${CATEGORY_LABEL[category]}</b> electricity tariff (${esc(reason)}) — ${esc(tariff.source)}${tariff.effectiveLabel ? `, ${esc(tariff.effectiveLabel)}` : ""}: average bill rate about PKR ${sv.avgRate.toFixed(1)} per unit including FPA ${tariff.rates.fpa}/unit, electricity duty ${tariff.rates.electricityDuty}% and GST ${tariff.rates.gst}%${p.netBilling ? `; exported units credited at PKR ${tariff.rates.exportRate}/unit` : ""}. Solar use on site about ${f(usable)} units/year. Actual savings depend on future tariff changes, usage and weather.</p>
+</div>`;
+})()}
+
+${(() => {
+  const tasks: [string, number, number][] = [["Contract and advance", 1, 1], ["Design and approvals", 1, 2], ["Material procurement", 2, 3], ["Structure installation", 3, 4], ["Panels and electrical install", 4, 5], ["Testing and commissioning", 5, 6], ["Net metering / grid connection", 5, 8], ["Handover and training", 8, 8]];
+  const wk = Array.from({ length: 8 }, (_, i) => i + 1);
+  const warr: [string, string, string][] = [["Solar panels", p.panelBrand || "Manufacturer", "Product & performance warranty as per manufacturer"]];
+  if (hasInv) warr.push(["Inverter", p.inverterBrand || "Manufacturer", "As per manufacturer warranty card"]);
+  if (p.battery) warr.push(["Battery", p.battery.brand || "Manufacturer", p.battery.warranty || "As per manufacturer"]);
+  warr.push(["Installation workmanship", "K&S Solar Energy", "1 year"], ["Free maintenance", "K&S Solar Energy", "1 year"]);
+  return `<div class="page">
+  ${PHEAD}
+  <h2 class="ptitle"><em>6</em> DELIVERY SCHEDULE &amp; QUALITY</h2>
+  <h3 class="sec">PROJECT SCHEDULE</h3>
+  <table class="gantt"><thead><tr><th>Activity</th>${wk.map((w) => `<th>W${w}</th>`).join("")}</tr></thead><tbody>${tasks.map(([t, a, b]) => `<tr><td>${t}</td>${wk.map((w) => `<td>${w >= a && w <= b ? '<i></i>' : ""}</td>`).join("")}</tr>`).join("")}</tbody></table>
+  <p style="font-size:9.5px;color:#666;margin-top:1mm">Indicative plan; net metering time depends on the electricity company. Final schedule is confirmed at order.</p>
+  <h3 class="sec">APPLICABLE STANDARDS</h3>
+  <table class="it"><tr><th>Area</th><th style="width:35%">Standard</th></tr>
+  <tr><td>PV modules — design qualification</td><td>IEC 61215</td></tr><tr><td>PV modules — safety</td><td>IEC 61730</td></tr><tr><td>Inverters — safety</td><td>IEC 62109-1 / 62109-2</td></tr><tr><td>System documentation and commissioning</td><td>IEC 62446-1</td></tr><tr><td>Installation wiring and protection</td><td>IEC 60364-7-712</td></tr></table>
+  <h3 class="sec">WARRANTY &amp; SUPPORT</h3>
+  <table class="it"><tr><th>Component</th><th>Provided by</th><th>Warranty</th></tr>${warr.map(([a, b, c]) => `<tr><td><b>${esc(a)}</b></td><td>${esc(b)}</td><td>${esc(c)}</td></tr>`).join("")}</table>
 </div>`;
 })()}
 
