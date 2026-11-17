@@ -1,5 +1,6 @@
 import { readyAIProviders, markAIProviderFailure } from './ai-credentials.ts';
 import { orderedFallback } from './ai-policy.ts';
+import { withGeminiModel, isLegacyGemini } from './gemini-models.ts';
 function b64(bytes: Uint8Array) { let result = ''; for (let i = 0; i < bytes.length; i += 32768) result += String.fromCharCode(...bytes.subarray(i, i + 32768)); return btoa(result); }
 export async function aiVoice(companyId: string, input: { file?: File; text?: string }, signal?: AbortSignal) {
   // Groq speech synthesis does not support Urdu; never silently substitute an English/Arabic voice.
@@ -11,7 +12,8 @@ export async function aiVoice(companyId: string, input: { file?: File; text?: st
     let response: Response;
     if (provider === 'gemini') {
       const parts = input.file ? [{ inlineData: { mimeType: input.file.type, data: b64(new Uint8Array(await input.file.arrayBuffer())) } }, { text: 'Transcribe only spoken words. Write Urdu in Roman Urdu. Preserve numbers, names and prices. Do not answer the speaker.' }] : [{ text: `Say warmly in a natural Pakistani Urdu accent: ${input.text}` }];
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${input.file ? 'gemini-2.5-flash' : 'gemini-2.5-flash-preview-tts'}:generateContent`, { method: 'POST', signal, headers: { 'x-goog-api-key': state.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }], generationConfig: input.file ? { thinkingConfig: { thinkingBudget: 0 } } : { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } } }) });
+      const call = (model: string) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', signal, headers: { 'x-goog-api-key': state.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }], generationConfig: input.file ? (isLegacyGemini(model) ? { thinkingConfig: { thinkingBudget: 0 } } : {}) : { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } } }) });
+      response = input.file ? await withGeminiModel(call) : await call('gemini-2.5-flash-preview-tts');
       if (response.ok) {
         const data = await response.json(); const parts = data.candidates?.[0]?.content?.parts || [];
         const audio = parts.find((p: any) => p.inlineData?.data)?.inlineData;
