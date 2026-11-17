@@ -167,6 +167,9 @@ export function proposalHtml(
   .head .co span{display:block;font-size:10.5px;color:var(--muted)}
   h3.sec{font-size:13px;color:var(--navy);border-left:4px solid var(--gold);padding-left:8px;margin:6mm 0 3mm}
   table{width:100%;border-collapse:collapse}
+  .pfoot{margin-top:6mm;padding-top:2mm;border-top:1.5px solid var(--gold);font-size:9.5px;color:var(--muted);text-align:center}
+  .eqg{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}.eq{background:var(--soft);border-top:4px solid var(--blue);border-radius:2mm;padding:3mm;break-inside:avoid}.eq b{display:block;color:var(--navy);font-size:13px;margin-bottom:1mm}.eq span{display:block;font-size:10.5px;color:var(--ink)}
+  .kgrid.k4{grid-template-columns:repeat(4,1fr)}.kpi.grn{border-left-color:#2E9E5B}
   th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
   th{background:var(--soft);color:var(--navy);font-size:11px}
   td.num,th.num{text-align:right;white-space:nowrap}
@@ -522,6 +525,111 @@ ${(() => {
   <h4>Savings from month to years</h4>
   <table class="it"><tr><th>Period</th><th style="width:30%">Total saving (PKR)</th><th style="width:30%">Net benefit after cost (PKR)</th></tr>${rows}</table>
   <p style="font-size:9.5px;color:#555;margin-top:3mm">Calculated on the <b>${CATEGORY_LABEL[category]}</b> electricity tariff (${esc(reason)}) — ${esc(tariff.source)}${tariff.effectiveLabel ? `, ${esc(tariff.effectiveLabel)}` : ""}: average bill rate about PKR ${sv.avgRate.toFixed(1)} per unit including FPA ${tariff.rates.fpa}/unit, electricity duty ${tariff.rates.electricityDuty}% and GST ${tariff.rates.gst}%${p.netBilling ? `; exported units credited at PKR ${tariff.rates.exportRate}/unit` : ""}. Solar use on site about ${f(usable)} units/year. Actual savings depend on future tariff changes, usage and weather.</p>
+</div>`;
+})()}
+
+${(() => {
+  const { category } = resolveCategory(p.tariffCategory, p);
+  const sv = computeSavings(p.monthlyUnits, genMonthly, category, tariff.rates, p.netBilling);
+  const f = (n: number) => Math.round(n).toLocaleString("en-PK");
+  const cost = Math.max(0, Math.round(p.total));
+  const PFOOT = `<div class="pfoot">knssolar.com.pk &nbsp;|&nbsp; @KSSolarEnergy &nbsp;|&nbsp; ${esc(PORTFOLIO.phone)}</div>`;
+  const hasUsage = p.monthlyUnits.some((u) => Number(u) > 0);
+  const avgU = hasUsage ? annualUnits / p.monthlyUnits.filter((u) => Number(u) > 0).length : 0;
+  const consRows = MONTHS.map((m, i) => { const u = Number(p.monthlyUnits[i]) || 0; return u ? `<tr><td>${m}</td><td class="num">${f(u)}</td><td class="num">${f(u * sv.avgRate)}</td></tr>` : ""; }).join("");
+  const dash = "—";
+  const kv = (rows: [string, string][]) => `<table class="it">${rows.map(([a, b]) => `<tr><td style="width:45%"><b>${a}</b></td><td>${b}</td></tr>`).join("")}</table>`;
+  const strings = p.panelQty > 0 ? Math.max(1, Math.round(p.panelQty / 14)) : 0;
+  // Yield and impact
+  const specYield = kw > 0 ? annualGen / kw : 0;
+  const pr = 80, cuf = kw > 0 ? (annualGen / (kw * 8760)) * 100 : 0;
+  const grid = 0.45; const co2 = (annualGen * grid) / 1000;
+  let cum25 = 0; for (let y = 0; y < 25; y++) cum25 += annualGen * Math.pow(0.995, y);
+  const co225 = (cum25 * grid) / 1000;
+  const peak = Math.max(1, ...genMonthly);
+  const prof = `<svg viewBox="0 0 640 170" width="100%">${genMonthly.map((g, i) => { const h = (g / peak) * 120, x = 15 + i * 52; return `<rect x="${x}" y="${140 - h}" width="34" height="${h}" rx="3" fill="url(#ey)"/><text x="${x + 17}" y="${134 - h}" font-size="9" font-weight="700" text-anchor="middle" fill="#0B3A5B">${f(g)}</text><text x="${x + 17}" y="156" font-size="9" text-anchor="middle" fill="#555">${MONTHS[i]}</text>`; }).join("")}<defs><linearGradient id="ey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD66B"/><stop offset="1" stop-color="#0868A0"/></linearGradient></defs><line x1="10" y1="140" x2="630" y2="140" stroke="#ccc"/></svg>`;
+  // Financial KPIs (5% tariff escalation, 0.5% degradation, 1% O&M, 10% discount)
+  const esc5 = 0.05, deg = 0.005, om = 0.01, dr = 0.1;
+  const flows: number[] = [-cost];
+  for (let y = 1; y <= 25; y++) flows.push(sv.yearSave * Math.pow(1 + esc5, y - 1) * Math.pow(1 - deg, y - 1) - cost * om);
+  const npvAt = (r: number) => flows.reduce((a, c, i) => a + c / Math.pow(1 + r, i), 0);
+  const npv = npvAt(dr);
+  let irr = 0; if (cost > 0 && sv.yearSave > 0) { let lo = -0.9, hi = 3; for (let k = 0; k < 80; k++) { const m = (lo + hi) / 2; if (npvAt(m) > 0) lo = m; else hi = m; } irr = (lo + hi) / 2; }
+  let acc = -cost, dacc = -cost, simple = 0, disc = 0;
+  for (let y = 1; y <= 25; y++) { const pa = acc; acc += flows[y]; if (!simple && acc >= 0) simple = y - 1 + -pa / flows[y]; const pd = dacc; const dv = flows[y] / Math.pow(1 + dr, y); dacc += dv; if (!disc && dacc >= 0) disc = y - 1 + -pd / dv; }
+  const total25 = flows.slice(1).reduce((a, b) => a + b, 0);
+  const roi = cost > 0 ? ((total25 - cost) / cost) * 100 : 0;
+  const lcoe = cum25 > 0 ? (cost * 1.25) / cum25 : 0;
+  const fk: [string, string][] = [["Simple payback", simple ? `${simple.toFixed(1)} yrs` : dash], ["Discounted payback", disc ? `${disc.toFixed(1)} yrs` : dash], ["IRR", irr ? `${(irr * 100).toFixed(1)}%` : dash], ["NPV @10%", cost ? `PKR ${f(npv)}` : dash], ["25-year ROI", cost ? `${f(roi)}%` : dash], ["LCOE per kWh", lcoe ? `PKR ${lcoe.toFixed(1)}` : dash], ["Year-1 savings", `PKR ${f(sv.yearSave)}`], ["25-year savings", `PKR ${f(total25)}`]];
+  return `
+<div class="page">
+  ${PHEAD}
+  <h2 class="ptitle"><em>A</em> CLIENT &amp; SITE UNDERSTANDING</h2>
+  <div class="grid2">
+    <div><h3 class="sec" style="margin-top:0">CLIENT DETAILS</h3>${kv([["Client", esc(p.customerName || dash)], ["Organization", esc(p.companyName || dash)], ["Contact", esc(p.phone || dash)], ["Site address", esc([p.address, p.city].filter(Boolean).join(", ") || dash)], ["Electricity provider", esc(p.disco || dash)], ["Connection type", esc(CATEGORY_LABEL[category])]])}</div>
+    <div><h3 class="sec" style="margin-top:0">SITE SURVEY</h3>${kv([["Orientation / tilt", "South facing / 15–25°"], ["Mounting", esc(p.structureType || "Elevated steel structure")], ["Earthing", p.earthing ? "Included" : "As per site"], ["Net metering", p.netBilling ? "Yes — application support" : "No"], ["Survey", "Confirmed at site visit"]])}</div>
+  </div>
+  <h3 class="sec">ELECTRICITY CONSUMPTION</h3>
+  ${hasUsage ? `<table class="it"><tr><th>Month</th><th>Units (kWh)</th><th>Est. bill (PKR)</th></tr>${consRows}<tr><td><b>Average</b></td><td class="num"><b>${f(avgU)}</b></td><td class="num"><b>${f(avgU * sv.avgRate)}</b></td></tr></table>` : `<p style="color:var(--muted)">Monthly units will be added from the client's electricity bills.</p>`}
+  <h3 class="sec">CLIENT OBJECTIVES</h3>
+  <ul class="why"><li>Reduce the monthly electricity bill</li>${p.battery ? "<li>Backup power during load-shedding</li>" : ""}${p.netBilling ? "<li>Export surplus units through net metering</li>" : ""}<li>Protection against future tariff increases</li></ul>
+  ${PFOOT}
+</div>
+<div class="page">
+  ${PHEAD}
+  <h2 class="ptitle"><em>B</em> PROPOSED SOLUTION — ${kw} kW ${typeLabel}</h2>
+  <p>Based on the load analysis, we recommend a ${kw} kW system built around ${esc(p.panelBrand || "Tier-1")} panels${hasInv ? `, a ${esc(p.inverterBrand || "certified")} inverter` : ""}${p.battery ? ` and ${esc(p.battery.brand)} batteries for backup` : ""}.</p>
+  <h3 class="sec">DESIGN SUMMARY</h3>
+  <table class="it"><tr><th>Parameter</th><th>Specification</th></tr>
+  <tr><td>DC array capacity</td><td>${((p.panelQty * p.panelWatt) / 1000).toFixed(2)} kWp</td></tr>
+  <tr><td>Panel configuration</td><td>${p.panelQty} panels × ${p.panelWatt} Wp${strings ? ` (about ${strings} string${strings > 1 ? "s" : ""}, final at design)` : ""}</td></tr>
+  <tr><td>Mounting structure</td><td>${esc(p.structureType || "Galvanized steel, elevated")}</td></tr>
+  <tr><td>DC and AC protection</td><td>DC isolators, fuses, SPD, MCB / breakers</td></tr>
+  <tr><td>Earthing and lightning arrestor</td><td>${p.earthing ? "Included" : "Optional"}</td></tr>
+  <tr><td>Cables</td><td>Solar DC cable and AC cable sized to design</td></tr>
+  <tr><td>Monitoring</td><td>${hasInv ? "WiFi / mobile app monitoring" : "As per existing inverter"}</td></tr></table>
+  <h3 class="sec">MAIN EQUIPMENT</h3>
+  <div class="eqg">
+    <div class="eq"><b>Solar Panel</b><span>${esc(p.panelBrand || dash)}</span><span>${p.panelWatt} Wp × ${p.panelQty}</span><span>Warranty: ${esc(p.panelWarranty || "As per manufacturer")}</span></div>
+    ${hasInv ? `<div class="eq"><b>Inverter</b><span>${esc(p.inverterBrand || dash)}</span><span>${p.inverterKw} kW ${typeLabel}</span><span>Warranty: ${esc(p.inverterWarranty || "As per manufacturer")}</span></div>` : ""}
+    ${p.battery ? `<div class="eq"><b>Battery</b><span>${esc(p.battery.brand)} ${esc(p.battery.model)}</span><span>${p.battery.units} × ${p.battery.kwhEach} kWh ${esc(p.battery.type)}</span><span>Warranty: ${esc(p.battery.warranty || "As per manufacturer")}</span></div>` : ""}
+  </div>
+  ${PFOOT}
+</div>
+<div class="page">
+  ${PHEAD}
+  <h2 class="ptitle"><em>C</em> ENERGY YIELD &amp; IMPACT</h2>
+  <p style="font-size:10px;color:var(--muted)">Estimates for planning, based on site irradiance for Punjab and typical system losses.</p>
+  <h3 class="sec">MONTHLY ENERGY PROFILE (kWh)</h3>${prof}
+  <div class="kgrid">${[["Specific yield", `${f(specYield)} kWh/kWp/yr`], ["Performance ratio", `${pr}%`], ["Capacity utilization", `${cuf.toFixed(1)}%`], ["Year-1 generation", `${f(annualGen)} kWh`], ["P90 annual yield", `${f(annualGen * 0.92)} kWh`], ["25-yr generation", `${f(cum25)} kWh`]].map(([k, v]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("")}</div>
+  <h3 class="sec">ENVIRONMENTAL IMPACT</h3>
+  <div class="kgrid">${[["CO₂ avoided per year", `${co2.toFixed(1)} t`], ["CO₂ avoided in 25 years", `${f(co225)} t`], ["Equivalent trees planted", f(co2 * 45)]].map(([k, v]) => `<div class="kpi grn"><b>${v}</b><span>${k}</span></div>`).join("")}</div>
+  <p style="font-size:9.5px;color:var(--muted);margin-top:2mm">Grid factor ${grid} kgCO₂/kWh. Supports UN Sustainable Development Goals 7 (Affordable &amp; Clean Energy) and 13 (Climate Action).</p>
+  ${PFOOT}
+</div>
+<div class="page">
+  ${PHEAD}
+  <h2 class="ptitle"><em>D</em> FINANCIAL ANALYSIS — 25 YEAR VIEW</h2>
+  <div class="kgrid k4">${fk.map(([k, v]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("")}</div>
+  <h3 class="sec">ASSUMPTIONS</h3>
+  <table class="it"><tr><th>Assumption</th><th>Value</th></tr><tr><td>Analysis period</td><td>25 years</td></tr><tr><td>Electricity tariff escalation</td><td>5% per year</td></tr><tr><td>Panel degradation</td><td>0.5% per year</td></tr><tr><td>Annual O&amp;M cost</td><td>1% of system cost</td></tr><tr><td>Discount rate</td><td>10%, PKR</td></tr><tr><td>Tariff basis</td><td>${esc(CATEGORY_LABEL[category])}, about PKR ${sv.avgRate.toFixed(1)}/unit</td></tr></table>
+  <h3 class="sec">PAYMENT TERMS</h3>
+  <div class="kgrid k4">${[["70%", "Advance with order"], ["20%", "Material delivery"], ["10%", "After commissioning"], ["1 Year", "Free maintenance"]].map(([v, k]) => `<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("")}</div>
+  <p style="font-size:9.5px;color:var(--muted);margin-top:2mm">Payment split is indicative; final terms are as stated in the quotation. Figures are estimates, not guarantees.</p>
+  ${PFOOT}
+</div>
+<div class="page">
+  ${PHEAD}
+  <h2 class="ptitle"><em>E</em> OPERATIONS, MAINTENANCE &amp; FAQ</h2>
+  <h3 class="sec">OPERATIONS AND MAINTENANCE</h3>
+  <table class="it"><tr><th>Service</th><th>Frequency</th></tr><tr><td>Module cleaning</td><td>Every 2–3 weeks, by site dust level</td></tr><tr><td>Electrical and structural inspection</td><td>Quarterly</td></tr><tr><td>Inverter${p.battery ? " and battery" : ""} health check</td><td>Semi-annual</td></tr><tr><td>Remote performance monitoring</td><td>Continuous</td></tr><tr><td>Fault response time</td><td>24–48 hours</td></tr></table>
+  <h3 class="sec">KEY RISKS AND MITIGATION</h3>
+  <table class="it"><tr><th>Risk</th><th>Mitigation</th></tr><tr><td>Material delay</td><td>Early ordering from own import stock and partners</td></tr><tr><td>Bad weather</td><td>Schedule buffer; work-at-height safety rules</td></tr><tr><td>Grid approval delay</td><td>Application filed early; documents prepared in advance</td></tr><tr><td>Future shading</td><td>Shading analysis and design margin</td></tr></table>
+  <h3 class="sec">QUALITY, SAFETY AND HANDOVER</h3>
+  <p>Handover documents: as-built drawings, test and commissioning reports, datasheets, warranty certificates, O&amp;M guide and monitoring access.</p>
+  <h3 class="sec">FREQUENTLY ASKED QUESTIONS</h3>
+  <table class="it"><tr><td style="width:45%"><b>How often should panels be cleaned?</b></td><td>Every 2–3 weeks; more often in dusty areas.</td></tr><tr><td><b>Can the system be expanded later?</b></td><td>Yes, subject to inverter capacity and roof area.</td></tr><tr><td><b>Does it work in cloudy weather?</b></td><td>Yes, at reduced output.</td></tr><tr><td><b>Who do I call for service?</b></td><td>K&amp;S support: ${esc(PORTFOLIO.phone)}</td></tr></table>
+  ${PFOOT}
 </div>`;
 })()}
 
