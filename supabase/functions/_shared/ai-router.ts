@@ -54,7 +54,7 @@ export async function routeAI(companyId: string, messages: AIMessage[], options:
   if (!result) throw Object.assign(new Error(hasFiles ? 'No configured AI provider can read this file; check AI settings' : 'No AI provider is ready; check credits and AI settings'), { status: 503 });
   if (!result.value.ok) {
     await result.value.body?.cancel();
-    throw Object.assign(new Error(result.status === 402 || result.status === 429 ? 'Configured AI providers have exhausted credits or quota; update AI settings' : result.status === 401 ? 'AI API key was rejected; update AI settings' : result.status === 403 ? 'The AI provider declined access or this request' : `AI request failed (${result.status})`) + (detail ? ` — ${detail}` : ''), { status: result.status });
+    throw Object.assign(new Error((result.status === 402 || result.status === 429 ? 'Configured AI providers have exhausted credits or quota; update AI settings' : result.status === 401 ? 'AI API key was rejected; update AI settings' : result.status === 403 ? 'The AI provider declined access or this request' : `AI request failed (${result.status})`) + (detail ? ` — ${detail}` : '')), { status: result.status });
   }
   return { response: result.value, provider: result.provider as AIProvider };
 }
