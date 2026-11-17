@@ -42,9 +42,13 @@ export default function SerialStock({ stock, certNo, reload }: { stock: StockSer
         if (f.size > 25 * 1024 * 1024) throw new Error("File is larger than 25 MB");
         const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
         // PDFs are turned into page photos in the browser so the server gets small, clear images.
-        const parts: { mimeType: string; data: string }[] = isPdf
-          ? (await pdfFileToJpegs(f)).map((data) => ({ mimeType: "image/jpeg", data }))
-          : [{ mimeType: f.type || "image/jpeg", data: await new Promise<string>((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => bad(r.error); r.readAsDataURL(f); }) }];
+        const raw = () => new Promise<string>((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => bad(r.error); r.readAsDataURL(f); });
+        let parts: { mimeType: string; data: string }[] = [];
+        if (isPdf) parts = await pdfFileToJpegs(f).then((pages) => pages.map((data) => ({ mimeType: "image/jpeg", data }))).catch(() => []);
+        if (!parts.length) {
+          if (f.size > 10 * 1024 * 1024) throw new Error("File is larger than 10 MB");
+          parts = [{ mimeType: isPdf ? "application/pdf" : f.type || "image/jpeg", data: await raw() }];
+        }
         const all: string[] = [];
         for (const part of parts) {
           const { data: res, error } = await supabase.functions.invoke("serial-extract", { body: part });
