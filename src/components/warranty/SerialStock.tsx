@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { pdfFileToJpegs } from "@/lib/attachmentPages";
 import { SERIAL_CATEGORY_LABEL, extractSerials, readSheetText, serialKey, type SerialCategory, type StockSerial } from "@/lib/warrantySerials";
 
 const CATS = Object.keys(SERIAL_CATEGORY_LABEL) as SerialCategory[];
@@ -38,12 +39,24 @@ export default function SerialStock({ stock, certNo, reload }: { stock: StockSer
     try {
       let found = /\.(csv|txt)$/i.test(f.name) ? extractSerials(await readSheetText(f)) : [];
       if (!found.length) {
-        if (f.size > 10 * 1024 * 1024) throw new Error("File is larger than 10 MB");
-        const data = await new Promise<string>((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => bad(r.error); r.readAsDataURL(f); });
-        const mimeType = f.type || (/\.pdf$/i.test(f.name) ? "application/pdf" : "image/jpeg");
-        const { data: res, error } = await supabase.functions.invoke("serial-extract", { body: { mimeType, data } });
-        if (error || res?.error) throw new Error(res?.error || error?.message || "Could not read sheet");
-        found = res.serials || [];
+        if (f.size > 25 * 1024 * 1024) throw new Error("File is larger than 25 MB");
+        const isPdf = f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+        // PDFs are turned into page photos in the browser so the server gets small, clear images.
+        const parts: { mimeType: string; data: string }[] = isPdf
+          ? (await pdfFileToJpegs(f)).map((data) => ({ mimeType: "image/jpeg", data }))
+          : [{ mimeType: f.type || "image/jpeg", data: await new Promise<string>((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => bad(r.error); r.readAsDataURL(f); }) }];
+        const all: string[] = [];
+        for (const part of parts) {
+          const { data: res, error } = await supabase.functions.invoke("serial-extract", { body: part });
+          if (error || res?.error) {
+            let msg = res?.error as string | undefined;
+            const ctx = (error as { context?: Response } | null)?.context;
+            if (!msg && ctx && typeof ctx.json === "function") msg = (await ctx.json().catch(() => null))?.error;
+            throw new Error(msg || error?.message || "Could not read sheet");
+          }
+          for (const s of (res?.serials || []) as string[]) if (!all.includes(s)) all.push(s);
+        }
+        found = all;
       }
       setPreview(found);
       if (!found.length) toast({ title: "No serial numbers found", description: "Please paste or type the numbers below.", variant: "destructive" });
