@@ -19,7 +19,7 @@ import { suggestSerials, usedElsewhere, wattFromText, type StockSerial } from "@
 import { DEFAULT_OUTPUT_WARRANTY, KIND_DEFAULTS, KIND_LABEL, dmy, parseSerials, printWarranty, openPrintWindow, getWarrantyPrintOptions, saveWarrantyPrintOptions, type WarrantyItem, type WarrantyKind, type WarrantyRecord } from "@/lib/warrantyPrint";
 
 /** Serials typed one at a time (Enter adds), with optional bulk paste. */
-interface SerialCtx { stock: StockSerial[]; category: string; watt?: number | null; warrantyId: string; certNo: Record<string, string> }
+interface SerialCtx { stock: StockSerial[]; category: string; watt?: number | null; brandText?: string; warrantyId: string; certNo: Record<string, string> }
 function SerialEntry({ value, onChange, ctx }: { value: string[]; onChange: (v: string[]) => void; ctx: SerialCtx }) {
   const [focus, setFocus] = useState(false);
   const [one, setOne] = useState("");
@@ -31,7 +31,7 @@ function SerialEntry({ value, onChange, ctx }: { value: string[]; onChange: (v: 
     return new Set(bad.map((b) => b.serial_key));
   };
   const add = (list: string[]) => { const bad = blocked(list); onChange(parseSerials([...value, ...list.filter((x) => !bad.has(x.replace(/\s/g, "").toUpperCase()))].join("\n"))); };
-  const suggestions = focus ? suggestSerials(ctx.stock, { category: ctx.category, watt: ctx.watt, query: one, exclude: value }) : [];
+  const suggestions = focus ? suggestSerials(ctx.stock, { category: ctx.category, watt: ctx.watt, brandText: ctx.brandText, query: one, exclude: value }) : [];
   const addOne = (picked?: string) => {
     const v = (picked ?? one).trim();
     if (!v) return;
@@ -108,7 +108,7 @@ export default function WarrantiesPage() {
   }, []);
   useEffect(() => { if (user) { void load(); void loadStock(); } }, [user, load, loadStock]);
   const certNo = useMemo(() => Object.fromEntries(list.map((w) => [w.id, w.certificateNo])), [list]);
-  const ctx = (category: string, watt?: number | null): SerialCtx => ({ stock, category, watt, warrantyId: form.id, certNo });
+  const ctx = (category: string, watt?: number | null, brandText?: string): SerialCtx => ({ stock, category, watt, brandText, warrantyId: form.id, certNo });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase().replace(/-/g, "");
@@ -307,7 +307,7 @@ export default function WarrantiesPage() {
             <div className="sm:col-span-2"><Label>Output warranty text</Label><Textarea rows={2} value={form.outputWarranty} onChange={(e) => set("outputWarranty", e.target.value)} /></div>
             <div className="sm:col-span-2">
               <Label>Solar panel serial numbers</Label>
-              <SerialEntry value={form.serialNumbers} onChange={(v) => set("serialNumbers", v)} ctx={ctx("panel", wattFromText(form.productDescription))} />
+              <SerialEntry value={form.serialNumbers} onChange={(v) => set("serialNumbers", v)} ctx={ctx("panel", wattFromText(form.productDescription), form.productDescription)} />
             </div>
             <div className="space-y-3 sm:col-span-2">
               <div className="flex flex-wrap items-center gap-2">
