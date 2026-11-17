@@ -36,15 +36,24 @@ export default function SerialStock({ stock, certNo, reload }: { stock: StockSer
     setFile(f); if (!f) return;
     setBusy(true);
     try {
-      const found = extractSerials(await readSheetText(f));
+      let found = /\.(csv|txt)$/i.test(f.name) ? extractSerials(await readSheetText(f)) : [];
+      if (!found.length) {
+        if (f.size > 10 * 1024 * 1024) throw new Error("File is larger than 10 MB");
+        const data = await new Promise<string>((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => bad(r.error); r.readAsDataURL(f); });
+        const mimeType = f.type || (/\.pdf$/i.test(f.name) ? "application/pdf" : "image/jpeg");
+        const { data: res, error } = await supabase.functions.invoke("serial-extract", { body: { mimeType, data } });
+        if (error || res?.error) throw new Error(res?.error || error?.message || "Could not read sheet");
+        found = res.serials || [];
+      }
       setPreview(found);
-      if (!found.length) toast({ title: "No serial numbers found", description: "This looks like a scanned picture. Please paste or type the numbers below.", variant: "destructive" });
+      if (!found.length) toast({ title: "No serial numbers found", description: "Please paste or type the numbers below.", variant: "destructive" });
       else toast({ title: `${found.length} serial numbers found` });
     } catch (e) { toast({ title: "Could not read file", description: (e as Error).message, variant: "destructive" }); }
     finally { setBusy(false); }
   };
 
   const save = async () => {
+    if (!brand.trim()) { toast({ title: "Enter brand", variant: "destructive" }); return; }
     if (category === "panel" && !Number(watt)) { toast({ title: "Enter panel watt", variant: "destructive" }); return; }
     if (!newOnes.length) { toast({ title: "No new serials to save", variant: "destructive" }); return; }
     setBusy(true);
@@ -90,10 +99,10 @@ export default function SerialStock({ stock, certNo, reload }: { stock: StockSer
             <Select value={category} onValueChange={(v) => setCategory(v as SerialCategory)}><SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{CATS.map((c) => <SelectItem key={c} value={c}>{SERIAL_CATEGORY_LABEL[c]}</SelectItem>)}</SelectContent></Select></div>
           <div><Label>{category === "panel" ? "Panel watt *" : "Size / watt (optional)"}</Label><Input type="number" value={watt} placeholder="e.g. 605" onChange={(e) => setWatt(e.target.value)} /></div>
-          <div><Label>Brand / model</Label><Input value={brand} placeholder="e.g. JA Solar" onChange={(e) => setBrand(e.target.value)} /></div>
+          <div><Label>Brand *</Label><Input value={brand} placeholder="e.g. JA Solar" onChange={(e) => setBrand(e.target.value)} /></div>
           <div><Label>Batch / container</Label><Input value={batch} onChange={(e) => setBatch(e.target.value)} /></div>
         </div>
-        <div><Label>Sheet (PDF, CSV or text)</Label><Input type="file" accept="application/pdf,.csv,.txt,text/plain" disabled={busy} onChange={(e) => readFile(e.target.files?.[0] || null)} /></div>
+        <div><Label>Scanned sheet (PDF or photo){busy ? " — reading serial numbers..." : ""}</Label><Input type="file" accept="application/pdf,image/*,.csv,.txt,text/plain" disabled={busy} onChange={(e) => readFile(e.target.files?.[0] || null)} /></div>
         <div><Label>Or paste / type serials</Label>
           <div className="flex gap-2"><Textarea rows={2} className="font-mono" value={extra} placeholder="One per line or comma separated" onChange={(e) => setExtra(e.target.value)} />
             <Button type="button" variant="secondary" onClick={() => { setPreview((p) => [...p, ...extractSerials(extra).filter((x) => !p.some((y) => serialKey(y) === serialKey(x)))]); setExtra(""); }}>Add</Button></div></div>

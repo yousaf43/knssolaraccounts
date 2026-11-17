@@ -18,3 +18,16 @@ describe("warranty serials", () => {
     expect(usedElsewhere(stock, "PANEL605AAA3", "w1")).toBeUndefined();
   });
 });
+
+import { brandMatches as bm, suggestSerials as ss } from "@/lib/warrantySerials";
+describe("brand matching for warranty dropdown", () => {
+  const base = { status: "available", warranty_id: null, category: "panel", watt: 605 } as any;
+  const stock = [{ ...base, id: "1", serial: "JA1", serial_key: "JA1", brand_model: "JA Solar" }, { ...base, id: "2", serial: "LG1", serial_key: "LG1", brand_model: "Longi" }];
+  it("shows only the brand named in the product", () => {
+    expect(ss(stock, { category: "panel", watt: 605, brandText: "A Grade JA Solar 605W", query: "", exclude: [] }).map((s) => s.id)).toEqual(["1"]);
+  });
+  it("hides used serials", () => {
+    expect(ss([{ ...stock[0], warranty_id: "w" }], { category: "panel", query: "", exclude: [] })).toEqual([]);
+  });
+  it("blank brand text matches all", () => { expect(bm("Longi", "")).toBe(true); });
+});

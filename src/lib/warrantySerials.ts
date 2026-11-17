@@ -32,13 +32,21 @@ export function wattFromText(text: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** True when the product text mentions the serial's brand (or either side is blank). */
+export function brandMatches(brand?: string | null, text?: string): boolean {
+  const b = (brand || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const t = (text || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return !b || !t || t.includes(b) || b.includes(t);
+}
+
 /** Available serials for a category (and watt, for panels) that match what the user is typing. */
-export function suggestSerials(stock: StockSerial[], opts: { category: string; watt?: number | null; query: string; exclude: string[]; limit?: number }): StockSerial[] {
+export function suggestSerials(stock: StockSerial[], opts: { category: string; watt?: number | null; brandText?: string; query: string; exclude: string[]; limit?: number }): StockSerial[] {
   const q = serialKey(opts.query);
   const ex = new Set(opts.exclude.map(serialKey));
   return stock.filter((s) =>
     s.status === "available" && !s.warranty_id && s.category === opts.category &&
     (!opts.watt || !s.watt || Number(s.watt) === Number(opts.watt)) &&
+    brandMatches(s.brand_model, opts.brandText) &&
     !ex.has(s.serial_key) && (!q || s.serial_key.includes(q)),
   ).slice(0, opts.limit ?? 8);
 }
