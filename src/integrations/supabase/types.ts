@@ -2004,6 +2004,65 @@ export type Database = {
           },
         ]
       }
+      warranty_serials: {
+        Row: {
+          batch_label: string | null
+          brand_model: string | null
+          category: string
+          company_id: string | null
+          created_at: string
+          id: string
+          serial: string
+          serial_key: string
+          source_path: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          warranty_id: string | null
+          watt: number | null
+        }
+        Insert: {
+          batch_label?: string | null
+          brand_model?: string | null
+          category?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          serial: string
+          serial_key: string
+          source_path?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          warranty_id?: string | null
+          watt?: number | null
+        }
+        Update: {
+          batch_label?: string | null
+          brand_model?: string | null
+          category?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          serial?: string
+          serial_key?: string
+          source_path?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          warranty_id?: string | null
+          watt?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warranty_serials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workplace_rules: {
         Row: {
           category: string | null
@@ -2088,6 +2147,14 @@ export type Database = {
           last_seen_at: string
           name: string
           serial: string
+        }[]
+      }
+      warranty_serial_items: {
+        Args: { w: Database["public"]["Tables"]["warranties"]["Row"] }
+        Returns: {
+          category: string
+          serial: string
+          serial_key: string
         }[]
       }
     }

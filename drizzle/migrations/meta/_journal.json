@@ -64,6 +64,13 @@
       "when": 1794223707731,
       "tag": "0008_warranty_extra_items",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794911396658,
+      "tag": "0009_warranty_serials",
+      "breakpoints": true
     }
   ]
 }

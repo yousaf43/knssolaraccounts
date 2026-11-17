@@ -13,16 +13,27 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCustomersCloud } from "@/hooks/useAppData";
 import { toast } from "@/hooks/use-toast";
 import { attachmentPages } from "@/lib/attachmentPages";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SerialStock from "@/components/warranty/SerialStock";
+import { suggestSerials, usedElsewhere, wattFromText, type StockSerial } from "@/lib/warrantySerials";
 import { DEFAULT_OUTPUT_WARRANTY, KIND_DEFAULTS, KIND_LABEL, dmy, parseSerials, printWarranty, openPrintWindow, getWarrantyPrintOptions, saveWarrantyPrintOptions, type WarrantyItem, type WarrantyKind, type WarrantyRecord } from "@/lib/warrantyPrint";
 
 /** Serials typed one at a time (Enter adds), with optional bulk paste. */
-function SerialEntry({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+interface SerialCtx { stock: StockSerial[]; category: string; watt?: number | null; warrantyId: string; certNo: Record<string, string> }
+function SerialEntry({ value, onChange, ctx }: { value: string[]; onChange: (v: string[]) => void; ctx: SerialCtx }) {
+  const [focus, setFocus] = useState(false);
   const [one, setOne] = useState("");
   const [bulk, setBulk] = useState(false);
   const [bulkText, setBulkText] = useState("");
-  const add = (list: string[]) => { onChange(parseSerials([...value, ...list].join("\n"))); };
-  const addOne = () => {
-    const v = one.trim();
+  const blocked = (list: string[]) => {
+    const bad = list.map((x) => usedElsewhere(ctx.stock, x, ctx.warrantyId)).filter(Boolean) as StockSerial[];
+    if (bad.length) toast({ title: "Already used in another warranty", description: bad.map((b) => `${b.serial} (${ctx.certNo[b.warranty_id!] || "warranty"})`).join(", "), variant: "destructive" });
+    return new Set(bad.map((b) => b.serial_key));
+  };
+  const add = (list: string[]) => { const bad = blocked(list); onChange(parseSerials([...value, ...list.filter((x) => !bad.has(x.replace(/\s/g, "").toUpperCase()))].join("\n"))); };
+  const suggestions = focus ? suggestSerials(ctx.stock, { category: ctx.category, watt: ctx.watt, query: one, exclude: value }) : [];
+  const addOne = (picked?: string) => {
+    const v = (picked ?? one).trim();
     if (!v) return;
     if (value.some((x) => x.toUpperCase() === v.toUpperCase())) { toast({ title: "Serial already added", description: v, variant: "destructive" }); return; }
     add([v]); setOne("");
@@ -30,8 +41,13 @@ function SerialEntry({ value, onChange }: { value: string[]; onChange: (v: strin
   return (
     <div className="space-y-2 rounded-md border p-2">
       <div className="flex gap-2">
-        <Input className="font-mono" placeholder="Type or scan a serial, press Enter" value={one} onChange={(e) => setOne(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOne(); } }} />
-        <Button type="button" variant="secondary" onClick={addOne}>Add</Button>
+        <div className="relative flex-1">
+          <Input className="font-mono" placeholder="Type or scan a serial, press Enter" value={one} onFocus={() => setFocus(true)} onBlur={() => setTimeout(() => setFocus(false), 150)} onChange={(e) => setOne(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOne(); } }} />
+          {suggestions.length > 0 && <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+            {suggestions.map((s) => <button key={s.id} type="button" className="flex w-full justify-between px-3 py-1.5 text-left font-mono text-sm hover:bg-accent" onMouseDown={(e) => { e.preventDefault(); addOne(s.serial); }}><span>{s.serial}</span><span className="text-xs text-muted-foreground">{s.watt ? `${s.watt}W ` : ""}{s.brand_model || ""}</span></button>)}
+          </div>}
+        </div>
+        <Button type="button" variant="secondary" onClick={() => addOne()}>Add</Button>
         <Button type="button" variant="ghost" onClick={() => setBulk((b) => !b)}>{bulk ? "Close" : "Paste many"}</Button>
       </div>
       {bulk && <div className="space-y-1"><Textarea rows={4} className="font-mono" placeholder="One per line or comma separated" value={bulkText} onChange={(e) => setBulkText(e.target.value)} /><Button type="button" size="sm" onClick={() => { add(parseSerials(bulkText)); setBulkText(""); setBulk(false); }}>Add all</Button></div>}
@@ -72,6 +88,17 @@ export default function WarrantiesPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [printOpts, setPrintOpts] = useState(getWarrantyPrintOptions);
+  const [stock, setStock] = useState<StockSerial[]>([]);
+  const loadStock = useCallback(async () => {
+    const all: StockSerial[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from("warranty_serials" as never).select("*").order("created_at", { ascending: false }).range(from, from + 999);
+      if (error) break;
+      all.push(...((data || []) as StockSerial[]));
+      if (!data || data.length < 1000) break;
+    }
+    setStock(all);
+  }, []);
   const updatePrint = (patch: Partial<typeof printOpts>) => setPrintOpts((o) => { const n = { ...o, ...patch }; saveWarrantyPrintOptions(n); return n; });
 
   const load = useCallback(async () => {
@@ -79,7 +106,9 @@ export default function WarrantiesPage() {
     if (error) toast({ title: "Could not load warranties", description: error.message, variant: "destructive" });
     else setList(((data || []) as Row[]).map(fromDb));
   }, []);
-  useEffect(() => { if (user) void load(); }, [user, load]);
+  useEffect(() => { if (user) { void load(); void loadStock(); } }, [user, load, loadStock]);
+  const certNo = useMemo(() => Object.fromEntries(list.map((w) => [w.id, w.certificateNo])), [list]);
+  const ctx = (category: string, watt?: number | null): SerialCtx => ({ stock, category, watt, warrantyId: form.id, certNo });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase().replace(/-/g, "");
@@ -169,7 +198,7 @@ export default function WarrantiesPage() {
       const saved = fromDb(data as Row);
       toast({ title: "Warranty saved" });
       setOpen(false);
-      await load();
+      await Promise.all([load(), loadStock()]);
       if (andPrint) await doPrint(saved, printWin);
     } catch (e) {
       printWin?.close();
@@ -182,7 +211,7 @@ export default function WarrantiesPage() {
     if (error) { toast({ title: "Could not delete", description: error.message, variant: "destructive" }); return; }
     if (w.attachmentPath) await supabase.storage.from("warranty-attachments").remove([w.attachmentPath]);
     toast({ title: "Warranty deleted" });
-    void load();
+    void load(); void loadStock();
   };
 
   const viewAttachment = async (w: WarrantyRecord) => {
@@ -200,6 +229,10 @@ export default function WarrantiesPage() {
         <Button onClick={openNew}><Plus className="mr-1 h-4 w-4" />New Warranty</Button>
       </div>
 
+      <Tabs defaultValue="certificates">
+      <TabsList><TabsTrigger value="certificates">Certificates</TabsTrigger><TabsTrigger value="serials">Serial Numbers</TabsTrigger></TabsList>
+      <TabsContent value="serials"><SerialStock stock={stock} certNo={certNo} reload={loadStock} /></TabsContent>
+      <TabsContent value="certificates" className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 text-sm">
         <label className="flex items-center gap-2 font-medium">
           <input type="checkbox" className="h-4 w-4" checked={!!printOpts.letterhead} onChange={(e) => updatePrint({ letterhead: e.target.checked })} />
@@ -248,6 +281,8 @@ export default function WarrantiesPage() {
           </tbody>
         </table>
       </div>
+      </TabsContent>
+      </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
@@ -272,7 +307,7 @@ export default function WarrantiesPage() {
             <div className="sm:col-span-2"><Label>Output warranty text</Label><Textarea rows={2} value={form.outputWarranty} onChange={(e) => set("outputWarranty", e.target.value)} /></div>
             <div className="sm:col-span-2">
               <Label>Solar panel serial numbers</Label>
-              <SerialEntry value={form.serialNumbers} onChange={(v) => set("serialNumbers", v)} />
+              <SerialEntry value={form.serialNumbers} onChange={(v) => set("serialNumbers", v)} ctx={ctx("panel", wattFromText(form.productDescription))} />
             </div>
             <div className="space-y-3 sm:col-span-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -294,7 +329,7 @@ export default function WarrantiesPage() {
                   <div><Label>Quantity</Label><Input type="number" value={it.quantity || ""} onChange={(e) => setItem(idx, { quantity: Number(e.target.value) || 0 })} /></div>
                   <div><Label>Warranty (years)</Label><Input type="number" value={it.years || ""} onChange={(e) => setItem(idx, { years: Number(e.target.value) || 0 })} /></div>
                   <div className="sm:col-span-4"><Label>Warranty terms</Label><Textarea rows={2} value={it.terms} onChange={(e) => setItem(idx, { terms: e.target.value })} /></div>
-                  <div className="sm:col-span-4"><Label>Serial numbers</Label><SerialEntry value={it.serials} onChange={(v) => setItem(idx, { serials: v })} /></div>
+                  <div className="sm:col-span-4"><Label>Serial numbers</Label><SerialEntry value={it.serials} onChange={(v) => setItem(idx, { serials: v })} ctx={ctx(it.kind)} /></div>
                 </div>
               ))}
             </div>
